@@ -1,0 +1,39 @@
+{
+  "name": "playstake",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "db:up": "docker compose up -d postgres redis",
+    "db:down": "docker compose down",
+    "db:migrate": "npx prisma migrate dev",
+    "db:migrate:deploy": "npx prisma migrate deploy",
+    "db:seed": "npx tsx prisma/seed.ts",
+    "db:reset": "npx prisma migrate reset",
+    "db:studio": "npx prisma studio",
+    "prisma:generate": "npx prisma generate",
+    "prisma:format": "npx prisma format",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Real-money peer-to-peer wagering platform for competitive games",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.4.2",
+    "@prisma/client": "^7.4.2",
+    "@prisma/pg-worker": "^6.9.0",
+    "@types/node": "^25.4.0",
+    "dotenv": "^17.3.1",
+    "pg": "^8.20.0",
+    "prisma": "^7.4.2",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
