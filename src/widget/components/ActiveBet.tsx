@@ -1,0 +1,114 @@
+import React from "react";
+import type { BetData } from "../types";
+import { formatCents } from "../utils";
+
+interface ActiveBetProps {
+  bet: BetData;
+  onConfirmResult: (betId: string, outcome: string) => void;
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  PENDING_CONSENT: "Awaiting Consent",
+  OPEN: "Waiting for Opponent",
+  MATCHED: "In Progress",
+  RESULT_REPORTED: "Result Reported",
+  DISPUTED: "Disputed",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  PENDING_CONSENT: "ps-status--warning",
+  OPEN: "ps-status--info",
+  MATCHED: "ps-status--active",
+  RESULT_REPORTED: "ps-status--pending",
+  DISPUTED: "ps-status--danger",
+};
+
+/**
+ * Shows the current active/matched bet.
+ * Displays status indicator, both players, amount, and game state.
+ * When a result is reported, shows a prompt to confirm via widget-result.
+ */
+export function ActiveBet({ bet, onConfirmResult }: ActiveBetProps) {
+  const statusLabel = STATUS_LABELS[bet.status] || bet.status;
+  const statusClass = STATUS_COLORS[bet.status] || "";
+  const showResultConfirm = bet.status === "RESULT_REPORTED" && bet.outcome && !bet.resultVerified;
+
+  return (
+    <div className="ps-active-bet">
+      <div className="ps-active-bet__header">
+        <h4 className="ps-section-title">Active Bet</h4>
+        <span className={`ps-status ${statusClass}`} role="status">
+          <span className="ps-status__dot" />
+          {statusLabel}
+        </span>
+      </div>
+
+      <div className="ps-active-bet__card">
+        <div className="ps-active-bet__amount">{formatCents(bet.amount)}</div>
+        <div className="ps-active-bet__versus">per player</div>
+
+        <div className="ps-active-bet__players">
+          <div className="ps-active-bet__player">
+            <span className="ps-active-bet__player-label">Player A</span>
+            <span className="ps-active-bet__player-name">
+              {bet.playerA?.displayName || "---"}
+            </span>
+          </div>
+          <span className="ps-active-bet__vs">VS</span>
+          <div className="ps-active-bet__player">
+            <span className="ps-active-bet__player-label">Player B</span>
+            <span className="ps-active-bet__player-name">
+              {bet.playerB?.displayName || "Waiting..."}
+            </span>
+          </div>
+        </div>
+
+        {bet.gameMetadata && Object.keys(bet.gameMetadata).length > 0 && (
+          <div className="ps-active-bet__meta">
+            {Object.entries(bet.gameMetadata).map(([key, value]) => (
+              <span key={key} className="ps-tag">
+                {key}: {String(value)}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {showResultConfirm && (
+        <div className="ps-active-bet__result-prompt" role="alert">
+          <p className="ps-active-bet__result-text">
+            Result reported: <strong>{formatOutcome(bet.outcome!)}</strong>
+          </p>
+          <p className="ps-hint">Please confirm or dispute this result.</p>
+          <div className="ps-active-bet__result-actions">
+            <button
+              className="ps-btn ps-btn--primary"
+              onClick={() => onConfirmResult(bet.betId, bet.outcome!)}
+            >
+              Confirm Result
+            </button>
+            <button
+              className="ps-btn ps-btn--danger"
+              onClick={() => onConfirmResult(bet.betId, "__DISPUTE__")}
+            >
+              Dispute
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatOutcome(outcome: string): string {
+  switch (outcome) {
+    case "PLAYER_A_WIN":
+      return "Player A Wins";
+    case "PLAYER_B_WIN":
+      return "Player B Wins";
+    case "DRAW":
+      return "Draw";
+    default:
+      return outcome;
+  }
+}

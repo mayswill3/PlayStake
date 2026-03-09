@@ -20,7 +20,9 @@
     "test:ledger": "vitest run tests/unit/ledger/",
     "test:auth": "vitest run tests/unit/auth/",
     "workers": "npx tsx src/workers/index.ts",
-    "workers:dev": "npx tsx --watch src/workers/index.ts"
+    "workers:dev": "npx tsx --watch src/workers/index.ts",
+    "widget:build": "npx tsx widget.build.ts",
+    "widget:build:prod": "NODE_ENV=production npx tsx widget.build.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -37,10 +39,13 @@
     "bcrypt": "^6.0.0",
     "bullmq": "^5.70.4",
     "dotenv": "^17.3.1",
+    "esbuild": "^0.27.3",
     "ioredis": "^5.10.0",
     "next": "^16.1.6",
     "pg": "^8.20.0",
     "prisma": "^7.4.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
@@ -48,6 +53,8 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "vitest": "^4.0.18"
   }
 }
