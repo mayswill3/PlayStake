@@ -1,0 +1,577 @@
+// =============================================================================
+// PlayStake - Complete Prisma Schema
+// =============================================================================
+// Double-entry ledger pattern for all money movement.
+// UUIDs for all public-facing IDs.
+// Soft deletes where business rules require audit trails.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum UserRole {
+  PLAYER
+  DEVELOPER
+  ADMIN
+}
+
+enum KycStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum TransactionType {
+  DEPOSIT            // Stripe -> platform wallet (credit player, debit stripe-source)
+  WITHDRAWAL         // platform wallet -> Stripe (debit player, credit stripe-sink)
+  BET_ESCROW         // player wallet -> escrow hold (debit player, credit escrow)
+  BET_ESCROW_RELEASE // escrow -> winner wallet (debit escrow, credit winner)
+  BET_ESCROW_REFUND  // escrow -> original player (debit escrow, credit player) on cancellation
+  PLATFORM_FEE       // deducted from winnings (debit escrow, credit platform-revenue)
+  DEVELOPER_SHARE    // optional rev-share to game developer (debit platform-revenue, credit developer)
+  ADJUSTMENT         // manual admin adjustment with reason
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REVERSED
+}
+
+enum LedgerAccountType {
+  PLAYER_BALANCE     // each player has one
+  DEVELOPER_BALANCE  // each developer has one
+  ESCROW             // per-bet escrow hold
+  PLATFORM_REVENUE   // PlayStake fee accumulator
+  STRIPE_SOURCE      // virtual contra-account for inbound Stripe funds
+  STRIPE_SINK        // virtual contra-account for outbound Stripe funds
+}
+
+enum BetStatus {
+  PENDING_CONSENT    // bet proposed by game server, awaiting player confirmation via widget
+  OPEN               // player A consented and funds escrowed, waiting for opponent
+  MATCHED            // opponent accepted, both players' funds escrowed, game in progress
+  RESULT_REPORTED    // game server reported a result, awaiting confirmation window
+  SETTLED            // payout distributed
+  CANCELLED          // creator cancelled before match, or expired
+  DISPUTED           // one or both players dispute the result
+  VOIDED             // admin voided after dispute review
+}
+
+enum BetOutcome {
+  PLAYER_A_WIN
+  PLAYER_B_WIN
+  DRAW
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_PLAYER_A
+  RESOLVED_PLAYER_B
+  RESOLVED_DRAW
+  RESOLVED_VOID
+}
+
+enum WebhookEventType {
+  BET_CREATED
+  BET_MATCHED
+  BET_RESULT_REPORTED
+  BET_SETTLED
+  BET_CANCELLED
+  BET_DISPUTED
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+  RETRYING
+}
+
+enum WidgetSessionStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+// =============================================================================
+// USER & AUTH
+// =============================================================================
+
+model User {
+  id                String    @id @default(uuid()) @db.Uuid
+  email             String    @unique @db.VarChar(255)
+  passwordHash      String    @map("password_hash") @db.VarChar(255)
+  role              UserRole  @default(PLAYER)
+  displayName       String    @map("display_name") @db.VarChar(100)
+  avatarUrl         String?   @map("avatar_url") @db.VarChar(500)
+  kycStatus         KycStatus @default(NOT_STARTED) @map("kyc_status")
+  stripeCustomerId  String?   @unique @map("stripe_customer_id") @db.VarChar(255)
+  emailVerified     Boolean   @default(false) @map("email_verified")
+  twoFactorEnabled  Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorSecret   String?   @map("two_factor_secret") @db.VarChar(255)
+  lastLoginAt       DateTime? @map("last_login_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+
+  // Relations
+  ledgerAccounts    LedgerAccount[]
+  sessionsAsPlayerA Bet[]            @relation("PlayerA")
+  sessionsAsPlayerB Bet[]            @relation("PlayerB")
+  disputesFiled     Dispute[]        @relation("DisputeFiler")
+  disputeMessages   DisputeMessage[]
+  developerProfile  DeveloperProfile?
+  widgetSessions    WidgetSession[]
+  sessions          Session[]
+
+  @@index([email], map: "idx_user_email")
+  @@index([stripeCustomerId], map: "idx_user_stripe_customer")
+  @@index([role], map: "idx_user_role")
+  @@index([createdAt], map: "idx_user_created_at")
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  tokenHash    String   @unique @map("token_hash") @db.VarChar(255)
+  ipAddress    String?  @map("ip_address") @db.VarChar(45)
+  userAgent    String?  @map("user_agent") @db.VarChar(500)
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "idx_session_user")
+  @@index([expiresAt], map: "idx_session_expires")
+  @@map("sessions")
+}
+
+// =============================================================================
+// DEVELOPER / GAME REGISTRATION
+// =============================================================================
+
+model DeveloperProfile {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @map("user_id") @db.Uuid
+  companyName     String   @map("company_name") @db.VarChar(255)
+  websiteUrl      String?  @map("website_url") @db.VarChar(500)
+  contactEmail    String   @map("contact_email") @db.VarChar(255)
+  revSharePercent Decimal  @default(0) @map("rev_share_percent") @db.Decimal(5, 4) // e.g. 0.0500 = 5%
+  isApproved      Boolean  @default(false) @map("is_approved")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user         User                  @relation(fields: [userId], references: [id])
+  games        Game[]
+  apiKeys      ApiKey[]
+  escrowLimit  DeveloperEscrowLimit?
+
+  @@map("developer_profiles")
+}
+
+model Game {
+  id                 String   @id @default(uuid()) @db.Uuid
+  developerProfileId String   @map("developer_profile_id") @db.Uuid
+  name               String   @db.VarChar(255)
+  slug               String   @unique @db.VarChar(255)
+  description        String?  @db.Text
+  logoUrl            String?  @map("logo_url") @db.VarChar(500)
+  webhookUrl         String?  @map("webhook_url") @db.VarChar(500)
+  webhookSecret      String?  @map("webhook_secret") @db.VarChar(255) // HMAC secret for signing outbound webhooks
+  isActive           Boolean  @default(true) @map("is_active")
+  maxBetAmount       Decimal  @default(1000) @map("max_bet_amount") @db.Decimal(12, 2)
+  minBetAmount       Decimal  @default(1) @map("min_bet_amount") @db.Decimal(12, 2)
+  platformFeePercent Decimal  @default(0.05) @map("platform_fee_percent") @db.Decimal(5, 4) // 0.0500 = 5%
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  developerProfile DeveloperProfile @relation(fields: [developerProfileId], references: [id])
+  bets             Bet[]
+  webhookConfigs   WebhookConfig[]
+
+  @@index([developerProfileId], map: "idx_game_developer")
+  @@index([slug], map: "idx_game_slug")
+  @@index([isActive], map: "idx_game_active")
+  @@map("games")
+}
+
+model ApiKey {
+  id                 String   @id @default(uuid()) @db.Uuid
+  developerProfileId String   @map("developer_profile_id") @db.Uuid
+  keyPrefix          String   @map("key_prefix") @db.VarChar(8)  // first 8 chars for identification: "ps_live_"
+  keyHash            String   @unique @map("key_hash") @db.VarChar(255) // SHA-256 hash of full key
+  label              String   @db.VarChar(100)
+  permissions        String[] @default(["bet:create", "bet:read", "result:report"]) // granular scopes
+  isActive           Boolean  @default(true) @map("is_active")
+  lastUsedAt         DateTime? @map("last_used_at")
+  expiresAt          DateTime? @map("expires_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  revokedAt          DateTime? @map("revoked_at")
+
+  developerProfile DeveloperProfile @relation(fields: [developerProfileId], references: [id])
+
+  @@index([keyHash], map: "idx_apikey_hash")
+  @@index([developerProfileId], map: "idx_apikey_developer")
+  @@map("api_keys")
+}
+
+// =============================================================================
+// DOUBLE-ENTRY LEDGER
+// =============================================================================
+// Every money movement creates exactly TWO LedgerEntry rows that sum to zero.
+// LedgerAccount.balance is a materialized balance updated atomically with entries.
+// =============================================================================
+
+model LedgerAccount {
+  id          String            @id @default(uuid()) @db.Uuid
+  userId      String?           @map("user_id") @db.Uuid    // null for system accounts (escrow, platform-revenue, stripe contra)
+  betId       String?           @map("bet_id") @db.Uuid     // non-null only for per-bet escrow accounts
+  accountType LedgerAccountType @map("account_type")
+  balance     Decimal           @default(0) @db.Decimal(14, 2)
+  currency    String            @default("USD") @db.VarChar(3)
+  frozen      Boolean           @default(false) // true if account under review
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  user    User?         @relation(fields: [userId], references: [id])
+  bet     Bet?          @relation(fields: [betId], references: [id])
+  entries LedgerEntry[]
+
+  @@unique([userId, accountType], map: "uq_user_account_type") // one PLAYER_BALANCE per user etc.
+  @@index([accountType], map: "idx_ledger_account_type")
+  @@index([userId], map: "idx_ledger_account_user")
+  @@index([betId], map: "idx_ledger_account_bet")
+  @@map("ledger_accounts")
+}
+
+model LedgerEntry {
+  id               String            @id @default(uuid()) @db.Uuid
+  ledgerAccountId  String            @map("ledger_account_id") @db.Uuid
+  transactionId    String            @map("transaction_id") @db.Uuid
+  amount           Decimal           @db.Decimal(14, 2) // positive = credit, negative = debit
+  balanceAfter     Decimal           @map("balance_after") @db.Decimal(14, 2) // snapshot after this entry
+  createdAt        DateTime          @default(now()) @map("created_at")
+
+  ledgerAccount LedgerAccount @relation(fields: [ledgerAccountId], references: [id])
+  transaction   Transaction   @relation(fields: [transactionId], references: [id])
+
+  @@index([ledgerAccountId, createdAt], map: "idx_entry_account_time")
+  @@index([transactionId], map: "idx_entry_transaction")
+  @@map("ledger_entries")
+}
+
+model Transaction {
+  id               String            @id @default(uuid()) @db.Uuid
+  idempotencyKey   String            @unique @map("idempotency_key") @db.VarChar(255) // caller-provided or system-generated
+  type             TransactionType
+  status           TransactionStatus @default(PENDING)
+  amount           Decimal           @db.Decimal(14, 2) // absolute amount of the movement
+  currency         String            @default("USD") @db.VarChar(3)
+  description      String?           @db.VarChar(500)
+  metadata         Json?             // flexible extra data (Stripe payment intent ID, etc.)
+  betId            String?           @map("bet_id") @db.Uuid
+  stripePaymentId  String?           @map("stripe_payment_id") @db.VarChar(255)
+  failureReason    String?           @map("failure_reason") @db.VarChar(500)
+  completedAt      DateTime?         @map("completed_at")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  bet     Bet?          @relation(fields: [betId], references: [id])
+  entries LedgerEntry[]
+
+  @@index([type, status], map: "idx_txn_type_status")
+  @@index([betId], map: "idx_txn_bet")
+  @@index([stripePaymentId], map: "idx_txn_stripe")
+  @@index([createdAt], map: "idx_txn_created")
+  @@index([idempotencyKey], map: "idx_txn_idempotency")
+  @@map("transactions")
+}
+
+// =============================================================================
+// BETS / MATCHES
+// =============================================================================
+
+model Bet {
+  id                  String      @id @default(uuid()) @db.Uuid
+  externalId          String?     @unique @map("external_id") @db.VarChar(255) // developer-assigned ID for their system
+  gameId              String      @map("game_id") @db.Uuid
+  playerAId           String      @map("player_a_id") @db.Uuid
+  playerBId           String?     @map("player_b_id") @db.Uuid // null while OPEN
+  amount              Decimal     @db.Decimal(12, 2) // wager amount per player
+  currency            String      @default("USD") @db.VarChar(3)
+  status              BetStatus   @default(PENDING_CONSENT)
+  outcome             BetOutcome? // set when result is reported
+  platformFeePercent  Decimal     @map("platform_fee_percent") @db.Decimal(5, 4) // snapshot from game config at creation time
+  platformFeeAmount   Decimal?    @map("platform_fee_amount") @db.Decimal(12, 2) // calculated at settlement
+  gameMetadata        Json?       @map("game_metadata") // arbitrary game-specific data (map, mode, etc.)
+  resultPayload       Json?       @map("result_payload") // raw result from game server
+  resultReportedAt    DateTime?   @map("result_reported_at")
+  resultIdempotencyKey String?    @unique @map("result_idempotency_key") @db.VarChar(255)
+  // --- Security: dual-source result verification ---
+  serverResultHash    String?     @map("server_result_hash") @db.VarChar(255) // SHA-256 of outcome+betId from game server
+  widgetResultHash    String?     @map("widget_result_hash") @db.VarChar(255) // SHA-256 of outcome+betId from widget/client
+  resultVerified      Boolean     @default(false) @map("result_verified") // true when both hashes match
+  // --- Security: player consent timestamps ---
+  playerAConsentedAt  DateTime?   @map("player_a_consented_at") // when player A confirmed via widget
+  playerBConsentedAt  DateTime?   @map("player_b_consented_at") // when player B accepted via widget
+  matchedAt           DateTime?   @map("matched_at")
+  settledAt           DateTime?   @map("settled_at")
+  cancelledAt         DateTime?   @map("cancelled_at")
+  expiresAt           DateTime    @map("expires_at") // auto-cancel if not matched by this time
+  consentExpiresAt    DateTime?   @map("consent_expires_at") // auto-cancel if player doesn't consent
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+
+  game            Game            @relation(fields: [gameId], references: [id])
+  playerA         User            @relation("PlayerA", fields: [playerAId], references: [id])
+  playerB         User?           @relation("PlayerB", fields: [playerBId], references: [id])
+  transactions    Transaction[]
+  disputes        Dispute[]
+  escrowAccounts  LedgerAccount[]
+  webhookLogs     WebhookDeliveryLog[]
+
+  @@index([gameId, status], map: "idx_bet_game_status")
+  @@index([playerAId, status], map: "idx_bet_player_a_status")
+  @@index([playerBId, status], map: "idx_bet_player_b_status")
+  @@index([status, expiresAt], map: "idx_bet_status_expires")
+  @@index([createdAt], map: "idx_bet_created")
+  @@index([externalId], map: "idx_bet_external")
+  @@map("bets")
+}
+
+// =============================================================================
+// DISPUTES
+// =============================================================================
+
+model Dispute {
+  id            String        @id @default(uuid()) @db.Uuid
+  betId         String        @map("bet_id") @db.Uuid
+  filedById     String        @map("filed_by_id") @db.Uuid
+  status        DisputeStatus @default(OPEN)
+  reason        String        @db.Text
+  resolution    String?       @db.Text
+  resolvedById  String?       @map("resolved_by_id") @db.Uuid // admin who resolved
+  resolvedAt    DateTime?     @map("resolved_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  bet      Bet              @relation(fields: [betId], references: [id])
+  filedBy  User             @relation("DisputeFiler", fields: [filedById], references: [id])
+  messages DisputeMessage[]
+
+  @@index([betId], map: "idx_dispute_bet")
+  @@index([status], map: "idx_dispute_status")
+  @@index([filedById], map: "idx_dispute_filed_by")
+  @@map("disputes")
+}
+
+model DisputeMessage {
+  id         String   @id @default(uuid()) @db.Uuid
+  disputeId  String   @map("dispute_id") @db.Uuid
+  authorId   String   @map("author_id") @db.Uuid
+  body       String   @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  dispute Dispute @relation(fields: [disputeId], references: [id])
+  author  User    @relation(fields: [authorId], references: [id])
+
+  @@index([disputeId, createdAt], map: "idx_dispute_msg_thread")
+  @@map("dispute_messages")
+}
+
+// =============================================================================
+// WEBHOOKS (outbound to game developers)
+// =============================================================================
+
+model WebhookConfig {
+  id         String             @id @default(uuid()) @db.Uuid
+  gameId     String             @map("game_id") @db.Uuid
+  url        String             @db.VarChar(500)
+  secret     String             @db.VarChar(255) // HMAC-SHA256 signing secret
+  events     WebhookEventType[] // which events to deliver
+  isActive   Boolean            @default(true) @map("is_active")
+  createdAt  DateTime           @default(now()) @map("created_at")
+  updatedAt  DateTime           @updatedAt @map("updated_at")
+
+  game         Game                 @relation(fields: [gameId], references: [id])
+  deliveryLogs WebhookDeliveryLog[]
+
+  @@index([gameId], map: "idx_webhook_config_game")
+  @@map("webhook_configs")
+}
+
+model WebhookDeliveryLog {
+  id              String                @id @default(uuid()) @db.Uuid
+  webhookConfigId String                @map("webhook_config_id") @db.Uuid
+  betId           String?               @map("bet_id") @db.Uuid
+  eventType       WebhookEventType      @map("event_type")
+  payload         Json
+  status          WebhookDeliveryStatus @default(PENDING)
+  httpStatus      Int?                  @map("http_status")
+  responseBody    String?               @map("response_body") @db.Text
+  attemptCount    Int                   @default(0) @map("attempt_count")
+  nextRetryAt     DateTime?             @map("next_retry_at")
+  deliveredAt     DateTime?             @map("delivered_at")
+  createdAt       DateTime              @default(now()) @map("created_at")
+
+  webhookConfig WebhookConfig @relation(fields: [webhookConfigId], references: [id])
+  bet           Bet?          @relation(fields: [betId], references: [id])
+
+  @@index([webhookConfigId, createdAt], map: "idx_webhook_log_config")
+  @@index([status, nextRetryAt], map: "idx_webhook_log_retry")
+  @@index([betId], map: "idx_webhook_log_bet")
+  @@map("webhook_delivery_logs")
+}
+
+// =============================================================================
+// WIDGET SESSION (short-lived tokens for in-game widget)
+// =============================================================================
+
+model WidgetSession {
+  id          String              @id @default(uuid()) @db.Uuid
+  userId      String              @map("user_id") @db.Uuid
+  gameId      String              @map("game_id") @db.Uuid
+  tokenHash   String              @unique @map("token_hash") @db.VarChar(255)
+  status      WidgetSessionStatus @default(ACTIVE)
+  ipAddress   String?             @map("ip_address") @db.VarChar(45)
+  expiresAt   DateTime            @map("expires_at")
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([tokenHash], map: "idx_widget_session_token")
+  @@index([userId, gameId], map: "idx_widget_session_user_game")
+  @@index([expiresAt], map: "idx_widget_session_expires")
+  @@map("widget_sessions")
+}
+
+// =============================================================================
+// STRIPE EVENTS (idempotent processing of inbound Stripe webhooks)
+// =============================================================================
+
+model StripeEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  stripeEventId   String   @unique @map("stripe_event_id") @db.VarChar(255)
+  eventType       String   @map("event_type") @db.VarChar(255)
+  payload         Json
+  processed       Boolean  @default(false)
+  processedAt     DateTime? @map("processed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([stripeEventId], map: "idx_stripe_event_id")
+  @@index([processed, createdAt], map: "idx_stripe_event_unprocessed")
+  @@map("stripe_events")
+}
+
+// =============================================================================
+// DEVELOPER ESCROW CAPS (limits blast radius of compromised developers)
+// =============================================================================
+
+model DeveloperEscrowLimit {
+  id                 String   @id @default(uuid()) @db.Uuid
+  developerProfileId String   @unique @map("developer_profile_id") @db.Uuid
+  maxTotalEscrow     Decimal  @default(50000) @map("max_total_escrow") @db.Decimal(14, 2) // max $ in escrow across all bets
+  maxSingleBet       Decimal  @default(1000) @map("max_single_bet") @db.Decimal(14, 2) // max per-bet amount
+  currentEscrow      Decimal  @default(0) @map("current_escrow") @db.Decimal(14, 2) // materialized running total
+  tier               String   @default("STARTER") @db.VarChar(50) // STARTER, VERIFIED, TRUSTED, ENTERPRISE
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  developerProfile DeveloperProfile @relation(fields: [developerProfileId], references: [id])
+
+  @@map("developer_escrow_limits")
+}
+
+// =============================================================================
+// ANOMALY DETECTION (flags suspicious developer result patterns)
+// =============================================================================
+
+enum AnomalyType {
+  SKEWED_WIN_RATE        // one player wins abnormally often
+  RAPID_BET_SETTLEMENT   // bets settled suspiciously fast
+  SINGLE_WINNER_PATTERN  // same player always wins for a developer
+  HIGH_VOLUME_SPIKE      // sudden spike in bet volume
+  RESULT_HASH_MISMATCH   // server and widget results disagree
+}
+
+enum AnomalyStatus {
+  DETECTED
+  INVESTIGATING
+  CONFIRMED_FRAUD
+  FALSE_POSITIVE
+  RESOLVED
+}
+
+model AnomalyAlert {
+  id                 String        @id @default(uuid()) @db.Uuid
+  developerProfileId String        @map("developer_profile_id") @db.Uuid
+  gameId             String?       @map("game_id") @db.Uuid
+  type               AnomalyType
+  status             AnomalyStatus @default(DETECTED)
+  severity           String        @db.VarChar(20) // LOW, MEDIUM, HIGH, CRITICAL
+  details            Json          // evidence data: win rates, player IDs, time ranges
+  autoAction         String?       @map("auto_action") @db.VarChar(100) // action taken: RATE_LIMITED, ESCROW_FROZEN, SUSPENDED
+  resolvedById       String?       @map("resolved_by_id") @db.Uuid
+  resolvedAt         DateTime?     @map("resolved_at")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  @@index([developerProfileId, status], map: "idx_anomaly_developer_status")
+  @@index([type, status], map: "idx_anomaly_type_status")
+  @@index([createdAt], map: "idx_anomaly_created")
+  @@map("anomaly_alerts")
+}
+
+// =============================================================================
+// DATABASE CONSTRAINTS (applied via raw SQL migration, not Prisma-native)
+// =============================================================================
+// These MUST be added in the initial migration SQL:
+//
+// -- Prevent negative balances on all ledger accounts
+// ALTER TABLE ledger_accounts ADD CONSTRAINT chk_balance_non_negative
+//   CHECK (balance >= 0);
+//
+// -- Prevent negative or zero bet amounts
+// ALTER TABLE bets ADD CONSTRAINT chk_bet_amount_positive
+//   CHECK (amount > 0);
+//
+// -- Prevent negative or zero transaction amounts
+// ALTER TABLE transactions ADD CONSTRAINT chk_txn_amount_positive
+//   CHECK (amount > 0);
+//
+// -- Enforce rounding to cents on all monetary fields
+// ALTER TABLE ledger_accounts ADD CONSTRAINT chk_balance_cents
+//   CHECK (balance = ROUND(balance, 2));
+// ALTER TABLE bets ADD CONSTRAINT chk_bet_amount_cents
+//   CHECK (amount = ROUND(amount, 2));
+// ALTER TABLE transactions ADD CONSTRAINT chk_txn_amount_cents
+//   CHECK (amount = ROUND(amount, 2));
+//
+// -- Prevent self-betting (player A cannot be player B)
+// ALTER TABLE bets ADD CONSTRAINT chk_no_self_bet
+//   CHECK (player_a_id != player_b_id);
+//
+// -- Prevent negative escrow limits
+// ALTER TABLE developer_escrow_limits ADD CONSTRAINT chk_escrow_non_negative
+//   CHECK (current_escrow >= 0 AND max_total_escrow > 0 AND max_single_bet > 0);
+//
+// -- Fee percentage must be between 0 and 1
+// ALTER TABLE bets ADD CONSTRAINT chk_fee_percent_range
+//   CHECK (platform_fee_percent >= 0 AND platform_fee_percent <= 1);
+// ALTER TABLE games ADD CONSTRAINT chk_game_fee_percent_range
+//   CHECK (platform_fee_percent >= 0 AND platform_fee_percent <= 1);
+// =============================================================================
