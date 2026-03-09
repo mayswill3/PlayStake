@@ -260,6 +260,160 @@ export const createApiKeySchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Developer API schemas (B1 - Widget Auth)
+// ---------------------------------------------------------------------------
+
+export const widgetAuthSchema = z.object({
+  gameId: z.string().uuid("Invalid game ID"),
+  playerId: z.string().uuid("Invalid player ID"),
+  idempotencyKey: z
+    .string()
+    .min(1, "Idempotency key is required")
+    .max(255, "Idempotency key must be at most 255 characters"),
+});
+
+// ---------------------------------------------------------------------------
+// Developer API schemas (B2 - Bet Lifecycle)
+// ---------------------------------------------------------------------------
+
+export const createBetSchema = z.object({
+  gameId: z.string().uuid("Invalid game ID"),
+  playerAId: z.string().uuid("Invalid player A ID"),
+  amount: z
+    .number()
+    .int("Amount must be an integer (cents)")
+    .positive("Amount must be positive"),
+  currency: z.string().length(3, "Currency must be a 3-letter code").default("USD"),
+  externalId: z
+    .string()
+    .max(255, "External ID must be at most 255 characters")
+    .optional(),
+  gameMetadata: z.record(z.string(), z.unknown()).optional(),
+  expiresInSeconds: z
+    .number()
+    .int()
+    .min(1, "Expires must be at least 1 second")
+    .max(3600, "Expires must be at most 3600 seconds")
+    .default(300),
+  consentTimeoutSeconds: z
+    .number()
+    .int()
+    .min(1, "Consent timeout must be at least 1 second")
+    .max(120, "Consent timeout must be at most 120 seconds")
+    .default(60),
+  idempotencyKey: z
+    .string()
+    .min(1, "Idempotency key is required")
+    .max(255, "Idempotency key must be at most 255 characters"),
+});
+
+export const consentBetSchema = z.object({
+  idempotencyKey: z
+    .string()
+    .min(1, "Idempotency key is required")
+    .max(255, "Idempotency key must be at most 255 characters"),
+});
+
+export const acceptBetSchema = z.object({
+  idempotencyKey: z
+    .string()
+    .min(1, "Idempotency key is required")
+    .max(255, "Idempotency key must be at most 255 characters"),
+});
+
+export const reportResultSchema = z.object({
+  outcome: z.enum(["PLAYER_A_WIN", "PLAYER_B_WIN", "DRAW"]),
+  resultPayload: z.record(z.string(), z.unknown()).optional(),
+  idempotencyKey: z
+    .string()
+    .min(1, "Idempotency key is required")
+    .max(255, "Idempotency key must be at most 255 characters"),
+});
+
+export const widgetResultSchema = z.object({
+  outcome: z.enum(["PLAYER_A_WIN", "PLAYER_B_WIN", "DRAW"]),
+});
+
+export const cancelBetSchema = z.object({
+  reason: z
+    .string()
+    .max(500, "Reason must be at most 500 characters")
+    .optional(),
+  idempotencyKey: z
+    .string()
+    .min(1, "Idempotency key is required")
+    .max(255, "Idempotency key must be at most 255 characters"),
+});
+
+// ---------------------------------------------------------------------------
+// Developer API schemas (B2 - Bet List for V1 API)
+// ---------------------------------------------------------------------------
+
+export const betListV1QuerySchema = z.object({
+  gameId: z.string().uuid("gameId is required"),
+  status: z
+    .enum([
+      "PENDING_CONSENT",
+      "OPEN",
+      "MATCHED",
+      "RESULT_REPORTED",
+      "SETTLED",
+      "CANCELLED",
+      "DISPUTED",
+      "VOIDED",
+    ])
+    .optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
+// ---------------------------------------------------------------------------
+// Developer API schemas (B3 - Webhook Management)
+// ---------------------------------------------------------------------------
+
+export const createWebhookSchema = z.object({
+  gameId: z.string().uuid("Invalid game ID"),
+  url: z
+    .string()
+    .url("Invalid webhook URL")
+    .max(500, "URL must be at most 500 characters"),
+  events: z
+    .array(
+      z.enum([
+        "BET_CREATED",
+        "BET_MATCHED",
+        "BET_RESULT_REPORTED",
+        "BET_SETTLED",
+        "BET_CANCELLED",
+        "BET_DISPUTED",
+      ])
+    )
+    .min(1, "At least one event type is required"),
+});
+
+export const updateWebhookSchema = z.object({
+  url: z
+    .string()
+    .url("Invalid webhook URL")
+    .max(500, "URL must be at most 500 characters")
+    .optional(),
+  events: z
+    .array(
+      z.enum([
+        "BET_CREATED",
+        "BET_MATCHED",
+        "BET_RESULT_REPORTED",
+        "BET_SETTLED",
+        "BET_CANCELLED",
+        "BET_DISPUTED",
+      ])
+    )
+    .min(1, "At least one event type is required")
+    .optional(),
+  isActive: z.boolean().optional(),
+});
+
+// ---------------------------------------------------------------------------
 // Type exports
 // ---------------------------------------------------------------------------
 
@@ -280,3 +434,13 @@ export type DeveloperRegisterInput = z.infer<typeof developerRegisterSchema>;
 export type CreateGameInput = z.infer<typeof createGameSchema>;
 export type UpdateGameInput = z.infer<typeof updateGameSchema>;
 export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>;
+export type WidgetAuthInput = z.infer<typeof widgetAuthSchema>;
+export type CreateBetInput = z.infer<typeof createBetSchema>;
+export type ConsentBetInput = z.infer<typeof consentBetSchema>;
+export type AcceptBetInput = z.infer<typeof acceptBetSchema>;
+export type ReportResultInput = z.infer<typeof reportResultSchema>;
+export type WidgetResultInput = z.infer<typeof widgetResultSchema>;
+export type CancelBetInput = z.infer<typeof cancelBetSchema>;
+export type BetListV1Query = z.infer<typeof betListV1QuerySchema>;
+export type CreateWebhookInput = z.infer<typeof createWebhookSchema>;
+export type UpdateWebhookInput = z.infer<typeof updateWebhookSchema>;
