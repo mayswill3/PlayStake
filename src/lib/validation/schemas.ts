@@ -1,0 +1,282 @@
+import { z } from "zod";
+
+// ---------------------------------------------------------------------------
+// Auth schemas (A1)
+// ---------------------------------------------------------------------------
+
+export const registerSchema = z.object({
+  email: z
+    .string()
+    .email("Invalid email address")
+    .max(255, "Email must be at most 255 characters")
+    .transform((v) => v.toLowerCase().trim()),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password must be at most 128 characters"),
+  displayName: z
+    .string()
+    .min(2, "Display name must be at least 2 characters")
+    .max(100, "Display name must be at most 100 characters")
+    .trim(),
+});
+
+export const loginSchema = z.object({
+  email: z
+    .string()
+    .email("Invalid email address")
+    .transform((v) => v.toLowerCase().trim()),
+  password: z.string().min(1, "Password is required"),
+  twoFactorCode: z
+    .string()
+    .length(6, "2FA code must be 6 digits")
+    .regex(/^\d{6}$/, "2FA code must be 6 digits")
+    .optional(),
+});
+
+export const verifyEmailSchema = z.object({
+  token: z.string().min(1, "Token is required").max(500),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .email("Invalid email address")
+    .transform((v) => v.toLowerCase().trim()),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Token is required").max(500),
+  newPassword: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password must be at most 128 characters"),
+});
+
+export const enable2FASchema = z.object({});
+
+export const confirm2FASchema = z.object({
+  code: z
+    .string()
+    .length(6, "2FA code must be 6 digits")
+    .regex(/^\d{6}$/, "2FA code must be 6 digits"),
+});
+
+// ---------------------------------------------------------------------------
+// User Profile schemas (A2)
+// ---------------------------------------------------------------------------
+
+export const updateProfileSchema = z.object({
+  displayName: z
+    .string()
+    .min(2, "Display name must be at least 2 characters")
+    .max(100, "Display name must be at most 100 characters")
+    .trim()
+    .optional(),
+  avatarUrl: z
+    .string()
+    .url("Invalid URL")
+    .max(500, "Avatar URL must be at most 500 characters")
+    .optional()
+    .nullable(),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password must be at most 128 characters"),
+});
+
+// ---------------------------------------------------------------------------
+// Wallet schemas (A3)
+// ---------------------------------------------------------------------------
+
+export const depositSchema = z.object({
+  amount: z
+    .number()
+    .int("Amount must be an integer (cents)")
+    .min(500, "Minimum deposit is $5.00 (500 cents)")
+    .max(100_000, "Maximum deposit is $1,000.00 (100000 cents)"),
+  idempotencyKey: z
+    .string()
+    .min(1, "Idempotency key is required")
+    .max(255, "Idempotency key must be at most 255 characters"),
+});
+
+export const withdrawSchema = z.object({
+  amount: z
+    .number()
+    .int("Amount must be an integer (cents)")
+    .min(1000, "Minimum withdrawal is $10.00 (1000 cents)"),
+  idempotencyKey: z
+    .string()
+    .min(1, "Idempotency key is required")
+    .max(255, "Idempotency key must be at most 255 characters"),
+});
+
+export const transactionListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  type: z
+    .enum([
+      "DEPOSIT",
+      "WITHDRAWAL",
+      "BET_ESCROW",
+      "BET_ESCROW_RELEASE",
+      "BET_ESCROW_REFUND",
+      "PLATFORM_FEE",
+      "DEVELOPER_SHARE",
+      "ADJUSTMENT",
+    ])
+    .optional(),
+  status: z
+    .enum(["PENDING", "COMPLETED", "FAILED", "REVERSED"])
+    .optional(),
+});
+
+export const betListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: z
+    .enum([
+      "PENDING_CONSENT",
+      "OPEN",
+      "MATCHED",
+      "RESULT_REPORTED",
+      "SETTLED",
+      "CANCELLED",
+      "DISPUTED",
+      "VOIDED",
+    ])
+    .optional(),
+  gameId: z.string().uuid("Invalid game ID").optional(),
+});
+
+// ---------------------------------------------------------------------------
+// Dispute schema (A4)
+// ---------------------------------------------------------------------------
+
+export const disputeSchema = z.object({
+  reason: z
+    .string()
+    .min(10, "Reason must be at least 10 characters")
+    .max(2000, "Reason must be at most 2000 characters")
+    .trim(),
+});
+
+// ---------------------------------------------------------------------------
+// Developer schemas (A6)
+// ---------------------------------------------------------------------------
+
+export const developerRegisterSchema = z.object({
+  companyName: z
+    .string()
+    .min(2, "Company name must be at least 2 characters")
+    .max(255, "Company name must be at most 255 characters")
+    .trim(),
+  websiteUrl: z
+    .string()
+    .url("Invalid URL")
+    .max(500, "Website URL must be at most 500 characters")
+    .optional()
+    .nullable(),
+  contactEmail: z
+    .string()
+    .email("Invalid email address")
+    .max(255, "Contact email must be at most 255 characters")
+    .transform((v) => v.toLowerCase().trim()),
+});
+
+export const createGameSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Game name must be at least 2 characters")
+    .max(255, "Game name must be at most 255 characters")
+    .trim(),
+  slug: z
+    .string()
+    .min(2, "Slug must be at least 2 characters")
+    .max(255, "Slug must be at most 255 characters")
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      "Slug must be lowercase alphanumeric with hyphens"
+    ),
+  description: z
+    .string()
+    .max(5000, "Description must be at most 5000 characters")
+    .optional()
+    .nullable(),
+  logoUrl: z
+    .string()
+    .url("Invalid URL")
+    .max(500, "Logo URL must be at most 500 characters")
+    .optional()
+    .nullable(),
+  webhookUrl: z
+    .string()
+    .url("Invalid URL")
+    .max(500, "Webhook URL must be at most 500 characters")
+    .optional()
+    .nullable(),
+  minBetAmount: z
+    .number()
+    .int("Min bet amount must be an integer (cents)")
+    .min(100, "Minimum bet amount is $1.00 (100 cents)")
+    .optional(),
+  maxBetAmount: z
+    .number()
+    .int("Max bet amount must be an integer (cents)")
+    .max(10_000_000, "Maximum bet amount is $100,000.00")
+    .optional(),
+});
+
+export const updateGameSchema = z.object({
+  name: z
+    .string()
+    .min(2)
+    .max(255)
+    .trim()
+    .optional(),
+  description: z.string().max(5000).optional().nullable(),
+  logoUrl: z.string().url().max(500).optional().nullable(),
+  webhookUrl: z.string().url().max(500).optional().nullable(),
+  isActive: z.boolean().optional(),
+  minBetAmount: z.number().int().min(100).optional(),
+  maxBetAmount: z.number().int().max(10_000_000).optional(),
+});
+
+export const createApiKeySchema = z.object({
+  label: z
+    .string()
+    .min(1, "Label is required")
+    .max(100, "Label must be at most 100 characters")
+    .trim(),
+  permissions: z
+    .array(z.string().max(50))
+    .min(1, "At least one permission is required")
+    .default(["bet:create", "bet:read", "result:report"]),
+});
+
+// ---------------------------------------------------------------------------
+// Type exports
+// ---------------------------------------------------------------------------
+
+export type RegisterInput = z.infer<typeof registerSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type Confirm2FAInput = z.infer<typeof confirm2FASchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type DepositInput = z.infer<typeof depositSchema>;
+export type WithdrawInput = z.infer<typeof withdrawSchema>;
+export type TransactionListQuery = z.infer<typeof transactionListQuerySchema>;
+export type BetListQuery = z.infer<typeof betListQuerySchema>;
+export type DisputeInput = z.infer<typeof disputeSchema>;
+export type DeveloperRegisterInput = z.infer<typeof developerRegisterSchema>;
+export type CreateGameInput = z.infer<typeof createGameSchema>;
+export type UpdateGameInput = z.infer<typeof updateGameSchema>;
+export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>;
