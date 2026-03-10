@@ -12,6 +12,10 @@ import { validateBody } from "../../../../lib/middleware/validate.js";
 import { checkIdempotency } from "../../../../lib/middleware/idempotency.js";
 import { centsToDollars } from "../../../../lib/utils/money.js";
 import { errorResponse, AuthenticationError } from "../../../../lib/errors/index.js";
+import {
+  createPaymentIntent,
+  getOrCreateCustomer,
+} from "../../../../lib/payments/stripe.js";
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,17 +39,30 @@ export async function POST(request: NextRequest) {
     });
 
     if (idempotencyResult.exists && idempotencyResult.response) {
+      // Retrieve the existing transaction to return the stored client secret
+      const existingTx = await prisma.transaction.findUnique({
+        where: { idempotencyKey: input.idempotencyKey },
+      });
+      const storedClientSecret =
+        (existingTx?.metadata as any)?.stripeClientSecret || null;
+
       return NextResponse.json({
         transactionId: idempotencyResult.response.transactionId,
-        stripeClientSecret: "pi_existing_deposit_secret", // Would come from stored metadata
+        stripeClientSecret: storedClientSecret,
       });
     }
 
     // Convert cents to dollars for database storage
     const amountDollars = centsToDollars(input.amount);
 
-    // Create a PENDING deposit transaction
-    // The actual balance credit happens when the Stripe webhook confirms payment_intent.succeeded
+    // Get or create a Stripe customer for this user
+    const stripeCustomerId = await getOrCreateCustomer(
+      session.userId,
+      session.user.email,
+      session.user.displayName
+    );
+
+    // Create a PENDING deposit transaction first (before Stripe call)
     const transaction = await prisma.transaction.create({
       data: {
         idempotencyKey: input.idempotencyKey,
@@ -61,31 +78,35 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // TODO: Integrate Stripe Payment Intent creation
-    // In production:
-    // 1. Create or retrieve Stripe customer for the user
-    // 2. Create a PaymentIntent with the amount
-    // 3. Store the paymentIntent.id as transaction.stripePaymentId
-    // 4. Return the client_secret from the PaymentIntent
-    //
-    // const paymentIntent = await stripe.paymentIntents.create({
-    //   amount: input.amount,
-    //   currency: 'usd',
-    //   customer: user.stripeCustomerId,
-    //   metadata: { transactionId: transaction.id, userId: session.userId },
-    //   idempotency_key: input.idempotencyKey,
-    // });
-    //
-    // await prisma.transaction.update({
-    //   where: { id: transaction.id },
-    //   data: { stripePaymentId: paymentIntent.id },
-    // });
+    // Create a Stripe PaymentIntent
+    const paymentIntent = await createPaymentIntent(
+      input.amount, // Stripe uses cents
+      "usd",
+      stripeCustomerId,
+      {
+        transactionId: transaction.id,
+        userId: session.userId,
+        idempotencyKey: input.idempotencyKey,
+      },
+      input.idempotencyKey
+    );
 
-    const mockClientSecret = `pi_mock_${transaction.id}_secret_${Date.now()}`;
+    // Update the transaction with the Stripe PaymentIntent ID and client secret
+    await prisma.transaction.update({
+      where: { id: transaction.id },
+      data: {
+        stripePaymentId: paymentIntent.id,
+        metadata: {
+          userId: session.userId,
+          amountCents: input.amount,
+          stripeClientSecret: paymentIntent.client_secret,
+        },
+      },
+    });
 
     return NextResponse.json({
       transactionId: transaction.id,
-      stripeClientSecret: mockClientSecret,
+      stripeClientSecret: paymentIntent.client_secret,
     });
   } catch (error) {
     return errorResponse(error);

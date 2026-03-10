@@ -1,14 +1,119 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, useCallback, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { loadStripe } from '@stripe/stripe-js';
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from '@stripe/react-stripe-js';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { formatCents } from '@/lib/utils/format';
 
+// ---------------------------------------------------------------------------
+// Stripe.js singleton (loaded once on the client)
+// ---------------------------------------------------------------------------
+
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
+);
+
+// ---------------------------------------------------------------------------
+// Preset amounts
+// ---------------------------------------------------------------------------
+
 const PRESETS = [1000, 2500, 5000, 10000]; // cents
+
+// ---------------------------------------------------------------------------
+// Inner form wrapped in <Elements> to access Stripe hooks
+// ---------------------------------------------------------------------------
+
+function CheckoutForm({
+  amountCents,
+  transactionId,
+  onCancel,
+}: {
+  amountCents: number;
+  transactionId: string;
+  onCancel: () => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault();
+      if (!stripe || !elements) return;
+
+      setSubmitting(true);
+      setError('');
+
+      const { error: submitError } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/wallet?deposit=success&txn=${transactionId}`,
+        },
+        redirect: 'if_required',
+      });
+
+      if (submitError) {
+        setError(submitError.message || 'Payment failed. Please try again.');
+        setSubmitting(false);
+        return;
+      }
+
+      // If we reach here without redirect, payment succeeded inline
+      toast('success', `Deposit of ${formatCents(amountCents)} is being processed.`);
+      router.push('/wallet?deposit=success');
+    },
+    [stripe, elements, amountCents, transactionId, router, toast]
+  );
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <div
+          className="p-3 rounded-lg bg-danger-500/10 border border-danger-500/25 text-danger-300 text-sm"
+          role="alert"
+        >
+          {error}
+        </div>
+      )}
+
+      <PaymentElement
+        options={{
+          layout: 'tabs',
+        }}
+      />
+
+      <div className="text-sm text-surface-400 text-center">
+        You will be charged <span className="font-semibold text-surface-100">{formatCents(amountCents)}</span>
+      </div>
+
+      <Button type="submit" loading={submitting} disabled={!stripe || !elements} className="w-full">
+        {submitting ? 'Processing...' : `Pay ${formatCents(amountCents)}`}
+      </Button>
+
+      <Button type="button" variant="ghost" onClick={onCancel} className="w-full">
+        Change Amount
+      </Button>
+    </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main deposit page
+// ---------------------------------------------------------------------------
 
 export default function DepositPage() {
   const router = useRouter();
@@ -16,8 +121,11 @@ export default function DepositPage() {
 
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
-  const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
+
+  // Stripe Elements state
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [transactionId, setTransactionId] = useState<string | null>(null);
 
   const amountCents = Math.round(parseFloat(amount || '0') * 100);
 
@@ -54,40 +162,60 @@ export default function DepositPage() {
         return;
       }
 
-      // Simulate payment processing (Stripe is stubbed)
+      // Store the client secret and transition to the payment form
+      setClientSecret(data.stripeClientSecret);
+      setTransactionId(data.transactionId);
       setLoading(false);
-      setProcessing(true);
-
-      setTimeout(() => {
-        setProcessing(false);
-        toast('success', `Deposit of ${formatCents(amountCents)} is being processed.`);
-        router.push('/wallet');
-      }, 2000);
     } catch {
       setError('Something went wrong. Please try again.');
       setLoading(false);
     }
   }
 
-  if (processing) {
+  // If we have a client secret, show the Stripe payment form
+  if (clientSecret && transactionId) {
     return (
-      <div className="max-w-md mx-auto">
+      <div className="max-w-md mx-auto space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-surface-100">Complete Payment</h1>
+          <p className="text-surface-400 text-sm mt-1">
+            Enter your payment details to deposit {formatCents(amountCents)}
+          </p>
+        </div>
+
         <Card>
-          <div className="flex flex-col items-center py-8">
-            <div className="w-16 h-16 rounded-full bg-brand-500/15 flex items-center justify-center mb-4">
-              <div className="w-8 h-8 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
-            </div>
-            <h2 className="text-lg font-semibold text-surface-100 mb-2">Processing Payment</h2>
-            <p className="text-sm text-surface-400 text-center">
-              Your deposit of {formatCents(amountCents)} is being processed.
-              This usually takes a few seconds.
-            </p>
-          </div>
+          <Elements
+            stripe={stripePromise}
+            options={{
+              clientSecret,
+              appearance: {
+                theme: 'night',
+                variables: {
+                  colorPrimary: '#6366f1',
+                  colorBackground: '#1e1e2e',
+                  colorText: '#e2e8f0',
+                  colorDanger: '#ef4444',
+                  borderRadius: '8px',
+                  fontFamily: 'inherit',
+                },
+              },
+            }}
+          >
+            <CheckoutForm
+              amountCents={amountCents}
+              transactionId={transactionId}
+              onCancel={() => {
+                setClientSecret(null);
+                setTransactionId(null);
+              }}
+            />
+          </Elements>
         </Card>
       </div>
     );
   }
 
+  // Amount selection form
   return (
     <div className="max-w-md mx-auto space-y-6">
       <div>

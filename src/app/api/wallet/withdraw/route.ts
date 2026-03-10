@@ -3,7 +3,7 @@ import { LedgerAccountType } from "../../../../../generated/prisma/client.js";
 import { TransactionType } from "../../../../../generated/prisma/client.js";
 import { validateSession } from "../../../../lib/auth/session.js";
 import { getSessionToken } from "../../../../lib/auth/helpers.js";
-import { withTransaction } from "../../../../lib/db/client.js";
+import { prisma, withTransaction } from "../../../../lib/db/client.js";
 import { getOrCreatePlayerAccount, getSystemAccount } from "../../../../lib/ledger/accounts.js";
 import { transfer } from "../../../../lib/ledger/transfer.js";
 import { withdrawSchema } from "../../../../lib/validation/schemas.js";
@@ -16,6 +16,10 @@ import {
   AuthorizationError,
   AppError,
 } from "../../../../lib/errors/index.js";
+import {
+  createPayout,
+  getOrCreateCustomer,
+} from "../../../../lib/payments/stripe.js";
 
 export async function POST(request: NextRequest) {
   try {
@@ -85,11 +89,87 @@ export async function POST(request: NextRequest) {
       });
     });
 
-    // TODO: Integrate Stripe Payout
-    // In production:
-    // 1. Create a Stripe Payout or Transfer to the user's connected account
-    // 2. Store the payout ID in transaction.stripePaymentId
-    // 3. If payout fails, create a reversal transaction to credit back
+    // Get or create Stripe customer for payout
+    const stripeCustomerId = await getOrCreateCustomer(
+      session.userId,
+      session.user.email,
+      session.user.displayName
+    );
+
+    // Attempt to create a Stripe Payout
+    try {
+      const payout = await createPayout(
+        input.amount,
+        stripeCustomerId,
+        input.idempotencyKey
+      );
+
+      // Store the Stripe Payout ID on the transaction
+      await prisma.transaction.update({
+        where: { id: result.transaction.id },
+        data: {
+          stripePaymentId: payout.id,
+          metadata: {
+            userId: session.userId,
+            amountCents: input.amount,
+            stripePayoutId: payout.id,
+          },
+        },
+      });
+    } catch (stripeError) {
+      // Stripe payout failed -- reverse the ledger transaction
+      console.error(
+        `[Withdraw] Stripe payout failed for transaction ${result.transaction.id}:`,
+        stripeError
+      );
+
+      await withTransaction(async (tx) => {
+        const playerAccount = await getOrCreatePlayerAccount(
+          tx,
+          session.userId
+        );
+        const stripeSink = await getSystemAccount(
+          tx,
+          LedgerAccountType.STRIPE_SINK
+        );
+
+        // Reverse: credit player back, debit STRIPE_SINK
+        await transfer(tx, {
+          fromAccountId: stripeSink.id,
+          toAccountId: playerAccount.id,
+          amount: amountDollars,
+          transactionType: TransactionType.ADJUSTMENT,
+          description: "Withdrawal reversal: Stripe payout creation failed",
+          idempotencyKey: `reversal_${input.idempotencyKey}`,
+          metadata: {
+            userId: session.userId,
+            originalTransactionId: result.transaction.id,
+            reason:
+              stripeError instanceof Error
+                ? stripeError.message
+                : "Unknown Stripe error",
+          },
+        });
+
+        // Mark the original transaction as FAILED
+        await tx.transaction.update({
+          where: { id: result.transaction.id },
+          data: {
+            status: "FAILED",
+            failureReason:
+              stripeError instanceof Error
+                ? stripeError.message
+                : "Stripe payout creation failed",
+          },
+        });
+      });
+
+      throw new AppError(
+        "Withdrawal failed. Your balance has been restored. Please try again later.",
+        502,
+        "PAYOUT_FAILED"
+      );
+    }
 
     const estimatedArrival = new Date(
       Date.now() + 3 * 24 * 60 * 60 * 1000
