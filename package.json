@@ -19,6 +19,8 @@
     "test:watch": "vitest",
     "test:ledger": "vitest run tests/unit/ledger/",
     "test:auth": "vitest run tests/unit/auth/",
+    "test:integration": "vitest run tests/integration/",
+    "test:integration:watch": "vitest tests/integration/",
     "workers": "npx tsx src/workers/index.ts",
     "workers:dev": "npx tsx --watch src/workers/index.ts",
     "dev": "next dev",
