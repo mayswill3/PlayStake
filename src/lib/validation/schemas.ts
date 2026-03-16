@@ -277,8 +277,8 @@ export const widgetAuthSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const createBetSchema = z.object({
-  gameId: z.string().uuid("Invalid game ID"),
-  playerAId: z.string().uuid("Invalid player A ID"),
+  gameId: z.string().uuid("Invalid game ID").optional(),
+  playerAId: z.string().uuid("Invalid player A ID").optional(),
   amount: z
     .number()
     .int("Amount must be an integer (cents)")

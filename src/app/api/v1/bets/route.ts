@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateApiKey, verifyDeveloperOwnsGame } from "../../../../lib/auth/dev-api";
+import { authenticateApiKey, authenticateApiKeyOrWidget, verifyDeveloperOwnsGame } from "../../../../lib/auth/dev-api";
 import { apiRateLimit } from "../../../../lib/middleware/rate-limit";
 import { validateBody, validateQuery } from "../../../../lib/middleware/validate";
 import {
@@ -25,13 +25,18 @@ export async function GET(request: NextRequest) {
     const rateLimited = apiRateLimit(request);
     if (rateLimited) return rateLimited;
 
-    const auth = await authenticateApiKey(request, ["bet:read"]);
+    const auth = await authenticateApiKeyOrWidget(request, ["bet:read"]);
 
     const { searchParams } = new URL(request.url);
     const query = validateQuery(betListV1QuerySchema, searchParams);
 
-    // Verify game belongs to developer
-    await verifyDeveloperOwnsGame(auth.developerProfileId, query.gameId);
+    // For widget auth, use the game from the token; for API key, verify ownership
+    if (auth.type === "widget") {
+      // Widget tokens are scoped to a game — override gameId from token
+      query.gameId = auth.gameId;
+    } else {
+      await verifyDeveloperOwnsGame(auth.developerProfileId, query.gameId);
+    }
 
     const where: Record<string, unknown> = {
       gameId: query.gameId,
@@ -100,13 +105,21 @@ export async function POST(request: NextRequest) {
     const rateLimited = apiRateLimit(request);
     if (rateLimited) return rateLimited;
 
-    const auth = await authenticateApiKey(request, ["bet:create"]);
+    const auth = await authenticateApiKeyOrWidget(request, ["bet:create"]);
 
     const body = await request.json();
     const input = validateBody(createBetSchema, body);
 
-    // Verify game belongs to developer
-    await verifyDeveloperOwnsGame(auth.developerProfileId, input.gameId);
+    // For widget auth, use the game and player from the token
+    if (auth.type === "widget") {
+      input.gameId = auth.gameId;
+      input.playerAId = auth.userId;
+    } else {
+      if (!input.gameId || !input.playerAId) {
+        throw new AppError("gameId and playerAId are required", 400, "VALIDATION_ERROR");
+      }
+      await verifyDeveloperOwnsGame(auth.developerProfileId, input.gameId);
+    }
 
     // Fetch game to check bet limits
     const game = await prisma.game.findUniqueOrThrow({

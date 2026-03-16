@@ -96,6 +96,37 @@ export async function authenticateWidget(
 }
 
 // ---------------------------------------------------------------------------
+// Dual auth: API key OR widget token
+// ---------------------------------------------------------------------------
+
+export type DualAuthResult =
+  | { type: "apiKey"; developerProfileId: string; keyId: string }
+  | { type: "widget"; userId: string; gameId: string };
+
+/**
+ * Authenticate a request using either an API key or a widget token.
+ *
+ * Checks the Authorization header prefix to determine which method to use.
+ * For API key auth, also checks the required permissions.
+ *
+ * @throws AuthenticationError if neither auth method succeeds.
+ */
+export async function authenticateApiKeyOrWidget(
+  request: NextRequest,
+  requiredPermissions: string[]
+): Promise<DualAuthResult> {
+  const authHeader = request.headers.get("authorization") ?? "";
+
+  if (authHeader.startsWith("WidgetToken ")) {
+    const result = await authenticateWidget(request);
+    return { type: "widget", ...result };
+  }
+
+  const result = await authenticateApiKey(request, requiredPermissions);
+  return { type: "apiKey", ...result };
+}
+
+// ---------------------------------------------------------------------------
 // Developer ownership verification helpers
 // ---------------------------------------------------------------------------
 
