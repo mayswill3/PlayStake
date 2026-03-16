@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateApiKey, verifyDeveloperOwnsBet } from "../../../../../lib/auth/dev-api.js";
-import { apiRateLimit } from "../../../../../lib/middleware/rate-limit.js";
-import { dollarsToCents } from "../../../../../lib/utils/money.js";
-import { errorResponse } from "../../../../../lib/errors/index.js";
+import { authenticateApiKey, verifyDeveloperOwnsBet } from "../../../../../lib/auth/dev-api";
+import { apiRateLimit } from "../../../../../lib/middleware/rate-limit";
+import { dollarsToCents } from "../../../../../lib/utils/money";
+import { errorResponse } from "../../../../../lib/errors/index";
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/bets/:betId - Get bet details

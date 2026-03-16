@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, withTransaction } from "../../../../lib/db/client.js";
-import { hashPassword, validatePasswordStrength } from "../../../../lib/auth/password.js";
-import { getOrCreatePlayerAccount } from "../../../../lib/ledger/accounts.js";
-import { registerSchema } from "../../../../lib/validation/schemas.js";
-import { validateBody } from "../../../../lib/middleware/validate.js";
-import { errorResponse, ValidationError, ConflictError } from "../../../../lib/errors/index.js";
+import { prisma, withTransaction } from "../../../../lib/db/client";
+import { hashPassword, validatePasswordStrength } from "../../../../lib/auth/password";
+import { getOrCreatePlayerAccount } from "../../../../lib/ledger/accounts";
+import { registerSchema } from "../../../../lib/validation/schemas";
+import { validateBody } from "../../../../lib/middleware/validate";
+import { errorResponse, ValidationError, ConflictError } from "../../../../lib/errors/index";
 
 export async function POST(request: NextRequest) {
   try {

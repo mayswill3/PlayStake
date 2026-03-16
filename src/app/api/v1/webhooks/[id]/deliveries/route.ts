@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateApiKey } from "../../../../../../lib/auth/dev-api.js";
-import { prisma } from "../../../../../../lib/db/client.js";
-import { apiRateLimit } from "../../../../../../lib/middleware/rate-limit.js";
+import { authenticateApiKey } from "../../../../../../lib/auth/dev-api";
+import { prisma } from "../../../../../../lib/db/client";
+import { apiRateLimit } from "../../../../../../lib/middleware/rate-limit";
 import {
   errorResponse,
   NotFoundError,
   AuthorizationError,
-} from "../../../../../../lib/errors/index.js";
+} from "../../../../../../lib/errors/index";
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/webhooks/:id/deliveries - List recent delivery logs

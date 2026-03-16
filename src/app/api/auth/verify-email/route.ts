@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../lib/db/client.js";
-import { verifyEmailSchema } from "../../../../lib/validation/schemas.js";
-import { validateBody } from "../../../../lib/middleware/validate.js";
-import { errorResponse, AppError } from "../../../../lib/errors/index.js";
+import { prisma } from "../../../../lib/db/client";
+import { verifyEmailSchema } from "../../../../lib/validation/schemas";
+import { validateBody } from "../../../../lib/middleware/validate";
+import { errorResponse, AppError } from "../../../../lib/errors/index";
 
 export async function POST(request: NextRequest) {
   try {

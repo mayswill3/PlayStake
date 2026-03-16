@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateApiKey } from "../../../../../lib/auth/dev-api.js";
-import { prisma } from "../../../../../lib/db/client.js";
-import { apiRateLimit } from "../../../../../lib/middleware/rate-limit.js";
-import { validateBody } from "../../../../../lib/middleware/validate.js";
-import { updateWebhookSchema } from "../../../../../lib/validation/schemas.js";
+import { authenticateApiKey } from "../../../../../lib/auth/dev-api";
+import { prisma } from "../../../../../lib/db/client";
+import { apiRateLimit } from "../../../../../lib/middleware/rate-limit";
+import { validateBody } from "../../../../../lib/middleware/validate";
+import { updateWebhookSchema } from "../../../../../lib/validation/schemas";
 import {
   errorResponse,
   NotFoundError,
   AuthorizationError,
-} from "../../../../../lib/errors/index.js";
-import { WebhookEventType } from "../../../../../../generated/prisma/client.js";
+} from "../../../../../lib/errors/index";
+import { WebhookEventType } from "../../../../../../generated/prisma/client";
 
 // ---------------------------------------------------------------------------
 // Helper: load and authorize webhook config

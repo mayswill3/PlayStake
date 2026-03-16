@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Decimal } from "@prisma/client/runtime/client";
-import { prisma } from "../../../../lib/db/client.js";
-import { BetStatus } from "../../../../../generated/prisma/client.js";
-import { validateSession } from "../../../../lib/auth/session.js";
-import { getSessionToken } from "../../../../lib/auth/helpers.js";
-import { dollarsToCents } from "../../../../lib/utils/money.js";
-import { errorResponse, AuthenticationError } from "../../../../lib/errors/index.js";
+import { prisma } from "../../../../lib/db/client";
+import { BetStatus } from "../../../../../generated/prisma/client";
+import { validateSession } from "../../../../lib/auth/session";
+import { getSessionToken } from "../../../../lib/auth/helpers";
+import { dollarsToCents } from "../../../../lib/utils/money";
+import { errorResponse, AuthenticationError } from "../../../../lib/errors/index";
 
 export async function GET(request: NextRequest) {
   try {

@@ -2,8 +2,8 @@ import { Decimal } from "@prisma/client/runtime/client";
 import {
   LedgerAccountType,
   type LedgerAccount,
-} from "../../../generated/prisma/client.js";
-import type { TxClient } from "../db/client.js";
+} from "../../../generated/prisma/client";
+import type { TxClient } from "../db/client";
 
 // ---------------------------------------------------------------------------
 // Player accounts

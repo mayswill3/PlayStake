@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../lib/db/client.js";
-import { validateSession } from "../../../../lib/auth/session.js";
-import { getSessionToken } from "../../../../lib/auth/helpers.js";
-import { dollarsToCents } from "../../../../lib/utils/money.js";
+import { prisma } from "../../../../lib/db/client";
+import { validateSession } from "../../../../lib/auth/session";
+import { getSessionToken } from "../../../../lib/auth/helpers";
+import { dollarsToCents } from "../../../../lib/utils/money";
 import {
   errorResponse,
   AuthenticationError,
   NotFoundError,
   AuthorizationError,
-} from "../../../../lib/errors/index.js";
+} from "../../../../lib/errors/index";
 
 export async function GET(
   request: NextRequest,

@@ -9,14 +9,14 @@
 
 import { Worker, type Job } from "bullmq";
 import { Decimal } from "@prisma/client/runtime/client";
-import { DisputeStatus, BetStatus } from "../../generated/prisma/client.js";
-import { getRedisConnection } from "../lib/jobs/queue.js";
+import { DisputeStatus, BetStatus } from "../../generated/prisma/client";
+import { getRedisConnection } from "../lib/jobs/queue";
 import {
   QUEUE_NAMES,
   type DisputeEscalationScanPayload,
-} from "../lib/jobs/types.js";
-import { prisma, withTransaction, type TxClient } from "../lib/db/client.js";
-import { refundEscrow } from "../lib/ledger/escrow.js";
+} from "../lib/jobs/types";
+import { prisma, withTransaction, type TxClient } from "../lib/db/client";
+import { refundEscrow } from "../lib/ledger/escrow";
 
 // ---------------------------------------------------------------------------
 // Logging helper

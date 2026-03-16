@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
-import { validateApiKey } from "./api-key.js";
-import { validateWidgetToken } from "./widget-token.js";
-import { prisma } from "../db/client.js";
+import { validateApiKey } from "./api-key";
+import { validateWidgetToken } from "./widget-token";
+import { prisma } from "../db/client";
 import {
   AuthenticationError,
   AuthorizationError,
   NotFoundError,
-} from "../errors/index.js";
+} from "../errors/index";
 
 // ---------------------------------------------------------------------------
 // API Key authentication helper

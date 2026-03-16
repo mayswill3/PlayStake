@@ -1,5 +1,5 @@
-import { stripe } from "./stripe.js";
-import { prisma } from "../db/client.js";
+import { stripe } from "./stripe";
+import { prisma } from "../db/client";
 
 // ---------------------------------------------------------------------------
 // Stripe Connect helpers (future use)

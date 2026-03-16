@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { UserRole } from "../../../../../../generated/prisma/client.js";
-import { prisma } from "../../../../../lib/db/client.js";
-import { validateSession } from "../../../../../lib/auth/session.js";
-import { getSessionToken } from "../../../../../lib/auth/helpers.js";
+import { UserRole } from "../../../../../../generated/prisma/client";
+import { prisma } from "../../../../../lib/db/client";
+import { validateSession } from "../../../../../lib/auth/session";
+import { getSessionToken } from "../../../../../lib/auth/helpers";
 import {
   errorResponse,
   AuthenticationError,
   AuthorizationError,
   NotFoundError,
-} from "../../../../../lib/errors/index.js";
+} from "../../../../../lib/errors/index";
 
 export async function DELETE(
   request: NextRequest,

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../lib/db/client.js";
-import { validateSession } from "../../../../lib/auth/session.js";
-import { getSessionToken, sanitizeUser } from "../../../../lib/auth/helpers.js";
-import { updateProfileSchema } from "../../../../lib/validation/schemas.js";
-import { validateBody } from "../../../../lib/middleware/validate.js";
-import { errorResponse, AuthenticationError } from "../../../../lib/errors/index.js";
+import { prisma } from "../../../../lib/db/client";
+import { validateSession } from "../../../../lib/auth/session";
+import { getSessionToken, sanitizeUser } from "../../../../lib/auth/helpers";
+import { updateProfileSchema } from "../../../../lib/validation/schemas";
+import { validateBody } from "../../../../lib/middleware/validate";
+import { errorResponse, AuthenticationError } from "../../../../lib/errors/index";
 
 export async function GET(request: NextRequest) {
   try {

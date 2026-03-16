@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../lib/db/client.js";
+import { prisma } from "../../../../lib/db/client";
 import {
   TransactionType,
   TransactionStatus,
-} from "../../../../../generated/prisma/client.js";
-import { validateSession } from "../../../../lib/auth/session.js";
-import { getSessionToken } from "../../../../lib/auth/helpers.js";
-import { depositRateLimit } from "../../../../lib/middleware/rate-limit.js";
-import { depositSchema } from "../../../../lib/validation/schemas.js";
-import { validateBody } from "../../../../lib/middleware/validate.js";
-import { checkIdempotency } from "../../../../lib/middleware/idempotency.js";
-import { centsToDollars } from "../../../../lib/utils/money.js";
-import { errorResponse, AuthenticationError } from "../../../../lib/errors/index.js";
+} from "../../../../../generated/prisma/client";
+import { validateSession } from "../../../../lib/auth/session";
+import { getSessionToken } from "../../../../lib/auth/helpers";
+import { depositRateLimit } from "../../../../lib/middleware/rate-limit";
+import { depositSchema } from "../../../../lib/validation/schemas";
+import { validateBody } from "../../../../lib/middleware/validate";
+import { checkIdempotency } from "../../../../lib/middleware/idempotency";
+import { centsToDollars } from "../../../../lib/utils/money";
+import { errorResponse, AuthenticationError } from "../../../../lib/errors/index";
 import {
   createPaymentIntent,
   getOrCreateCustomer,
-} from "../../../../lib/payments/stripe.js";
+} from "../../../../lib/payments/stripe";
 
 export async function POST(request: NextRequest) {
   try {

@@ -5,10 +5,10 @@
 // delivery worker to send.
 // =============================================================================
 
-import { WebhookEventType } from "../../../generated/prisma/client.js";
-import { prisma } from "../db/client.js";
-import { addJob } from "../jobs/queue.js";
-import { QUEUE_NAMES } from "../jobs/types.js";
+import { WebhookEventType } from "../../../generated/prisma/client";
+import { prisma } from "../db/client";
+import { addJob } from "../jobs/queue";
+import { QUEUE_NAMES } from "../jobs/types";
 
 /**
  * Dispatch a webhook event to all active WebhookConfig subscribers for

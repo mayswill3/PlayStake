@@ -7,12 +7,12 @@
 
 import { Worker, type Job } from "bullmq";
 import { Decimal } from "@prisma/client/runtime/client";
-import { BetStatus } from "../../generated/prisma/client.js";
-import { getRedisConnection } from "../lib/jobs/queue.js";
-import { QUEUE_NAMES, type BetExpiryScanPayload } from "../lib/jobs/types.js";
-import { prisma, withTransaction, type TxClient } from "../lib/db/client.js";
-import { refundEscrow } from "../lib/ledger/escrow.js";
-import { dispatchWebhook } from "../lib/webhooks/dispatch.js";
+import { BetStatus } from "../../generated/prisma/client";
+import { getRedisConnection } from "../lib/jobs/queue";
+import { QUEUE_NAMES, type BetExpiryScanPayload } from "../lib/jobs/types";
+import { prisma, withTransaction, type TxClient } from "../lib/db/client";
+import { refundEscrow } from "../lib/ledger/escrow";
+import { dispatchWebhook } from "../lib/webhooks/dispatch";
 
 // ---------------------------------------------------------------------------
 // Logging helper

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateApiKey, verifyDeveloperOwnsGame } from "../../../../../lib/auth/dev-api.js";
-import { generateWidgetToken } from "../../../../../lib/auth/widget-token.js";
-import { apiRateLimit } from "../../../../../lib/middleware/rate-limit.js";
-import { validateBody } from "../../../../../lib/middleware/validate.js";
-import { widgetAuthSchema } from "../../../../../lib/validation/schemas.js";
-import { errorResponse, NotFoundError } from "../../../../../lib/errors/index.js";
-import { prisma } from "../../../../../lib/db/client.js";
+import { authenticateApiKey, verifyDeveloperOwnsGame } from "../../../../../lib/auth/dev-api";
+import { generateWidgetToken } from "../../../../../lib/auth/widget-token";
+import { apiRateLimit } from "../../../../../lib/middleware/rate-limit";
+import { validateBody } from "../../../../../lib/middleware/validate";
+import { widgetAuthSchema } from "../../../../../lib/validation/schemas";
+import { errorResponse, NotFoundError } from "../../../../../lib/errors/index";
+import { prisma } from "../../../../../lib/db/client";
 
 export async function POST(request: NextRequest) {
   try {

@@ -9,16 +9,16 @@
 
 import "dotenv/config";
 import type { Worker } from "bullmq";
-import { registerSchedules } from "../lib/jobs/schedules.js";
-import { closeAllQueues } from "../lib/jobs/queue.js";
-import { createSettlementWorker } from "./settlement.worker.js";
-import { createConsentExpiryWorker } from "./consent-expiry.worker.js";
-import { createBetExpiryWorker } from "./bet-expiry.worker.js";
-import { createWebhookDeliveryWorker } from "./webhook-delivery.worker.js";
-import { createUnverifiedResultWorker } from "./unverified-result.worker.js";
-import { createAnomalyDetectionWorker } from "./anomaly-detection.worker.js";
-import { createDisputeEscalationWorker } from "./dispute-escalation.worker.js";
-import { createLedgerAuditWorker } from "./ledger-audit.worker.js";
+import { registerSchedules } from "../lib/jobs/schedules";
+import { closeAllQueues } from "../lib/jobs/queue";
+import { createSettlementWorker } from "./settlement.worker";
+import { createConsentExpiryWorker } from "./consent-expiry.worker";
+import { createBetExpiryWorker } from "./bet-expiry.worker";
+import { createWebhookDeliveryWorker } from "./webhook-delivery.worker";
+import { createUnverifiedResultWorker } from "./unverified-result.worker";
+import { createAnomalyDetectionWorker } from "./anomaly-detection.worker";
+import { createDisputeEscalationWorker } from "./dispute-escalation.worker";
+import { createLedgerAuditWorker } from "./ledger-audit.worker";
 
 // ---------------------------------------------------------------------------
 // Logging

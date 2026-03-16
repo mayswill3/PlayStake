@@ -1,6 +1,6 @@
-import type { User } from "../../../generated/prisma/client.js";
-import { prisma } from "../db/client.js";
-import { generateRandomToken, sha256Hash } from "../utils/crypto.js";
+import type { User } from "../../../generated/prisma/client";
+import { prisma } from "../db/client";
+import { generateRandomToken, sha256Hash } from "../utils/crypto";
 
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 

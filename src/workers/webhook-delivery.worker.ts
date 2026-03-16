@@ -7,14 +7,14 @@
 // =============================================================================
 
 import { Worker, type Job } from "bullmq";
-import { WebhookDeliveryStatus } from "../../generated/prisma/client.js";
-import { getRedisConnection } from "../lib/jobs/queue.js";
+import { WebhookDeliveryStatus } from "../../generated/prisma/client";
+import { getRedisConnection } from "../lib/jobs/queue";
 import {
   QUEUE_NAMES,
   type WebhookDeliveryScanPayload,
-} from "../lib/jobs/types.js";
-import { prisma } from "../lib/db/client.js";
-import { signWebhookPayload } from "../lib/webhooks/sign.js";
+} from "../lib/jobs/types";
+import { prisma } from "../lib/db/client";
+import { signWebhookPayload } from "../lib/webhooks/sign";
 
 // ---------------------------------------------------------------------------
 // Constants

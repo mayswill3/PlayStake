@@ -1,5 +1,5 @@
 import { type ZodSchema, ZodError } from "zod";
-import { ValidationError } from "../errors/index.js";
+import { ValidationError } from "../errors/index";
 
 /**
  * Parse and validate a request body against a Zod schema.

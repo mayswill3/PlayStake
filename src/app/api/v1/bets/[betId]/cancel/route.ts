@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BetStatus } from "../../../../../../generated/prisma/client.js";
+import { BetStatus } from "../../../../../../generated/prisma/client";
 import {
   authenticateApiKey,
   verifyDeveloperOwnsBet,
-} from "../../../../../lib/auth/dev-api.js";
-import { prisma, withTransaction, type TxClient } from "../../../../../lib/db/client.js";
-import { refundEscrow } from "../../../../../lib/ledger/escrow.js";
-import { apiRateLimit } from "../../../../../lib/middleware/rate-limit.js";
-import { validateBody } from "../../../../../lib/middleware/validate.js";
-import { cancelBetSchema } from "../../../../../lib/validation/schemas.js";
+} from "../../../../../lib/auth/dev-api";
+import { prisma, withTransaction, type TxClient } from "../../../../../lib/db/client";
+import { refundEscrow } from "../../../../../lib/ledger/escrow";
+import { apiRateLimit } from "../../../../../lib/middleware/rate-limit";
+import { validateBody } from "../../../../../lib/middleware/validate";
+import { cancelBetSchema } from "../../../../../lib/validation/schemas";
 import {
   errorResponse,
   AppError,
-} from "../../../../../lib/errors/index.js";
+} from "../../../../../lib/errors/index";
 
 // ---------------------------------------------------------------------------
 // POST /api/v1/bets/:betId/cancel - Cancel a bet

@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   authenticateApiKey,
   verifyDeveloperOwnsGame,
-} from "../../../../lib/auth/dev-api.js";
-import { prisma } from "../../../../lib/db/client.js";
-import { apiRateLimit } from "../../../../lib/middleware/rate-limit.js";
-import { validateBody } from "../../../../lib/middleware/validate.js";
-import { createWebhookSchema } from "../../../../lib/validation/schemas.js";
-import { generateRandomToken } from "../../../../lib/utils/crypto.js";
-import { errorResponse } from "../../../../lib/errors/index.js";
-import { WebhookEventType } from "../../../../../generated/prisma/client.js";
+} from "../../../../lib/auth/dev-api";
+import { prisma } from "../../../../lib/db/client";
+import { apiRateLimit } from "../../../../lib/middleware/rate-limit";
+import { validateBody } from "../../../../lib/middleware/validate";
+import { createWebhookSchema } from "../../../../lib/validation/schemas";
+import { generateRandomToken } from "../../../../lib/utils/crypto";
+import { errorResponse } from "../../../../lib/errors/index";
+import { WebhookEventType } from "../../../../../generated/prisma/client";
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/webhooks - List webhook configs for developer's games

@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BetStatus } from "../../../../../../generated/prisma/client.js";
-import { authenticateWidget } from "../../../../../lib/auth/dev-api.js";
-import { withTransaction, type TxClient } from "../../../../../lib/db/client.js";
-import { prisma } from "../../../../../lib/db/client.js";
-import { holdEscrow } from "../../../../../lib/ledger/escrow.js";
-import { apiRateLimit } from "../../../../../lib/middleware/rate-limit.js";
-import { validateBody } from "../../../../../lib/middleware/validate.js";
-import { acceptBetSchema } from "../../../../../lib/validation/schemas.js";
-import { dollarsToCents } from "../../../../../lib/utils/money.js";
+import { BetStatus } from "../../../../../../generated/prisma/client";
+import { authenticateWidget } from "../../../../../lib/auth/dev-api";
+import { withTransaction, type TxClient } from "../../../../../lib/db/client";
+import { prisma } from "../../../../../lib/db/client";
+import { holdEscrow } from "../../../../../lib/ledger/escrow";
+import { apiRateLimit } from "../../../../../lib/middleware/rate-limit";
+import { validateBody } from "../../../../../lib/middleware/validate";
+import { acceptBetSchema } from "../../../../../lib/validation/schemas";
+import { dollarsToCents } from "../../../../../lib/utils/money";
 import {
   errorResponse,
   AppError,
   NotFoundError,
-} from "../../../../../lib/errors/index.js";
+} from "../../../../../lib/errors/index";
 
 // ---------------------------------------------------------------------------
 // POST /api/v1/bets/:betId/accept - Player B accepts the bet

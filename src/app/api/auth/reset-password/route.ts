@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../lib/db/client.js";
-import { hashPassword, validatePasswordStrength } from "../../../../lib/auth/password.js";
-import { destroyAllUserSessions } from "../../../../lib/auth/session.js";
-import { resetPasswordSchema } from "../../../../lib/validation/schemas.js";
-import { validateBody } from "../../../../lib/middleware/validate.js";
-import { errorResponse, AppError, ValidationError } from "../../../../lib/errors/index.js";
+import { prisma } from "../../../../lib/db/client";
+import { hashPassword, validatePasswordStrength } from "../../../../lib/auth/password";
+import { destroyAllUserSessions } from "../../../../lib/auth/session";
+import { resetPasswordSchema } from "../../../../lib/validation/schemas";
+import { validateBody } from "../../../../lib/middleware/validate";
+import { errorResponse, AppError, ValidationError } from "../../../../lib/errors/index";
 
 export async function POST(request: NextRequest) {
   try {

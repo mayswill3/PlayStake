@@ -1,6 +1,6 @@
-import { prisma } from "../db/client.js";
-import { TransactionStatus } from "../../../generated/prisma/client.js";
-import { ConflictError } from "../errors/index.js";
+import { prisma } from "../db/client";
+import { TransactionStatus } from "../../../generated/prisma/client";
+import { ConflictError } from "../errors/index";
 
 /**
  * Check if a transaction with the given idempotency key already exists.

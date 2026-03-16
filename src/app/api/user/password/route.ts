@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../lib/db/client.js";
-import { validateSession, destroyAllUserSessions, createSession } from "../../../../lib/auth/session.js";
-import { verifyPassword, hashPassword, validatePasswordStrength } from "../../../../lib/auth/password.js";
-import { getSessionToken, sessionCookieValue } from "../../../../lib/auth/helpers.js";
-import { changePasswordSchema } from "../../../../lib/validation/schemas.js";
-import { validateBody } from "../../../../lib/middleware/validate.js";
-import { getClientIp } from "../../../../lib/middleware/rate-limit.js";
+import { prisma } from "../../../../lib/db/client";
+import { validateSession, destroyAllUserSessions, createSession } from "../../../../lib/auth/session";
+import { verifyPassword, hashPassword, validatePasswordStrength } from "../../../../lib/auth/password";
+import { getSessionToken, sessionCookieValue } from "../../../../lib/auth/helpers";
+import { changePasswordSchema } from "../../../../lib/validation/schemas";
+import { validateBody } from "../../../../lib/middleware/validate";
+import { getClientIp } from "../../../../lib/middleware/rate-limit";
 import {
   errorResponse,
   AuthenticationError,
   ValidationError,
-} from "../../../../lib/errors/index.js";
+} from "../../../../lib/errors/index";
 
 export async function PATCH(request: NextRequest) {
   try {

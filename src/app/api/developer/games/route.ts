@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { UserRole } from "../../../../../generated/prisma/client.js";
-import { prisma } from "../../../../lib/db/client.js";
-import { validateSession } from "../../../../lib/auth/session.js";
-import { getSessionToken } from "../../../../lib/auth/helpers.js";
-import { createGameSchema } from "../../../../lib/validation/schemas.js";
-import { validateBody } from "../../../../lib/middleware/validate.js";
-import { centsToDollars, dollarsToCents } from "../../../../lib/utils/money.js";
-import { generateRandomToken } from "../../../../lib/utils/crypto.js";
+import { UserRole } from "../../../../../generated/prisma/client";
+import { prisma } from "../../../../lib/db/client";
+import { validateSession } from "../../../../lib/auth/session";
+import { getSessionToken } from "../../../../lib/auth/helpers";
+import { createGameSchema } from "../../../../lib/validation/schemas";
+import { validateBody } from "../../../../lib/middleware/validate";
+import { centsToDollars, dollarsToCents } from "../../../../lib/utils/money";
+import { generateRandomToken } from "../../../../lib/utils/crypto";
 import {
   errorResponse,
   AuthenticationError,
   AuthorizationError,
   NotFoundError,
-} from "../../../../lib/errors/index.js";
+} from "../../../../lib/errors/index";
 
 async function getDeveloperProfile(userId: string) {
   const profile = await prisma.developerProfile.findUnique({

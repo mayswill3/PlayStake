@@ -1,25 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Decimal } from "@prisma/client/runtime/client";
-import { prisma } from "../../../../lib/db/client.js";
-import { LedgerAccountType, BetStatus } from "../../../../../generated/prisma/client.js";
-import { validateSession } from "../../../../lib/auth/session.js";
-import { getSessionToken } from "../../../../lib/auth/helpers.js";
-import { dollarsToCents } from "../../../../lib/utils/money.js";
-import { errorResponse, AuthenticationError } from "../../../../lib/errors/index.js";
+import { prisma } from "../../../../lib/db/client";
+import { LedgerAccountType, BetStatus } from "../../../../../generated/prisma/client";
+import { validateSession } from "../../../../lib/auth/session";
+import { getSessionToken } from "../../../../lib/auth/helpers";
+import { validateWidgetToken } from "../../../../lib/auth/widget-token";
+import { dollarsToCents } from "../../../../lib/utils/money";
+import { errorResponse, AuthenticationError } from "../../../../lib/errors/index";
 
 export async function GET(request: NextRequest) {
   try {
-    const token = getSessionToken(request);
-    if (!token) throw new AuthenticationError();
+    // Support both session cookie auth and widget token auth
+    let userId: string;
 
-    const session = await validateSession(token);
-    if (!session) throw new AuthenticationError("Invalid or expired session");
+    const authHeader = request.headers.get("authorization") ?? "";
+    if (authHeader.startsWith("WidgetToken ")) {
+      const rawToken = authHeader.slice("WidgetToken ".length);
+      const widgetSession = await validateWidgetToken(rawToken);
+      if (!widgetSession) throw new AuthenticationError("Invalid or expired widget token");
+      userId = widgetSession.userId;
+    } else {
+      const token = getSessionToken(request);
+      if (!token) throw new AuthenticationError();
+      const session = await validateSession(token);
+      if (!session) throw new AuthenticationError("Invalid or expired session");
+      userId = userId;
+    }
 
     // Get the player's balance account
     const playerAccount = await prisma.ledgerAccount.findUnique({
       where: {
         userId_accountType: {
-          userId: session.userId,
+          userId: userId,
           accountType: LedgerAccountType.PLAYER_BALANCE,
         },
       },
@@ -43,8 +55,8 @@ export async function GET(request: NextRequest) {
       where: {
         status: { in: activeBetStatuses },
         OR: [
-          { playerAId: session.userId },
-          { playerBId: session.userId },
+          { playerAId: userId },
+          { playerBId: userId },
         ],
       },
       select: { id: true },

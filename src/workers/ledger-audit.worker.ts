@@ -8,11 +8,11 @@
 
 import { Worker, type Job } from "bullmq";
 import { Decimal } from "@prisma/client/runtime/client";
-import { BetStatus } from "../../generated/prisma/client.js";
-import { getRedisConnection } from "../lib/jobs/queue.js";
-import { QUEUE_NAMES, type LedgerAuditPayload } from "../lib/jobs/types.js";
-import { prisma, withTransaction, type TxClient } from "../lib/db/client.js";
-import { runFullAudit, type AuditReport } from "../lib/ledger/audit.js";
+import { BetStatus } from "../../generated/prisma/client";
+import { getRedisConnection } from "../lib/jobs/queue";
+import { QUEUE_NAMES, type LedgerAuditPayload } from "../lib/jobs/types";
+import { prisma, withTransaction, type TxClient } from "../lib/db/client";
+import { runFullAudit, type AuditReport } from "../lib/ledger/audit";
 
 // ---------------------------------------------------------------------------
 // Logging helper

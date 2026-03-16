@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { destroySession } from "../../../../lib/auth/session.js";
-import { getSessionToken, clearSessionCookieValue } from "../../../../lib/auth/helpers.js";
-import { errorResponse } from "../../../../lib/errors/index.js";
+import { destroySession } from "../../../../lib/auth/session";
+import { getSessionToken, clearSessionCookieValue } from "../../../../lib/auth/helpers";
+import { errorResponse } from "../../../../lib/errors/index";
 
 export async function POST(request: NextRequest) {
   try {

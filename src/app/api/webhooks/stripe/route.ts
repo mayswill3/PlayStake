@@ -4,14 +4,14 @@ import {
   TransactionType,
   TransactionStatus,
   LedgerAccountType,
-} from "../../../../../generated/prisma/client.js";
-import { prisma, withTransaction } from "../../../../lib/db/client.js";
-import { constructWebhookEvent } from "../../../../lib/payments/stripe.js";
+} from "../../../../../generated/prisma/client";
+import { prisma, withTransaction } from "../../../../lib/db/client";
+import { constructWebhookEvent } from "../../../../lib/payments/stripe";
 import {
   getOrCreatePlayerAccount,
   getSystemAccount,
-} from "../../../../lib/ledger/accounts.js";
-import { transfer } from "../../../../lib/ledger/transfer.js";
+} from "../../../../lib/ledger/accounts";
+import { transfer } from "../../../../lib/ledger/transfer";
 import type Stripe from "stripe";
 
 // ---------------------------------------------------------------------------

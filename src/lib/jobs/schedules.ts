@@ -6,8 +6,8 @@
 // for actionable items.
 // =============================================================================
 
-import { getQueue } from "./queue.js";
-import { QUEUE_NAMES } from "./types.js";
+import { getQueue } from "./queue";
+import { QUEUE_NAMES } from "./types";
 import type {
   SettlementScanPayload,
   ConsentExpiryScanPayload,
@@ -17,7 +17,7 @@ import type {
   UnverifiedResultScanPayload,
   DisputeEscalationScanPayload,
   LedgerAuditPayload,
-} from "./types.js";
+} from "./types";
 
 // ---------------------------------------------------------------------------
 // Schedule definitions

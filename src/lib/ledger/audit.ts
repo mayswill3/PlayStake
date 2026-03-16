@@ -1,5 +1,5 @@
 import { Decimal } from "@prisma/client/runtime/client";
-import type { TxClient } from "../db/client.js";
+import type { TxClient } from "../db/client";
 
 // ---------------------------------------------------------------------------
 // Types

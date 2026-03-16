@@ -11,13 +11,13 @@
 
 import { Worker, type Job } from "bullmq";
 import { Decimal } from "@prisma/client/runtime/client";
-import { BetStatus } from "../../generated/prisma/client.js";
-import { getRedisConnection } from "../lib/jobs/queue.js";
+import { BetStatus } from "../../generated/prisma/client";
+import { getRedisConnection } from "../lib/jobs/queue";
 import {
   QUEUE_NAMES,
   type AnomalyDetectionScanPayload,
-} from "../lib/jobs/types.js";
-import { prisma } from "../lib/db/client.js";
+} from "../lib/jobs/types";
+import { prisma } from "../lib/db/client";
 
 // ---------------------------------------------------------------------------
 // Logging helper

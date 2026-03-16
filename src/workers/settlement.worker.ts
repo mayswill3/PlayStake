@@ -9,20 +9,20 @@
 
 import { Worker, type Job } from "bullmq";
 import { Decimal } from "@prisma/client/runtime/client";
-import { BetStatus, BetOutcome } from "../../generated/prisma/client.js";
-import { getRedisConnection } from "../lib/jobs/queue.js";
-import { QUEUE_NAMES, type SettlementScanPayload } from "../lib/jobs/types.js";
-import { prisma, withTransaction, type TxClient } from "../lib/db/client.js";
+import { BetStatus, BetOutcome } from "../../generated/prisma/client";
+import { getRedisConnection } from "../lib/jobs/queue";
+import { QUEUE_NAMES, type SettlementScanPayload } from "../lib/jobs/types";
+import { prisma, withTransaction, type TxClient } from "../lib/db/client";
 import {
   collectFee,
   releaseEscrow,
   distributeDevShare,
-} from "../lib/ledger/escrow.js";
+} from "../lib/ledger/escrow";
 import {
   getEscrowAccountForBet,
   getAccountBalance,
-} from "../lib/ledger/accounts.js";
-import { dispatchWebhook } from "../lib/webhooks/dispatch.js";
+} from "../lib/ledger/accounts";
+import { dispatchWebhook } from "../lib/webhooks/dispatch";
 
 // ---------------------------------------------------------------------------
 // Logging helper

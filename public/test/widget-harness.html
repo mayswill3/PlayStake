@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PlayStake Widget Test Harness</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 24px;
+    }
+    h1 { font-size: 24px; margin-bottom: 8px; }
+    h2 { font-size: 14px; font-weight: 600; color: #94a3b8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .subtitle { color: #64748b; font-size: 14px; margin-bottom: 24px; }
+    .grid { display: grid; grid-template-columns: 1fr 420px; gap: 24px; max-width: 1200px; }
+    .panel {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .row.full { grid-template-columns: 1fr; }
+    label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 4px; letter-spacing: 0.05em; }
+    input, select {
+      width: 100%; padding: 8px 10px; background: #0f172a; border: 1px solid #334155;
+      border-radius: 4px; color: #e2e8f0; font-size: 13px; font-family: inherit;
+    }
+    input:focus, select:focus { outline: none; border-color: #3b82f6; }
+    input[readonly] { color: #64748b; }
+    .btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    button {
+      padding: 8px 16px; background: #3b82f6; color: white; border: none;
+      border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;
+    }
+    button:hover { background: #2563eb; }
+    button:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+    button.secondary { background: #334155; color: #cbd5e1; }
+    button.secondary:hover { background: #475569; }
+    button.danger { background: #dc2626; }
+    button.danger:hover { background: #b91c1c; }
+    button.success { background: #059669; }
+    button.success:hover { background: #047857; }
+    .status-bar {
+      display: flex; gap: 24px; padding: 12px 16px; background: #1e293b;
+      border: 1px solid #334155; border-radius: 8px; margin-bottom: 16px;
+      font-size: 12px; font-family: "SF Mono", Monaco, monospace;
+    }
+    .status-bar span { color: #64748b; }
+    .status-bar strong { color: #10b981; }
+    .status-bar .error { color: #ef4444; }
+    .widget-frame {
+      background: #1e293b; border: 2px dashed #334155; border-radius: 12px;
+      height: 560px; display: flex; align-items: center; justify-content: center;
+      color: #475569; font-size: 14px; overflow: hidden; position: relative;
+    }
+    .widget-frame.active { border-color: #3b82f6; border-style: solid; }
+    .widget-frame.active > .placeholder { display: none; }
+    .log {
+      background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+      padding: 12px; height: 240px; overflow-y: auto;
+      font-family: "SF Mono", Monaco, monospace; font-size: 11px; line-height: 1.6;
+    }
+    .log-entry { padding: 2px 0 2px 10px; border-left: 2px solid #334155; margin-bottom: 4px; }
+    .log-entry.out { border-left-color: #3b82f6; }
+    .log-entry.in { border-left-color: #10b981; }
+    .log-entry.err { border-left-color: #ef4444; }
+    .log-entry .time { color: #475569; margin-right: 6px; }
+    .step { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .step-num {
+      width: 22px; height: 22px; border-radius: 50%; background: #334155;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+    .step-num.done { background: #059669; }
+    .step-label { font-size: 13px; }
+    .separator { border: none; border-top: 1px solid #334155; margin: 16px 0; }
+  </style>
+</head>
+<body>
+
+<h1>PlayStake Widget Test Harness</h1>
+<p class="subtitle">Test the in-game widget locally. Follow the steps below.</p>
+
+<div class="status-bar">
+  <div><span>Status:</span> <strong id="status">Not started</strong></div>
+  <div><span>Widget:</span> <strong id="wStatus">-</strong></div>
+  <div><span>Player:</span> <strong id="pStatus">-</strong></div>
+</div>
+
+<div class="grid">
+  <!-- Left column -->
+  <div>
+    <!-- Step 1: Setup -->
+    <div class="panel">
+      <h2>Step 1 &mdash; Login as Developer & Generate API Key</h2>
+      <p style="font-size:12px;color:#64748b;margin-bottom:12px">
+        Logs in with the seeded developer account and creates an API key with all permissions.
+      </p>
+      <div class="btns">
+        <button id="btnSetup" onclick="setupDeveloper()">Auto-Setup</button>
+      </div>
+      <div class="row full" style="margin-top:12px">
+        <div>
+          <label>API Key</label>
+          <input id="apiKey" readonly placeholder="Will be generated...">
+        </div>
+      </div>
+      <div class="row">
+        <div><label>Game ID</label><input id="gameId" readonly placeholder="Auto-detected"></div>
+        <div><label>Player ID</label><input id="playerId" readonly placeholder="Auto-detected"></div>
+      </div>
+    </div>
+
+    <!-- Step 2: Widget Token -->
+    <div class="panel">
+      <h2>Step 2 &mdash; Generate Widget Token</h2>
+      <p style="font-size:12px;color:#64748b;margin-bottom:12px">
+        Uses the API key to request a short-lived widget token for the test player.
+      </p>
+      <div class="btns">
+        <button id="btnToken" onclick="generateToken()" disabled>Generate Token</button>
+      </div>
+      <div class="row full" style="margin-top:12px">
+        <div><label>Widget Token</label><input id="widgetToken" readonly placeholder="Will be generated..."></div>
+      </div>
+    </div>
+
+    <!-- Step 3: Initialize Widget -->
+    <div class="panel">
+      <h2>Step 3 &mdash; Initialize & Open Widget</h2>
+      <div class="row">
+        <div>
+          <label>Theme</label>
+          <select id="theme"><option value="dark">Dark</option><option value="light">Light</option></select>
+        </div>
+        <div>
+          <label>Position</label>
+          <select id="position"><option value="right">Right</option><option value="left">Left</option><option value="center">Center</option></select>
+        </div>
+      </div>
+      <div class="btns">
+        <button id="btnInit" onclick="initWidget()" disabled>Initialize</button>
+        <button id="btnOpen" onclick="openWidget()" disabled>Open</button>
+        <button id="btnClose" onclick="closeWidget()" disabled class="secondary">Close</button>
+        <button id="btnDestroy" onclick="destroyWidget()" disabled class="danger">Destroy</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Actions -->
+    <div class="panel">
+      <h2>Step 4 &mdash; Test Actions</h2>
+      <div class="row">
+        <div><label>Bet Amount ($)</label><input id="betAmount" type="number" value="5" min="1" max="500" step="1"></div>
+        <div><label>Opponent ID (optional)</label><input id="opponentId" placeholder="Leave blank"></div>
+      </div>
+      <div class="btns">
+        <button id="btnBet" onclick="createBet()" disabled class="success">Create Bet via SDK</button>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h2 style="margin:0">Event Log</h2>
+        <button onclick="document.getElementById('log').innerHTML=''" class="secondary" style="padding:4px 10px;font-size:11px">Clear</button>
+      </div>
+      <div id="log" class="log"></div>
+    </div>
+  </div>
+
+  <!-- Right column: widget container -->
+  <div>
+    <div class="panel" style="padding:12px">
+      <h2 style="margin-bottom:8px">Widget Preview</h2>
+      <div id="widgetContainer" class="widget-frame">
+        <span class="placeholder">Widget will appear here after Step 3</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Load SDK from local Next.js static files -->
+<script src="/widget/sdk.js"></script>
+<script>
+  // Point the SDK at localhost so the iframe loads from our Next.js server
+  PlayStake._setOrigin(window.location.origin);
+
+  let widget = null;
+  let devSessionCookie = null;
+
+  const BASE = window.location.origin;
+
+  function log(type, msg) {
+    const el = document.getElementById('log');
+    const t = new Date().toLocaleTimeString();
+    el.innerHTML += '<div class="log-entry ' + type + '"><span class="time">' + t + '</span>' + msg + '</div>';
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function setStatus(id, text, isError) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = isError ? 'error' : '';
+  }
+
+  // Step 1: Login as developer, get game ID, player ID, and create API key
+  async function setupDeveloper() {
+    const btn = document.getElementById('btnSetup');
+    btn.disabled = true;
+    btn.textContent = 'Setting up...';
+    setStatus('status', 'Setting up...');
+
+    try {
+      // Login as player FIRST to get their ID (before developer login sets the session)
+      log('out', 'POST /api/auth/login (player)');
+      const playerLoginRes = await fetch(BASE + '/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email: 'player@test.playstake.com', password: 'TestPlayer123!' })
+      });
+
+      if (!playerLoginRes.ok) {
+        const err = await playerLoginRes.json();
+        throw new Error(err.error || 'Player login failed: ' + playerLoginRes.status);
+      }
+
+      const playerData = await playerLoginRes.json();
+      document.getElementById('playerId').value = playerData.user.id;
+      log('in', 'Player ID: ' + playerData.user.id);
+
+      // Now login as developer (overwrites the session cookie — this is what we want)
+      log('out', 'POST /api/auth/login (developer)');
+      const loginRes = await fetch(BASE + '/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email: 'developer@test.playstake.com', password: 'TestDev123!' })
+      });
+
+      if (!loginRes.ok) {
+        const err = await loginRes.json();
+        throw new Error(err.error || 'Developer login failed: ' + loginRes.status);
+      }
+
+      const loginData = await loginRes.json();
+      log('in', 'Logged in as: ' + loginData.user.email + ' (' + loginData.user.role + ')');
+
+      // Get games
+      log('out', 'GET /api/developer/games');
+      const gamesRes = await fetch(BASE + '/api/developer/games', { credentials: 'include' });
+      const gamesData = await gamesRes.json();
+
+      if (!gamesData.data || gamesData.data.length === 0) throw new Error('No games found');
+
+      const game = gamesData.data[0];
+      document.getElementById('gameId').value = game.id;
+      log('in', 'Game: ' + game.name + ' (' + game.id + ')');
+
+      // Create API key with all permissions
+      log('out', 'POST /api/developer/api-keys');
+      const keyRes = await fetch(BASE + '/api/developer/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          label: 'Test Harness Key',
+          permissions: ['bet:create', 'bet:read', 'result:report', 'webhook:manage', 'widget:auth']
+        })
+      });
+
+      if (!keyRes.ok) {
+        const err = await keyRes.json();
+        throw new Error(err.error || 'API key creation failed');
+      }
+
+      const keyData = await keyRes.json();
+      document.getElementById('apiKey').value = keyData.key;
+      log('in', 'API Key created: ' + keyData.key.substring(0, 20) + '...');
+
+      setStatus('status', 'Setup complete');
+      setStatus('pStatus', playerData.user.displayName || playerData.user.email);
+      document.getElementById('btnToken').disabled = false;
+      btn.textContent = 'Done!';
+      btn.className = 'success';
+
+    } catch (err) {
+      log('err', 'Setup failed: ' + err.message);
+      setStatus('status', 'Setup failed', true);
+      btn.disabled = false;
+      btn.textContent = 'Retry Setup';
+    }
+  }
+
+  // Step 2: Generate widget token
+  async function generateToken() {
+    const apiKey = document.getElementById('apiKey').value;
+    const gameId = document.getElementById('gameId').value;
+    const playerId = document.getElementById('playerId').value;
+
+    if (!apiKey || !gameId || !playerId) {
+      log('err', 'Run Step 1 first');
+      return;
+    }
+
+    try {
+      log('out', 'POST /api/v1/widget/auth');
+      const res = await fetch(BASE + '/api/v1/widget/auth', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + apiKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          gameId: gameId,
+          playerId: playerId,
+          idempotencyKey: 'harness_' + Date.now()
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Token request failed: ' + res.status);
+      }
+
+      const data = await res.json();
+      document.getElementById('widgetToken').value = data.widgetToken;
+      log('in', 'Widget token: ' + data.widgetToken.substring(0, 16) + '... (expires: ' + data.expiresAt + ')');
+
+      document.getElementById('btnInit').disabled = false;
+      setStatus('status', 'Token ready');
+
+    } catch (err) {
+      log('err', 'Token failed: ' + err.message);
+    }
+  }
+
+  // Step 3: Initialize widget
+  function initWidget() {
+    const gameId = document.getElementById('gameId').value;
+    const widgetToken = document.getElementById('widgetToken').value;
+    const theme = document.getElementById('theme').value;
+    const position = document.getElementById('position').value;
+
+    if (!gameId || !widgetToken) {
+      log('err', 'Complete Steps 1 & 2 first');
+      return;
+    }
+
+    if (widget) {
+      widget.destroy();
+      document.getElementById('widgetContainer').innerHTML = '';
+    }
+
+    try {
+      widget = PlayStake.init({
+        gameId: gameId,
+        widgetToken: widgetToken,
+        containerId: 'widgetContainer',
+        theme: theme,
+        position: position,
+        onBetCreated: function(bet) {
+          log('in', 'BET_CREATED: ' + bet.betId + ' ($' + (bet.amount / 100).toFixed(2) + ')');
+        },
+        onBetAccepted: function(bet) {
+          log('in', 'BET_ACCEPTED: ' + bet.betId);
+        },
+        onBetSettled: function(bet) {
+          log('in', 'BET_SETTLED: ' + bet.betId + ' outcome=' + bet.outcome);
+        },
+        onError: function(err) {
+          log('err', 'WIDGET ERROR: ' + err.code + ' - ' + err.message);
+        }
+      });
+
+      log('out', 'Widget initialized (instanceId: ' + widget._id + ')');
+      setStatus('wStatus', 'Initialized');
+
+      document.getElementById('widgetContainer').classList.add('active');
+      document.getElementById('btnOpen').disabled = false;
+      document.getElementById('btnClose').disabled = false;
+      document.getElementById('btnDestroy').disabled = false;
+      document.getElementById('btnBet').disabled = false;
+
+      // Auto-open after a short delay
+      setTimeout(function() { openWidget(); }, 300);
+
+    } catch (err) {
+      log('err', 'Init failed: ' + err.message);
+    }
+  }
+
+  function openWidget() {
+    if (widget) { widget.open(); setStatus('wStatus', 'Open'); log('out', 'widget.open()'); }
+  }
+
+  function closeWidget() {
+    if (widget) { widget.close(); setStatus('wStatus', 'Closed'); log('out', 'widget.close()'); }
+  }
+
+  function destroyWidget() {
+    if (widget) {
+      widget.destroy();
+      widget = null;
+      document.getElementById('widgetContainer').innerHTML = 'Widget destroyed. Re-initialize to test again.';
+      document.getElementById('widgetContainer').classList.remove('active');
+      setStatus('wStatus', 'Destroyed');
+      log('out', 'widget.destroy()');
+      document.getElementById('btnOpen').disabled = true;
+      document.getElementById('btnClose').disabled = true;
+      document.getElementById('btnDestroy').disabled = true;
+      document.getElementById('btnBet').disabled = true;
+    }
+  }
+
+  // Step 4: Create bet via SDK
+  function createBet() {
+    if (!widget) { log('err', 'Widget not initialized'); return; }
+    const amount = Math.round(parseFloat(document.getElementById('betAmount').value) * 100);
+    const opponentId = document.getElementById('opponentId').value || undefined;
+    log('out', 'widget.createBet({ amount: ' + amount + ' cents' + (opponentId ? ', opponent: ' + opponentId : '') + ' })');
+    widget.createBet({ amount: amount, opponentId: opponentId });
+  }
+
+  // Listen for all widget postMessages
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.source === 'playstake-widget') {
+      var payload = e.data.payload ? JSON.stringify(e.data.payload).substring(0, 100) : '';
+      log('in', 'postMessage: ' + e.data.type + (payload ? ' ' + payload : ''));
+    }
+  });
+</script>
+</body>
+</html>

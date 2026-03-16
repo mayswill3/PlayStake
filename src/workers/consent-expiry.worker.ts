@@ -7,11 +7,11 @@
 // =============================================================================
 
 import { Worker, type Job } from "bullmq";
-import { BetStatus } from "../../generated/prisma/client.js";
-import { getRedisConnection } from "../lib/jobs/queue.js";
-import { QUEUE_NAMES, type ConsentExpiryScanPayload } from "../lib/jobs/types.js";
-import { prisma } from "../lib/db/client.js";
-import { dispatchWebhook } from "../lib/webhooks/dispatch.js";
+import { BetStatus } from "../../generated/prisma/client";
+import { getRedisConnection } from "../lib/jobs/queue";
+import { QUEUE_NAMES, type ConsentExpiryScanPayload } from "../lib/jobs/types";
+import { prisma } from "../lib/db/client";
+import { dispatchWebhook } from "../lib/webhooks/dispatch";
 
 // ---------------------------------------------------------------------------
 // Logging helper

@@ -6,7 +6,7 @@
 
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
-import { QUEUE_NAMES, type QueueName } from "./types.js";
+import { QUEUE_NAMES, type QueueName } from "./types";
 
 // ---------------------------------------------------------------------------
 // Redis connection (shared across all queues and workers)

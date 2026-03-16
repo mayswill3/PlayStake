@@ -1,5 +1,5 @@
-import { prisma } from "../db/client.js";
-import { generateRandomToken, sha256Hash } from "../utils/crypto.js";
+import { prisma } from "../db/client";
+import { generateRandomToken, sha256Hash } from "../utils/crypto";
 
 const API_KEY_PREFIX = "ps_live_";
 

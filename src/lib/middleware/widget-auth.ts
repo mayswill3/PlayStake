@@ -1,4 +1,4 @@
-import { validateWidgetToken } from "../auth/widget-token.js";
+import { validateWidgetToken } from "../auth/widget-token";
 
 // ---------------------------------------------------------------------------
 // Types

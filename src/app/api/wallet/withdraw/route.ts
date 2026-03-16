@@ -1,25 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { LedgerAccountType } from "../../../../../generated/prisma/client.js";
-import { TransactionType } from "../../../../../generated/prisma/client.js";
-import { validateSession } from "../../../../lib/auth/session.js";
-import { getSessionToken } from "../../../../lib/auth/helpers.js";
-import { prisma, withTransaction } from "../../../../lib/db/client.js";
-import { getOrCreatePlayerAccount, getSystemAccount } from "../../../../lib/ledger/accounts.js";
-import { transfer } from "../../../../lib/ledger/transfer.js";
-import { withdrawSchema } from "../../../../lib/validation/schemas.js";
-import { validateBody } from "../../../../lib/middleware/validate.js";
-import { checkIdempotency } from "../../../../lib/middleware/idempotency.js";
-import { centsToDollars, dollarsToCents } from "../../../../lib/utils/money.js";
+import { LedgerAccountType } from "../../../../../generated/prisma/client";
+import { TransactionType } from "../../../../../generated/prisma/client";
+import { validateSession } from "../../../../lib/auth/session";
+import { getSessionToken } from "../../../../lib/auth/helpers";
+import { prisma, withTransaction } from "../../../../lib/db/client";
+import { getOrCreatePlayerAccount, getSystemAccount } from "../../../../lib/ledger/accounts";
+import { transfer } from "../../../../lib/ledger/transfer";
+import { withdrawSchema } from "../../../../lib/validation/schemas";
+import { validateBody } from "../../../../lib/middleware/validate";
+import { checkIdempotency } from "../../../../lib/middleware/idempotency";
+import { centsToDollars, dollarsToCents } from "../../../../lib/utils/money";
 import {
   errorResponse,
   AuthenticationError,
   AuthorizationError,
   AppError,
-} from "../../../../lib/errors/index.js";
+} from "../../../../lib/errors/index";
 import {
   createPayout,
   getOrCreateCustomer,
-} from "../../../../lib/payments/stripe.js";
+} from "../../../../lib/payments/stripe";
 
 export async function POST(request: NextRequest) {
   try {

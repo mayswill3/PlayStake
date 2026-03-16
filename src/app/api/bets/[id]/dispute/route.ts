@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../../lib/db/client.js";
-import { BetStatus } from "../../../../../../generated/prisma/client.js";
-import { validateSession } from "../../../../../lib/auth/session.js";
-import { getSessionToken } from "../../../../../lib/auth/helpers.js";
-import { disputeSchema } from "../../../../../lib/validation/schemas.js";
-import { validateBody } from "../../../../../lib/middleware/validate.js";
+import { prisma } from "../../../../../lib/db/client";
+import { BetStatus } from "../../../../../../generated/prisma/client";
+import { validateSession } from "../../../../../lib/auth/session";
+import { getSessionToken } from "../../../../../lib/auth/helpers";
+import { disputeSchema } from "../../../../../lib/validation/schemas";
+import { validateBody } from "../../../../../lib/middleware/validate";
 import {
   errorResponse,
   AuthenticationError,
@@ -12,7 +12,7 @@ import {
   AuthorizationError,
   AppError,
   ConflictError,
-} from "../../../../../lib/errors/index.js";
+} from "../../../../../lib/errors/index";
 
 export async function POST(
   request: NextRequest,

@@ -1,5 +1,5 @@
-import type { User, UserRole } from "../../../generated/prisma/client.js";
-import { validateSession } from "../auth/session.js";
+import type { User, UserRole } from "../../../generated/prisma/client";
+import { validateSession } from "../auth/session";
 
 // ---------------------------------------------------------------------------
 // Types

@@ -3,8 +3,8 @@ import {
   TransactionType,
   LedgerAccountType,
   BetStatus,
-} from "../../../generated/prisma/client.js";
-import type { TxClient } from "../db/client.js";
+} from "../../../generated/prisma/client";
+import type { TxClient } from "../db/client";
 import {
   getOrCreatePlayerAccount,
   createEscrowAccount,
@@ -12,8 +12,8 @@ import {
   getSystemAccount,
   getOrCreateDeveloperAccount,
   getAccountBalance,
-} from "./accounts.js";
-import { transfer, type TransferResult } from "./transfer.js";
+} from "./accounts";
+import { transfer, type TransferResult } from "./transfer";
 
 // ---------------------------------------------------------------------------
 // Types

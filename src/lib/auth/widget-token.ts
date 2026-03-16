@@ -1,6 +1,6 @@
-import { WidgetSessionStatus } from "../../../generated/prisma/client.js";
-import { prisma } from "../db/client.js";
-import { generateRandomToken, sha256Hash } from "../utils/crypto.js";
+import { WidgetSessionStatus } from "../../../generated/prisma/client";
+import { prisma } from "../db/client";
+import { generateRandomToken, sha256Hash } from "../utils/crypto";
 
 const WIDGET_TOKEN_PREFIX = "wt_";
 const WIDGET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour

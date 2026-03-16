@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../lib/db/client.js";
-import { verifyPassword } from "../../../../lib/auth/password.js";
-import { createSession } from "../../../../lib/auth/session.js";
+import { prisma } from "../../../../lib/db/client";
+import { verifyPassword } from "../../../../lib/auth/password";
+import { createSession } from "../../../../lib/auth/session";
 import {
   checkLoginAttempts,
   recordFailedAttempt,
   clearAttempts,
-} from "../../../../lib/auth/login-protection.js";
-import { loginRateLimit, getClientIp } from "../../../../lib/middleware/rate-limit.js";
-import { loginSchema } from "../../../../lib/validation/schemas.js";
-import { validateBody } from "../../../../lib/middleware/validate.js";
-import { sessionCookieValue } from "../../../../lib/auth/helpers.js";
+} from "../../../../lib/auth/login-protection";
+import { loginRateLimit, getClientIp } from "../../../../lib/middleware/rate-limit";
+import { loginSchema } from "../../../../lib/validation/schemas";
+import { validateBody } from "../../../../lib/middleware/validate";
+import { sessionCookieValue } from "../../../../lib/auth/helpers";
 import {
   errorResponse,
   AuthenticationError,
   RateLimitError,
-} from "../../../../lib/errors/index.js";
+} from "../../../../lib/errors/index";
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import type { WidgetConfig, BetOutcome } from "./types";
 import { parseWidgetParams } from "./utils";
@@ -79,7 +79,10 @@ function WidgetApp() {
     onBalanceChange: refreshBalance,
   });
 
-  // PostMessage bridge
+  // PostMessage bridge — use a ref to avoid circular dependency between
+  // the onCreateBet callback and the sendBetCreated return value.
+  const sendBetCreatedRef = useRef<((bet: any) => void) | null>(null);
+
   const { sendBetCreated, sendBetAccepted, sendBetSettled, sendError } =
     usePostMessage({
       instanceId: config.instanceId,
@@ -90,12 +93,14 @@ function WidgetApp() {
             opponentId: payload.opponentId,
             metadata: payload.metadata,
           }).then((bet) => {
-            if (bet) sendBetCreated(bet);
+            if (bet && sendBetCreatedRef.current) sendBetCreatedRef.current(bet);
           });
         },
-        [createBet, sendBetCreated]
+        [createBet]
       ),
     });
+
+  sendBetCreatedRef.current = sendBetCreated;
 
   // Wrap bet actions to also send postMessage events
   const handleCreateBet = useCallback(

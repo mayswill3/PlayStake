@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BetStatus, BetOutcome } from "../../../../../../generated/prisma/client.js";
+import { BetStatus, BetOutcome } from "../../../../../../generated/prisma/client";
 import {
   authenticateApiKey,
   verifyDeveloperOwnsBet,
-} from "../../../../../lib/auth/dev-api.js";
-import { prisma } from "../../../../../lib/db/client.js";
-import { apiRateLimit } from "../../../../../lib/middleware/rate-limit.js";
-import { validateBody } from "../../../../../lib/middleware/validate.js";
-import { reportResultSchema } from "../../../../../lib/validation/schemas.js";
-import { sha256Hash } from "../../../../../lib/utils/crypto.js";
+} from "../../../../../lib/auth/dev-api";
+import { prisma } from "../../../../../lib/db/client";
+import { apiRateLimit } from "../../../../../lib/middleware/rate-limit";
+import { validateBody } from "../../../../../lib/middleware/validate";
+import { reportResultSchema } from "../../../../../lib/validation/schemas";
+import { sha256Hash } from "../../../../../lib/utils/crypto";
 import {
   errorResponse,
   AppError,
   ConflictError,
-} from "../../../../../lib/errors/index.js";
+} from "../../../../../lib/errors/index";
 
 // ---------------------------------------------------------------------------
 // POST /api/v1/bets/:betId/result - Game server reports match result

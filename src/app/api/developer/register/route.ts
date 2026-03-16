@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { UserRole } from "../../../../../generated/prisma/client.js";
-import { validateSession } from "../../../../lib/auth/session.js";
-import { getSessionToken } from "../../../../lib/auth/helpers.js";
-import { withTransaction } from "../../../../lib/db/client.js";
-import { developerRegisterSchema } from "../../../../lib/validation/schemas.js";
-import { validateBody } from "../../../../lib/middleware/validate.js";
+import { UserRole } from "../../../../../generated/prisma/client";
+import { validateSession } from "../../../../lib/auth/session";
+import { getSessionToken } from "../../../../lib/auth/helpers";
+import { withTransaction } from "../../../../lib/db/client";
+import { developerRegisterSchema } from "../../../../lib/validation/schemas";
+import { validateBody } from "../../../../lib/middleware/validate";
 import {
   errorResponse,
   AuthenticationError,
   ConflictError,
-} from "../../../../lib/errors/index.js";
+} from "../../../../lib/errors/index";
 
 export async function POST(request: NextRequest) {
   try {

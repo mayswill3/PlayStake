@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { prisma } from "../db/client.js";
+import { prisma } from "../db/client";
 
 // ---------------------------------------------------------------------------
 // Singleton Stripe instance

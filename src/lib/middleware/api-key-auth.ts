@@ -1,5 +1,5 @@
-import { validateApiKey } from "../auth/api-key.js";
-import { prisma } from "../db/client.js";
+import { validateApiKey } from "../auth/api-key";
+import { prisma } from "../db/client";
 
 // ---------------------------------------------------------------------------
 // Types

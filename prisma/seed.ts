@@ -2,7 +2,7 @@ import "dotenv/config";
 import { PrismaClient } from "../generated/prisma/client.js";
 import { UserRole, LedgerAccountType } from "../generated/prisma/enums.js";
 import { PrismaPg } from "@prisma/adapter-pg";
-import * as crypto from "crypto";
+import bcrypt from "bcrypt";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
@@ -171,12 +171,8 @@ async function main() {
   console.log("\nSeed completed successfully.");
 }
 
-/**
- * Simple password hashing for seed data. In production, use bcrypt with
- * proper salt rounds. This is SHA-256 for seed convenience only.
- */
 function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password).digest("hex");
+  return bcrypt.hashSync(password, 12);
 }
 
 main()

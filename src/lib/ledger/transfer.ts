@@ -4,8 +4,8 @@ import {
   TransactionStatus,
   type Transaction,
   type LedgerEntry,
-} from "../../../generated/prisma/client.js";
-import type { TxClient } from "../db/client.js";
+} from "../../../generated/prisma/client";
+import type { TxClient } from "../db/client";
 
 // ---------------------------------------------------------------------------
 // Types

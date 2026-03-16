@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { forgotPasswordSchema } from "../../../../lib/validation/schemas.js";
-import { validateBody } from "../../../../lib/middleware/validate.js";
-import { errorResponse } from "../../../../lib/errors/index.js";
+import { forgotPasswordSchema } from "../../../../lib/validation/schemas";
+import { validateBody } from "../../../../lib/middleware/validate";
+import { errorResponse } from "../../../../lib/errors/index";
 
 export async function POST(request: NextRequest) {
   try {

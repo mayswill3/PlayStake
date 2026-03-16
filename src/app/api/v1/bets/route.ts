@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateApiKey, verifyDeveloperOwnsGame } from "../../../../lib/auth/dev-api.js";
-import { apiRateLimit } from "../../../../lib/middleware/rate-limit.js";
-import { validateBody, validateQuery } from "../../../../lib/middleware/validate.js";
+import { authenticateApiKey, verifyDeveloperOwnsGame } from "../../../../lib/auth/dev-api";
+import { apiRateLimit } from "../../../../lib/middleware/rate-limit";
+import { validateBody, validateQuery } from "../../../../lib/middleware/validate";
 import {
   createBetSchema,
   betListV1QuerySchema,
-} from "../../../../lib/validation/schemas.js";
-import { prisma } from "../../../../lib/db/client.js";
-import { centsToDollars, dollarsToCents } from "../../../../lib/utils/money.js";
+} from "../../../../lib/validation/schemas";
+import { prisma } from "../../../../lib/db/client";
+import { centsToDollars, dollarsToCents } from "../../../../lib/utils/money";
 import {
   errorResponse,
   AppError,
   NotFoundError,
   ConflictError,
-} from "../../../../lib/errors/index.js";
-import { BetStatus } from "../../../../../generated/prisma/client.js";
+} from "../../../../lib/errors/index";
+import { BetStatus } from "../../../../../generated/prisma/client";
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/bets - List bets for developer's games

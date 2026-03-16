@@ -9,7 +9,7 @@ export {
   getAccountBalance,
   getEscrowAccountForBet,
   type SystemAccountType,
-} from "./accounts.js";
+} from "./accounts";
 
 export {
   transfer,
@@ -17,7 +17,7 @@ export {
   FrozenAccountError,
   type TransferInput,
   type TransferResult,
-} from "./transfer.js";
+} from "./transfer";
 
 export {
   holdEscrow,
@@ -31,7 +31,7 @@ export {
   type RefundEscrowInput,
   type CollectFeeInput,
   type DistributeDevShareInput,
-} from "./escrow.js";
+} from "./escrow";
 
 export {
   verifyAccountBalance,
@@ -41,4 +41,4 @@ export {
   type AccountDiscrepancy,
   type TransactionImbalance,
   type AuditReport,
-} from "./audit.js";
+} from "./audit";

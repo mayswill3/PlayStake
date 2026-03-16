@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as crypto from "crypto";
-import { authenticateApiKey } from "../../../../../../lib/auth/dev-api.js";
-import { prisma } from "../../../../../../lib/db/client.js";
-import { apiRateLimit } from "../../../../../../lib/middleware/rate-limit.js";
+import { authenticateApiKey } from "../../../../../../lib/auth/dev-api";
+import { prisma } from "../../../../../../lib/db/client";
+import { apiRateLimit } from "../../../../../../lib/middleware/rate-limit";
 import {
   errorResponse,
   NotFoundError,
   AuthorizationError,
   AppError,
-} from "../../../../../../lib/errors/index.js";
+} from "../../../../../../lib/errors/index";
 
 // ---------------------------------------------------------------------------
 // POST /api/v1/webhooks/:id/test - Send a test webhook payload
