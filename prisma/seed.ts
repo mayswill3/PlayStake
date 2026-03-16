@@ -35,7 +35,7 @@ async function main() {
   });
   console.log(`  Player created:   ${player.id} (${player.email})`);
 
-  // Player balance ledger account
+  // Player balance ledger account — seed with $100 for testing
   const playerBalance = await prisma.ledgerAccount.upsert({
     where: {
       userId_accountType: {
@@ -43,15 +43,49 @@ async function main() {
         accountType: LedgerAccountType.PLAYER_BALANCE,
       },
     },
-    update: {},
+    update: { balance: 100.0 },
     create: {
       userId: player.id,
       accountType: LedgerAccountType.PLAYER_BALANCE,
-      balance: 0,
+      balance: 100.0,
       currency: "USD",
     },
   });
-  console.log(`  Player ledger:    ${playerBalance.id}`);
+  console.log(`  Player ledger:    ${playerBalance.id} ($100.00)`);
+
+  // ---------------------------------------------------------------------------
+  // 1b. Test Player B (second player for testing bets)
+  // ---------------------------------------------------------------------------
+  const playerB = await prisma.user.upsert({
+    where: { email: "player2@test.playstake.com" },
+    update: {},
+    create: {
+      email: "player2@test.playstake.com",
+      passwordHash: hashPassword("TestPlayer2!"),
+      role: UserRole.PLAYER,
+      displayName: "TestPlayerB",
+      emailVerified: true,
+    },
+  });
+  console.log(`  Player B created: ${playerB.id} (${playerB.email})`);
+
+  // Player B balance ledger account — seed with $100 for testing
+  const playerBBalance = await prisma.ledgerAccount.upsert({
+    where: {
+      userId_accountType: {
+        userId: playerB.id,
+        accountType: LedgerAccountType.PLAYER_BALANCE,
+      },
+    },
+    update: { balance: 100.0 },
+    create: {
+      userId: playerB.id,
+      accountType: LedgerAccountType.PLAYER_BALANCE,
+      balance: 100.0,
+      currency: "USD",
+    },
+  });
+  console.log(`  Player B ledger:  ${playerBBalance.id} ($100.00)`);
 
   // ---------------------------------------------------------------------------
   // 2. Test Developer

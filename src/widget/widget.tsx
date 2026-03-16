@@ -188,7 +188,7 @@ function WidgetApp() {
 
       {/* Active bet banner */}
       {activeBet && !showResultConfirmation && (
-        <ActiveBet bet={activeBet} onConfirmResult={handleConfirmResult} />
+        <ActiveBet bet={activeBet} onConfirmResult={handleConfirmResult} onConsent={consentBet} />
       )}
 
       {/* Tab navigation */}

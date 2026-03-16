@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BetStatus } from "../../../../../../generated/prisma/client";
-import { authenticateWidget } from "../../../../../lib/auth/dev-api";
-import { withTransaction, type TxClient } from "../../../../../lib/db/client";
-import { prisma } from "../../../../../lib/db/client";
-import { holdEscrow } from "../../../../../lib/ledger/escrow";
-import { apiRateLimit } from "../../../../../lib/middleware/rate-limit";
-import { validateBody } from "../../../../../lib/middleware/validate";
-import { consentBetSchema } from "../../../../../lib/validation/schemas";
-import { dollarsToCents } from "../../../../../lib/utils/money";
+import { BetStatus } from "../../../../../../../generated/prisma/client";
+import { authenticateWidget } from "../../../../../../lib/auth/dev-api";
+import { withTransaction, type TxClient } from "../../../../../../lib/db/client";
+import { prisma } from "../../../../../../lib/db/client";
+import { holdEscrow } from "../../../../../../lib/ledger/escrow";
+import { apiRateLimit } from "../../../../../../lib/middleware/rate-limit";
+import { validateBody } from "../../../../../../lib/middleware/validate";
+import { consentBetSchema } from "../../../../../../lib/validation/schemas";
+import { dollarsToCents } from "../../../../../../lib/utils/money";
 import {
   errorResponse,
   AppError,
   NotFoundError,
   AuthorizationError,
-} from "../../../../../lib/errors/index";
+} from "../../../../../../lib/errors/index";
 
 // ---------------------------------------------------------------------------
 // POST /api/v1/bets/:betId/consent - Player A consents to the bet

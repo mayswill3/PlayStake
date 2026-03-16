@@ -5,6 +5,7 @@ import { formatCents } from "../utils";
 interface ActiveBetProps {
   bet: BetData;
   onConfirmResult: (betId: string, outcome: string) => void;
+  onConsent?: (betId: string) => void;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -28,10 +29,12 @@ const STATUS_COLORS: Record<string, string> = {
  * Displays status indicator, both players, amount, and game state.
  * When a result is reported, shows a prompt to confirm via widget-result.
  */
-export function ActiveBet({ bet, onConfirmResult }: ActiveBetProps) {
+export function ActiveBet({ bet, onConfirmResult, onConsent }: ActiveBetProps) {
+  const [consenting, setConsenting] = React.useState(false);
   const statusLabel = STATUS_LABELS[bet.status] || bet.status;
   const statusClass = STATUS_COLORS[bet.status] || "";
   const showResultConfirm = bet.status === "RESULT_REPORTED" && bet.outcome && !bet.resultVerified;
+  const showConsent = bet.status === "PENDING_CONSENT" && onConsent;
 
   return (
     <div className="ps-active-bet">
@@ -62,6 +65,34 @@ export function ActiveBet({ bet, onConfirmResult }: ActiveBetProps) {
             </span>
           </div>
         </div>
+
+        {showConsent && (
+          <div className="ps-active-bet__result-prompt" style={{ marginTop: 12 }}>
+            <p className="ps-active-bet__result-text">
+              Confirm to lock <strong>{formatCents(bet.amount)}</strong> in escrow
+            </p>
+            <div className="ps-active-bet__result-actions" style={{ marginTop: 8 }}>
+              <button
+                className="ps-btn ps-btn--primary"
+                disabled={consenting}
+                onClick={async () => {
+                  setConsenting(true);
+                  await onConsent(bet.betId);
+                  setConsenting(false);
+                }}
+              >
+                {consenting ? (
+                  <span className="ps-btn__loading">
+                    <span className="ps-spinner ps-spinner--small" />
+                    Locking...
+                  </span>
+                ) : (
+                  "Confirm & Lock Funds"
+                )}
+              </button>
+            </div>
+          </div>
+        )}
 
         {bet.gameMetadata && Object.keys(bet.gameMetadata).length > 0 && (
           <div className="ps-active-bet__meta">

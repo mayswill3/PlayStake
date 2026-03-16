@@ -293,14 +293,14 @@ export const createBetSchema = z.object({
     .number()
     .int()
     .min(1, "Expires must be at least 1 second")
-    .max(3600, "Expires must be at most 3600 seconds")
-    .default(300),
+    .max(86400, "Expires must be at most 86400 seconds")
+    .default(1800),
   consentTimeoutSeconds: z
     .number()
     .int()
     .min(1, "Consent timeout must be at least 1 second")
-    .max(120, "Consent timeout must be at most 120 seconds")
-    .default(60),
+    .max(1800, "Consent timeout must be at most 1800 seconds")
+    .default(600),
   idempotencyKey: z
     .string()
     .min(1, "Idempotency key is required")
