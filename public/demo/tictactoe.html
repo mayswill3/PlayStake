@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tic-Tac-Toe — PlayStake Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      max-width: 900px;
+      padding: 24px 20px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #a78bfa;
+    }
+
+    .logo svg { color: #a78bfa; }
+
+    .main {
+      width: 100%;
+      max-width: 900px;
+      padding: 20px;
+      display: flex;
+      gap: 24px;
+      flex: 1;
+    }
+
+    .game-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .side-panel {
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .card h3 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #94a3b8;
+      margin-bottom: 12px;
+    }
+
+    /* Role selection */
+    .role-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .role-btn {
+      flex: 1;
+      padding: 16px;
+      border: 2px solid #334155;
+      border-radius: 10px;
+      background: #1e293b;
+      color: #e2e8f0;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .role-btn:hover { border-color: #a78bfa; background: #2d1b69; }
+    .role-btn.selected { border-color: #a78bfa; background: #3b1f8e; }
+    .role-btn .marker { font-size: 28px; display: block; margin-bottom: 4px; }
+
+    /* Status */
+    .status-bar {
+      text-align: center;
+      padding: 12px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .status-bar.your-turn { border-color: #22c55e; color: #4ade80; }
+    .status-bar.waiting { border-color: #eab308; color: #facc15; }
+    .status-bar.finished { border-color: #a78bfa; color: #c4b5fd; }
+
+    /* Board */
+    .board-container {
+      display: flex;
+      justify-content: center;
+      padding: 10px 0;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 110px);
+      grid-template-rows: repeat(3, 110px);
+      gap: 6px;
+    }
+
+    .cell {
+      background: #1e293b;
+      border: 2px solid #334155;
+      border-radius: 10px;
+      font-size: 48px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #e2e8f0;
+    }
+
+    .cell:hover:not(.taken):not(.disabled) {
+      border-color: #a78bfa;
+      background: #2d1b69;
+    }
+
+    .cell.taken { cursor: default; }
+    .cell.disabled { cursor: not-allowed; opacity: 0.6; }
+    .cell .x { color: #60a5fa; }
+    .cell .o { color: #f472b6; }
+    .cell.win-cell { border-color: #22c55e; background: #14532d; }
+
+    /* Buttons */
+    .btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      width: 100%;
+    }
+
+    .btn-primary { background: #7c3aed; color: #fff; }
+    .btn-primary:hover { background: #6d28d9; }
+    .btn-primary:disabled { background: #4c1d95; opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: #334155; color: #e2e8f0; }
+    .btn-secondary:hover { background: #475569; }
+    .btn-success { background: #16a34a; color: #fff; }
+    .btn-success:hover { background: #15803d; }
+
+    /* Input */
+    .input {
+      width: 100%;
+      padding: 10px 14px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 16px;
+      font-family: monospace;
+      text-align: center;
+      letter-spacing: 2px;
+    }
+
+    .input:focus { outline: none; border-color: #a78bfa; }
+
+    /* Game code display */
+    .game-code {
+      font-family: monospace;
+      font-size: 32px;
+      font-weight: 700;
+      color: #a78bfa;
+      text-align: center;
+      letter-spacing: 4px;
+      padding: 12px;
+      background: #0f172a;
+      border-radius: 8px;
+      border: 2px dashed #4c1d95;
+    }
+
+    /* Log */
+    .log {
+      font-family: monospace;
+      font-size: 12px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+
+    .log-entry { color: #64748b; }
+    .log-entry.success { color: #4ade80; }
+    .log-entry.error { color: #f87171; }
+    .log-entry.info { color: #60a5fa; }
+    .log-entry.bet { color: #c084fc; }
+
+    /* Widget container */
+    #widget-area {
+      border: 2px solid #334155;
+      border-radius: 12px;
+      overflow: hidden;
+      height: 520px;
+      position: relative;
+      background: #0f172a;
+    }
+
+    #widget-area .placeholder-text {
+      padding: 40px;
+      text-align: center;
+      color: #475569;
+    }
+
+    /* Override SDK wrapper styles when embedded */
+    #widget-area > div {
+      width: 100% !important;
+      height: 100% !important;
+      max-height: 100% !important;
+      border-radius: 0 !important;
+    }
+
+    #widget-area iframe {
+      width: 100% !important;
+      height: 100% !important;
+      border: none !important;
+    }
+
+    .hidden { display: none !important; }
+
+    /* Players info */
+    .players-info {
+      display: flex;
+      gap: 12px;
+    }
+
+    .player-card {
+      flex: 1;
+      padding: 12px;
+      background: #0f172a;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .player-card .marker {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .player-card .marker.x { color: #60a5fa; }
+    .player-card .marker.o { color: #f472b6; }
+    .player-card .name { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+    .player-card.active { border: 1px solid #22c55e; }
+
+    .bet-info {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #4ade80;
+    }
+
+    @media (max-width: 768px) {
+      .main { flex-direction: column; }
+      .side-panel { width: 100%; }
+      .board { grid-template-columns: repeat(3, 90px); grid-template-rows: repeat(3, 90px); }
+      .cell { font-size: 36px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+      </svg>
+      PlayStake — Tic-Tac-Toe
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- Left: Game Panel -->
+    <div class="game-panel">
+
+      <!-- Step 1: Role selection -->
+      <div class="card" id="role-card">
+        <h3>Choose Your Player</h3>
+        <div class="role-buttons">
+          <button class="role-btn" onclick="selectRole('A')">
+            <span class="marker" style="color:#60a5fa">X</span>
+            Player A
+            <div style="font-size:12px;color:#64748b;margin-top:4px">Creates the bet</div>
+          </button>
+          <button class="role-btn" onclick="selectRole('B')">
+            <span class="marker" style="color:#f472b6">O</span>
+            Player B
+            <div style="font-size:12px;color:#64748b;margin-top:4px">Accepts the bet</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Lobby (Player A creates, Player B joins) -->
+      <div class="card hidden" id="lobby-card">
+        <h3 id="lobby-title">Game Lobby</h3>
+
+        <!-- Player A: Create game -->
+        <div id="lobby-create" class="hidden">
+          <p style="margin-bottom:12px;color:#94a3b8">Create a game and place your bet. Share the game code with your opponent.</p>
+          <button class="btn btn-primary" id="btn-create" onclick="createGame()">Create Game & Place Bet</button>
+        </div>
+
+        <!-- Player A: Waiting -->
+        <div id="lobby-waiting" class="hidden">
+          <p style="margin-bottom:12px;color:#94a3b8">Share this code with Player B:</p>
+          <div class="game-code" id="game-code-display">------</div>
+          <p style="margin-top:12px;color:#64748b;text-align:center;font-size:13px">Waiting for opponent to join...</p>
+        </div>
+
+        <!-- Player B: Join game -->
+        <div id="lobby-join" class="hidden">
+          <p style="margin-bottom:12px;color:#94a3b8">Enter the game code from Player A:</p>
+          <input class="input" id="join-code-input" placeholder="GAME CODE" maxlength="6" />
+          <button class="btn btn-success" style="margin-top:12px" id="btn-join" onclick="joinGame()">Join Game & Accept Bet</button>
+        </div>
+      </div>
+
+      <!-- Game board -->
+      <div class="hidden" id="game-area">
+        <div class="card">
+          <div class="players-info" id="players-info"></div>
+          <div class="bet-info" style="margin-top:12px" id="bet-info"></div>
+        </div>
+
+        <div class="status-bar" id="status-bar">Waiting...</div>
+
+        <div class="board-container">
+          <div class="board" id="board"></div>
+        </div>
+
+        <div class="card hidden" id="result-card">
+          <h3>Game Over</h3>
+          <p id="result-text" style="font-size:18px;font-weight:600;text-align:center;padding:12px"></p>
+          <button class="btn btn-primary" style="margin-top:12px" onclick="location.reload()">Play Again</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Side Panel -->
+    <div class="side-panel">
+      <div class="card">
+        <h3>PlayStake Widget</h3>
+        <div id="widget-area">
+          <div class="placeholder-text" id="widget-placeholder">
+            Select a player role to begin
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Event Log</h3>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/widget/sdk.js"></script>
+  <script>
+    // =========================================================================
+    // State
+    // =========================================================================
+    let role = null;            // 'A' or 'B'
+    let playerId = null;
+    let apiKey = null;
+    let gameId = null;          // PlayStake game ID (test-battle-arena)
+    let widgetToken = null;
+    let gameSessionId = null;
+    let betId = null;
+    let betAmount = 500;        // $5.00 in cents
+    let pollInterval = null;
+    let gameState = null;
+    let widgetInstance = null;
+    let setupDone = false;
+
+    const PLAYER_A_EMAIL = 'player@test.playstake.com';
+    const PLAYER_A_PASS = 'TestPlayer123!';
+    const PLAYER_B_EMAIL = 'player2@test.playstake.com';
+    const PLAYER_B_PASS = 'TestPlayer2!';
+    const DEV_EMAIL = 'developer@test.playstake.com';
+    const DEV_PASS = 'TestDev123!';
+
+    // =========================================================================
+    // Logging
+    // =========================================================================
+    function log(msg, cls = '') {
+      const el = document.getElementById('log');
+      const ts = new Date().toLocaleTimeString();
+      el.innerHTML += `<div class="log-entry ${cls}">[${ts}] ${msg}</div>`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    // =========================================================================
+    // API helpers
+    // =========================================================================
+    async function apiPost(path, body) {
+      const res = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      return res.json();
+    }
+
+    async function apiPatch(path, body) {
+      const res = await fetch(path, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      return res.json();
+    }
+
+    async function apiGet(path) {
+      const res = await fetch(path);
+      return res.json();
+    }
+
+    // =========================================================================
+    // Setup: login, get API key, widget token
+    // =========================================================================
+    async function setup() {
+      try {
+        log('Starting setup...', 'info');
+
+        // 1. Login as the chosen player to get their ID
+        const playerEmail = role === 'A' ? PLAYER_A_EMAIL : PLAYER_B_EMAIL;
+        const playerPass = role === 'A' ? PLAYER_A_PASS : PLAYER_B_PASS;
+
+        const playerLogin = await apiPost('/api/auth/login', {
+          email: playerEmail,
+          password: playerPass,
+        });
+
+        if (playerLogin.error) throw new Error('Player login failed: ' + playerLogin.error);
+        playerId = playerLogin.user.id;
+        log(`Logged in as ${playerLogin.user.displayName} (${playerId.slice(0,8)}...)`, 'success');
+
+        // 2. Login as developer to get API key
+        const devLogin = await apiPost('/api/auth/login', {
+          email: DEV_EMAIL,
+          password: DEV_PASS,
+        });
+
+        if (devLogin.error) throw new Error('Developer login failed: ' + devLogin.error);
+        log('Developer session established', 'success');
+
+        // 3. Get or create API key
+        const keysRes = await fetch('/api/developer/api-keys');
+        const keysData = await keysRes.json();
+
+        if (keysData.keys && keysData.keys.length > 0) {
+          // Need a fresh key since we can't read hashed ones
+          const newKey = await apiPost('/api/developer/api-keys', {
+            label: 'tictactoe-demo',
+            permissions: ['bet:create', 'bet:read', 'result:report', 'webhook:manage', 'widget:auth'],
+          });
+          apiKey = newKey.key;
+        } else {
+          const newKey = await apiPost('/api/developer/api-keys', {
+            label: 'tictactoe-demo',
+            permissions: ['bet:create', 'bet:read', 'result:report', 'webhook:manage', 'widget:auth'],
+          });
+          apiKey = newKey.key;
+        }
+        log(`API key: ${apiKey.slice(0, 16)}...`, 'success');
+
+        // 4. Get game ID
+        const gamesRes = await fetch('/api/developer/games');
+        const gamesData = await gamesRes.json();
+        gameId = gamesData.data?.[0]?.id || gamesData.games?.[0]?.id;
+        if (!gameId) throw new Error('No games found');
+        log(`Game ID: ${gameId.slice(0, 8)}...`, 'success');
+
+        // 4b. Clean up any stale bets from previous sessions
+        log('Cleaning up stale bets...', 'info');
+        const cleanup = await apiPost('/api/demo/cleanup-bets', { playerId, gameId });
+        if (cleanup.voidedCount > 0) {
+          log(`Cleaned up ${cleanup.voidedCount} stale bet(s)`, 'success');
+        }
+
+        // 5. Generate widget token (using API key auth)
+        const tokenRes2 = await fetch('/api/v1/widget/auth', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            playerId,
+            gameId,
+            idempotencyKey: `wt_${role}_${Date.now()}`,
+          }),
+        });
+        const tokenData = await tokenRes2.json();
+
+        if (tokenData.error) throw new Error('Widget token failed: ' + tokenData.error);
+        widgetToken = tokenData.widgetToken;
+        log(`Widget token: ${widgetToken.slice(0, 16)}...`, 'success');
+
+        // 6. Initialize PlayStake widget
+        PlayStake._setOrigin(window.location.origin);
+        // Hide placeholder before widget loads
+        const ph = document.getElementById('widget-placeholder');
+        if (ph) ph.style.display = 'none';
+
+        widgetInstance = PlayStake.init({
+          widgetToken: widgetToken,
+          gameId: gameId,
+          containerId: 'widget-area',
+          theme: 'dark',
+          onBetCreated: async (bet) => {
+            log(`Bet created: ${bet.betId} ($${(bet.amount / 100).toFixed(2)})`, 'bet');
+            betId = bet.betId;
+            // Sync betId to game session so the server knows about it
+            if (gameSessionId) {
+              try {
+                await apiPatch(`/api/demo/game/${gameSessionId}`, {
+                  action: 'setBetId',
+                  betId: bet.betId,
+                });
+                log('Bet linked to game session', 'success');
+              } catch (err) {
+                log(`Failed to link bet to session: ${err.message}`, 'error');
+              }
+            }
+          },
+          onBetAccepted: (bet) => {
+            log(`Bet accepted! Match is on!`, 'bet');
+            betId = bet.betId;
+          },
+          onBetSettled: (bet) => {
+            log(`Bet settled: ${bet.outcome}`, 'bet');
+          },
+          onError: (err) => {
+            log(`Widget error: ${err.message}`, 'error');
+          },
+        });
+
+        widgetInstance.open();
+        log('Widget initialized and opened', 'success');
+
+        setupDone = true;
+        return true;
+      } catch (err) {
+        log(`Setup failed: ${err.message}`, 'error');
+        return false;
+      }
+    }
+
+    // =========================================================================
+    // Role selection
+    // =========================================================================
+    async function selectRole(r) {
+      role = r;
+
+      // Highlight selected button
+      document.querySelectorAll('.role-btn').forEach((btn, i) => {
+        btn.classList.toggle('selected', (i === 0 && r === 'A') || (i === 1 && r === 'B'));
+      });
+
+      log(`Selected role: Player ${r} (${r === 'A' ? 'X' : 'O'})`, 'info');
+
+      // Run setup
+      const ok = await setup();
+      if (!ok) return;
+
+      // Show lobby
+      document.getElementById('lobby-card').classList.remove('hidden');
+
+      if (role === 'A') {
+        document.getElementById('lobby-title').textContent = 'Create Game';
+        document.getElementById('lobby-create').classList.remove('hidden');
+      } else {
+        document.getElementById('lobby-title').textContent = 'Join Game';
+        document.getElementById('lobby-join').classList.remove('hidden');
+      }
+    }
+
+    // =========================================================================
+    // Player A: Create game
+    // =========================================================================
+    async function createGame() {
+      const btn = document.getElementById('btn-create');
+      btn.disabled = true;
+      btn.textContent = 'Creating...';
+
+      try {
+        log('Creating game session...', 'info');
+
+        // Create game session on the demo server
+        const session = await apiPost('/api/demo/game', { playerAId: playerId });
+        gameSessionId = session.id;
+        log(`Game session: ${gameSessionId}`, 'success');
+
+        // Show waiting screen with code
+        document.getElementById('lobby-create').classList.add('hidden');
+        document.getElementById('lobby-waiting').classList.remove('hidden');
+        document.getElementById('game-code-display').textContent = gameSessionId;
+
+        // Now create the bet via the widget
+        log('Open the widget to create a $5 bet, then consent to lock funds.', 'info');
+        if (widgetInstance) widgetInstance.open();
+
+        // Start polling for Player B to join
+        pollInterval = setInterval(async () => {
+          const state = await apiGet(`/api/demo/game/${gameSessionId}`);
+          if (state.status === 'playing') {
+            log('Player B joined! Game starting...', 'success');
+            clearInterval(pollInterval);
+            gameState = state;
+            startGame();
+          }
+        }, 1500);
+      } catch (err) {
+        log(`Failed to create game: ${err.message}`, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Create Game & Place Bet';
+      }
+    }
+
+    // =========================================================================
+    // Player B: Join game
+    // =========================================================================
+    async function joinGame() {
+      const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+      if (!code) return;
+
+      const btn = document.getElementById('btn-join');
+      btn.disabled = true;
+      btn.textContent = 'Joining...';
+
+      try {
+        // Check game exists
+        const session = await apiGet(`/api/demo/game/${code}`);
+        if (session.error) throw new Error(session.error);
+        if (session.status !== 'waiting') throw new Error('Game already started');
+
+        gameSessionId = code;
+        log(`Found game ${gameSessionId}, joining...`, 'info');
+
+        // Join the game session
+        const joined = await apiPatch(`/api/demo/game/${gameSessionId}`, {
+          action: 'join',
+          playerBId: playerId,
+        });
+
+        if (joined.error) throw new Error(joined.error);
+
+        log('Joined! Accept the bet in the widget below.', 'info');
+        gameState = joined;
+
+        // Open widget so Player B can see and accept the open bet
+        if (widgetInstance) widgetInstance.open();
+
+        startGame();
+      } catch (err) {
+        log(`Failed to join: ${err.message}`, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Join Game & Accept Bet';
+      }
+    }
+
+    // =========================================================================
+    // Game logic
+    // =========================================================================
+    function startGame() {
+      // Hide lobby, show game
+      document.getElementById('lobby-card').classList.add('hidden');
+      document.getElementById('game-area').classList.remove('hidden');
+
+      renderBoard();
+      updateStatus();
+      renderPlayers();
+
+      // Poll for state updates
+      pollInterval = setInterval(async () => {
+        const state = await apiGet(`/api/demo/game/${gameSessionId}`);
+        if (state.error) return;
+        const changed = JSON.stringify(state.board) !== JSON.stringify(gameState.board)
+                     || state.status !== gameState.status;
+        gameState = state;
+        if (changed) {
+          renderBoard();
+          updateStatus();
+          renderPlayers();
+
+          if (state.status === 'finished') {
+            clearInterval(pollInterval);
+            handleGameOver();
+          }
+        }
+      }, 1000);
+    }
+
+    function renderBoard() {
+      const board = document.getElementById('board');
+      board.innerHTML = '';
+
+      const winLine = getWinLine();
+
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+
+        const isMyTurn = gameState.turn === role && gameState.status === 'playing';
+        const isTaken = gameState.board[i] !== null;
+
+        if (isTaken) {
+          cell.classList.add('taken');
+          const span = document.createElement('span');
+          span.className = gameState.board[i] === 'X' ? 'x' : 'o';
+          span.textContent = gameState.board[i];
+          cell.appendChild(span);
+        }
+
+        if (!isMyTurn || isTaken || gameState.status === 'finished') {
+          cell.classList.add('disabled');
+        }
+
+        if (winLine && winLine.includes(i)) {
+          cell.classList.add('win-cell');
+        }
+
+        cell.addEventListener('click', () => {
+          if (isMyTurn && !isTaken && gameState.status === 'playing') {
+            makeMove(i);
+          }
+        });
+
+        board.appendChild(cell);
+      }
+    }
+
+    function getWinLine() {
+      const lines = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6],
+      ];
+      const b = gameState.board;
+      for (const [a, bb, c] of lines) {
+        if (b[a] && b[a] === b[bb] && b[a] === b[c]) return [a, bb, c];
+      }
+      return null;
+    }
+
+    function updateStatus() {
+      const bar = document.getElementById('status-bar');
+      bar.classList.remove('your-turn', 'waiting', 'finished');
+
+      if (gameState.status === 'finished') {
+        bar.classList.add('finished');
+        if (gameState.winner === role) bar.textContent = 'You Won!';
+        else if (gameState.winner === 'draw') bar.textContent = "It's a Draw!";
+        else bar.textContent = 'You Lost!';
+      } else if (gameState.turn === role) {
+        bar.classList.add('your-turn');
+        bar.textContent = 'Your Turn — Click a cell';
+      } else {
+        bar.classList.add('waiting');
+        bar.textContent = "Opponent's Turn...";
+      }
+    }
+
+    function renderPlayers() {
+      const info = document.getElementById('players-info');
+      const isATurn = gameState.turn === 'A' && gameState.status === 'playing';
+      const isBTurn = gameState.turn === 'B' && gameState.status === 'playing';
+
+      info.innerHTML = `
+        <div class="player-card ${isATurn ? 'active' : ''}">
+          <div class="marker x">X</div>
+          <div class="name">Player A${role === 'A' ? ' (You)' : ''}</div>
+        </div>
+        <div class="player-card ${isBTurn ? 'active' : ''}">
+          <div class="marker o">O</div>
+          <div class="name">Player B${role === 'B' ? ' (You)' : ''}</div>
+        </div>
+      `;
+
+      document.getElementById('bet-info').innerHTML = betId
+        ? `<span>Bet: $${(betAmount / 100).toFixed(2)}</span>`
+        : '<span style="color:#64748b">No bet placed</span>';
+    }
+
+    async function makeMove(cellIndex) {
+      log(`Placing ${role === 'A' ? 'X' : 'O'} on cell ${cellIndex}`, 'info');
+
+      const result = await apiPatch(`/api/demo/game/${gameSessionId}`, {
+        action: 'move',
+        cell: cellIndex,
+        player: role,
+      });
+
+      if (result.error) {
+        log(`Move failed: ${result.error}`, 'error');
+        return;
+      }
+
+      gameState = result;
+      renderBoard();
+      updateStatus();
+      renderPlayers();
+
+      if (result.status === 'finished') {
+        clearInterval(pollInterval);
+        handleGameOver();
+      }
+    }
+
+    async function handleGameOver() {
+      const resultCard = document.getElementById('result-card');
+      resultCard.classList.remove('hidden');
+
+      const resultText = document.getElementById('result-text');
+      if (gameState.winner === role) {
+        resultText.textContent = 'Congratulations! You won!';
+        resultText.style.color = '#4ade80';
+      } else if (gameState.winner === 'draw') {
+        resultText.textContent = "It's a draw! Bets returned.";
+        resultText.style.color = '#facc15';
+      } else {
+        resultText.textContent = 'You lost. Better luck next time!';
+        resultText.style.color = '#f87171';
+      }
+
+      log(`Game over: ${gameState.winner === 'draw' ? 'Draw' : 'Player ' + gameState.winner + ' wins'}`, 'info');
+
+      // Use local betId as fallback if the game session store wasn't updated
+      const activeBetId = gameState.betId || betId;
+
+      // Any player with a betId and apiKey can report (server has idempotency protection)
+      if (activeBetId && apiKey) {
+        resultText.textContent += '\nReporting result...';
+        log('Reporting result to PlayStake...', 'bet');
+        try {
+          // Sync betId to session if it was only local
+          if (!gameState.betId && betId) {
+            await apiPatch(`/api/demo/game/${gameSessionId}`, {
+              action: 'setBetId',
+              betId: betId,
+            });
+          }
+
+          const res = await apiPost(`/api/demo/game/${gameSessionId}/result`, {
+            apiKey: apiKey,
+          });
+          if (res.success) {
+            log('Result reported! Settling bet...', 'bet');
+            resultText.textContent = resultText.textContent.replace(
+              'Reporting result...', 'Result reported — settling...'
+            );
+
+            // Auto-settle for demo (bypasses widget confirm + settlement worker)
+            try {
+              const settle = await apiPost('/api/demo/settle-bet', { betId: activeBetId, apiKey });
+              if (settle.success) {
+                const payoutDisplay = settle.winnerPayout.toFixed(2);
+                const outcomeLabel = settle.outcome === 'DRAW' ? 'Draw — both refunded' : `Winner receives $${payoutDisplay}`;
+                log(`Bet settled! ${outcomeLabel}`, 'success');
+                resultText.textContent = resultText.textContent.replace(
+                  'Result reported — settling...', `Settled! ${outcomeLabel}`
+                );
+              } else {
+                log(`Settlement failed: ${settle.error || JSON.stringify(settle)}`, 'error');
+                resultText.textContent = resultText.textContent.replace(
+                  'Result reported — settling...', 'Result reported! Confirm in widget below.'
+                );
+              }
+            } catch (settleErr) {
+              log(`Settlement error: ${settleErr.message}`, 'error');
+              resultText.textContent = resultText.textContent.replace(
+                'Result reported — settling...', 'Result reported! Confirm in widget below.'
+              );
+            }
+          } else if (res.message === 'Result already reported') {
+            log('Result already reported by other player.', 'info');
+            resultText.textContent = resultText.textContent.replace(
+              'Reporting result...', 'Result reported! Confirm in widget below.'
+            );
+          } else {
+            log(`Result report failed: ${JSON.stringify(res)}`, 'error');
+            resultText.textContent = resultText.textContent.replace(
+              'Reporting result...', 'Result report failed — try refreshing.'
+            );
+          }
+        } catch (err) {
+          log(`Result report error: ${err.message}`, 'error');
+          resultText.textContent = resultText.textContent.replace(
+            'Reporting result...', 'Result report error — try refreshing.'
+          );
+        }
+      } else if (!activeBetId) {
+        log('No bet associated with this game.', 'info');
+      }
+    }
+  </script>
+</body>
+</html>

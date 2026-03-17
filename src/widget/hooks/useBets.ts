@@ -242,6 +242,12 @@ export function useBets({
         });
 
         if (!res.ok) {
+          // 409 = other player already confirmed; treat as success
+          if (res.status === 409) {
+            await refresh();
+            onBalanceChange();
+            return true;
+          }
           const body = await res.json().catch(() => ({ error: "Failed to confirm result" }));
           setError(body.error || "Failed to confirm result");
           return false;
