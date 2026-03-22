@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Avatar } from '@/components/ui/Avatar';
 import { formatCents } from '@/lib/utils/format';
+import { ChevronDown } from 'lucide-react';
 
 interface HeaderProps {
   user: {
@@ -41,14 +42,14 @@ export function Header({ user, balance }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-surface-800 bg-surface-950/80 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-white/8 bg-surface-950/90 backdrop-blur-md">
       <div className="flex items-center justify-between h-16 px-4 lg:px-6">
         {/* Left spacer for mobile hamburger */}
         <div className="lg:hidden w-10" />
 
         {/* Mobile logo */}
         <div className="lg:hidden">
-          <Link href="/dashboard" className="text-brand-400 text-xl font-bold">PS</Link>
+          <Link href="/dashboard" className="text-brand-400 text-xl font-display font-bold">PS</Link>
         </div>
 
         {/* Desktop spacer */}
@@ -60,14 +61,14 @@ export function Header({ user, balance }: HeaderProps) {
           {balance && (
             <Link
               href="/wallet"
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 transition-colors"
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-sm bg-surface-800 hover:bg-surface-700 transition-colors"
             >
-              <span className="text-xs text-surface-400">Balance</span>
-              <span className="text-sm font-semibold text-brand-400">
+              <span className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Balance</span>
+              <span className="text-sm font-mono tabular-nums text-brand-400">
                 {formatCents(balance.available)}
               </span>
               {balance.escrowed > 0 && (
-                <span className="text-xs text-surface-500" title="In escrow">
+                <span className="font-mono text-xs text-text-secondary" title="In escrow">
                   ({formatCents(balance.escrowed)})
                 </span>
               )}
@@ -79,7 +80,7 @@ export function Header({ user, balance }: HeaderProps) {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-surface-800 transition-colors"
+                className="flex items-center gap-2 p-1.5 rounded-sm hover:bg-surface-800 transition-colors"
                 aria-expanded={dropdownOpen}
                 aria-haspopup="true"
               >
@@ -88,28 +89,23 @@ export function Header({ user, balance }: HeaderProps) {
                   name={user.displayName}
                   size="sm"
                 />
-                <span className="hidden sm:block text-sm text-surface-200">
+                <span className="hidden sm:block text-sm font-mono text-surface-200">
                   {user.displayName}
                 </span>
-                <svg
-                  className={`h-4 w-4 text-surface-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                <ChevronDown
+                  className={`h-4 w-4 text-text-muted transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
+                />
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-lg bg-surface-900 border border-surface-800 shadow-xl py-1 z-50">
-                  <div className="px-4 py-3 border-b border-surface-800">
-                    <p className="text-sm font-medium text-surface-100">{user.displayName}</p>
-                    <p className="text-xs text-surface-500 truncate">{user.email}</p>
+                <div className="absolute right-0 mt-2 w-56 rounded-sm bg-surface-850 border border-white/8 py-1 z-50">
+                  <div className="px-4 py-3 border-b border-white/8">
+                    <p className="text-sm font-mono font-medium text-text-primary">{user.displayName}</p>
+                    <p className="text-xs font-mono text-text-muted truncate">{user.email}</p>
                   </div>
                   <Link
                     href="/settings"
-                    className="block px-4 py-2 text-sm text-surface-300 hover:text-surface-100 hover:bg-surface-800 transition-colors"
+                    className="block px-4 py-2 text-sm font-mono text-surface-300 hover:text-text-primary hover:bg-surface-800 transition-colors"
                     onClick={() => setDropdownOpen(false)}
                   >
                     Settings
@@ -117,7 +113,7 @@ export function Header({ user, balance }: HeaderProps) {
                   {(user.role === 'DEVELOPER' || user.role === 'ADMIN') ? (
                     <Link
                       href="/developer"
-                      className="block px-4 py-2 text-sm text-surface-300 hover:text-surface-100 hover:bg-surface-800 transition-colors"
+                      className="block px-4 py-2 text-sm font-mono text-surface-300 hover:text-text-primary hover:bg-surface-800 transition-colors"
                       onClick={() => setDropdownOpen(false)}
                     >
                       Developer Portal
@@ -125,7 +121,7 @@ export function Header({ user, balance }: HeaderProps) {
                   ) : (
                     <Link
                       href="/developer"
-                      className="block px-4 py-2 text-sm text-surface-300 hover:text-surface-100 hover:bg-surface-800 transition-colors"
+                      className="block px-4 py-2 text-sm font-mono text-surface-300 hover:text-text-primary hover:bg-surface-800 transition-colors"
                       onClick={() => setDropdownOpen(false)}
                     >
                       Become a Developer
@@ -133,7 +129,7 @@ export function Header({ user, balance }: HeaderProps) {
                   )}
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-sm text-danger-400 hover:bg-surface-800 transition-colors"
+                    className="w-full text-left px-4 py-2 text-sm font-mono text-danger-400 hover:bg-surface-800 transition-colors"
                   >
                     Log out
                   </button>

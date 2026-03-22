@@ -98,7 +98,7 @@ export default function AdminUserDetailPage() {
 
   if (!user) {
     return (
-      <div className="p-4 rounded-lg bg-danger-500/10 border border-danger-500/25 text-danger-300 text-sm">
+      <div className="p-4 rounded-sm bg-danger-500/10 border border-danger-500/25 text-danger-400 text-sm">
         User not found.
       </div>
     );
@@ -108,8 +108,8 @@ export default function AdminUserDetailPage() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-surface-100">{user.displayName}</h1>
-          <p className="text-surface-400 text-sm mt-1">{user.email}</p>
+          <h1 className="text-2xl font-bold font-display text-text-primary">{user.displayName}</h1>
+          <p className="text-text-secondary font-mono text-sm mt-1">{user.email}</p>
         </div>
         <Button variant="ghost" onClick={() => router.push('/admin/users')}>
           Back to Users
@@ -119,16 +119,16 @@ export default function AdminUserDetailPage() {
       {/* Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
-          <p className="text-sm text-surface-400 mb-1">Balance</p>
-          <p className="text-2xl font-bold text-brand-400">{formatCents(user.balance)}</p>
+          <p className="text-sm text-text-secondary font-mono mb-1">Balance</p>
+          <p className="text-2xl font-bold font-display text-brand-400">{formatCents(user.balance)}</p>
         </Card>
         <Card>
-          <p className="text-sm text-surface-400 mb-1">Total Bets</p>
-          <p className="text-2xl font-bold text-surface-100">{user.totalBets}</p>
+          <p className="text-sm text-text-secondary font-mono mb-1">Total Bets</p>
+          <p className="text-2xl font-bold font-display text-text-primary">{user.totalBets}</p>
         </Card>
         <Card>
-          <p className="text-sm text-surface-400 mb-1">Disputes Filed</p>
-          <p className="text-2xl font-bold text-surface-100">{user.disputesFiled}</p>
+          <p className="text-sm text-text-secondary font-mono mb-1">Disputes Filed</p>
+          <p className="text-2xl font-bold font-display text-text-primary">{user.disputesFiled}</p>
         </Card>
       </div>
 
@@ -203,9 +203,9 @@ export default function AdminUserDetailPage() {
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-surface-800 last:border-0">
-      <span className="text-sm text-surface-400">{label}</span>
-      <span className="text-sm text-surface-200 font-mono">{value}</span>
+    <div className="flex items-center justify-between py-2 border-b border-white/8 last:border-0">
+      <span className="text-sm text-text-secondary">{label}</span>
+      <span className="text-sm text-text-primary font-mono">{value}</span>
     </div>
   );
 }

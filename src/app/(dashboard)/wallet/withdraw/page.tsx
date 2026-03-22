@@ -86,20 +86,20 @@ export default function WithdrawPage() {
   return (
     <div className="max-w-md mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-surface-100">Withdraw Funds</h1>
-        <p className="text-surface-400 text-sm mt-1">Transfer funds to your bank account</p>
+        <h1 className="text-2xl font-display font-bold text-text-primary">Withdraw Funds</h1>
+        <p className="text-text-secondary font-mono text-sm mt-1">Transfer funds to your bank account</p>
       </div>
 
       <Card>
-        <div className="mb-6 p-4 rounded-lg bg-surface-800">
-          <p className="text-sm text-surface-400">Available Balance</p>
-          <p className="text-2xl font-bold text-brand-400">
+        <div className="mb-6 p-4 rounded-sm bg-surface-800">
+          <p className="text-sm text-text-secondary font-mono">Available Balance</p>
+          <p className="text-2xl font-bold font-display text-brand-400">
             {formatCents(available ?? 0)}
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-danger-500/10 border border-danger-500/25 text-danger-300 text-sm" role="alert">
+          <div className="mb-4 p-3 rounded-sm bg-danger-500/10 border border-danger-500/25 text-danger-400 text-sm font-mono" role="alert">
             {error}
           </div>
         )}
@@ -122,13 +122,13 @@ export default function WithdrawPage() {
             <button
               type="button"
               onClick={() => setAmount((available / 100).toFixed(2))}
-              className="text-sm text-brand-400 hover:text-brand-300 transition-colors"
+              className="text-sm text-brand-400 hover:text-brand-400 transition-colors"
             >
               Withdraw all ({formatCents(available)})
             </button>
           )}
 
-          <div className="text-xs text-surface-500">
+          <div className="text-xs text-text-muted">
             Min $10.00 &middot; Funds typically arrive in 1-3 business days
           </div>
 

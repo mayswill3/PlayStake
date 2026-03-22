@@ -15,7 +15,7 @@ export function Card({ padding = 'md', className = '', children, ...props }: Car
   return (
     <div
       className={`
-        rounded-xl border border-surface-800 bg-surface-900 shadow-sm
+        rounded-sm border border-white/8 bg-surface-900
         ${paddingStyles[padding]}
         ${className}
       `}
@@ -36,7 +36,7 @@ export function CardHeader({ className = '', children, ...props }: ComponentProp
 
 export function CardTitle({ className = '', children, ...props }: ComponentProps<'h3'>) {
   return (
-    <h3 className={`text-lg font-semibold text-surface-100 ${className}`} {...props}>
+    <h3 className={`text-lg font-display font-semibold text-text-primary ${className}`} {...props}>
       {children}
     </h3>
   );
@@ -44,7 +44,7 @@ export function CardTitle({ className = '', children, ...props }: ComponentProps
 
 export function CardDescription({ className = '', children, ...props }: ComponentProps<'p'>) {
   return (
-    <p className={`text-sm text-surface-400 ${className}`} {...props}>
+    <p className={`text-sm text-text-secondary ${className}`} {...props}>
       {children}
     </p>
   );

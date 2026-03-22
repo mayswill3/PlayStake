@@ -23,9 +23,9 @@ export function useToast() {
 }
 
 const typeStyles: Record<ToastType, string> = {
-  success: 'border-brand-500/50 bg-brand-500/10 text-brand-300',
-  error: 'border-danger-500/50 bg-danger-500/10 text-danger-300',
-  info: 'border-blue-500/50 bg-blue-500/10 text-blue-300',
+  success: 'border-brand-400/50 bg-brand-400/10 text-brand-400',
+  error: 'border-danger-500/50 bg-danger-500/10 text-danger-400',
+  info: 'border-blue-500/50 bg-blue-500/10 text-blue-400',
 };
 
 const typeIcons: Record<ToastType, string> = {
@@ -54,15 +54,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ toast: addToast }}>
       {children}
       <div
-        className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full"
+        className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pb-safe"
         aria-live="polite"
       >
         {toasts.map((t) => (
           <div
             key={t.id}
             className={`
-              flex items-start gap-3 rounded-lg border px-4 py-3 shadow-lg
+              flex items-start gap-3 rounded-sm border px-4 py-3
               animate-[slideUp_0.2s_ease-out]
+              bg-surface-900
               ${typeStyles[t.type]}
             `}
             role="alert"
@@ -70,10 +71,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <span className="text-lg leading-none mt-0.5" aria-hidden="true">
               {typeIcons[t.type]}
             </span>
-            <p className="text-sm flex-1">{t.message}</p>
+            <p className="text-sm flex-1 font-mono">{t.message}</p>
             <button
               onClick={() => removeToast(t.id)}
-              className="text-surface-400 hover:text-surface-200 ml-2"
+              className="text-text-muted hover:text-text-secondary ml-2"
               aria-label="Dismiss"
             >
               &times;

@@ -8,49 +8,65 @@ const variantStyles = {
   neutral: 'bg-surface-500/15 text-surface-400 border-surface-500/25',
 } as const;
 
+type AnimationType = 'pulse' | 'breathe' | 'shake' | 'none';
+
 interface BadgeProps extends ComponentProps<'span'> {
   variant?: keyof typeof variantStyles;
+  animation?: AnimationType;
 }
 
-export function Badge({ variant = 'neutral', className = '', children, ...props }: BadgeProps) {
+export function Badge({ variant = 'neutral', animation = 'none', className = '', children, ...props }: BadgeProps) {
+  const animationClass =
+    animation === 'pulse' ? 'motion-safe:animate-[pulse-dot_2s_ease-in-out_infinite]' :
+    animation === 'breathe' ? 'motion-safe:animate-[breathe-border_3s_ease-in-out_infinite]' :
+    animation === 'shake' ? 'motion-safe:animate-[shake_0.5s_ease-in-out_3]' :
+    '';
+
   return (
     <span
       className={`
-        inline-flex items-center rounded-full border px-2.5 py-0.5
-        text-xs font-medium
+        inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-0.5
+        font-mono text-[11px] uppercase tracking-widest
         ${variantStyles[variant]}
+        ${animationClass}
         ${className}
       `}
       {...props}
     >
+      {animation === 'pulse' && (
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="absolute inline-flex h-full w-full rounded-full bg-current opacity-75 motion-safe:animate-ping" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" />
+        </span>
+      )}
       {children}
     </span>
   );
 }
 
 /**
- * Map common bet/transaction statuses to badge variants.
+ * Map common bet/transaction statuses to badge variants with animations.
  */
 export function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { variant: BadgeProps['variant']; label: string }> = {
-    SETTLED: { variant: 'success', label: 'Settled' },
-    COMPLETED: { variant: 'success', label: 'Completed' },
-    WON: { variant: 'success', label: 'Won' },
-    LOST: { variant: 'danger', label: 'Lost' },
-    CANCELLED: { variant: 'neutral', label: 'Cancelled' },
-    PENDING: { variant: 'warning', label: 'Pending' },
-    PENDING_CONSENT: { variant: 'warning', label: 'Pending Consent' },
-    OPEN: { variant: 'info', label: 'Open' },
-    MATCHED: { variant: 'info', label: 'Matched' },
-    RESULT_REPORTED: { variant: 'warning', label: 'Result Reported' },
-    DISPUTED: { variant: 'danger', label: 'Disputed' },
-    FAILED: { variant: 'danger', label: 'Failed' },
-    DRAW: { variant: 'neutral', label: 'Draw' },
-    ACTIVE: { variant: 'success', label: 'Active' },
-    REVOKED: { variant: 'danger', label: 'Revoked' },
+  const map: Record<string, { variant: BadgeProps['variant']; label: string; animation: AnimationType }> = {
+    SETTLED: { variant: 'success', label: 'Settled', animation: 'none' },
+    COMPLETED: { variant: 'success', label: 'Completed', animation: 'none' },
+    WON: { variant: 'success', label: 'Won', animation: 'none' },
+    LOST: { variant: 'danger', label: 'Lost', animation: 'none' },
+    CANCELLED: { variant: 'neutral', label: 'Cancelled', animation: 'none' },
+    PENDING: { variant: 'warning', label: 'Pending', animation: 'pulse' },
+    PENDING_CONSENT: { variant: 'warning', label: 'Pending Consent', animation: 'pulse' },
+    OPEN: { variant: 'info', label: 'Open', animation: 'breathe' },
+    MATCHED: { variant: 'info', label: 'Matched', animation: 'none' },
+    RESULT_REPORTED: { variant: 'warning', label: 'Result Reported', animation: 'none' },
+    DISPUTED: { variant: 'danger', label: 'Disputed', animation: 'shake' },
+    FAILED: { variant: 'danger', label: 'Failed', animation: 'none' },
+    DRAW: { variant: 'neutral', label: 'Draw', animation: 'none' },
+    ACTIVE: { variant: 'success', label: 'Active', animation: 'none' },
+    REVOKED: { variant: 'danger', label: 'Revoked', animation: 'none' },
   };
 
-  const entry = map[status] || { variant: 'neutral' as const, label: status };
+  const entry = map[status] || { variant: 'neutral' as const, label: status, animation: 'none' as const };
 
-  return <Badge variant={entry.variant}>{entry.label}</Badge>;
+  return <Badge variant={entry.variant} animation={entry.animation}>{entry.label}</Badge>;
 }

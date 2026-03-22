@@ -100,7 +100,7 @@ export default function AdminDisputeDetailPage() {
 
   if (!dispute) {
     return (
-      <div className="p-4 rounded-lg bg-danger-500/10 border border-danger-500/25 text-danger-300 text-sm">
+      <div className="p-4 rounded-sm bg-danger-500/10 border border-danger-500/25 text-danger-400 text-sm">
         Dispute not found.
       </div>
     );
@@ -112,8 +112,8 @@ export default function AdminDisputeDetailPage() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-surface-100">Dispute Detail</h1>
-          <p className="text-surface-400 text-sm mt-1">
+          <h1 className="text-2xl font-bold font-display text-text-primary">Dispute Detail</h1>
+          <p className="text-text-secondary font-mono text-sm mt-1">
             {dispute.bet.game.name} &middot; Filed {formatDate(dispute.createdAt)}
           </p>
         </div>
@@ -139,11 +139,11 @@ export default function AdminDisputeDetailPage() {
           </DetailRow>
           <DetailRow label="Filed By">{dispute.filedBy.displayName} ({dispute.filedBy.email})</DetailRow>
           <DetailRow label="Reason">
-            <p className="text-sm text-surface-200 whitespace-pre-wrap">{dispute.reason}</p>
+            <p className="text-sm text-text-primary whitespace-pre-wrap">{dispute.reason}</p>
           </DetailRow>
           {dispute.resolution && (
             <DetailRow label="Resolution">
-              <p className="text-sm text-surface-200 whitespace-pre-wrap">{dispute.resolution}</p>
+              <p className="text-sm text-text-primary whitespace-pre-wrap">{dispute.resolution}</p>
             </DetailRow>
           )}
         </div>
@@ -171,11 +171,11 @@ export default function AdminDisputeDetailPage() {
           <CardTitle>Messages</CardTitle>
           <div className="mt-4 space-y-4">
             {dispute.messages.map((msg) => (
-              <div key={msg.id} className="p-3 rounded-lg bg-surface-800">
+              <div key={msg.id} className="p-3 rounded-sm bg-surface-800">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-medium text-surface-200">{msg.author.displayName}</span>
+                  <span className="text-sm font-medium text-text-primary">{msg.author.displayName}</span>
                   <Badge variant={msg.author.role === 'ADMIN' ? 'danger' : 'neutral'}>{msg.author.role}</Badge>
-                  <span className="text-xs text-surface-500">{formatDate(msg.createdAt)}</span>
+                  <span className="text-xs text-text-muted">{formatDate(msg.createdAt)}</span>
                 </div>
                 <p className="text-sm text-surface-300 whitespace-pre-wrap">{msg.body}</p>
               </div>
@@ -195,10 +195,10 @@ export default function AdminDisputeDetailPage() {
                   key={opt.value}
                   onClick={() => setSelectedOutcome(opt.value)}
                   className={`
-                    px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                    px-3 py-1.5 rounded-sm text-sm font-medium transition-colors
                     ${selectedOutcome === opt.value
-                      ? 'bg-brand-600/15 text-brand-400 border border-brand-500/25'
-                      : 'text-surface-400 hover:text-surface-200 border border-surface-700 hover:border-surface-600'
+                      ? 'bg-brand-400/15 text-brand-400 border border-brand-500/25'
+                      : 'text-text-secondary hover:text-text-primary border border-surface-700 hover:border-surface-600'
                     }
                   `}
                 >
@@ -207,7 +207,7 @@ export default function AdminDisputeDetailPage() {
               ))}
             </div>
             <textarea
-              className="w-full p-3 rounded-lg bg-surface-800 border border-surface-700 text-surface-200 text-sm placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-y min-h-[100px]"
+              className="w-full p-3 rounded-sm bg-surface-800 border border-surface-700 text-text-primary text-sm placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-y min-h-[100px]"
               placeholder="Provide resolution details (min 5 characters)..."
               value={resolution}
               onChange={(e) => setResolution(e.target.value)}
@@ -227,9 +227,9 @@ export default function AdminDisputeDetailPage() {
 
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-2 border-b border-surface-800 last:border-0">
-      <span className="text-sm text-surface-400 sm:w-32 shrink-0">{label}</span>
-      <div className="text-sm text-surface-200">{children}</div>
+    <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-2 border-b border-white/8 last:border-0">
+      <span className="text-sm text-text-secondary sm:w-32 shrink-0">{label}</span>
+      <div className="text-sm text-text-primary">{children}</div>
     </div>
   );
 }

@@ -2,47 +2,49 @@
 @plugin "@tailwindcss/forms";
 
 @theme {
-  /* PlayStake brand colors */
-  --color-brand-50: #ecfdf5;
-  --color-brand-100: #d1fae5;
-  --color-brand-200: #a7f3d0;
-  --color-brand-300: #6ee7b7;
-  --color-brand-400: #34d399;
-  --color-brand-500: #10b981;
-  --color-brand-600: #059669;
-  --color-brand-700: #047857;
-  --color-brand-800: #065f46;
-  --color-brand-900: #064e3b;
+  /* PlayStake neon mint brand colors */
+  --color-brand-400: #00ff87;
+  --color-brand-500: #00cc6a;
+  --color-brand-600: #00995a;
 
   --color-danger-50: #fef2f2;
   --color-danger-100: #fee2e2;
   --color-danger-200: #fecaca;
   --color-danger-300: #fca5a5;
-  --color-danger-400: #f87171;
-  --color-danger-500: #ef4444;
+  --color-danger-400: #ff6b81;
+  --color-danger-500: #ff3b5c;
   --color-danger-600: #dc2626;
   --color-danger-700: #b91c1c;
 
-  --color-warning-400: #facc15;
-  --color-warning-500: #eab308;
+  --color-warning-400: #ffcf33;
+  --color-warning-500: #ffb800;
 
   --color-surface-50: #fafafa;
-  --color-surface-100: #f4f4f5;
+  --color-surface-100: #f0f0f5;
   --color-surface-200: #e4e4e7;
   --color-surface-300: #d4d4d8;
   --color-surface-400: #a1a1aa;
   --color-surface-500: #71717a;
   --color-surface-600: #52525b;
-  --color-surface-700: #3f3f46;
-  --color-surface-800: #27272a;
-  --color-surface-850: #1e1e22;
-  --color-surface-900: #18181b;
-  --color-surface-950: #09090b;
+  --color-surface-700: #2a2a3e;
+  --color-surface-800: #1a1a2e;
+  --color-surface-850: #14141f;
+  --color-surface-900: #0f0f1a;
+  --color-surface-950: #0a0a0f;
+
+  /* Text tokens */
+  --color-text-primary: #f0f0f5;
+  --color-text-secondary: #8888a0;
+  --color-text-muted: #44445a;
+
+  /* Font families */
+  --font-display: var(--font-chakra-petch), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-dm-mono), ui-monospace, monospace;
 }
 
 /* Dark theme base */
 body {
-  @apply bg-surface-950 text-surface-100 antialiased;
+  @apply bg-surface-950 text-text-primary antialiased;
 }
 
 /* Scrollbar styling */
@@ -75,7 +77,7 @@ body {
 [type='week'],
 select,
 textarea {
-  @apply bg-surface-800 border-surface-700 text-surface-100 rounded-lg;
+  @apply bg-surface-800 border-surface-700 text-text-primary rounded-sm font-mono;
 }
 
 [type='text']:focus,
@@ -85,7 +87,14 @@ textarea {
 [type='number']:focus,
 select:focus,
 textarea:focus {
-  @apply border-brand-500 ring-brand-500;
+  @apply border-brand-400 ring-0;
+}
+
+/* Border/glow custom properties */
+:root {
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-glow: rgba(0, 255, 135, 0.25);
+  --glow-brand: 0 0 20px rgba(0, 255, 135, 0.15);
 }
 
 /* Toast slide-up animation */
@@ -98,4 +107,46 @@ textarea:focus {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Pulsing dot for pending states */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Breathing border for open/active states */
+@keyframes breathe-border {
+  0%, 100% { border-color: rgba(59, 130, 246, 0.3); }
+  50% { border-color: rgba(59, 130, 246, 0.6); }
+}
+
+/* Shake for disputed states */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1px); }
+  75% { transform: translateX(1px); }
+}
+
+/* Slide up + fade for page transitions */
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Count-up flash highlight */
+@keyframes count-up-flash {
+  0% { color: var(--color-brand-400); }
+  100% { color: inherit; }
+}
+
+/* Utility: font-display */
+@utility font-display {
+  font-family: var(--font-display);
 }

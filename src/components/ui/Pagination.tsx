@@ -26,7 +26,7 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
 
       {pages.map((p, i) =>
         p === '...' ? (
-          <span key={`ellipsis-${i}`} className="px-2 text-surface-500">
+          <span key={`ellipsis-${i}`} className="px-2 text-text-muted font-mono">
             ...
           </span>
         ) : (
@@ -34,10 +34,10 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
             key={p}
             onClick={() => onPageChange(p as number)}
             className={`
-              min-w-[36px] h-9 rounded-lg text-sm font-medium transition-colors
+              min-w-[36px] h-9 rounded-sm text-sm font-mono tabular-nums font-medium transition-colors
               ${
                 p === page
-                  ? 'bg-brand-600 text-white'
+                  ? 'bg-brand-400 text-surface-950'
                   : 'text-surface-400 hover:text-surface-100 hover:bg-surface-800'
               }
             `}

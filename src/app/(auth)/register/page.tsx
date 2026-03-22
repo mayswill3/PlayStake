@@ -18,7 +18,7 @@ function getPasswordStrength(pw: string): { score: number; label: string; color:
   if (score <= 1) return { score, label: 'Weak', color: 'bg-danger-500' };
   if (score <= 2) return { score, label: 'Fair', color: 'bg-warning-400' };
   if (score <= 3) return { score, label: 'Good', color: 'bg-blue-400' };
-  return { score, label: 'Strong', color: 'bg-brand-500' };
+  return { score, label: 'Strong', color: 'bg-brand-400' };
 }
 
 export default function RegisterPage() {
@@ -75,60 +75,31 @@ export default function RegisterPage() {
 
   return (
     <Card>
-      <h1 className="text-2xl font-bold text-surface-100 mb-1">Create your account</h1>
-      <p className="text-sm text-surface-400 mb-6">Start wagering on your favorite games</p>
+      <h1 className="text-2xl font-display font-bold text-text-primary mb-1">Create your account</h1>
+      <p className="text-sm font-mono text-text-secondary mb-6">Start wagering on your favorite games</p>
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-danger-500/10 border border-danger-500/25 text-danger-300 text-sm" role="alert">
+        <div className="mb-4 p-3 rounded-sm bg-danger-500/10 border border-danger-500/25 text-danger-400 text-sm font-mono" role="alert">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          label="Display Name"
-          type="text"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          placeholder="FragMaster99"
-          required
-          minLength={2}
-          maxLength={32}
-          autoComplete="username"
-        />
-
-        <Input
-          label="Email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          required
-          autoComplete="email"
-          error={fieldErrors.email}
-        />
+        <Input label="Display Name" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="FragMaster99" required minLength={2} maxLength={32} autoComplete="username" />
+        <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="email" error={fieldErrors.email} />
 
         <div>
-          <Input
-            label="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Min 8 chars, 1 upper, 1 number, 1 special"
-            required
-            minLength={8}
-            autoComplete="new-password"
-          />
+          <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 8 chars, 1 upper, 1 number, 1 special" required minLength={8} autoComplete="new-password" />
           {password.length > 0 && (
             <div className="mt-2">
               <div className="flex items-center gap-2">
-                <div className="flex-1 h-1.5 rounded-full bg-surface-800 overflow-hidden">
+                <div className="flex-1 h-1.5 rounded-sm bg-surface-800 overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-300 ${strength.color}`}
+                    className={`h-full rounded-sm transition-all duration-300 ${strength.color}`}
                     style={{ width: `${(strength.score / 5) * 100}%` }}
                   />
                 </div>
-                <span className="text-xs text-surface-400">{strength.label}</span>
+                <span className="font-mono text-xs text-text-secondary">{strength.label}</span>
               </div>
             </div>
           )}
@@ -139,9 +110,9 @@ export default function RegisterPage() {
         </Button>
       </form>
 
-      <p className="mt-4 text-center text-sm text-surface-400">
+      <p className="mt-4 text-center text-sm font-mono text-text-secondary">
         Already have an account?{' '}
-        <Link href="/login" className="text-brand-400 hover:text-brand-300 transition-colors">
+        <Link href="/login" className="text-brand-400 hover:text-brand-500 transition-colors">
           Sign in
         </Link>
       </p>

@@ -83,7 +83,7 @@ function CheckoutForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
         <div
-          className="p-3 rounded-lg bg-danger-500/10 border border-danger-500/25 text-danger-300 text-sm"
+          className="p-3 rounded-sm bg-danger-500/10 border border-danger-500/25 text-danger-400 text-sm"
           role="alert"
         >
           {error}
@@ -96,8 +96,8 @@ function CheckoutForm({
         }}
       />
 
-      <div className="text-sm text-surface-400 text-center">
-        You will be charged <span className="font-semibold text-surface-100">{formatCents(amountCents)}</span>
+      <div className="text-sm text-text-secondary font-mono text-center">
+        You will be charged <span className="font-semibold text-text-primary">{formatCents(amountCents)}</span>
       </div>
 
       <Button type="submit" loading={submitting} disabled={!stripe || !elements} className="w-full">
@@ -177,8 +177,8 @@ export default function DepositPage() {
     return (
       <div className="max-w-md mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-surface-100">Complete Payment</h1>
-          <p className="text-surface-400 text-sm mt-1">
+          <h1 className="text-2xl font-bold font-display text-text-primary">Complete Payment</h1>
+          <p className="text-text-secondary font-mono text-sm mt-1">
             Enter your payment details to deposit {formatCents(amountCents)}
           </p>
         </div>
@@ -219,13 +219,13 @@ export default function DepositPage() {
   return (
     <div className="max-w-md mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-surface-100">Deposit Funds</h1>
-        <p className="text-surface-400 text-sm mt-1">Add funds to your PlayStake wallet</p>
+        <h1 className="text-2xl font-bold font-display text-text-primary">Deposit Funds</h1>
+        <p className="text-text-secondary font-mono text-sm mt-1">Add funds to your PlayStake wallet</p>
       </div>
 
       <Card>
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-danger-500/10 border border-danger-500/25 text-danger-300 text-sm" role="alert">
+          <div className="mb-4 p-3 rounded-sm bg-danger-500/10 border border-danger-500/25 text-danger-400 text-sm" role="alert">
             {error}
           </div>
         )}
@@ -252,10 +252,10 @@ export default function DepositPage() {
                 type="button"
                 onClick={() => setAmount((preset / 100).toFixed(2))}
                 className={`
-                  px-4 py-2 rounded-lg text-sm font-medium border transition-colors
+                  px-4 py-2 rounded-sm text-sm font-medium border transition-colors
                   ${amountCents === preset
                     ? 'border-brand-500 bg-brand-500/15 text-brand-400'
-                    : 'border-surface-700 text-surface-400 hover:border-surface-600 hover:text-surface-200'
+                    : 'border-surface-700 text-text-secondary hover:border-surface-600 hover:text-text-primary'
                   }
                 `}
               >
@@ -264,7 +264,7 @@ export default function DepositPage() {
             ))}
           </div>
 
-          <div className="text-xs text-surface-500">
+          <div className="text-xs text-text-muted">
             Min $5.00 &middot; Max $1,000.00 &middot; Processed via Stripe
           </div>
 

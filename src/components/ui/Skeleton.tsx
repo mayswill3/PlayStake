@@ -5,7 +5,7 @@ interface SkeletonProps {
 export function Skeleton({ className = '' }: SkeletonProps) {
   return (
     <div
-      className={`animate-pulse rounded-lg bg-surface-800 ${className}`}
+      className={`animate-pulse rounded-sm bg-white/5 ${className}`}
       aria-hidden="true"
     />
   );
@@ -26,7 +26,7 @@ export function SkeletonText({ lines = 3 }: { lines?: number }) {
 
 export function SkeletonCard() {
   return (
-    <div className="rounded-xl border border-surface-800 bg-surface-900 p-6">
+    <div className="rounded-sm border border-white/8 bg-surface-900 p-6">
       <Skeleton className="h-4 w-1/3 mb-3" />
       <Skeleton className="h-8 w-1/2 mb-2" />
       <Skeleton className="h-3 w-1/4" />

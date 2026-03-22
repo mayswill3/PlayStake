@@ -30,7 +30,7 @@ export function Avatar({ src, name, size = 'md', className = '' }: AvatarProps) 
     <div
       className={`
         inline-flex items-center justify-center rounded-full
-        bg-brand-600/20 text-brand-400 font-semibold
+        bg-brand-400/20 text-brand-400 font-mono font-semibold
         ${sizeStyles[size]} ${className}
       `}
       aria-label={name}

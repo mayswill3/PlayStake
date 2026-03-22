@@ -1,12 +1,20 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Chakra_Petch, DM_Mono } from 'next/font/google';
 import { ToastProvider } from '@/components/ui/Toast';
 import './globals.css';
 
-const inter = Inter({
+const chakraPetch = Chakra_Petch({
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
-  variable: '--font-inter',
+  variable: '--font-chakra-petch',
+});
+
+const dmMono = DM_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  display: 'swap',
+  variable: '--font-dm-mono',
 });
 
 export const metadata: Metadata = {
@@ -28,8 +36,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="font-sans min-h-screen">
+    <html lang="en" className={`${chakraPetch.variable} ${dmMono.variable}`}>
+      <body className="font-mono min-h-screen">
         <ToastProvider>
           {children}
         </ToastProvider>

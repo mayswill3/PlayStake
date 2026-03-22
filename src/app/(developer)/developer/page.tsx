@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Spinner } from '@/components/ui/Spinner';
 import { StatCard } from '@/components/ui/StatCard';
+import { SkeletonCard } from '@/components/ui/Skeleton';
+import { FadeIn } from '@/components/ui/FadeIn';
 import { formatCents, formatNumber } from '@/lib/utils/format';
 
 interface Analytics {
@@ -32,42 +34,42 @@ export default function DeveloperDashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner size="lg" />
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="h-8 w-56 bg-white/5 rounded-sm animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }, (_, i) => <SkeletonCard key={i} />)}
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 rounded-lg bg-danger-500/10 border border-danger-500/25 text-danger-300 text-sm">
+      <div className="p-4 rounded-sm bg-danger-500/10 border border-danger-500/25 text-danger-400 text-sm font-mono">
         {error}
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-surface-100">Developer Dashboard</h1>
-        {analytics && (
-          <p className="text-surface-400 text-sm mt-1">
-            {analytics.periodStart} &mdash; {analytics.periodEnd}
-          </p>
-        )}
-      </div>
+    <FadeIn>
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-2xl font-display font-bold text-text-primary">Developer Dashboard</h1>
+          {analytics && (
+            <p className="text-text-secondary font-mono text-sm mt-1">
+              {analytics.periodStart} &mdash; {analytics.periodEnd}
+            </p>
+          )}
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Bets" value={formatNumber(analytics?.totalBets ?? 0)} />
-        <StatCard label="Total Volume" value={formatCents(analytics?.totalVolume ?? 0)} />
-        <StatCard label="Active Bets" value={formatNumber(analytics?.activeBets ?? 0)} />
-        <StatCard
-          label="Rev Share Earned"
-          value={formatCents(analytics?.revShareEarned ?? 0)}
-          valueColor="text-brand-400"
-        />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard label="Total Bets" value={formatNumber(analytics?.totalBets ?? 0)} />
+          <StatCard label="Total Volume" value={formatCents(analytics?.totalVolume ?? 0)} />
+          <StatCard label="Active Bets" value={formatNumber(analytics?.activeBets ?? 0)} />
+          <StatCard label="Rev Share Earned" value={formatCents(analytics?.revShareEarned ?? 0)} valueColor="text-brand-400" />
+        </div>
       </div>
-    </div>
+    </FadeIn>
   );
 }
-

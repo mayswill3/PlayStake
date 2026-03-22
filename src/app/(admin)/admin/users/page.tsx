@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Pagination } from '@/components/ui/Pagination';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Input';
+import { FadeIn } from '@/components/ui/FadeIn';
+import { Users } from 'lucide-react';
 import { formatDate } from '@/lib/utils/format';
 
 interface AdminUser {
@@ -45,7 +47,6 @@ export default function AdminUsersPage() {
       const params = new URLSearchParams({ page: String(page), limit: '20' });
       if (roleFilter !== 'all') params.set('role', roleFilter);
       if (search) params.set('search', search);
-
       const res = await fetch(`/api/admin/users?${params}`);
       if (!res.ok) throw new Error('Failed to load users');
       const data = await res.json();
@@ -58,9 +59,7 @@ export default function AdminUsersPage() {
     }
   }, [page, roleFilter, search]);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -86,136 +85,111 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-surface-100">User Management</h1>
+    <FadeIn>
+      <div className="max-w-6xl mx-auto space-y-6">
+        <h1 className="text-2xl font-display font-bold text-text-primary">User Management</h1>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="flex flex-wrap gap-2">
-          {ROLE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => { setRoleFilter(opt.value); setPage(1); }}
-              className={`
-                px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
-                ${roleFilter === opt.value
-                  ? 'bg-brand-600/15 text-brand-400 border border-brand-500/25'
-                  : 'text-surface-400 hover:text-surface-200 border border-surface-700 hover:border-surface-600'
-                }
-              `}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        <form onSubmit={handleSearch} className="flex gap-2">
-          <Input
-            type="text"
-            placeholder="Search by email or name..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 rounded-lg bg-surface-700 text-surface-100 text-sm font-medium hover:bg-surface-600 transition-colors"
-          >
-            Search
-          </button>
-        </form>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Spinner size="lg" />
-        </div>
-      ) : error ? (
-        <div className="p-4 rounded-lg bg-danger-500/10 border border-danger-500/25 text-danger-300 text-sm">
-          {error}
-        </div>
-      ) : users.length === 0 ? (
-        <Card>
-          <EmptyState
-            title="No users found"
-            description="No users match the current filters."
-          />
-        </Card>
-      ) : (
-        <>
-          {/* Desktop table */}
-          <Card padding="none" className="hidden sm:block">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs uppercase text-surface-400 border-b border-surface-800">
-                  <tr>
-                    <th className="px-4 py-3">User</th>
-                    <th className="px-4 py-3">Role</th>
-                    <th className="px-4 py-3">KYC</th>
-                    <th className="px-4 py-3">Verified</th>
-                    <th className="px-4 py-3">Joined</th>
-                    <th className="px-4 py-3">Last Login</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-800">
-                  {users.map((user) => (
-                    <tr key={user.id} className="hover:bg-surface-800/50 transition-colors">
-                      <td className="px-4 py-3">
-                        <Link href={`/admin/users/${user.id}`} className="hover:text-brand-400 transition-colors">
-                          <p className="font-medium text-surface-200">{user.displayName}</p>
-                          <p className="text-xs text-surface-500">{user.email}</p>
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={roleVariant(user.role)}>{user.role}</Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={kycVariant(user.kycStatus)}>{user.kycStatus}</Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={user.emailVerified ? 'text-brand-400' : 'text-surface-500'}>
-                          {user.emailVerified ? 'Yes' : 'No'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-surface-400">{formatDate(user.createdAt)}</td>
-                      <td className="px-4 py-3 text-surface-400">
-                        {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {totalPages > 1 && (
-              <div className="px-4 pb-4">
-                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-              </div>
-            )}
-          </Card>
-
-          {/* Mobile cards */}
-          <div className="sm:hidden space-y-3">
-            {users.map((user) => (
-              <Link key={user.id} href={`/admin/users/${user.id}`}>
-                <Card className="hover:border-surface-700 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-surface-200 truncate">{user.displayName}</p>
-                      <p className="text-xs text-surface-500 mt-0.5">{user.email}</p>
-                    </div>
-                    <Badge variant={roleVariant(user.role)}>{user.role}</Badge>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge variant={kycVariant(user.kycStatus)}>{user.kycStatus}</Badge>
-                    <span className="text-xs text-surface-500">Joined {formatDate(user.createdAt)}</span>
-                  </div>
-                </Card>
-              </Link>
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="flex flex-wrap gap-2">
+            {ROLE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => { setRoleFilter(opt.value); setPage(1); }}
+                className={`
+                  px-3 py-1.5 rounded-sm font-mono text-[11px] uppercase tracking-wider font-medium transition-colors
+                  ${roleFilter === opt.value
+                    ? 'bg-brand-400/10 text-brand-400 border border-brand-400/25'
+                    : 'text-text-muted hover:text-text-secondary border border-surface-700 hover:border-surface-600'
+                  }
+                `}
+              >
+                {opt.label}
+              </button>
             ))}
-            {totalPages > 1 && (
-              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-            )}
           </div>
-        </>
-      )}
-    </div>
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <Input type="text" placeholder="Search by email or name..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-sm bg-surface-700 text-text-primary font-mono text-sm font-medium hover:bg-surface-600 transition-colors"
+            >
+              Search
+            </button>
+          </form>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-20"><Spinner size="lg" /></div>
+        ) : error ? (
+          <div className="p-4 rounded-sm bg-danger-500/10 border border-danger-500/25 text-danger-400 text-sm font-mono">{error}</div>
+        ) : users.length === 0 ? (
+          <Card>
+            <EmptyState icon={<Users className="h-10 w-10" />} title="No users found" description="No users match the current filters." />
+          </Card>
+        ) : (
+          <>
+            <Card padding="none" className="hidden sm:block">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="border-b border-white/8">
+                    <tr>
+                      <th className="px-4 py-3 font-mono text-[11px] uppercase tracking-widest text-text-muted">User</th>
+                      <th className="px-4 py-3 font-mono text-[11px] uppercase tracking-widest text-text-muted">Role</th>
+                      <th className="px-4 py-3 font-mono text-[11px] uppercase tracking-widest text-text-muted">KYC</th>
+                      <th className="px-4 py-3 font-mono text-[11px] uppercase tracking-widest text-text-muted">Verified</th>
+                      <th className="px-4 py-3 font-mono text-[11px] uppercase tracking-widest text-text-muted">Joined</th>
+                      <th className="px-4 py-3 font-mono text-[11px] uppercase tracking-widest text-text-muted">Last Login</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/8">
+                    {users.map((user) => (
+                      <tr key={user.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="px-4 py-3">
+                          <Link href={`/admin/users/${user.id}`} className="hover:text-brand-400 transition-colors">
+                            <p className="font-mono font-medium text-surface-200">{user.displayName}</p>
+                            <p className="text-xs font-mono text-text-muted">{user.email}</p>
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3"><Badge variant={roleVariant(user.role)}>{user.role}</Badge></td>
+                        <td className="px-4 py-3"><Badge variant={kycVariant(user.kycStatus)}>{user.kycStatus}</Badge></td>
+                        <td className="px-4 py-3">
+                          <span className={`font-mono ${user.emailVerified ? 'text-brand-400' : 'text-text-muted'}`}>
+                            {user.emailVerified ? 'Yes' : 'No'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-sm text-text-secondary">{formatDate(user.createdAt)}</td>
+                        <td className="px-4 py-3 font-mono text-sm text-text-secondary">{user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {totalPages > 1 && <div className="px-4 pb-4"><Pagination page={page} totalPages={totalPages} onPageChange={setPage} /></div>}
+            </Card>
+
+            <div className="sm:hidden space-y-3">
+              {users.map((user) => (
+                <Link key={user.id} href={`/admin/users/${user.id}`}>
+                  <Card className="hover:border-surface-600 transition-colors">
+                    <div className="flex items-start justify-between">
+                      <div className="min-w-0">
+                        <p className="text-sm font-mono font-medium text-surface-200 truncate">{user.displayName}</p>
+                        <p className="text-xs font-mono text-text-muted mt-0.5">{user.email}</p>
+                      </div>
+                      <Badge variant={roleVariant(user.role)}>{user.role}</Badge>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant={kycVariant(user.kycStatus)}>{user.kycStatus}</Badge>
+                      <span className="text-xs font-mono text-text-muted">Joined {formatDate(user.createdAt)}</span>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+              {totalPages > 1 && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />}
+            </div>
+          </>
+        )}
+      </div>
+    </FadeIn>
   );
 }

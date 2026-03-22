@@ -31,19 +31,19 @@ export default function ForgotPasswordPage() {
 
   return (
     <Card>
-      <h1 className="text-2xl font-bold text-surface-100 mb-1">Reset your password</h1>
-      <p className="text-sm text-surface-400 mb-6">
+      <h1 className="text-2xl font-bold font-display text-text-primary mb-1">Reset your password</h1>
+      <p className="text-sm text-text-secondary font-mono mb-6">
         Enter your email and we will send you a reset link.
       </p>
 
       {submitted ? (
         <div>
-          <div className="p-4 rounded-lg bg-brand-500/10 border border-brand-500/25 text-brand-300 text-sm mb-4">
+          <div className="p-4 rounded-sm bg-brand-500/10 border border-brand-500/25 text-brand-400 text-sm mb-4">
             If an account exists with that email, you will receive a password reset link shortly.
           </div>
           <Link
             href="/login"
-            className="block text-center text-sm text-brand-400 hover:text-brand-300 transition-colors"
+            className="block text-center text-sm text-brand-400 hover:text-brand-400 transition-colors"
           >
             Back to login
           </Link>
@@ -66,7 +66,7 @@ export default function ForgotPasswordPage() {
 
           <Link
             href="/login"
-            className="block text-center text-sm text-surface-400 hover:text-surface-200 transition-colors"
+            className="block text-center text-sm text-text-secondary hover:text-text-primary transition-colors"
           >
             Back to login
           </Link>

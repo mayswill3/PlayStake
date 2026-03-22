@@ -53,11 +53,11 @@ export default function ResetPasswordPage() {
   if (!token) {
     return (
       <Card>
-        <h1 className="text-2xl font-bold text-surface-100 mb-4">Invalid Link</h1>
-        <p className="text-surface-400 mb-4">
+        <h1 className="text-2xl font-bold font-display text-text-primary mb-4">Invalid Link</h1>
+        <p className="text-text-secondary font-mono mb-4">
           This password reset link is invalid or has expired.
         </p>
-        <Link href="/forgot-password" className="text-brand-400 hover:text-brand-300 text-sm transition-colors">
+        <Link href="/forgot-password" className="text-brand-400 hover:text-brand-400 text-sm transition-colors">
           Request a new reset link
         </Link>
       </Card>
@@ -66,11 +66,11 @@ export default function ResetPasswordPage() {
 
   return (
     <Card>
-      <h1 className="text-2xl font-bold text-surface-100 mb-1">Set new password</h1>
-      <p className="text-sm text-surface-400 mb-6">Enter your new password below.</p>
+      <h1 className="text-2xl font-bold font-display text-text-primary mb-1">Set new password</h1>
+      <p className="text-sm text-text-secondary font-mono mb-6">Enter your new password below.</p>
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-danger-500/10 border border-danger-500/25 text-danger-300 text-sm" role="alert">
+        <div className="mb-4 p-3 rounded-sm bg-danger-500/10 border border-danger-500/25 text-danger-400 text-sm" role="alert">
           {error}
         </div>
       )}

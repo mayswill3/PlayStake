@@ -13,7 +13,7 @@ interface SpinnerProps extends ComponentProps<'svg'> {
 export function Spinner({ size = 'md', className = '', ...props }: SpinnerProps) {
   return (
     <svg
-      className={`animate-spin ${sizes[size]} ${className}`}
+      className={`animate-spin text-brand-400 ${sizes[size]} ${className}`}
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"

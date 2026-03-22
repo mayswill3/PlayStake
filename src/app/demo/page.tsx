@@ -1,0 +1,50 @@
+import Link from 'next/link';
+import { Card } from '@/components/ui/Card';
+import { Crosshair, Layers } from 'lucide-react';
+
+export default function DemoIndex() {
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+      <h1 className="font-display text-3xl font-bold text-text-primary mb-2">
+        Game Demos
+      </h1>
+      <p className="text-text-secondary font-mono text-sm mb-10">
+        See how PlayStake integrates with different game types.
+      </p>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Link href="/demo/fps" className="group">
+          <Card className="transition-colors group-hover:border-brand-400/30 group-hover:bg-surface-850">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-brand-400/10 text-brand-400">
+                <Crosshair className="h-5 w-5" />
+              </div>
+              <h2 className="font-display text-lg font-semibold text-text-primary">
+                FPS Scoreboard
+              </h2>
+            </div>
+            <p className="text-sm text-text-secondary font-mono">
+              Team-based shooter with live scoreboard and real-time wagering.
+            </p>
+          </Card>
+        </Link>
+
+        <Link href="/demo/cards" className="group">
+          <Card className="transition-colors group-hover:border-brand-400/30 group-hover:bg-surface-850">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-brand-400/10 text-brand-400">
+                <Layers className="h-5 w-5" />
+              </div>
+              <h2 className="font-display text-lg font-semibold text-text-primary">
+                Higher / Lower
+              </h2>
+            </div>
+            <p className="text-sm text-text-secondary font-mono">
+              Classic card game with turn-based wagering and score tracking.
+            </p>
+          </Card>
+        </Link>
+      </div>
+    </div>
+  );
+}

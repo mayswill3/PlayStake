@@ -46,16 +46,16 @@ export function Dialog({ open, onClose, title, children, actions }: DialogProps)
         backdrop:bg-black/60 backdrop:backdrop-blur-sm
         bg-transparent p-0 m-auto
         open:animate-in open:fade-in open:zoom-in-95
-        max-w-lg w-full
+        max-w-lg w-full mx-4
       "
     >
-      <div className="bg-surface-900 border border-surface-800 rounded-xl shadow-xl p-6">
+      <div className="bg-surface-850 border border-white/8 rounded-sm p-6">
         {title && (
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-surface-100">{title}</h2>
+            <h2 className="text-lg font-display font-semibold text-text-primary">{title}</h2>
           </div>
         )}
-        <div className="text-surface-300">{children}</div>
+        <div className="text-surface-300 font-mono">{children}</div>
         {actions && (
           <div className="mt-6 flex justify-end gap-3">{actions}</div>
         )}

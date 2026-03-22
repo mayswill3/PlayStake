@@ -45,7 +45,7 @@ export default function VerifyEmailPage() {
       {status === 'loading' && (
         <div className="flex flex-col items-center py-8">
           <Spinner size="lg" />
-          <p className="mt-4 text-surface-400">Verifying your email...</p>
+          <p className="mt-4 text-text-secondary font-mono">Verifying your email...</p>
         </div>
       )}
 
@@ -54,11 +54,11 @@ export default function VerifyEmailPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-500/15 text-brand-400 text-3xl mb-4">
             &#10003;
           </div>
-          <h1 className="text-2xl font-bold text-surface-100 mb-2">Email Verified</h1>
-          <p className="text-surface-400 mb-6">Your email has been verified successfully.</p>
+          <h1 className="text-2xl font-bold font-display text-text-primary mb-2">Email Verified</h1>
+          <p className="text-text-secondary font-mono mb-6">Your email has been verified successfully.</p>
           <Link
             href="/login"
-            className="inline-flex items-center px-5 py-2.5 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-500 transition-colors"
+            className="inline-flex items-center px-5 py-2.5 rounded-sm bg-brand-400 text-surface-950 text-sm font-medium hover:bg-brand-500 transition-colors"
           >
             Continue to Login
           </Link>
@@ -70,11 +70,11 @@ export default function VerifyEmailPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-danger-500/15 text-danger-400 text-3xl mb-4">
             &#10007;
           </div>
-          <h1 className="text-2xl font-bold text-surface-100 mb-2">Verification Failed</h1>
-          <p className="text-surface-400 mb-6">{errorMsg}</p>
+          <h1 className="text-2xl font-bold font-display text-text-primary mb-2">Verification Failed</h1>
+          <p className="text-text-secondary font-mono mb-6">{errorMsg}</p>
           <Link
             href="/login"
-            className="text-brand-400 hover:text-brand-300 text-sm transition-colors"
+            className="text-brand-400 hover:text-brand-400 text-sm transition-colors"
           >
             Back to login
           </Link>

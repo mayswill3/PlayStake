@@ -5,11 +5,11 @@ import { Spinner } from './Spinner';
 
 const variantStyles = {
   primary:
-    'bg-brand-600 text-white hover:bg-brand-500 focus-visible:ring-brand-500 shadow-sm',
+    'bg-brand-400 text-surface-950 hover:bg-brand-500 focus-visible:ring-brand-400',
   secondary:
-    'bg-surface-700 text-surface-100 hover:bg-surface-600 focus-visible:ring-surface-500 shadow-sm',
+    'bg-surface-700 text-surface-100 hover:bg-surface-600 focus-visible:ring-surface-500',
   danger:
-    'bg-danger-600 text-white hover:bg-danger-500 focus-visible:ring-danger-500 shadow-sm',
+    'bg-danger-500 text-white hover:bg-danger-600 focus-visible:ring-danger-500',
   ghost:
     'bg-transparent text-surface-300 hover:text-surface-100 hover:bg-surface-800 focus-visible:ring-surface-500',
 } as const;
@@ -33,8 +33,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={`
-          inline-flex items-center justify-center gap-2 rounded-lg font-medium
-          transition-colors duration-150
+          inline-flex items-center justify-center gap-2 rounded-sm
+          font-display uppercase tracking-wider font-semibold
+          transition-all duration-150
+          active:scale-[0.97]
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-950
           disabled:opacity-50 disabled:cursor-not-allowed
           ${variantStyles[variant]}

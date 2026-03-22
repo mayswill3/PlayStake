@@ -59,41 +59,24 @@ export default function LoginPage() {
 
   return (
     <Card>
-      <h1 className="text-2xl font-bold text-surface-100 mb-1">Welcome back</h1>
-      <p className="text-sm text-surface-400 mb-6">Sign in to your PlayStake account</p>
+      <h1 className="text-2xl font-display font-bold text-text-primary mb-1">Welcome back</h1>
+      <p className="text-sm font-mono text-text-secondary mb-6">Sign in to your PlayStake account</p>
 
       {registered && (
-        <div className="mb-4 p-3 rounded-lg bg-brand-500/10 border border-brand-500/25 text-brand-300 text-sm">
+        <div className="mb-4 p-3 rounded-sm bg-brand-400/10 border border-brand-400/25 text-brand-400 text-sm font-mono">
           Account created successfully. Please log in.
         </div>
       )}
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-danger-500/10 border border-danger-500/25 text-danger-300 text-sm" role="alert">
+        <div className="mb-4 p-3 rounded-sm bg-danger-500/10 border border-danger-500/25 text-danger-400 text-sm font-mono" role="alert">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          label="Email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          required
-          autoComplete="email"
-        />
-
-        <Input
-          label="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter your password"
-          required
-          autoComplete="current-password"
-        />
+        <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="email" />
+        <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" required autoComplete="current-password" />
 
         {show2FA && (
           <Input
@@ -114,11 +97,11 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <div className="mt-4 flex items-center justify-between text-sm">
-        <Link href="/forgot-password" className="text-surface-400 hover:text-surface-200 transition-colors">
+      <div className="mt-4 flex items-center justify-between text-sm font-mono">
+        <Link href="/forgot-password" className="text-text-secondary hover:text-text-primary transition-colors">
           Forgot password?
         </Link>
-        <Link href="/register" className="text-brand-400 hover:text-brand-300 transition-colors">
+        <Link href="/register" className="text-brand-400 hover:text-brand-500 transition-colors">
           Create account
         </Link>
       </div>

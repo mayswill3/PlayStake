@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { Dialog } from '@/components/ui/Dialog';
+import { CodeBlock } from '@/components/ui/CodeBlock';
+import { FadeIn } from '@/components/ui/FadeIn';
 import { useToast } from '@/components/ui/Toast';
 import { formatCents, formatDate } from '@/lib/utils/format';
 
@@ -75,7 +77,6 @@ export default function BetDetailPage() {
       toast('success', 'Dispute filed successfully. Our team will review it.');
       setDisputeOpen(false);
       setDisputeReason('');
-      // Refresh bet
       const updated = await fetch(`/api/bets/${id}`).then(r => r.json());
       setBet(updated);
     } catch {
@@ -97,7 +98,7 @@ export default function BetDetailPage() {
     return (
       <div className="max-w-3xl mx-auto">
         <Card>
-          <p className="text-danger-400">{error || 'Bet not found.'}</p>
+          <p className="text-danger-400 font-mono">{error || 'Bet not found.'}</p>
           <Button variant="ghost" onClick={() => router.back()} className="mt-4">
             Go Back
           </Button>
@@ -106,171 +107,158 @@ export default function BetDetailPage() {
     );
   }
 
-  // Determine outcome display for the current user
   const outcomeDisplay = getOutcomeDisplay(bet.outcome);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <button
-            onClick={() => router.back()}
-            className="text-sm text-surface-400 hover:text-surface-200 transition-colors mb-2"
-          >
-            &larr; Back to bets
-          </button>
-          <h1 className="text-2xl font-bold text-surface-100">Bet Detail</h1>
-        </div>
-        <StatusBadge status={bet.status} />
-      </div>
-
-      {/* Main info */}
-      <Card>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <FadeIn>
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-surface-500">Game</p>
-            <p className="text-surface-100 font-medium">{bet.game.name}</p>
+            <button
+              onClick={() => router.back()}
+              className="text-sm font-mono text-text-secondary hover:text-text-primary transition-colors mb-2"
+            >
+              &larr; Back to bets
+            </button>
+            <h1 className="text-2xl font-display font-bold text-text-primary">Bet Detail</h1>
           </div>
-          <div>
-            <p className="text-sm text-surface-500">Stake</p>
-            <p className="text-surface-100 font-semibold text-lg">{formatCents(bet.amount)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-surface-500">Player A</p>
-            <p className="text-surface-200">{bet.playerA.displayName}</p>
-          </div>
-          <div>
-            <p className="text-sm text-surface-500">Player B</p>
-            <p className="text-surface-200">{bet.playerB?.displayName ?? 'Awaiting opponent'}</p>
-          </div>
-          {bet.outcome && (
-            <div>
-              <p className="text-sm text-surface-500">Outcome</p>
-              <p className={`font-semibold ${outcomeDisplay.color}`}>{outcomeDisplay.label}</p>
-            </div>
-          )}
-          {bet.platformFeeAmount !== null && (
-            <div>
-              <p className="text-sm text-surface-500">Platform Fee</p>
-              <p className="text-surface-400">{formatCents(bet.platformFeeAmount)}</p>
-            </div>
-          )}
+          <StatusBadge status={bet.status} />
         </div>
 
-        {bet.externalId && (
-          <div className="mt-4 pt-4 border-t border-surface-800">
-            <p className="text-sm text-surface-500">External Match ID</p>
-            <p className="text-surface-400 text-sm font-mono">{bet.externalId}</p>
-          </div>
-        )}
-      </Card>
-
-      {/* Timeline */}
-      <Card>
-        <CardTitle className="mb-4">Timeline</CardTitle>
-        <div className="space-y-4">
-          <TimelineEntry label="Created" date={bet.createdAt} active />
-          <TimelineEntry
-            label="Matched"
-            date={bet.matchedAt}
-            active={!!bet.matchedAt}
-          />
-          <TimelineEntry
-            label="Result Reported"
-            date={bet.resultReportedAt}
-            active={!!bet.resultReportedAt}
-          />
-          <TimelineEntry
-            label="Settled"
-            date={bet.settledAt}
-            active={!!bet.settledAt}
-          />
-        </div>
-      </Card>
-
-      {/* Game metadata */}
-      {bet.gameMetadata && Object.keys(bet.gameMetadata).length > 0 && (
+        {/* Main info */}
         <Card>
-          <CardTitle className="mb-4">Game Details</CardTitle>
-          <div className="grid grid-cols-2 gap-3">
-            {Object.entries(bet.gameMetadata).map(([key, value]) => (
-              <div key={key}>
-                <p className="text-xs text-surface-500 uppercase">{key}</p>
-                <p className="text-sm text-surface-200">{String(value)}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Game</p>
+              <p className="text-text-primary font-display font-medium">{bet.game.name}</p>
+            </div>
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Stake</p>
+              <p className="text-text-primary font-display font-semibold text-lg tabular-nums">{formatCents(bet.amount)}</p>
+            </div>
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Player A</p>
+              <p className="font-mono text-surface-200">{bet.playerA.displayName}</p>
+            </div>
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Player B</p>
+              <p className="font-mono text-surface-200">{bet.playerB?.displayName ?? 'Awaiting opponent'}</p>
+            </div>
+            {bet.outcome && (
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Outcome</p>
+                <p className={`font-display font-semibold ${outcomeDisplay.color}`}>{outcomeDisplay.label}</p>
               </div>
-            ))}
+            )}
+            {bet.platformFeeAmount !== null && (
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Platform Fee</p>
+                <p className="font-mono tabular-nums text-text-secondary">{formatCents(bet.platformFeeAmount)}</p>
+              </div>
+            )}
           </div>
-        </Card>
-      )}
 
-      {/* Result payload */}
-      {bet.resultPayload && Object.keys(bet.resultPayload).length > 0 && (
-        <Card>
-          <CardTitle className="mb-4">Result Data</CardTitle>
-          <pre className="text-xs text-surface-300 bg-surface-800 rounded-lg p-4 overflow-x-auto">
-            {JSON.stringify(bet.resultPayload, null, 2)}
-          </pre>
-        </Card>
-      )}
-
-      {/* Actions */}
-      {canDispute && (
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-surface-200">Dispute this bet</p>
-              <p className="text-xs text-surface-500">If you believe the result is incorrect, you can file a dispute.</p>
+          {bet.externalId && (
+            <div className="mt-4 pt-4 border-t border-white/8">
+              <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">External Match ID</p>
+              <p className="text-text-secondary text-sm font-mono">{bet.externalId}</p>
             </div>
-            <Button variant="danger" size="sm" onClick={() => setDisputeOpen(true)}>
-              File Dispute
-            </Button>
+          )}
+        </Card>
+
+        {/* Timeline */}
+        <Card>
+          <CardTitle className="mb-4">Timeline</CardTitle>
+          <div className="space-y-4">
+            <TimelineEntry label="Created" date={bet.createdAt} active />
+            <TimelineEntry label="Matched" date={bet.matchedAt} active={!!bet.matchedAt} />
+            <TimelineEntry label="Result Reported" date={bet.resultReportedAt} active={!!bet.resultReportedAt} />
+            <TimelineEntry label="Settled" date={bet.settledAt} active={!!bet.settledAt} />
           </div>
         </Card>
-      )}
 
-      {/* Dispute dialog */}
-      <Dialog
-        open={disputeOpen}
-        onClose={() => setDisputeOpen(false)}
-        title="File a Dispute"
-        actions={
-          <>
-            <Button variant="ghost" onClick={() => setDisputeOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="danger" loading={disputeLoading} onClick={handleDispute}>
-              Submit Dispute
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <p className="text-sm">
-            Please describe why you believe the result is incorrect. Our team will review
-            your dispute within 48 hours.
-          </p>
-          <textarea
-            value={disputeReason}
-            onChange={(e) => setDisputeReason(e.target.value)}
-            placeholder="Describe the issue..."
-            rows={4}
-            className="w-full rounded-lg border border-surface-700 bg-surface-800 text-surface-200 text-sm px-3 py-2 resize-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none"
-            required
-          />
-        </div>
-      </Dialog>
-    </div>
+        {/* Game metadata */}
+        {bet.gameMetadata && Object.keys(bet.gameMetadata).length > 0 && (
+          <Card>
+            <CardTitle className="mb-4">Game Details</CardTitle>
+            <div className="grid grid-cols-2 gap-3">
+              {Object.entries(bet.gameMetadata).map(([key, value]) => (
+                <div key={key}>
+                  <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">{key}</p>
+                  <p className="text-sm font-mono text-surface-200">{String(value)}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Result payload */}
+        {bet.resultPayload && Object.keys(bet.resultPayload).length > 0 && (
+          <Card>
+            <CardTitle className="mb-4">Result Data</CardTitle>
+            <CodeBlock code={JSON.stringify(bet.resultPayload, null, 2)} />
+          </Card>
+        )}
+
+        {/* Actions */}
+        {canDispute && (
+          <Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-display font-medium text-surface-200">Dispute this bet</p>
+                <p className="text-xs font-mono text-text-muted">If you believe the result is incorrect, you can file a dispute.</p>
+              </div>
+              <Button variant="danger" size="sm" onClick={() => setDisputeOpen(true)}>
+                File Dispute
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Dispute dialog */}
+        <Dialog
+          open={disputeOpen}
+          onClose={() => setDisputeOpen(false)}
+          title="File a Dispute"
+          actions={
+            <>
+              <Button variant="ghost" onClick={() => setDisputeOpen(false)}>Cancel</Button>
+              <Button variant="danger" loading={disputeLoading} onClick={handleDispute}>Submit Dispute</Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <p className="text-sm">
+              Please describe why you believe the result is incorrect. Our team will review
+              your dispute within 48 hours.
+            </p>
+            <textarea
+              value={disputeReason}
+              onChange={(e) => setDisputeReason(e.target.value)}
+              placeholder="Describe the issue..."
+              rows={4}
+              className="w-full rounded-sm border border-surface-700 bg-surface-800 text-surface-200 font-mono text-sm px-3 py-2 resize-none focus:border-brand-400 focus:ring-0 focus:outline-none"
+              required
+            />
+          </div>
+        </Dialog>
+      </div>
+    </FadeIn>
   );
 }
 
 function TimelineEntry({ label, date, active }: { label: string; date: string | null; active: boolean }) {
   return (
     <div className="flex items-start gap-3">
-      <div className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${active ? 'bg-brand-400' : 'bg-surface-700'}`} />
+      <div className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${
+        active
+          ? 'bg-brand-400 shadow-[0_0_8px_rgba(0,255,135,0.4)]'
+          : 'bg-surface-700'
+      }`} />
       <div>
-        <p className={`text-sm ${active ? 'text-surface-200' : 'text-surface-600'}`}>{label}</p>
+        <p className={`text-sm font-mono ${active ? 'text-surface-200' : 'text-text-muted'}`}>{label}</p>
         {date && (
-          <p className="text-xs text-surface-500">{formatDate(date)}</p>
+          <p className="text-xs font-mono text-text-secondary">{formatDate(date)}</p>
         )}
       </div>
     </div>
@@ -286,6 +274,6 @@ function getOutcomeDisplay(outcome: string | null): { label: string; color: stri
     case 'DRAW':
       return { label: 'Draw', color: 'text-surface-300' };
     default:
-      return { label: 'Pending', color: 'text-surface-500' };
+      return { label: 'Pending', color: 'text-text-muted' };
   }
 }

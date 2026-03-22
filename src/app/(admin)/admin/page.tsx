@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { StatCard } from '@/components/ui/StatCard';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
+import { SkeletonCard } from '@/components/ui/Skeleton';
+import { FadeIn } from '@/components/ui/FadeIn';
 import { formatCents, formatNumber } from '@/lib/utils/format';
 
 interface AdminStats {
@@ -35,63 +37,57 @@ export default function AdminDashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner size="lg" />
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="h-8 w-48 bg-white/5 rounded-sm animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }, (_, i) => <SkeletonCard key={i} />)}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }, (_, i) => <SkeletonCard key={i} />)}
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 rounded-lg bg-danger-500/10 border border-danger-500/25 text-danger-300 text-sm">
+      <div className="p-4 rounded-sm bg-danger-500/10 border border-danger-500/25 text-danger-400 text-sm font-mono">
         {error}
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-surface-100">Admin Dashboard</h1>
-        <p className="text-surface-400 text-sm mt-1">Platform overview and management</p>
-      </div>
+    <FadeIn>
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-2xl font-display font-bold text-text-primary">Admin Dashboard</h1>
+          <p className="text-text-secondary font-mono text-sm mt-1">Platform overview and management</p>
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Users" value={formatNumber(stats?.totalUsers ?? 0)} />
-        <StatCard label="Developers" value={formatNumber(stats?.totalDevelopers ?? 0)} />
-        <StatCard label="Total Bets" value={formatNumber(stats?.totalBets ?? 0)} />
-        <StatCard label="Active Bets" value={formatNumber(stats?.activeBets ?? 0)} />
-      </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard label="Total Users" value={formatNumber(stats?.totalUsers ?? 0)} />
+          <StatCard label="Developers" value={formatNumber(stats?.totalDevelopers ?? 0)} />
+          <StatCard label="Total Bets" value={formatNumber(stats?.totalBets ?? 0)} />
+          <StatCard label="Active Bets" value={formatNumber(stats?.activeBets ?? 0)} />
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard
-          label="Total Volume"
-          value={formatCents(stats?.totalVolume ?? 0)}
-          valueColor="text-brand-400"
-        />
-        <StatCard
-          label="Platform Revenue"
-          value={formatCents(stats?.platformRevenue ?? 0)}
-          valueColor="text-brand-400"
-        />
-        <StatCard
-          label="Open Disputes"
-          value={formatNumber(stats?.openDisputes ?? 0)}
-          valueColor={stats && stats.openDisputes > 0 ? 'text-danger-400' : 'text-surface-100'}
-        />
-      </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard label="Total Volume" value={formatCents(stats?.totalVolume ?? 0)} valueColor="text-brand-400" />
+          <StatCard label="Platform Revenue" value={formatCents(stats?.platformRevenue ?? 0)} valueColor="text-brand-400" />
+          <StatCard
+            label="Open Disputes"
+            value={formatNumber(stats?.openDisputes ?? 0)}
+            valueColor={stats && stats.openDisputes > 0 ? 'text-danger-400' : 'text-text-primary'}
+          />
+        </div>
 
-      <div className="flex flex-wrap gap-3">
-        <Link href="/admin/users">
-          <Button variant="secondary">Manage Users</Button>
-        </Link>
-        <Link href="/admin/disputes">
-          <Button variant="secondary">View Disputes</Button>
-        </Link>
-        <Link href="/admin/anomalies">
-          <Button variant="secondary">Anomaly Alerts</Button>
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/admin/users"><Button variant="secondary">Manage Users</Button></Link>
+          <Link href="/admin/disputes"><Button variant="secondary">View Disputes</Button></Link>
+          <Link href="/admin/anomalies"><Button variant="secondary">Anomaly Alerts</Button></Link>
+        </div>
       </div>
-    </div>
+    </FadeIn>
   );
 }
