@@ -1,29 +1,22 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { StatusBadge } from '@/components/ui/Badge';
 import {
   Crosshair,
   Shield,
   Skull,
   Timer,
-  DollarSign,
-  User,
-  Zap,
-  RotateCcw,
 } from 'lucide-react';
-
-type BetStatus =
-  | 'IDLE'
-  | 'PENDING_CONSENT'
-  | 'OPEN'
-  | 'MATCHED'
-  | 'RESULT_REPORTED'
-  | 'SETTLED';
-
-type Outcome = 'WON' | 'LOST' | null;
+import { useEventLog } from '../_shared/use-event-log';
+import { useDemoAuth } from '../_shared/use-demo-auth';
+import { useGameSession } from '../_shared/use-game-session';
+import { PlayStakeWidget } from '../_shared/PlayStakeWidget';
+import { RoleSelector } from '../_shared/RoleSelector';
+import { LobbyPanel } from '../_shared/LobbyPanel';
+import { EventLog } from '../_shared/EventLog';
+import type { PlayerRole } from '../_shared/types';
 
 interface Player {
   name: string;
@@ -52,46 +45,129 @@ function teamScore(team: Player[]): number {
   return team.reduce((sum, p) => sum + p.kills, 0);
 }
 
+function randomizeScores(team: Player[]): Player[] {
+  return team.map((p) => ({
+    ...p,
+    kills: p.kills + Math.floor(Math.random() * 8) - 2,
+    deaths: p.deaths + Math.floor(Math.random() * 6) - 1,
+    assists: p.assists + Math.floor(Math.random() * 4),
+  }));
+}
+
 export default function FPSDemoPage() {
-  const [betStatus, setBetStatus] = useState<BetStatus>('IDLE');
-  const [outcome, setOutcome] = useState<Outcome>(null);
+  const [role, setRole] = useState<PlayerRole | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  const [simulated, setSimulated] = useState(false);
+  const [finalAlpha, setFinalAlpha] = useState(TEAM_ALPHA);
+  const [finalBravo, setFinalBravo] = useState(TEAM_BRAVO);
+  const betIdRef = useRef<string | null>(null);
+  const settledRef = useRef(false);
 
-  const startWager = useCallback(() => {
-    setBetStatus('PENDING_CONSENT');
-    setOutcome(null);
-  }, []);
+  const { entries, log } = useEventLog();
+  const { authState, isSettingUp, setup } = useDemoAuth(log);
+  const {
+    sessionId,
+    gameState,
+    phase,
+    setPhase,
+    createGame,
+    joinGame,
+    startPlayingPoll,
+    resolveGame,
+    setBetId,
+    reportAndSettle,
+  } = useGameSession(log);
 
-  const advanceToOpen = useCallback(() => {
-    setBetStatus('OPEN');
-  }, []);
-
-  const simulateWin = useCallback(() => {
-    if (betStatus === 'OPEN') setBetStatus('MATCHED');
-    else if (betStatus === 'MATCHED') {
-      setBetStatus('RESULT_REPORTED');
-      setOutcome('WON');
-    } else if (betStatus === 'RESULT_REPORTED') {
-      setBetStatus('SETTLED');
+  const handleRoleSelect = useCallback(async (r: PlayerRole) => {
+    setRole(r);
+    log(`Selected role: Player ${r}`, 'info');
+    const result = await setup(r);
+    if (result) {
+      setPhase('lobby');
     }
-  }, [betStatus]);
+  }, [setup, log, setPhase]);
 
-  const simulateLoss = useCallback(() => {
-    if (betStatus === 'OPEN') setBetStatus('MATCHED');
-    else if (betStatus === 'MATCHED') {
-      setBetStatus('RESULT_REPORTED');
-      setOutcome('LOST');
-    } else if (betStatus === 'RESULT_REPORTED') {
-      setBetStatus('SETTLED');
+  const handleCreateGame = useCallback(async () => {
+    if (!authState) return;
+    setIsCreating(true);
+    const id = await createGame(authState.playerId, 'fps');
+    setIsCreating(false);
+    if (id) {
+      log('Open the widget to create a bet, then consent to lock funds.', 'info');
     }
-  }, [betStatus]);
+  }, [authState, createGame, log]);
 
-  const reset = useCallback(() => {
-    setBetStatus('IDLE');
-    setOutcome(null);
-  }, []);
+  const handleJoinGame = useCallback(async (code: string) => {
+    if (!authState) return;
+    setIsJoining(true);
+    await joinGame(code, authState.playerId);
+    setIsJoining(false);
+  }, [authState, joinGame]);
 
-  const displayStatus =
-    betStatus === 'SETTLED' && outcome ? outcome : betStatus === 'IDLE' ? 'PENDING' : betStatus;
+  const handleSimulateMatch = useCallback(async () => {
+    if (simulated || !authState) return;
+
+    // Randomize final scores
+    const alpha = randomizeScores(TEAM_ALPHA);
+    const bravo = randomizeScores(TEAM_BRAVO);
+    setFinalAlpha(alpha);
+    setFinalBravo(bravo);
+    setSimulated(true);
+
+    const alphaScore = teamScore(alpha);
+    const bravoScore = teamScore(bravo);
+    const winner = alphaScore > bravoScore ? 'A' : alphaScore < bravoScore ? 'B' : 'draw';
+
+    log(`Match simulated! Alpha: ${alphaScore} — Bravo: ${bravoScore}`, 'info');
+    log(`Winner: ${winner === 'draw' ? 'Draw' : `Team ${winner === 'A' ? 'Alpha' : 'Bravo'}`}`, 'success');
+
+    const result = await resolveGame(winner as 'A' | 'B' | 'draw');
+    if (result && !settledRef.current) {
+      settledRef.current = true;
+      const activeBetId = result.betId || betIdRef.current;
+      if (activeBetId) {
+        await reportAndSettle(authState.apiKey, activeBetId);
+      }
+    }
+  }, [simulated, authState, resolveGame, reportAndSettle, log]);
+
+  const handleBetCreated = useCallback(async (bet: { betId: string; amount: number }) => {
+    log(`Bet created: ${bet.betId} ($${(bet.amount / 100).toFixed(2)})`, 'bet');
+    betIdRef.current = bet.betId;
+    if (sessionId) {
+      await setBetId(bet.betId);
+    }
+  }, [sessionId, setBetId, log]);
+
+  const handleBetAccepted = useCallback((bet: { betId: string }) => {
+    log('Bet accepted! Match is on!', 'bet');
+    betIdRef.current = bet.betId;
+  }, [log]);
+
+  const handleBetSettled = useCallback((bet: { outcome: string }) => {
+    log(`Bet settled: ${bet.outcome}`, 'bet');
+  }, [log]);
+
+  const isFinished = phase === 'finished' || gameState?.status === 'finished';
+  const displayAlpha = simulated ? finalAlpha : TEAM_ALPHA;
+  const displayBravo = simulated ? finalBravo : TEAM_BRAVO;
+
+  // Auto-settle when we detect finish via polling (opponent simulated)
+  if (isFinished && !settledRef.current && gameState?.betId && authState) {
+    settledRef.current = true;
+    const activeBetId = gameState.betId || betIdRef.current;
+    if (activeBetId) {
+      reportAndSettle(authState.apiKey, activeBetId);
+    }
+  }
+
+  // Start playing poll for Player A
+  const playingPollStarted = useRef(false);
+  if (phase === 'playing' && role === 'A' && sessionId && !playingPollStarted.current) {
+    playingPollStarted.current = true;
+    startPlayingPoll(sessionId);
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
@@ -105,243 +181,135 @@ export default function FPSDemoPage() {
             Tactical Ops
           </h1>
           <p className="text-sm text-text-muted font-mono">
-            Round 14 of 24 -- Ranked Match
+            Two-player wagered match — team scoreboard
           </p>
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Scoreboard -- spans 2 cols */}
+        {/* Game area */}
         <div className="lg:col-span-2 space-y-4">
-          {/* Timer bar */}
-          <Card padding="sm" className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-text-secondary">
-              <Timer className="h-4 w-4" />
-              <span className="font-mono text-xs uppercase tracking-widest">
-                Time Remaining
-              </span>
-            </div>
-            <span className="font-mono text-xl font-semibold tabular-nums text-text-primary">
-              5:00
-            </span>
-          </Card>
-
-          {/* Score summary */}
-          <div className="grid grid-cols-3 gap-4">
-            <Card padding="sm" className="text-center">
-              <p className="font-display text-xs uppercase tracking-widest text-brand-400 mb-1">
-                Alpha
-              </p>
-              <p className="font-mono text-3xl font-bold tabular-nums text-text-primary">
-                {teamScore(TEAM_ALPHA)}
-              </p>
-            </Card>
-            <Card padding="sm" className="flex items-center justify-center">
-              <span className="font-display text-lg font-bold tracking-widest text-text-muted">
-                VS
-              </span>
-            </Card>
-            <Card padding="sm" className="text-center">
-              <p className="font-display text-xs uppercase tracking-widest text-danger-400 mb-1">
-                Bravo
-              </p>
-              <p className="font-mono text-3xl font-bold tabular-nums text-text-primary">
-                {teamScore(TEAM_BRAVO)}
-              </p>
-            </Card>
-          </div>
-
-          {/* Team tables */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <TeamTable
-              label="Team Alpha"
-              color="text-brand-400"
-              players={TEAM_ALPHA}
+          {/* Role selection */}
+          {phase === 'role-select' && (
+            <RoleSelector
+              onSelect={handleRoleSelect}
+              disabled={isSettingUp}
+              gameLabel={{ a: 'Alpha', b: 'Bravo' }}
             />
-            <TeamTable
-              label="Team Bravo"
-              color="text-danger-400"
-              players={TEAM_BRAVO}
+          )}
+
+          {isSettingUp && (
+            <Card padding="sm">
+              <p className="font-mono text-xs text-text-muted text-center uppercase tracking-widest">
+                Setting up authentication...
+              </p>
+            </Card>
+          )}
+
+          {/* Lobby */}
+          {phase === 'lobby' && role && (
+            <LobbyPanel
+              role={role}
+              gameCode={sessionId}
+              onCreateGame={handleCreateGame}
+              onJoinGame={handleJoinGame}
+              isCreating={isCreating}
+              isJoining={isJoining}
             />
-          </div>
+          )}
+
+          {/* Scoreboard */}
+          {(phase === 'playing' || phase === 'finished') && (
+            <>
+              {/* Timer bar */}
+              <Card padding="sm" className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-text-secondary">
+                  <Timer className="h-4 w-4" />
+                  <span className="font-mono text-xs uppercase tracking-widest">
+                    {isFinished ? 'Match Over' : 'Awaiting Simulation'}
+                  </span>
+                </div>
+                <span className="font-mono text-xl font-semibold tabular-nums text-text-primary">
+                  {isFinished ? '0:00' : '5:00'}
+                </span>
+              </Card>
+
+              {/* Score summary */}
+              <div className="grid grid-cols-3 gap-4">
+                <Card padding="sm" className="text-center">
+                  <p className="font-display text-xs uppercase tracking-widest text-brand-400 mb-1">
+                    Alpha
+                  </p>
+                  <p className="font-mono text-3xl font-bold tabular-nums text-text-primary">
+                    {teamScore(displayAlpha)}
+                  </p>
+                </Card>
+                <Card padding="sm" className="flex items-center justify-center">
+                  <span className="font-display text-lg font-bold tracking-widest text-text-muted">
+                    VS
+                  </span>
+                </Card>
+                <Card padding="sm" className="text-center">
+                  <p className="font-display text-xs uppercase tracking-widest text-danger-400 mb-1">
+                    Bravo
+                  </p>
+                  <p className="font-mono text-3xl font-bold tabular-nums text-text-primary">
+                    {teamScore(displayBravo)}
+                  </p>
+                </Card>
+              </div>
+
+              {/* Team tables */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <TeamTable label="Team Alpha" color="text-brand-400" players={displayAlpha} />
+                <TeamTable label="Team Bravo" color="text-danger-400" players={displayBravo} />
+              </div>
+
+              {/* Simulate button */}
+              {gameState?.status === 'playing' && !simulated && (
+                <Button className="w-full" size="lg" onClick={handleSimulateMatch}>
+                  Simulate Match
+                </Button>
+              )}
+
+              {/* Result card */}
+              {isFinished && gameState && (
+                <Card
+                  padding="sm"
+                  className={
+                    gameState.winner === role
+                      ? 'border-brand-400/30 bg-brand-400/5'
+                      : gameState.winner !== 'draw' && gameState.winner !== role
+                        ? 'border-danger-400/30 bg-danger-400/5'
+                        : ''
+                  }
+                >
+                  <p className="font-display text-center text-sm font-semibold uppercase tracking-widest">
+                    <span className={gameState.winner === role ? 'text-brand-400' : gameState.winner === 'draw' ? 'text-text-secondary' : 'text-danger-400'}>
+                      {gameState.winner === role
+                        ? 'Victory! Your team won!'
+                        : gameState.winner === 'draw'
+                          ? "It's a draw! Bets returned."
+                          : 'Defeat! Better luck next time.'}
+                    </span>
+                  </p>
+                </Card>
+              )}
+            </>
+          )}
         </div>
 
-        {/* PlayStake Widget */}
+        {/* Sidebar */}
         <div className="space-y-4">
-          <Card>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-sm font-semibold uppercase tracking-widest text-text-primary">
-                PlayStake Wager
-              </h2>
-              <StatusBadge status={displayStatus} />
-            </div>
-
-            {/* Bet details */}
-            <div className="space-y-3 mb-6">
-              <DetailRow
-                icon={<DollarSign className="h-4 w-4" />}
-                label="Wager"
-                value="$25.00"
-              />
-              <DetailRow
-                icon={<User className="h-4 w-4" />}
-                label="Opponent"
-                value="ShadowByte"
-              />
-              <DetailRow
-                icon={<Zap className="h-4 w-4" />}
-                label="Your Pick"
-                value="Team Alpha"
-              />
-              {outcome && (
-                <DetailRow
-                  icon={<Shield className="h-4 w-4" />}
-                  label="Payout"
-                  value={outcome === 'WON' ? '+$22.50' : '-$25.00'}
-                  valueClass={
-                    outcome === 'WON' ? 'text-brand-400' : 'text-danger-400'
-                  }
-                />
-              )}
-            </div>
-
-            {/* State machine progress */}
-            <div className="mb-6">
-              <p className="font-mono text-[11px] uppercase tracking-widest text-text-muted mb-2">
-                Lifecycle
-              </p>
-              <div className="flex gap-1">
-                {(
-                  [
-                    'PENDING_CONSENT',
-                    'OPEN',
-                    'MATCHED',
-                    'RESULT_REPORTED',
-                    'SETTLED',
-                  ] as BetStatus[]
-                ).map((step) => {
-                  const steps: BetStatus[] = [
-                    'PENDING_CONSENT',
-                    'OPEN',
-                    'MATCHED',
-                    'RESULT_REPORTED',
-                    'SETTLED',
-                  ];
-                  const currentIdx = steps.indexOf(betStatus);
-                  const stepIdx = steps.indexOf(step);
-                  const active = betStatus !== 'IDLE' && stepIdx <= currentIdx;
-                  return (
-                    <div
-                      key={step}
-                      className={`h-1.5 flex-1 rounded-sm transition-colors ${
-                        active ? 'bg-brand-400' : 'bg-surface-700'
-                      }`}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Controls */}
-            <div className="space-y-2">
-              {betStatus === 'IDLE' && (
-                <Button className="w-full" onClick={startWager}>
-                  Start Wager
-                </Button>
-              )}
-
-              {betStatus === 'PENDING_CONSENT' && (
-                <Button className="w-full" onClick={advanceToOpen}>
-                  Accept & Open
-                </Button>
-              )}
-
-              {(betStatus === 'OPEN' ||
-                betStatus === 'MATCHED' ||
-                betStatus === 'RESULT_REPORTED') && (
-                <div className="grid grid-cols-2 gap-2">
-                  <Button className="w-full" onClick={simulateWin}>
-                    {betStatus === 'OPEN'
-                      ? 'Find Match'
-                      : betStatus === 'MATCHED'
-                        ? 'Simulate Win'
-                        : 'Settle'}
-                  </Button>
-                  <Button
-                    variant="danger"
-                    className="w-full"
-                    onClick={simulateLoss}
-                  >
-                    {betStatus === 'OPEN'
-                      ? 'Find Match'
-                      : betStatus === 'MATCHED'
-                        ? 'Simulate Loss'
-                        : 'Settle'}
-                  </Button>
-                </div>
-              )}
-
-              {betStatus === 'SETTLED' && (
-                <Button
-                  variant="ghost"
-                  className="w-full"
-                  onClick={reset}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Play Again
-                </Button>
-              )}
-            </div>
-          </Card>
-
-          {/* Mini event log */}
-          <Card padding="sm">
-            <p className="font-mono text-[11px] uppercase tracking-widest text-text-muted mb-2">
-              Event Log
-            </p>
-            <div className="space-y-1 font-mono text-xs text-text-secondary">
-              {betStatus !== 'IDLE' && (
-                <p>
-                  <span className="text-text-muted">[00:01]</span> Wager
-                  created -- $25.00
-                </p>
-              )}
-              {['OPEN', 'MATCHED', 'RESULT_REPORTED', 'SETTLED'].includes(
-                betStatus,
-              ) && (
-                <p>
-                  <span className="text-text-muted">[00:02]</span> Consent
-                  accepted
-                </p>
-              )}
-              {['MATCHED', 'RESULT_REPORTED', 'SETTLED'].includes(
-                betStatus,
-              ) && (
-                <p>
-                  <span className="text-text-muted">[00:04]</span> Opponent
-                  matched: ShadowByte
-                </p>
-              )}
-              {['RESULT_REPORTED', 'SETTLED'].includes(betStatus) && (
-                <p>
-                  <span className="text-text-muted">[05:00]</span> Result:{' '}
-                  <span
-                    className={
-                      outcome === 'WON' ? 'text-brand-400' : 'text-danger-400'
-                    }
-                  >
-                    {outcome === 'WON' ? 'Victory' : 'Defeat'}
-                  </span>
-                </p>
-              )}
-              {betStatus === 'SETTLED' && (
-                <p>
-                  <span className="text-text-muted">[05:01]</span> Payout{' '}
-                  {outcome === 'WON' ? 'credited' : 'deducted'}
-                </p>
-              )}
-            </div>
-          </Card>
+          <PlayStakeWidget
+            widgetToken={authState?.widgetToken ?? null}
+            gameId={authState?.gameId ?? null}
+            onBetCreated={handleBetCreated}
+            onBetAccepted={handleBetAccepted}
+            onBetSettled={handleBetSettled}
+            onError={(err) => log(`Widget error: ${err.message}`, 'error')}
+          />
+          <EventLog entries={entries} />
         </div>
       </div>
     </div>
@@ -369,7 +337,6 @@ function TeamTable({
         </h3>
       </div>
       <div className="divide-y divide-white/5">
-        {/* Header */}
         <div className="grid grid-cols-[1fr_3rem_3rem_3rem] gap-2 px-4 py-2 text-[11px] font-mono uppercase tracking-widest text-text-muted">
           <span>Player</span>
           <span className="text-right">
@@ -385,47 +352,13 @@ function TeamTable({
             key={p.name}
             className="grid grid-cols-[1fr_3rem_3rem_3rem] gap-2 px-4 py-2 text-sm"
           >
-            <span className="font-mono text-text-primary truncate">
-              {p.name}
-            </span>
-            <span className="font-mono tabular-nums text-right text-text-primary">
-              {p.kills}
-            </span>
-            <span className="font-mono tabular-nums text-right text-text-secondary">
-              {p.deaths}
-            </span>
-            <span className="font-mono tabular-nums text-right text-text-secondary">
-              {p.assists}
-            </span>
+            <span className="font-mono text-text-primary truncate">{p.name}</span>
+            <span className="font-mono tabular-nums text-right text-text-primary">{p.kills}</span>
+            <span className="font-mono tabular-nums text-right text-text-secondary">{p.deaths}</span>
+            <span className="font-mono tabular-nums text-right text-text-secondary">{p.assists}</span>
           </div>
         ))}
       </div>
     </Card>
-  );
-}
-
-function DetailRow({
-  icon,
-  label,
-  value,
-  valueClass = 'text-text-primary',
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  valueClass?: string;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2 text-text-muted">
-        {icon}
-        <span className="font-mono text-xs uppercase tracking-widest">
-          {label}
-        </span>
-      </div>
-      <span className={`font-mono text-sm font-semibold tabular-nums ${valueClass}`}>
-        {value}
-      </span>
-    </div>
   );
 }

@@ -1,16 +1,20 @@
 // In-memory game session store (demo only — not for production)
 
+export type GameType = 'tictactoe' | 'fps' | 'cards';
+
 export interface GameSession {
   id: string;
   betId: string | null;
-  board: (string | null)[]; // 9 cells: null, 'X', or 'O'
-  turn: "A" | "B";
+  board?: (string | null)[]; // 9 cells: null, 'X', or 'O' — only for tictactoe
+  turn?: "A" | "B"; // only for tictactoe
   playerAId: string;
   playerBId: string | null;
   status: "waiting" | "playing" | "finished";
   winner: "A" | "B" | "draw" | null;
   resultReported: boolean;
   createdAt: number;
+  gameType: GameType;
+  gameData: Record<string, unknown>;
 }
 
 // Survive Next.js hot reloads in dev
@@ -23,21 +27,29 @@ const sessions =
 
 export function createSession(
   playerAId: string,
-  betId: string | null
+  betId: string | null,
+  gameType: GameType = 'tictactoe'
 ): GameSession {
   const id = Math.random().toString(36).slice(2, 8).toUpperCase();
   const session: GameSession = {
     id,
     betId,
-    board: Array(9).fill(null),
-    turn: "A",
     playerAId,
     playerBId: null,
     status: "waiting",
     winner: null,
     resultReported: false,
     createdAt: Date.now(),
+    gameType,
+    gameData: {},
   };
+
+  // Only init board/turn for tictactoe
+  if (gameType === 'tictactoe') {
+    session.board = Array(9).fill(null);
+    session.turn = "A";
+  }
+
   sessions.set(id, session);
   return session;
 }
@@ -78,7 +90,7 @@ export function makeMove(
   if (session.turn !== player) {
     return { success: false, error: "Not your turn" };
   }
-  if (cell < 0 || cell > 8 || session.board[cell] !== null) {
+  if (!session.board || cell < 0 || cell > 8 || session.board[cell] !== null) {
     return { success: false, error: "Invalid cell" };
   }
 
@@ -105,4 +117,19 @@ export function joinSession(
   session.playerBId = playerBId;
   if (betId) session.betId = betId;
   session.status = "playing";
+}
+
+export function resolveGame(
+  session: GameSession,
+  winner: "A" | "B" | "draw"
+): { success: boolean; error?: string } {
+  if (session.status !== "playing") {
+    return { success: false, error: "Game is not in progress" };
+  }
+  if (session.gameType === 'tictactoe') {
+    return { success: false, error: "Tic-tac-toe games resolve via moves, not directly" };
+  }
+  session.status = "finished";
+  session.winner = winner;
+  return { success: true };
 }

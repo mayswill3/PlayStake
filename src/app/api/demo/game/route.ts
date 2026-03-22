@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSession, listWaitingSessions } from "./store";
+import type { GameType } from "./store";
 
 // POST /api/demo/game — Create a new game session
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { playerAId, betId } = body;
+  const { playerAId, betId, gameType } = body;
 
   if (!playerAId) {
     return NextResponse.json({ error: "playerAId required" }, { status: 400 });
   }
 
-  const session = createSession(playerAId, betId ?? null);
+  const validTypes: GameType[] = ['tictactoe', 'fps', 'cards'];
+  const type: GameType = validTypes.includes(gameType) ? gameType : 'tictactoe';
+
+  const session = createSession(playerAId, betId ?? null, type);
   return NextResponse.json(session, { status: 201 });
 }
 
