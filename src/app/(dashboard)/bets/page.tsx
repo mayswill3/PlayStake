@@ -7,6 +7,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Pagination } from '@/components/ui/Pagination';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Button } from '@/components/ui/Button';
 import { formatCents, formatDate } from '@/lib/utils/format';
 import { useBets } from '@/hooks/useBets';
 
@@ -63,11 +64,17 @@ export default function BetsPage() {
       ) : bets.length === 0 ? (
         <Card>
           <EmptyState
+            icon={<span>&#x2694;</span>}
             title="No bets found"
             description={statusFilter !== 'all'
-              ? 'No bets match the selected filter. Try a different status.'
+              ? 'No bets match the selected filter.'
               : 'You have not placed any bets yet. Start playing to see your history here.'
             }
+            action={statusFilter !== 'all' ? (
+              <Button variant="secondary" size="sm" onClick={() => { setStatusFilter('all'); setPage(1); }}>
+                Clear Filters
+              </Button>
+            ) : undefined}
           />
         </Card>
       ) : (

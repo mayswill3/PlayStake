@@ -315,7 +315,7 @@ export function createSettlementWorker(): Worker<SettlementScanPayload> {
     QUEUE_NAMES.SETTLEMENT,
     processSettlementScan,
     {
-      connection: getRedisConnection(),
+      connection: getRedisConnection() as unknown as import("bullmq").ConnectionOptions,
       concurrency: 1, // Single-threaded to avoid advisory lock contention
       limiter: {
         max: 1,

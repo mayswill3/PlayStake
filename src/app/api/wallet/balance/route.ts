@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       if (!token) throw new AuthenticationError();
       const session = await validateSession(token);
       if (!session) throw new AuthenticationError("Invalid or expired session");
-      userId = userId;
+      userId = session.userId;
     }
 
     // Get the player's balance account

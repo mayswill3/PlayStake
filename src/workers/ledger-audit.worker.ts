@@ -188,7 +188,7 @@ export function createLedgerAuditWorker(): Worker<LedgerAuditPayload> {
     QUEUE_NAMES.LEDGER_AUDIT,
     processLedgerAudit,
     {
-      connection: getRedisConnection(),
+      connection: getRedisConnection() as unknown as import("bullmq").ConnectionOptions,
       concurrency: 1,
     }
   );

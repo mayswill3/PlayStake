@@ -28,6 +28,13 @@ const developerNav: NavItem[] = [
   { label: 'Webhooks', href: '/developer/webhooks', icon: '\u21CB' },
 ];
 
+const adminNav: NavItem[] = [
+  { label: 'Overview', href: '/admin', icon: '\u2605' },
+  { label: 'Users', href: '/admin/users', icon: '\u263A' },
+  { label: 'Disputes', href: '/admin/disputes', icon: '\u2696' },
+  { label: 'Anomalies', href: '/admin/anomalies', icon: '\u26A0' },
+];
+
 export function Sidebar({ userRole }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -106,6 +113,22 @@ export function Sidebar({ userRole }: SidebarProps) {
               ))}
             </>
           )}
+
+          {userRole === 'ADMIN' && (
+            <>
+              <div className="mt-6 mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-surface-500">
+                Admin
+              </div>
+              {adminNav.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  active={isActive(pathname, item.href)}
+                  onClick={() => setMobileOpen(false)}
+                />
+              ))}
+            </>
+          )}
         </nav>
 
         {/* Bottom */}
@@ -150,5 +173,6 @@ function NavLink({
 function isActive(pathname: string, href: string): boolean {
   if (href === '/dashboard') return pathname === '/dashboard';
   if (href === '/developer') return pathname === '/developer';
+  if (href === '/admin') return pathname === '/admin';
   return pathname.startsWith(href);
 }

@@ -83,7 +83,7 @@ export async function POST(
       data: {
         status: BetStatus.RESULT_REPORTED,
         outcome: input.outcome as BetOutcome,
-        resultPayload: input.resultPayload ?? undefined,
+        resultPayload: input.resultPayload ? JSON.parse(JSON.stringify(input.resultPayload)) : undefined,
         resultReportedAt: now,
         resultIdempotencyKey: input.idempotencyKey,
         serverResultHash,

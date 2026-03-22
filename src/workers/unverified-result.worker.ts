@@ -220,7 +220,7 @@ export function createUnverifiedResultWorker(): Worker<UnverifiedResultScanPaylo
     QUEUE_NAMES.UNVERIFIED_RESULT,
     processUnverifiedResultScan,
     {
-      connection: getRedisConnection(),
+      connection: getRedisConnection() as unknown as import("bullmq").ConnectionOptions,
       concurrency: 1,
     }
   );

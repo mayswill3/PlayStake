@@ -34,7 +34,7 @@ const _queues = new Map<string, Queue>();
 export function getQueue<T = unknown>(name: QueueName): Queue<T> {
   if (!_queues.has(name)) {
     const queue = new Queue<T>(name, {
-      connection: getRedisConnection(),
+      connection: getRedisConnection() as unknown as import("bullmq").ConnectionOptions,
       defaultJobOptions: {
         removeOnComplete: { count: 1000 },
         removeOnFail: { count: 5000 },
@@ -72,7 +72,8 @@ export async function addJob<T>(
   opts?: { delay?: number; priority?: number; jobId?: string }
 ): Promise<void> {
   const queue = getQueue<T>(queueName);
-  await queue.add(jobName, data, {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (queue as any).add(jobName, data, {
     delay: opts?.delay,
     priority: opts?.priority,
     jobId: opts?.jobId,

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { StatCard } from '@/components/ui/StatCard';
 import { formatCents, formatPercent, formatDate } from '@/lib/utils/format';
 
 interface DashboardStats {
@@ -116,8 +117,14 @@ export default function DashboardPage() {
 
         {recentBets.length === 0 ? (
           <EmptyState
+            icon={<span>&#x2694;</span>}
             title="No bets yet"
             description="Your betting history will appear here once you place your first wager."
+            action={
+              <Link href="/wallet/deposit">
+                <Button variant="primary" size="sm">Start Playing</Button>
+              </Link>
+            }
           />
         ) : (
           <div className="space-y-3">
@@ -159,22 +166,3 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({
-  label,
-  value,
-  subtitle,
-  valueColor = 'text-surface-100',
-}: {
-  label: string;
-  value: string;
-  subtitle?: string;
-  valueColor?: string;
-}) {
-  return (
-    <Card>
-      <p className="text-sm text-surface-400 mb-1">{label}</p>
-      <p className={`text-2xl font-bold ${valueColor}`}>{value}</p>
-      {subtitle && <p className="text-xs text-surface-500 mt-1">{subtitle}</p>}
-    </Card>
-  );
-}

@@ -249,7 +249,7 @@ export function createDisputeEscalationWorker(): Worker<DisputeEscalationScanPay
     QUEUE_NAMES.DISPUTE_ESCALATION,
     processDisputeEscalationScan,
     {
-      connection: getRedisConnection(),
+      connection: getRedisConnection() as unknown as import("bullmq").ConnectionOptions,
       concurrency: 1,
     }
   );

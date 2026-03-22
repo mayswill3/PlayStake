@@ -245,7 +245,7 @@ export function createWebhookDeliveryWorker(): Worker<WebhookDeliveryScanPayload
     QUEUE_NAMES.WEBHOOK_DELIVERY,
     processWebhookDeliveryScan,
     {
-      connection: getRedisConnection(),
+      connection: getRedisConnection() as unknown as import("bullmq").ConnectionOptions,
       concurrency: 1,
     }
   );

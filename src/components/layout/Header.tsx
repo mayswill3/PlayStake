@@ -114,13 +114,21 @@ export function Header({ user, balance }: HeaderProps) {
                   >
                     Settings
                   </Link>
-                  {user.role === 'PLAYER' && (
+                  {(user.role === 'DEVELOPER' || user.role === 'ADMIN') ? (
                     <Link
                       href="/developer"
                       className="block px-4 py-2 text-sm text-surface-300 hover:text-surface-100 hover:bg-surface-800 transition-colors"
                       onClick={() => setDropdownOpen(false)}
                     >
                       Developer Portal
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/developer"
+                      className="block px-4 py-2 text-sm text-surface-300 hover:text-surface-100 hover:bg-surface-800 transition-colors"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      Become a Developer
                     </Link>
                   )}
                   <button

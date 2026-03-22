@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { getQueue } from "./queue";
-import { QUEUE_NAMES } from "./types";
+import { QUEUE_NAMES, type QueueName } from "./types";
 import type {
   SettlementScanPayload,
   ConsentExpiryScanPayload,
@@ -24,7 +24,7 @@ import type {
 // ---------------------------------------------------------------------------
 
 interface ScheduleEntry {
-  queueName: string;
+  queueName: QueueName;
   jobName: string;
   pattern?: string;   // cron pattern (for daily jobs)
   every?: number;     // interval in milliseconds (for frequent jobs)

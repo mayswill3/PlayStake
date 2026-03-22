@@ -108,7 +108,7 @@ export function createConsentExpiryWorker(): Worker<ConsentExpiryScanPayload> {
     QUEUE_NAMES.CONSENT_EXPIRY,
     processConsentExpiryScan,
     {
-      connection: getRedisConnection(),
+      connection: getRedisConnection() as unknown as import("bullmq").ConnectionOptions,
       concurrency: 1,
     }
   );

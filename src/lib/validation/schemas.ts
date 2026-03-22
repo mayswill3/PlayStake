@@ -414,6 +414,67 @@ export const updateWebhookSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Admin schemas (A7)
+// ---------------------------------------------------------------------------
+
+export const adminUserListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  role: z.enum(["PLAYER", "DEVELOPER", "ADMIN"]).optional(),
+  search: z.string().max(255).optional(),
+});
+
+export const adminUpdateUserSchema = z.object({
+  role: z.enum(["PLAYER", "DEVELOPER", "ADMIN"]).optional(),
+  kycStatus: z
+    .enum(["NOT_STARTED", "PENDING", "VERIFIED", "REJECTED"])
+    .optional(),
+});
+
+export const adminDisputeListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: z
+    .enum([
+      "OPEN",
+      "UNDER_REVIEW",
+      "RESOLVED_PLAYER_A",
+      "RESOLVED_PLAYER_B",
+      "RESOLVED_DRAW",
+      "RESOLVED_VOID",
+    ])
+    .optional(),
+});
+
+export const adminResolveDisputeSchema = z.object({
+  status: z.enum([
+    "RESOLVED_PLAYER_A",
+    "RESOLVED_PLAYER_B",
+    "RESOLVED_DRAW",
+    "RESOLVED_VOID",
+  ]),
+  resolution: z
+    .string()
+    .min(5, "Resolution must be at least 5 characters")
+    .max(2000, "Resolution must be at most 2000 characters")
+    .trim(),
+});
+
+export const adminAnomalyListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: z
+    .enum([
+      "DETECTED",
+      "INVESTIGATING",
+      "CONFIRMED_FRAUD",
+      "FALSE_POSITIVE",
+      "RESOLVED",
+    ])
+    .optional(),
+});
+
+// ---------------------------------------------------------------------------
 // Type exports
 // ---------------------------------------------------------------------------
 
@@ -444,3 +505,8 @@ export type CancelBetInput = z.infer<typeof cancelBetSchema>;
 export type BetListV1Query = z.infer<typeof betListV1QuerySchema>;
 export type CreateWebhookInput = z.infer<typeof createWebhookSchema>;
 export type UpdateWebhookInput = z.infer<typeof updateWebhookSchema>;
+export type AdminUserListQuery = z.infer<typeof adminUserListQuerySchema>;
+export type AdminUpdateUserInput = z.infer<typeof adminUpdateUserSchema>;
+export type AdminDisputeListQuery = z.infer<typeof adminDisputeListQuerySchema>;
+export type AdminResolveDisputeInput = z.infer<typeof adminResolveDisputeSchema>;
+export type AdminAnomalyListQuery = z.infer<typeof adminAnomalyListQuerySchema>;

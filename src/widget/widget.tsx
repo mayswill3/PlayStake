@@ -87,7 +87,7 @@ function WidgetApp() {
     usePostMessage({
       instanceId: config.instanceId,
       onCreateBet: useCallback(
-        (payload) => {
+        (payload: { amount: number; opponentId?: string; metadata?: Record<string, unknown> }) => {
           createBet({
             amount: payload.amount,
             opponentId: payload.opponentId,

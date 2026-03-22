@@ -8,6 +8,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Dialog } from '@/components/ui/Dialog';
 import { formatCents, formatDate } from '@/lib/utils/format';
+import { Button } from '@/components/ui/Button';
 import { useTransactions, type Transaction } from '@/hooks/useTransactions';
 
 const TYPE_OPTIONS = [
@@ -93,8 +94,22 @@ export default function TransactionsPage() {
         ) : transactions.length === 0 ? (
           <div className="p-6">
             <EmptyState
+              icon={<span>&#x25C8;</span>}
               title="No transactions found"
-              description="Try adjusting your filters or make your first deposit."
+              description={typeFilter !== 'all' || statusFilter !== 'all'
+                ? 'No transactions match the current filters.'
+                : 'Your transaction history will appear here once you make your first deposit.'}
+              action={
+                typeFilter !== 'all' || statusFilter !== 'all' ? (
+                  <Button variant="secondary" size="sm" onClick={() => { setTypeFilter('all'); setStatusFilter('all'); setPage(1); }}>
+                    Clear Filters
+                  </Button>
+                ) : (
+                  <a href="/wallet/deposit">
+                    <Button variant="primary" size="sm">Make a Deposit</Button>
+                  </a>
+                )
+              }
             />
           </div>
         ) : (

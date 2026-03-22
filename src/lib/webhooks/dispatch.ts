@@ -54,13 +54,13 @@ export async function dispatchWebhook(
             webhookConfigId: config.id,
             betId,
             eventType,
-            payload: {
+            payload: JSON.parse(JSON.stringify({
               event: eventType,
               betId,
               gameId,
               timestamp: new Date().toISOString(),
               data: payload,
-            },
+            })),
             status: "PENDING",
             attemptCount: 0,
           },

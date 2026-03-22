@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
+import { StatCard } from '@/components/ui/StatCard';
 import { formatCents, formatNumber } from '@/lib/utils/format';
 
 interface Analytics {
@@ -71,19 +71,3 @@ export default function DeveloperDashboardPage() {
   );
 }
 
-function StatCard({
-  label,
-  value,
-  valueColor = 'text-surface-100',
-}: {
-  label: string;
-  value: string;
-  valueColor?: string;
-}) {
-  return (
-    <Card>
-      <p className="text-sm text-surface-400 mb-1">{label}</p>
-      <p className={`text-2xl font-bold ${valueColor}`}>{value}</p>
-    </Card>
-  );
-}

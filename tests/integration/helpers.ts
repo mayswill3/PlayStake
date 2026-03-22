@@ -488,7 +488,8 @@ export async function callApi(
   }
 
   const url = `http://localhost${path}`;
-  const request = new NextRequest(url, requestInit);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const request = new NextRequest(url, requestInit as any);
 
   // Dynamic import of the route handler based on the path
   const { handler, params } = await resolveRouteHandler(method, path);

@@ -159,7 +159,7 @@ export function createBetExpiryWorker(): Worker<BetExpiryScanPayload> {
     QUEUE_NAMES.BET_EXPIRY,
     processBetExpiryScan,
     {
-      connection: getRedisConnection(),
+      connection: getRedisConnection() as unknown as import("bullmq").ConnectionOptions,
       concurrency: 1,
     }
   );

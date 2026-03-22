@@ -511,7 +511,7 @@ export function createAnomalyDetectionWorker(): Worker<AnomalyDetectionScanPaylo
     QUEUE_NAMES.ANOMALY_DETECTION,
     processAnomalyDetectionScan,
     {
-      connection: getRedisConnection(),
+      connection: getRedisConnection() as unknown as import("bullmq").ConnectionOptions,
       concurrency: 1,
     }
   );
