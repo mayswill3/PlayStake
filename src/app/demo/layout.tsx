@@ -20,7 +20,10 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
               href="/demo"
               className="font-display text-lg font-bold tracking-wider text-text-primary"
             >
-              <span className="text-brand-400">PS</span> PlayStake
+              <span className="inline-flex items-center gap-2">
+                <img src="/logo.png" alt="PlayStake" className="h-8 w-8" />
+                <span>PlayStake</span>
+              </span>
             </Link>
             <Link
               href="/"

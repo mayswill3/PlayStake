@@ -49,7 +49,9 @@ export function Header({ user, balance }: HeaderProps) {
 
         {/* Mobile logo */}
         <div className="lg:hidden">
-          <Link href="/dashboard" className="text-brand-400 text-xl font-display font-bold">PS</Link>
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <img src="/logo.png" alt="PlayStake" className="h-8 w-8" />
+          </Link>
         </div>
 
         {/* Desktop spacer */}

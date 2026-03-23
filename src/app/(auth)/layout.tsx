@@ -5,7 +5,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
       <div className="mb-8">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-brand-400 text-3xl font-display font-bold">PS</span>
+          <img src="/logo.png" alt="PlayStake" className="h-10 w-10" />
           <span className="text-xl font-display font-semibold text-text-primary">PlayStake</span>
         </Link>
       </div>

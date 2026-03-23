@@ -9,7 +9,7 @@ export default function LandingPage() {
       <nav className="border-b border-white/8 bg-surface-950/90 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-7xl mx-auto flex items-center justify-between h-16 px-4 sm:px-6">
           <div className="flex items-center gap-2">
-            <span className="text-brand-400 text-2xl font-display font-bold">PS</span>
+            <img src="/logo.png" alt="PlayStake" className="h-8 w-8" />
             <span className="text-lg font-display font-semibold text-text-primary">PlayStake</span>
           </div>
           <div className="flex items-center gap-3">
