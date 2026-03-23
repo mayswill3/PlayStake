@@ -26,11 +26,11 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
               </span>
             </Link>
             <Link
-              href="/"
+              href="/dashboard"
               className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors font-mono"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Home
+              Back to Dashboard
             </Link>
           </div>
         </div>
