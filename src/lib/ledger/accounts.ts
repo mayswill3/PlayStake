@@ -114,12 +114,9 @@ export type SystemAccountType =
   | typeof LedgerAccountType.STRIPE_SINK;
 
 /**
- * Get a singleton system account (PLATFORM_REVENUE, STRIPE_SOURCE, or STRIPE_SINK).
+ * Get or create a singleton system account (PLATFORM_REVENUE, STRIPE_SOURCE, or STRIPE_SINK).
  *
- * System accounts have no userId. They must be seeded before the application
- * processes transactions (see prisma/seed.ts).
- *
- * @throws Error if the system account does not exist.
+ * System accounts have no userId. They are auto-created on first access.
  */
 export async function getSystemAccount(
   tx: TxClient,
@@ -132,13 +129,15 @@ export async function getSystemAccount(
     },
   });
 
-  if (!account) {
-    throw new Error(
-      `System ledger account of type ${type} does not exist. Run the database seed first.`
-    );
-  }
+  if (account) return account;
 
-  return account;
+  return tx.ledgerAccount.create({
+    data: {
+      accountType: type,
+      balance: new Decimal("0.00"),
+      currency: "USD",
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------
