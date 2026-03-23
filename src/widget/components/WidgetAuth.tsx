@@ -35,7 +35,7 @@ export function WidgetAuth({ authState }: WidgetAuthProps) {
           Connect your PlayStake account to start betting.
         </p>
         <a
-          href="https://playstake.com/connect"
+          href="/connect"
           target="_blank"
           rel="noopener noreferrer"
           className="ps-btn ps-btn--primary"

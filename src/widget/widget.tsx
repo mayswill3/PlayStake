@@ -22,9 +22,9 @@ import { ResultConfirmation } from "./components/ResultConfirmation";
 const API_BASE_URL =
   (typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("apiBaseUrl")) ||
-  (typeof window !== "undefined" && window.location.hostname === "localhost"
-    ? `${window.location.protocol}//${window.location.hostname}:3000`
-    : "https://playstake.com");
+  (typeof window !== "undefined"
+    ? window.location.origin
+    : "");
 
 // ---------------------------------------------------------------------------
 // Widget App
