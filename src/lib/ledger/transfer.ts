@@ -2,6 +2,7 @@ import { Decimal } from "@prisma/client/runtime/client";
 import {
   TransactionType,
   TransactionStatus,
+  LedgerAccountType,
   type Transaction,
   type LedgerEntry,
 } from "../../../generated/prisma/client";
@@ -123,17 +124,39 @@ export async function transfer(
     throw new FrozenAccountError(input.toAccountId);
   }
 
-  // --- Atomic debit (UPDATE ... WHERE balance >= amount) --------------------
-  // This raw SQL acquires a row-level lock and atomically checks the balance.
-  // If zero rows are updated, the account has insufficient funds.
-  const debitResult: { balance: Decimal }[] = await tx.$queryRaw`
-    UPDATE ledger_accounts
-    SET balance = balance - ${amount}::decimal,
-        updated_at = NOW()
-    WHERE id = ${input.fromAccountId}::uuid
-      AND balance >= ${amount}::decimal
-    RETURNING balance
-  `;
+  // --- Atomic debit ----------------------------------------------------------
+  // System accounts (STRIPE_SOURCE, STRIPE_SINK, PLATFORM_REVENUE) represent
+  // external funding sources/sinks and are allowed to go negative.
+  // Player/developer/escrow accounts must have sufficient balance.
+  const SYSTEM_ACCOUNT_TYPES: string[] = [
+    LedgerAccountType.STRIPE_SOURCE,
+    LedgerAccountType.STRIPE_SINK,
+    LedgerAccountType.PLATFORM_REVENUE,
+  ];
+  const isSystemAccount = SYSTEM_ACCOUNT_TYPES.includes(fromAccount.accountType);
+
+  let debitResult: { balance: Decimal }[];
+
+  if (isSystemAccount) {
+    // System accounts: allow negative balance (no balance check)
+    debitResult = await tx.$queryRaw`
+      UPDATE ledger_accounts
+      SET balance = balance - ${amount}::decimal,
+          updated_at = NOW()
+      WHERE id = ${input.fromAccountId}::uuid
+      RETURNING balance
+    `;
+  } else {
+    // Player/escrow accounts: enforce sufficient balance
+    debitResult = await tx.$queryRaw`
+      UPDATE ledger_accounts
+      SET balance = balance - ${amount}::decimal,
+          updated_at = NOW()
+      WHERE id = ${input.fromAccountId}::uuid
+        AND balance >= ${amount}::decimal
+      RETURNING balance
+    `;
+  }
 
   if (debitResult.length === 0) {
     throw new InsufficientFundsError(
