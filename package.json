@@ -24,7 +24,7 @@
     "workers": "npx tsx src/workers/index.ts",
     "workers:dev": "npx tsx --watch src/workers/index.ts",
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "next lint",
     "widget:build": "npx tsx widget.build.ts",
@@ -36,6 +36,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": ">=20"
+  },
   "description": "Real-money peer-to-peer wagering platform for competitive games",
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.2",
