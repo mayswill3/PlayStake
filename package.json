@@ -24,8 +24,8 @@
     "workers": "npx tsx src/workers/index.ts",
     "workers:dev": "npx tsx --watch src/workers/index.ts",
     "dev": "next dev",
-    "build": "prisma generate && prisma migrate deploy && next build",
-    "start": "next start",
+    "build": "prisma generate && next build",
+    "start": "prisma migrate deploy && next start",
     "lint": "next lint",
     "widget:build": "npx tsx widget.build.ts",
     "widget:build:prod": "NODE_ENV=production npx tsx widget.build.ts"
