@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
         ? { id: bet.playerB.id, displayName: bet.playerB.displayName }
         : null,
       outcome: bet.outcome,
+      resultVerified: bet.resultVerified,
       platformFeeAmount: bet.platformFeeAmount
         ? dollarsToCents(bet.platformFeeAmount)
         : null,

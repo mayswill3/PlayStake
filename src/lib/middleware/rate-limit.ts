@@ -140,11 +140,11 @@ export function getClientIp(req: Request): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Login rate limiter: 10 requests per 15 minutes per IP.
+ * Login rate limiter: 100 requests per 15 minutes per IP (relaxed for local dev).
  */
 export const loginRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
-  maxRequests: 10,
+  maxRequests: 100,
   keyFn: (req) => `login:${getClientIp(req)}`,
 });
 

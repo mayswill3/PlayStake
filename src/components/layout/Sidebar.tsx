@@ -36,6 +36,7 @@ const playerNav: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Wallet', href: '/wallet', icon: Wallet },
   { label: 'Bets', href: '/bets', icon: Swords },
+  { label: 'Demo Games', href: '/demo', icon: Gamepad2 },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -92,7 +93,7 @@ export function Sidebar({ userRole }: SidebarProps) {
         {/* Logo */}
         <div className="px-6 py-5 border-b border-white/8">
           <Link href="/dashboard" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
-            <span className="text-brand-400 text-2xl font-display font-bold">PS</span>
+            <img src="/logo.png" alt="PlayStake" className="h-8 w-8" />
             <span className="text-lg font-display font-semibold text-text-primary">PlayStake</span>
           </Link>
         </div>
@@ -188,5 +189,6 @@ function isActive(pathname: string, href: string): boolean {
   if (href === '/dashboard') return pathname === '/dashboard';
   if (href === '/developer') return pathname === '/developer';
   if (href === '/admin') return pathname === '/admin';
+  if (href === '/demo') return pathname.startsWith('/demo');
   return pathname.startsWith(href);
 }

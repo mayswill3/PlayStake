@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Wallet, Swords, Settings } from 'lucide-react';
+import { LayoutDashboard, Wallet, Swords, Gamepad2, Settings } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 interface NavItem {
@@ -15,6 +15,7 @@ const items: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Wallet', href: '/wallet', icon: Wallet },
   { label: 'Bets', href: '/bets', icon: Swords },
+  { label: 'Games', href: '/demo', icon: Gamepad2 },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
