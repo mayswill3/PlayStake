@@ -3,13 +3,6 @@
 import { useState, useCallback } from 'react';
 import type { PlayerRole, DemoAuthState } from './types';
 
-const PLAYER_A_EMAIL = 'player@test.playstake.com';
-const PLAYER_A_PASS = 'TestPlayer123!';
-const PLAYER_B_EMAIL = 'player2@test.playstake.com';
-const PLAYER_B_PASS = 'TestPlayer2!';
-const DEV_EMAIL = 'developer@test.playstake.com';
-const DEV_PASS = 'TestDev123!';
-
 async function apiPost(path: string, body: unknown) {
   const res = await fetch(path, {
     method: 'POST',
@@ -26,77 +19,46 @@ export function useDemoAuth(onLog?: (msg: string, level: 'info' | 'success' | 'e
 
   const log = onLog ?? (() => {});
 
-  const setup = useCallback(async (role: PlayerRole) => {
+  const setup = useCallback(async (_role: PlayerRole) => {
     setIsSettingUp(true);
     setError(null);
 
     try {
       log('Starting setup...', 'info');
 
-      // 1. Login as the chosen player
-      const playerEmail = role === 'A' ? PLAYER_A_EMAIL : PLAYER_B_EMAIL;
-      const playerPass = role === 'A' ? PLAYER_A_PASS : PLAYER_B_PASS;
+      // Call the setup endpoint — uses the current session cookie
+      const result = await apiPost('/api/demo/setup', {});
 
-      const playerLogin = await apiPost('/api/auth/login', {
-        email: playerEmail,
-        password: playerPass,
-      });
+      if (result.error) {
+        // If not logged in, redirect to login
+        if (result.code === 'UNAUTHORIZED') {
+          window.location.href = '/login?redirect=/demo';
+          return null;
+        }
+        throw new Error(result.error);
+      }
 
-      if (playerLogin.error) throw new Error('Player login failed: ' + playerLogin.error);
-      const playerId = playerLogin.user.id;
-      log(`Logged in as ${playerLogin.user.displayName} (${playerId.slice(0, 8)}...)`, 'success');
+      log(`Logged in as ${result.displayName} (${result.playerId.slice(0, 8)}...)`, 'success');
+      log(`API key: ${result.apiKey.slice(0, 16)}...`, 'success');
+      log(`Game ID: ${result.gameId.slice(0, 8)}...`, 'success');
+      log(`Widget token: ${result.widgetToken.slice(0, 16)}...`, 'success');
 
-      // 2. Login as developer to get API key
-      const devLogin = await apiPost('/api/auth/login', {
-        email: DEV_EMAIL,
-        password: DEV_PASS,
-      });
-
-      if (devLogin.error) throw new Error('Developer login failed: ' + devLogin.error);
-      log('Developer session established', 'success');
-
-      // 3. Create API key
-      const newKey = await apiPost('/api/developer/api-keys', {
-        label: 'demo-game',
-        permissions: ['bet:create', 'bet:read', 'result:report', 'webhook:manage', 'widget:auth'],
-      });
-      const apiKey = newKey.key;
-      log(`API key: ${apiKey.slice(0, 16)}...`, 'success');
-
-      // 4. Get game ID
-      const gamesRes = await fetch('/api/developer/games');
-      const gamesData = await gamesRes.json();
-      const gameId = gamesData.data?.[0]?.id || gamesData.games?.[0]?.id;
-      if (!gameId) throw new Error('No games found');
-      log(`Game ID: ${gameId.slice(0, 8)}...`, 'success');
-
-      // 5. Cleanup stale bets
+      // Cleanup stale bets
       log('Cleaning up stale bets...', 'info');
-      const cleanup = await apiPost('/api/demo/cleanup-bets', { playerId, gameId });
+      const cleanup = await apiPost('/api/demo/cleanup-bets', {
+        playerId: result.playerId,
+        gameId: result.gameId,
+      });
       if (cleanup.voidedCount > 0) {
         log(`Cleaned up ${cleanup.voidedCount} stale bet(s)`, 'success');
       }
 
-      // 6. Generate widget token
-      const tokenRes = await fetch('/api/v1/widget/auth', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          playerId,
-          gameId,
-          idempotencyKey: `wt_${role}_${Date.now()}`,
-        }),
-      });
-      const tokenData = await tokenRes.json();
-
-      if (tokenData.error) throw new Error('Widget token failed: ' + tokenData.error);
-      const widgetToken = tokenData.widgetToken;
-      log(`Widget token: ${widgetToken.slice(0, 16)}...`, 'success');
-
-      const state: DemoAuthState = { playerId, apiKey, gameId, widgetToken };
+      const state: DemoAuthState = {
+        playerId: result.playerId,
+        apiKey: result.apiKey,
+        gameId: result.gameId,
+        widgetToken: result.widgetToken,
+      };
       setAuthState(state);
       setIsSettingUp(false);
       return state;
