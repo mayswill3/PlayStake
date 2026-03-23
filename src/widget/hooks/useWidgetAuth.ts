@@ -69,9 +69,10 @@ export function useWidgetAuth(config: WidgetConfig) {
         }
 
         // Token is valid
+        const balanceData = await res.json();
         setAuthState({
           status: "authenticated",
-          playerId: null, // The balance endpoint doesn't return userId; that's fine
+          playerId: balanceData.userId || null,
           gameId: config.gameId,
           error: null,
         });

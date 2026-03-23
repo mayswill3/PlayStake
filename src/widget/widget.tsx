@@ -225,6 +225,7 @@ function WidgetApp() {
             <OpenBets
               bets={openBets}
               loading={betsLoading}
+              currentPlayerId={authState.playerId}
               onAccept={handleAcceptBet}
             />
           </>

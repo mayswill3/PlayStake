@@ -5,6 +5,7 @@ import { formatCents, timeRemaining } from "../utils";
 interface OpenBetsProps {
   bets: BetData[];
   loading: boolean;
+  currentPlayerId: string | null;
   onAccept: (betId: string) => Promise<BetData | null>;
 }
 
@@ -12,7 +13,7 @@ interface OpenBetsProps {
  * Lists open bets for this game that the player can accept.
  * Each bet shows: creator name, amount, time remaining, and an Accept button.
  */
-export function OpenBets({ bets, loading, onAccept }: OpenBetsProps) {
+export function OpenBets({ bets, loading, currentPlayerId, onAccept }: OpenBetsProps) {
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
 
   const handleAccept = useCallback(
@@ -55,12 +56,13 @@ export function OpenBets({ bets, loading, onAccept }: OpenBetsProps) {
           {bets.map((bet) => {
             const isAccepting = acceptingId === bet.betId;
             const remaining = bet.expiresAt ? timeRemaining(bet.expiresAt) : null;
+            const isOwnBet = currentPlayerId && bet.playerA?.id === currentPlayerId;
 
             return (
               <li key={bet.betId} className="ps-open-bets__item">
                 <div className="ps-open-bets__info">
                   <span className="ps-open-bets__player">
-                    {bet.playerA?.displayName || "Anonymous"}
+                    {isOwnBet ? "You" : (bet.playerA?.displayName || "Anonymous")}
                   </span>
                   <span className="ps-open-bets__amount">
                     {formatCents(bet.amount)}
@@ -72,20 +74,24 @@ export function OpenBets({ bets, loading, onAccept }: OpenBetsProps) {
                       {remaining}
                     </span>
                   )}
-                  <button
-                    className="ps-btn ps-btn--accent ps-btn--small"
-                    onClick={() => handleAccept(bet.betId)}
-                    disabled={isAccepting}
-                    aria-label={`Accept ${formatCents(bet.amount)} challenge from ${bet.playerA?.displayName || "Anonymous"}`}
-                  >
-                    {isAccepting ? (
-                      <span className="ps-btn__loading">
-                        <span className="ps-spinner ps-spinner--tiny" />
-                      </span>
-                    ) : (
-                      "Accept"
-                    )}
-                  </button>
+                  {isOwnBet ? (
+                    <span className="ps-open-bets__own-label">Your bet</span>
+                  ) : (
+                    <button
+                      className="ps-btn ps-btn--accent ps-btn--small"
+                      onClick={() => handleAccept(bet.betId)}
+                      disabled={isAccepting}
+                      aria-label={`Accept ${formatCents(bet.amount)} challenge from ${bet.playerA?.displayName || "Anonymous"}`}
+                    >
+                      {isAccepting ? (
+                        <span className="ps-btn__loading">
+                          <span className="ps-spinner ps-spinner--tiny" />
+                        </span>
+                      ) : (
+                        "Accept"
+                      )}
+                    </button>
+                  )}
                 </div>
               </li>
             );
