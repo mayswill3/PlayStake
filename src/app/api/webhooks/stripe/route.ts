@@ -58,20 +58,24 @@ export async function POST(request: NextRequest) {
       where: { stripeEventId: stripeEvent.id },
     });
 
-    if (existingEvent) {
-      // Already seen this event -- return 200 immediately
+    if (existingEvent && existingEvent.processed) {
+      // Already processed successfully -- return 200 immediately
       return NextResponse.json({ received: true });
     }
 
-    // Insert the event record with processed=false
-    await prisma.stripeEvent.create({
-      data: {
-        stripeEventId: stripeEvent.id,
-        eventType: stripeEvent.type,
-        payload: stripeEvent.data as any,
-        processed: false,
-      },
-    });
+    if (existingEvent && !existingEvent.processed) {
+      // Event was recorded but processing failed -- allow retry
+    } else if (!existingEvent) {
+      // Insert the event record with processed=false
+      await prisma.stripeEvent.create({
+        data: {
+          stripeEventId: stripeEvent.id,
+          eventType: stripeEvent.type,
+          payload: stripeEvent.data as any,
+          processed: false,
+        },
+      });
+    }
   } catch (err) {
     // Unique constraint violation means another request beat us -- that is fine
     if (
