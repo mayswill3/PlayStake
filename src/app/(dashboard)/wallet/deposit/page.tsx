@@ -74,7 +74,7 @@ function CheckoutForm({
 
       // If we reach here without redirect, payment succeeded inline
       toast('success', `Deposit of ${formatCents(amountCents)} is being processed.`);
-      router.push('/wallet?deposit=success');
+      router.push(`/wallet?deposit=success&txn=${transactionId}`);
     },
     [stripe, elements, amountCents, transactionId, router, toast]
   );
