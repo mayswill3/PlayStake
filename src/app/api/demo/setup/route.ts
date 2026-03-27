@@ -7,8 +7,27 @@ import { generateRandomToken, sha256Hash } from "../../../../lib/utils/crypto";
 import { errorResponse, AuthenticationError } from "../../../../lib/errors/index";
 import { UserRole, LedgerAccountType } from "../../../../../generated/prisma/client";
 
-const DEMO_GAME_SLUG = "playstake-demo-arena";
 const DEMO_DEV_EMAIL = "system-demo@playstake.internal";
+
+type DemoGameType = 'fps' | 'cards' | 'tictactoe';
+
+const DEMO_GAMES: Record<DemoGameType, { slug: string; name: string; description: string }> = {
+  fps: {
+    slug: "fps-scoreboard",
+    name: "FPS Scoreboard",
+    description: "Team-based shooter with live scoreboard and real-time wagering.",
+  },
+  cards: {
+    slug: "higher-lower",
+    name: "Higher / Lower",
+    description: "Classic card game with turn-based wagering and score tracking.",
+  },
+  tictactoe: {
+    slug: "tic-tac-toe",
+    name: "Tic-Tac-Toe",
+    description: "Classic strategy game with two-player wagering and win detection.",
+  },
+};
 
 /**
  * POST /api/demo/setup
@@ -32,8 +51,12 @@ export async function POST(request: NextRequest) {
 
     const playerId = session.userId;
 
-    // 2. Ensure system demo developer + game exist (upsert pattern)
-    const { gameId, developerProfileId } = await ensureDemoGame();
+    // 2. Parse gameType from request body
+    const body = await request.json().catch(() => ({}));
+    const gameType: DemoGameType = body.gameType && body.gameType in DEMO_GAMES ? body.gameType : 'tictactoe';
+
+    // 3. Ensure system demo developer + game exist (upsert pattern)
+    const { gameId, developerProfileId } = await ensureDemoGame(gameType);
 
     // 3. Ensure the player has a PLAYER_BALANCE ledger account
     await prisma.ledgerAccount.upsert({
@@ -87,14 +110,21 @@ export async function POST(request: NextRequest) {
  * Ensures the system demo developer user, profile, and game exist.
  * Uses upsert to be idempotent across deploys.
  */
-async function ensureDemoGame(): Promise<{ gameId: string; developerProfileId: string }> {
-  // Check if demo game already exists
+async function ensureDemoGame(gameType: DemoGameType): Promise<{ gameId: string; developerProfileId: string }> {
+  const gameConfig = DEMO_GAMES[gameType];
+
+  // Check if this demo game already exists
   const existingGame = await prisma.game.findUnique({
-    where: { slug: DEMO_GAME_SLUG },
+    where: { slug: gameConfig.slug },
     select: { id: true, developerProfileId: true },
   });
 
   if (existingGame) {
+    // Ensure fee is 0 for demo games
+    await prisma.game.update({
+      where: { id: existingGame.id },
+      data: { platformFeePercent: 0 },
+    });
     return { gameId: existingGame.id, developerProfileId: existingGame.developerProfileId };
   }
 
@@ -132,13 +162,13 @@ async function ensureDemoGame(): Promise<{ gameId: string; developerProfileId: s
     const game = await tx.game.create({
       data: {
         developerProfileId: profile.id,
-        name: "PlayStake Demo Arena",
-        slug: DEMO_GAME_SLUG,
-        description: "Demo game for testing PlayStake wagering",
+        name: gameConfig.name,
+        slug: gameConfig.slug,
+        description: gameConfig.description,
         isActive: true,
         maxBetAmount: 500,
         minBetAmount: 1,
-        platformFeePercent: 0.05,
+        platformFeePercent: 0,
       },
     });
 

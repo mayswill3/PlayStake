@@ -65,6 +65,8 @@ export function useBets({
     }
   }, [authFetch, gameId]);
 
+  const prevActiveBetStatusRef = useRef<string | null>(null);
+
   const fetchActiveBet = useCallback(async () => {
     try {
       // Fetch bets in active states for this game
@@ -76,15 +78,26 @@ export function useBets({
         if (!res.ok) continue;
         const data = await res.json();
         if (data.data && data.data.length > 0) {
-          if (mountedRef.current) setActiveBet(data.data[0]);
+          const bet = data.data[0];
+          // Refresh balance when bet status changes (e.g. OPEN → MATCHED)
+          if (prevActiveBetStatusRef.current && prevActiveBetStatusRef.current !== bet.status) {
+            onBalanceChange();
+          }
+          prevActiveBetStatusRef.current = bet.status;
+          if (mountedRef.current) setActiveBet(bet);
           return;
         }
+      }
+      // Bet disappeared (settled/cancelled) — refresh balance
+      if (prevActiveBetStatusRef.current) {
+        prevActiveBetStatusRef.current = null;
+        onBalanceChange();
       }
       if (mountedRef.current) setActiveBet(null);
     } catch {
       // Silently fail
     }
-  }, [authFetch, gameId]);
+  }, [authFetch, gameId, onBalanceChange]);
 
   const fetchRecentBets = useCallback(async () => {
     try {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import type { PlayerRole, DemoAuthState } from './types';
+import type { PlayerRole, GameType, DemoAuthState } from './types';
 
 async function apiPost(path: string, body: unknown) {
   const res = await fetch(path, {
@@ -12,7 +12,7 @@ async function apiPost(path: string, body: unknown) {
   return res.json();
 }
 
-export function useDemoAuth(onLog?: (msg: string, level: 'info' | 'success' | 'error') => void) {
+export function useDemoAuth(gameType: GameType, onLog?: (msg: string, level: 'info' | 'success' | 'error') => void) {
   const [authState, setAuthState] = useState<DemoAuthState | null>(null);
   const [isSettingUp, setIsSettingUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +27,7 @@ export function useDemoAuth(onLog?: (msg: string, level: 'info' | 'success' | 'e
       log('Starting setup...', 'info');
 
       // Call the setup endpoint — uses the current session cookie
-      const result = await apiPost('/api/demo/setup', {});
+      const result = await apiPost('/api/demo/setup', { gameType });
 
       if (result.error) {
         // If not logged in, redirect to login
@@ -69,7 +69,7 @@ export function useDemoAuth(onLog?: (msg: string, level: 'info' | 'success' | 'e
       setIsSettingUp(false);
       return null;
     }
-  }, [log]);
+  }, [gameType, log]);
 
   return { authState, isSettingUp, error, setup };
 }

@@ -128,6 +128,7 @@
     if (!this._vis) this.open();
   };
 
+  P.refreshBalance = function() { this._post("REFRESH_BALANCE"); };
   P.isOpen = function() { return this._vis; };
   P.toggle = function() { this._vis ? this.close() : this.open(); };
 

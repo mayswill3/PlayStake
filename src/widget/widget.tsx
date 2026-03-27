@@ -98,6 +98,10 @@ function WidgetApp() {
         },
         [createBet]
       ),
+      onRefreshBalance: useCallback(() => {
+        refreshBalance();
+        refreshBets();
+      }, [refreshBalance, refreshBets]),
     });
 
   sendBetCreatedRef.current = sendBetCreated;

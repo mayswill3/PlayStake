@@ -12,7 +12,8 @@ import {
 import { useEventLog } from '../_shared/use-event-log';
 import { useDemoAuth } from '../_shared/use-demo-auth';
 import { useGameSession } from '../_shared/use-game-session';
-import { PlayStakeWidget } from '../_shared/PlayStakeWidget';
+import { PlayStakeWidget, type PlayStakeWidgetHandle } from '../_shared/PlayStakeWidget';
+import { GameResultOverlay, deriveOutcome, formatResultAmount, type SettlementResult } from '../_shared/GameResultOverlay';
 import { RoleSelector } from '../_shared/RoleSelector';
 import { LobbyPanel } from '../_shared/LobbyPanel';
 import { EventLog } from '../_shared/EventLog';
@@ -61,11 +62,14 @@ export default function FPSDemoPage() {
   const [simulated, setSimulated] = useState(false);
   const [finalAlpha, setFinalAlpha] = useState(TEAM_ALPHA);
   const [finalBravo, setFinalBravo] = useState(TEAM_BRAVO);
+  const [settlementResult, setSettlementResult] = useState<SettlementResult | null>(null);
+  const [betAmountCents, setBetAmountCents] = useState(0);
   const betIdRef = useRef<string | null>(null);
   const settledRef = useRef(false);
+  const widgetHandleRef = useRef<PlayStakeWidgetHandle>(null);
 
   const { entries, log } = useEventLog();
-  const { authState, isSettingUp, setup } = useDemoAuth(log);
+  const { authState, isSettingUp, setup } = useDemoAuth('fps', log);
   const {
     sessionId,
     gameState,
@@ -127,7 +131,11 @@ export default function FPSDemoPage() {
       settledRef.current = true;
       const activeBetId = result.betId || betIdRef.current;
       if (activeBetId) {
-        await reportAndSettle(authState.apiKey, activeBetId);
+        const settle = await reportAndSettle(authState.apiKey, activeBetId);
+        if (settle) {
+          setSettlementResult(settle as SettlementResult);
+          widgetHandleRef.current?.refreshBalance();
+        }
       }
     }
   }, [simulated, authState, resolveGame, reportAndSettle, log]);
@@ -135,6 +143,7 @@ export default function FPSDemoPage() {
   const handleBetCreated = useCallback(async (bet: { betId: string; amount: number }) => {
     log(`Bet created: ${bet.betId} ($${(bet.amount / 100).toFixed(2)})`, 'bet');
     betIdRef.current = bet.betId;
+    setBetAmountCents(bet.amount);
     if (sessionId) {
       await setBetId(bet.betId);
     }
@@ -149,6 +158,10 @@ export default function FPSDemoPage() {
     log(`Bet settled: ${bet.outcome}`, 'bet');
   }, [log]);
 
+  const handlePlayAgain = useCallback(() => {
+    window.location.reload();
+  }, []);
+
   const isFinished = phase === 'finished' || gameState?.status === 'finished';
   const displayAlpha = simulated ? finalAlpha : TEAM_ALPHA;
   const displayBravo = simulated ? finalBravo : TEAM_BRAVO;
@@ -158,7 +171,12 @@ export default function FPSDemoPage() {
     settledRef.current = true;
     const activeBetId = gameState.betId || betIdRef.current;
     if (activeBetId) {
-      reportAndSettle(authState.apiKey, activeBetId);
+      reportAndSettle(authState.apiKey, activeBetId).then((settle) => {
+        if (settle) {
+          setSettlementResult(settle as SettlementResult);
+          widgetHandleRef.current?.refreshBalance();
+        }
+      });
     }
   }
 
@@ -272,28 +290,41 @@ export default function FPSDemoPage() {
                 </Button>
               )}
 
-              {/* Result card */}
+              {/* Result overlay */}
               {isFinished && gameState && (
-                <Card
-                  padding="sm"
-                  className={
-                    gameState.winner === role
-                      ? 'border-brand-400/30 bg-brand-400/5'
-                      : gameState.winner !== 'draw' && gameState.winner !== role
-                        ? 'border-danger-400/30 bg-danger-400/5'
-                        : ''
-                  }
-                >
-                  <p className="font-display text-center text-sm font-semibold uppercase tracking-widest">
-                    <span className={gameState.winner === role ? 'text-brand-400' : gameState.winner === 'draw' ? 'text-text-secondary' : 'text-danger-400'}>
-                      {gameState.winner === role
-                        ? 'Victory! Your team won!'
-                        : gameState.winner === 'draw'
-                          ? "It's a draw! Bets returned."
-                          : 'Defeat! Better luck next time.'}
-                    </span>
-                  </p>
-                </Card>
+                settlementResult && role ? (
+                  <GameResultOverlay
+                    outcome={deriveOutcome(settlementResult, role)}
+                    amount={formatResultAmount(
+                      deriveOutcome(settlementResult, role),
+                      settlementResult.winnerPayout,
+                      betAmountCents
+                    )}
+                    visible
+                    onPlayAgain={handlePlayAgain}
+                  />
+                ) : (
+                  <Card
+                    padding="sm"
+                    className={
+                      gameState.winner === role
+                        ? 'border-brand-400/30 bg-brand-400/5'
+                        : gameState.winner !== 'draw' && gameState.winner !== role
+                          ? 'border-danger-400/30 bg-danger-400/5'
+                          : ''
+                    }
+                  >
+                    <p className="font-display text-center text-sm font-semibold uppercase tracking-widest">
+                      <span className={gameState.winner === role ? 'text-brand-400' : gameState.winner === 'draw' ? 'text-text-secondary' : 'text-danger-400'}>
+                        {gameState.winner === role
+                          ? 'Victory! Your team won!'
+                          : gameState.winner === 'draw'
+                            ? "It's a draw! Bets returned."
+                            : 'Defeat! Better luck next time.'}
+                      </span>
+                    </p>
+                  </Card>
+                )
               )}
             </>
           )}
@@ -302,6 +333,7 @@ export default function FPSDemoPage() {
         {/* Sidebar */}
         <div className="space-y-4">
           <PlayStakeWidget
+            ref={widgetHandleRef}
             widgetToken={authState?.widgetToken ?? null}
             gameId={authState?.gameId ?? null}
             onBetCreated={handleBetCreated}

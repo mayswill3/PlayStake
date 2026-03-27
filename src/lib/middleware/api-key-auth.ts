@@ -79,7 +79,7 @@ export function withApiKeyAuth(
     }
 
     // Quick format check
-    if (!rawKey.startsWith("ps_live_")) {
+    if (!rawKey.startsWith("ps_live_") && !rawKey.startsWith("ps_demo_")) {
       return Response.json(
         { error: "Invalid API key format", code: "UNAUTHORIZED" },
         { status: 401 }

@@ -9,6 +9,8 @@ interface UsePostMessageOptions {
   onOpen?: () => void;
   /** Called when the host game sends a CLOSE command */
   onClose?: () => void;
+  /** Called when the host game sends a REFRESH_BALANCE command */
+  onRefreshBalance?: () => void;
 }
 
 /**
@@ -26,10 +28,11 @@ export function usePostMessage({
   onCreateBet,
   onOpen,
   onClose,
+  onRefreshBalance,
 }: UsePostMessageOptions) {
   const parentOriginRef = useRef<string | null>(null);
-  const callbacksRef = useRef({ onCreateBet, onOpen, onClose });
-  callbacksRef.current = { onCreateBet, onOpen, onClose };
+  const callbacksRef = useRef({ onCreateBet, onOpen, onClose, onRefreshBalance });
+  callbacksRef.current = { onCreateBet, onOpen, onClose, onRefreshBalance };
 
   // Send message to parent
   const sendToParent = useCallback(
@@ -89,6 +92,10 @@ export function usePostMessage({
 
         case "CLOSE":
           if (callbacksRef.current.onClose) callbacksRef.current.onClose();
+          break;
+
+        case "REFRESH_BALANCE":
+          if (callbacksRef.current.onRefreshBalance) callbacksRef.current.onRefreshBalance();
           break;
       }
     }

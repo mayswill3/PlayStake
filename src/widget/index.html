@@ -6,12 +6,12 @@
   <meta name="robots" content="noindex, nofollow" />
   <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src https://playstake.com https://*.playstake.com; frame-ancestors https://*.playstake.com https://*;" />
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:* https://playstake.com https://*.playstake.com; frame-ancestors *;" />
   <title>PlayStake Widget</title>
-  <link rel="stylesheet" href="./widget.css" />
+  <link rel="stylesheet" href="/widget/widget.css" />
 </head>
 <body>
   <div id="playstake-widget-root"></div>
-  <script type="module" src="./widget.js"></script>
+  <script type="module" src="/widget/widget.js"></script>
 </body>
 </html>

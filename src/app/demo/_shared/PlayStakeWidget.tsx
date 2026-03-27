@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 
 // Declare the global PlayStake SDK type
 declare global {
@@ -20,10 +20,15 @@ declare global {
         close: () => void;
         destroy: () => void;
         isOpen: () => boolean;
+        refreshBalance: () => void;
       };
       _setOrigin: (origin: string) => void;
     };
   }
+}
+
+export interface PlayStakeWidgetHandle {
+  refreshBalance: () => void;
 }
 
 interface PlayStakeWidgetProps {
@@ -35,15 +40,19 @@ interface PlayStakeWidgetProps {
   onError?: (err: { message: string }) => void;
 }
 
-export function PlayStakeWidget({
+export const PlayStakeWidget = forwardRef<PlayStakeWidgetHandle, PlayStakeWidgetProps>(function PlayStakeWidget({
   widgetToken,
   gameId,
   onBetCreated,
   onBetAccepted,
   onBetSettled,
   onError,
-}: PlayStakeWidgetProps) {
+}, ref) {
   const widgetRef = useRef<ReturnType<NonNullable<typeof window.PlayStake>['init']> | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    refreshBalance: () => widgetRef.current?.refreshBalance(),
+  }));
   const containerId = 'playstake-widget-container';
 
   useEffect(() => {
@@ -107,4 +116,4 @@ export function PlayStakeWidget({
       className="rounded-sm bg-surface-900 overflow-hidden min-h-[600px] [&>div]:!relative [&>div]:!w-full [&>div]:!h-full [&>div]:!min-h-[600px] [&>div]:!max-h-none [&>div]:!rounded-none [&>div]:!shadow-none [&>div]:!border-none [&_iframe]:!w-full [&_iframe]:!h-full [&_iframe]:!min-h-[600px] [&_iframe]:!border-none"
     />
   );
-}
+});

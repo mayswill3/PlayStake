@@ -6,7 +6,8 @@ import { Grid3x3 } from 'lucide-react';
 import { useEventLog } from '../_shared/use-event-log';
 import { useDemoAuth } from '../_shared/use-demo-auth';
 import { useGameSession } from '../_shared/use-game-session';
-import { PlayStakeWidget } from '../_shared/PlayStakeWidget';
+import { PlayStakeWidget, type PlayStakeWidgetHandle } from '../_shared/PlayStakeWidget';
+import { GameResultOverlay, deriveOutcome, formatResultAmount, type SettlementResult } from '../_shared/GameResultOverlay';
 import { RoleSelector } from '../_shared/RoleSelector';
 import { LobbyPanel } from '../_shared/LobbyPanel';
 import { EventLog } from '../_shared/EventLog';
@@ -32,11 +33,14 @@ export default function TicTacToeDemoPage() {
   const [role, setRole] = useState<PlayerRole | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [settlementResult, setSettlementResult] = useState<SettlementResult | null>(null);
+  const [betAmountCents, setBetAmountCents] = useState(0);
   const betIdRef = useRef<string | null>(null);
   const settledRef = useRef(false);
+  const widgetHandleRef = useRef<PlayStakeWidgetHandle>(null);
 
   const { entries, log } = useEventLog();
-  const { authState, isSettingUp, setup } = useDemoAuth(log);
+  const { authState, isSettingUp, setup } = useDemoAuth('tictactoe', log);
   const {
     sessionId,
     gameState,
@@ -89,11 +93,14 @@ export default function TicTacToeDemoPage() {
       settledRef.current = true;
       const activeBetId = result.betId || betIdRef.current;
       if (activeBetId && authState) {
-        // Sync betId if needed
         if (!result.betId && betIdRef.current) {
           await setBetId(betIdRef.current);
         }
-        await reportAndSettle(authState.apiKey, activeBetId);
+        const settle = await reportAndSettle(authState.apiKey, activeBetId);
+        if (settle) {
+          setSettlementResult(settle as SettlementResult);
+          widgetHandleRef.current?.refreshBalance();
+        }
       }
     }
   }, [role, gameState, makeMove, authState, setBetId, reportAndSettle, log]);
@@ -101,6 +108,7 @@ export default function TicTacToeDemoPage() {
   const handleBetCreated = useCallback(async (bet: { betId: string; amount: number }) => {
     log(`Bet created: ${bet.betId} ($${(bet.amount / 100).toFixed(2)})`, 'bet');
     betIdRef.current = bet.betId;
+    setBetAmountCents(bet.amount);
     if (sessionId) {
       await setBetId(bet.betId);
     }
@@ -115,6 +123,10 @@ export default function TicTacToeDemoPage() {
     log(`Bet settled: ${bet.outcome}`, 'bet');
   }, [log]);
 
+  const handlePlayAgain = useCallback(() => {
+    window.location.reload();
+  }, []);
+
   // Derive board state from polling
   const board: CellValue[] = (gameState?.board as CellValue[]) ?? Array(9).fill(null);
   const winLine = gameState?.status === 'finished' ? getWinLine(board) : null;
@@ -126,7 +138,12 @@ export default function TicTacToeDemoPage() {
     settledRef.current = true;
     const activeBetId = gameState.betId || betIdRef.current;
     if (activeBetId) {
-      reportAndSettle(authState.apiKey, activeBetId);
+      reportAndSettle(authState.apiKey, activeBetId).then((settle) => {
+        if (settle) {
+          setSettlementResult(settle as SettlementResult);
+          widgetHandleRef.current?.refreshBalance();
+        }
+      });
     }
   }
 
@@ -276,28 +293,41 @@ export default function TicTacToeDemoPage() {
                 })}
               </div>
 
-              {/* Result card */}
+              {/* Result overlay */}
               {isFinished && gameState && (
-                <Card
-                  padding="sm"
-                  className={
-                    gameState.winner === role
-                      ? 'border-brand-400/30 bg-brand-400/5'
-                      : gameState.winner !== 'draw' && gameState.winner !== role
-                        ? 'border-danger-400/30 bg-danger-400/5'
-                        : ''
-                  }
-                >
-                  <p className="font-display text-center text-sm font-semibold uppercase tracking-widest">
-                    <span className={statusColor}>
-                      {gameState.winner === role
-                        ? 'Victory! You won the match.'
-                        : gameState.winner === 'draw'
-                          ? "It's a draw! Bets returned."
-                          : 'Defeat! Better luck next time.'}
-                    </span>
-                  </p>
-                </Card>
+                settlementResult && role ? (
+                  <GameResultOverlay
+                    outcome={deriveOutcome(settlementResult, role)}
+                    amount={formatResultAmount(
+                      deriveOutcome(settlementResult, role),
+                      settlementResult.winnerPayout,
+                      betAmountCents
+                    )}
+                    visible
+                    onPlayAgain={handlePlayAgain}
+                  />
+                ) : (
+                  <Card
+                    padding="sm"
+                    className={
+                      gameState.winner === role
+                        ? 'border-brand-400/30 bg-brand-400/5'
+                        : gameState.winner !== 'draw' && gameState.winner !== role
+                          ? 'border-danger-400/30 bg-danger-400/5'
+                          : ''
+                    }
+                  >
+                    <p className="font-display text-center text-sm font-semibold uppercase tracking-widest">
+                      <span className={statusColor}>
+                        {gameState.winner === role
+                          ? 'Victory! You won the match.'
+                          : gameState.winner === 'draw'
+                            ? "It's a draw! Bets returned."
+                            : 'Defeat! Better luck next time.'}
+                      </span>
+                    </p>
+                  </Card>
+                )
               )}
             </>
           )}
@@ -306,6 +336,7 @@ export default function TicTacToeDemoPage() {
         {/* Sidebar: Widget + Event Log */}
         <div className="space-y-4">
           <PlayStakeWidget
+            ref={widgetHandleRef}
             widgetToken={authState?.widgetToken ?? null}
             gameId={authState?.gameId ?? null}
             onBetCreated={handleBetCreated}

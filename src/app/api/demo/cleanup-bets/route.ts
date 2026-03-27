@@ -27,10 +27,10 @@ export async function POST(request: NextRequest) {
     BetStatus.RESULT_REPORTED,
   ];
 
-  // Find all active bets for this player+game
+  // Find all active bets for this player across all games
+  // (not filtered by gameId so stale bets from other demo games get cleaned up too)
   const staleBets = await prisma.bet.findMany({
     where: {
-      gameId,
       status: { in: activeStatuses },
       OR: [{ playerAId: playerId }, { playerBId: playerId }],
     },

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Button } from '@/components/ui/Button';
 
 export default function ResetPasswordPage() {
@@ -76,9 +77,8 @@ export default function ResetPasswordPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
+        <PasswordInput
           label="New Password"
-          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Min 8 chars, 1 upper, 1 number, 1 special"
@@ -87,9 +87,8 @@ export default function ResetPasswordPage() {
           autoComplete="new-password"
         />
 
-        <Input
+        <PasswordInput
           label="Confirm Password"
-          type="password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           placeholder="Repeat your password"

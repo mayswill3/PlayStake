@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { PrismaClient } from "../generated/prisma/client.js";
-import { UserRole, LedgerAccountType } from "../generated/prisma/enums.js";
+import { UserRole, LedgerAccountType, BetStatus, BetOutcome } from "../generated/prisma/enums.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcrypt";
 
@@ -155,24 +155,106 @@ async function main() {
   // ---------------------------------------------------------------------------
   // 4. Test Game
   // ---------------------------------------------------------------------------
-  const game = await prisma.game.upsert({
-    where: { slug: "test-battle-arena" },
-    update: {},
-    create: {
-      developerProfileId: devProfile.id,
-      name: "Test Battle Arena",
-      slug: "test-battle-arena",
-      description: "A test game for local development and integration testing.",
-      isActive: true,
+  const demoGames = [
+    {
+      name: "FPS Scoreboard",
+      slug: "fps-scoreboard",
+      description: "Team-based shooter with live scoreboard and real-time wagering.",
       minBetAmount: 1.0,
       maxBetAmount: 500.0,
-      platformFeePercent: 0.05, // 5%
+      platformFeePercent: 0,
     },
-  });
-  console.log(`  Game created:     ${game.id} (${game.slug})`);
+    {
+      name: "Higher / Lower",
+      slug: "higher-lower",
+      description: "Classic card game with turn-based wagering and score tracking.",
+      minBetAmount: 1.0,
+      maxBetAmount: 500.0,
+      platformFeePercent: 0,
+    },
+    {
+      name: "Tic-Tac-Toe",
+      slug: "tic-tac-toe",
+      description: "Classic strategy game with two-player wagering and win detection.",
+      minBetAmount: 1.0,
+      maxBetAmount: 500.0,
+      platformFeePercent: 0,
+    },
+  ];
+
+  const games = [];
+  for (const g of demoGames) {
+    const game = await prisma.game.upsert({
+      where: { slug: g.slug },
+      update: {},
+      create: {
+        developerProfileId: devProfile.id,
+        name: g.name,
+        slug: g.slug,
+        description: g.description,
+        isActive: true,
+        minBetAmount: g.minBetAmount,
+        maxBetAmount: g.maxBetAmount,
+        platformFeePercent: g.platformFeePercent,
+      },
+    });
+    games.push(game);
+    console.log(`  Game created:     ${game.id} (${game.slug})`);
+  }
 
   // ---------------------------------------------------------------------------
-  // 5. System Ledger Accounts (singletons, no userId)
+  // 5. Demo Bets (across multiple games)
+  // ---------------------------------------------------------------------------
+  const now = new Date();
+  const demoBets = [
+    { gameIdx: 0, amount: 5.00, status: BetStatus.SETTLED, outcome: BetOutcome.PLAYER_A_WIN, daysAgo: 4 },
+    { gameIdx: 1, amount: 10.00, status: BetStatus.SETTLED, outcome: BetOutcome.PLAYER_B_WIN, daysAgo: 3 },
+    { gameIdx: 2, amount: 25.00, status: BetStatus.SETTLED, outcome: BetOutcome.PLAYER_A_WIN, daysAgo: 3 },
+    { gameIdx: 0, amount: 5.00, status: BetStatus.SETTLED, outcome: BetOutcome.PLAYER_B_WIN, daysAgo: 2 },
+    { gameIdx: 1, amount: 15.00, status: BetStatus.SETTLED, outcome: BetOutcome.PLAYER_A_WIN, daysAgo: 2 },
+    { gameIdx: 2, amount: 5.00, status: BetStatus.VOIDED, outcome: null, daysAgo: 2 },
+    { gameIdx: 0, amount: 20.00, status: BetStatus.MATCHED, outcome: null, daysAgo: 1 },
+    { gameIdx: 1, amount: 5.00, status: BetStatus.SETTLED, outcome: BetOutcome.DRAW, daysAgo: 1 },
+    { gameIdx: 2, amount: 10.00, status: BetStatus.OPEN, outcome: null, daysAgo: 0 },
+    { gameIdx: 0, amount: 50.00, status: BetStatus.SETTLED, outcome: BetOutcome.PLAYER_B_WIN, daysAgo: 1 },
+    { gameIdx: 1, amount: 5.00, status: BetStatus.CANCELLED, outcome: null, daysAgo: 1 },
+    { gameIdx: 2, amount: 30.00, status: BetStatus.SETTLED, outcome: BetOutcome.PLAYER_A_WIN, daysAgo: 5 },
+  ];
+
+  let betCount = 0;
+  for (const b of demoBets) {
+    const game = games[b.gameIdx];
+    const createdAt = new Date(now.getTime() - b.daysAgo * 24 * 60 * 60 * 1000);
+    const settledAt = b.status === BetStatus.SETTLED ? new Date(createdAt.getTime() + 30 * 60 * 1000) : null;
+    const feePercent = Number(game.platformFeePercent);
+    const feeAmount = b.status === BetStatus.SETTLED ? +(b.amount * 2 * feePercent).toFixed(2) : null;
+
+    await prisma.bet.create({
+      data: {
+        gameId: game.id,
+        playerAId: player.id,
+        playerBId: b.status === BetStatus.OPEN ? null : playerB.id,
+        amount: b.amount,
+        currency: "USD",
+        status: b.status,
+        outcome: b.outcome,
+        platformFeePercent: feePercent,
+        platformFeeAmount: feeAmount,
+        expiresAt: new Date(createdAt.getTime() + 24 * 60 * 60 * 1000),
+        playerAConsentedAt: createdAt,
+        playerBConsentedAt: b.status === BetStatus.OPEN ? null : createdAt,
+        matchedAt: ["MATCHED", "RESULT_REPORTED", "SETTLED"].includes(b.status) ? createdAt : null,
+        settledAt,
+        cancelledAt: b.status === BetStatus.CANCELLED ? createdAt : null,
+        createdAt,
+      },
+    });
+    betCount++;
+  }
+  console.log(`  Demo bets:        ${betCount} bets across ${games.length} games`);
+
+  // ---------------------------------------------------------------------------
+  // 6. System Ledger Accounts (singletons, no userId)
   // ---------------------------------------------------------------------------
   // These use findFirst + create pattern since the unique constraint
   // is on (userId, accountType) and userId is null for system accounts.

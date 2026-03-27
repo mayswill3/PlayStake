@@ -32,7 +32,7 @@ export async function authenticateApiKey(
 
   const rawKey = authHeader.slice("Bearer ".length).trim();
 
-  if (!rawKey.startsWith("ps_live_")) {
+  if (!rawKey.startsWith("ps_live_") && !rawKey.startsWith("ps_demo_")) {
     throw new AuthenticationError("Invalid API key format");
   }
 

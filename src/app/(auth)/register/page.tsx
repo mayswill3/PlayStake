@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Button } from '@/components/ui/Button';
 
 function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
@@ -89,7 +90,7 @@ export default function RegisterPage() {
         <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="email" error={fieldErrors.email} />
 
         <div>
-          <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 8 chars, 1 upper, 1 number, 1 special" required minLength={8} autoComplete="new-password" />
+          <PasswordInput label="Password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 8 chars, 1 upper, 1 number, 1 special" required minLength={8} autoComplete="new-password" />
           {password.length > 0 && (
             <div className="mt-2">
               <div className="flex items-center gap-2">

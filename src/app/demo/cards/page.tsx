@@ -12,7 +12,8 @@ import {
 import { useEventLog } from '../_shared/use-event-log';
 import { useDemoAuth } from '../_shared/use-demo-auth';
 import { useGameSession } from '../_shared/use-game-session';
-import { PlayStakeWidget } from '../_shared/PlayStakeWidget';
+import { PlayStakeWidget, type PlayStakeWidgetHandle } from '../_shared/PlayStakeWidget';
+import { GameResultOverlay, deriveOutcome, formatResultAmount, type SettlementResult } from '../_shared/GameResultOverlay';
 import { RoleSelector } from '../_shared/RoleSelector';
 import { LobbyPanel } from '../_shared/LobbyPanel';
 import { EventLog } from '../_shared/EventLog';
@@ -54,11 +55,14 @@ export default function CardsDemoPage() {
   const [currentCard, setCurrentCard] = useState<CardData>(() => randomCard());
   const [nextCard, setNextCard] = useState<CardData | null>(null);
   const [roundResult, setRoundResult] = useState<'correct' | 'wrong' | null>(null);
+  const [settlementResult, setSettlementResult] = useState<SettlementResult | null>(null);
+  const [betAmountCents, setBetAmountCents] = useState(0);
   const betIdRef = useRef<string | null>(null);
   const settledRef = useRef(false);
+  const widgetHandleRef = useRef<PlayStakeWidgetHandle>(null);
 
   const { entries, log } = useEventLog();
-  const { authState, isSettingUp, setup } = useDemoAuth(log);
+  const { authState, isSettingUp, setup } = useDemoAuth('cards', log);
   const {
     sessionId,
     gameState,
@@ -130,7 +134,11 @@ export default function CardsDemoPage() {
       settledRef.current = true;
       const activeBetId = resolved.betId || betIdRef.current;
       if (activeBetId) {
-        await reportAndSettle(authState.apiKey, activeBetId);
+        const settle = await reportAndSettle(authState.apiKey, activeBetId);
+        if (settle) {
+          setSettlementResult(settle as SettlementResult);
+          widgetHandleRef.current?.refreshBalance();
+        }
       }
     }
   }, [role, authState, currentCard, resolveGame, setGameData, reportAndSettle, log]);
@@ -138,6 +146,7 @@ export default function CardsDemoPage() {
   const handleBetCreated = useCallback(async (bet: { betId: string; amount: number }) => {
     log(`Bet created: ${bet.betId} ($${(bet.amount / 100).toFixed(2)})`, 'bet');
     betIdRef.current = bet.betId;
+    setBetAmountCents(bet.amount);
     if (sessionId) {
       await setBetId(bet.betId);
     }
@@ -151,6 +160,10 @@ export default function CardsDemoPage() {
   const handleBetSettled = useCallback((bet: { outcome: string }) => {
     log(`Bet settled: ${bet.outcome}`, 'bet');
   }, [log]);
+
+  const handlePlayAgain = useCallback(() => {
+    window.location.reload();
+  }, []);
 
   const isFinished = phase === 'finished' || gameState?.status === 'finished';
 
@@ -178,7 +191,12 @@ export default function CardsDemoPage() {
     settledRef.current = true;
     const activeBetId = gameState.betId || betIdRef.current;
     if (activeBetId) {
-      reportAndSettle(authState.apiKey, activeBetId);
+      reportAndSettle(authState.apiKey, activeBetId).then((settle) => {
+        if (settle) {
+          setSettlementResult(settle as SettlementResult);
+          widgetHandleRef.current?.refreshBalance();
+        }
+      });
     }
   }
 
@@ -284,8 +302,19 @@ export default function CardsDemoPage() {
                 )}
               </div>
 
-              {/* Result message */}
-              {displayResult && (
+              {/* Result overlay */}
+              {isFinished && settlementResult && role ? (
+                <GameResultOverlay
+                  outcome={deriveOutcome(settlementResult, role)}
+                  amount={formatResultAmount(
+                    deriveOutcome(settlementResult, role),
+                    settlementResult.winnerPayout,
+                    betAmountCents
+                  )}
+                  visible
+                  onPlayAgain={handlePlayAgain}
+                />
+              ) : displayResult && (
                 <Card
                   padding="sm"
                   className={
@@ -348,6 +377,7 @@ export default function CardsDemoPage() {
         {/* Sidebar */}
         <div className="space-y-4">
           <PlayStakeWidget
+            ref={widgetHandleRef}
             widgetToken={authState?.widgetToken ?? null}
             gameId={authState?.gameId ?? null}
             onBetCreated={handleBetCreated}

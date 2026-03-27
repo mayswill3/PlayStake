@@ -195,37 +195,50 @@ export function useGameSession(
     log('Bet linked to game session', 'success');
   }, [sessionId, log]);
 
-  const reportAndSettle = useCallback(async (apiKey: string, betId: string) => {
-    if (!sessionId) return;
+  const reportAndSettle = useCallback(async (apiKey: string, betId: string): Promise<{ outcome: string; winnerPayout: number } | null> => {
+    if (!sessionId) return null;
 
+    // Step 1: Try to report result (may fail if already reported — that's fine)
     log('Reporting result to PlayStake...', 'bet');
     try {
       const res = await apiPost(`/api/demo/game/${sessionId}/result`, { apiKey });
       if (res.success) {
         log('Result reported! Settling bet...', 'bet');
-
-        try {
-          const settle = await apiPost('/api/demo/settle-bet', { betId, apiKey });
-          if (settle.success) {
-            const payoutDisplay = settle.winnerPayout.toFixed(2);
-            const outcomeLabel = settle.outcome === 'DRAW'
-              ? 'Draw — both refunded'
-              : `Winner receives $${payoutDisplay}`;
-            log(`Bet settled! ${outcomeLabel}`, 'success');
-          } else {
-            log(`Settlement failed: ${settle.error || JSON.stringify(settle)}`, 'error');
-          }
-        } catch (settleErr) {
-          log(`Settlement error: ${settleErr instanceof Error ? settleErr.message : String(settleErr)}`, 'error');
-        }
-      } else if (res.message === 'Result already reported') {
-        log('Result already reported by other player.', 'info');
       } else {
-        log(`Result report failed: ${JSON.stringify(res)}`, 'error');
+        log('Result already handled by opponent, proceeding...', 'info');
       }
-    } catch (err) {
-      log(`Result report error: ${err instanceof Error ? err.message : String(err)}`, 'error');
+    } catch {
+      log('Result report skipped, proceeding to settlement...', 'info');
     }
+
+    // Step 2: Try to settle
+    try {
+      const settle = await apiPost('/api/demo/settle-bet', { betId, apiKey });
+      if (settle.success) {
+        const payoutDisplay = settle.winnerPayout.toFixed(2);
+        const outcomeLabel = settle.outcome === 'DRAW'
+          ? 'Draw — both refunded'
+          : `Winner receives $${payoutDisplay}`;
+        log(`Bet settled! ${outcomeLabel}`, 'success');
+        return { outcome: settle.outcome, winnerPayout: settle.winnerPayout };
+      }
+    } catch {
+      // Settlement failed — bet may already be settled
+    }
+
+    // Step 3: Bet was already settled by opponent — fetch the result
+    log('Fetching bet result...', 'info');
+    try {
+      const betData = await apiGet(`/api/demo/bet-result/${betId}`);
+      if (betData.outcome) {
+        log(`Bet result: ${betData.outcome}`, 'success');
+        return { outcome: betData.outcome, winnerPayout: betData.winnerPayout ?? 0 };
+      }
+    } catch {
+      log('Could not fetch bet result', 'error');
+    }
+
+    return null;
   }, [sessionId, log]);
 
   return {
