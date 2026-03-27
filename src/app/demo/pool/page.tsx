@@ -79,6 +79,7 @@ interface PoolGameData {
   winner: 'A' | 'B' | null;
   winReason: string | null;
   isBreakShot: boolean;
+  extraShot?: boolean;
 }
 
 type PoolPhase = 'break' | 'aiming' | 'shooting' | 'ball_in_hand' | 'calling_pocket' | 'game_over';
@@ -635,6 +636,8 @@ export default function PoolDemoPage() {
   const [calledPocket, setCalledPocket] = useState<number | null>(null);
   const [needsCallPocket, setNeedsCallPocket] = useState(false);
   const [ballInHand, setBallInHand] = useState(false);
+  const [extraShot, setExtraShot] = useState(false);
+  const [groupAssignedMsg, setGroupAssignedMsg] = useState<string | null>(null);
   const [, setRenderTick] = useState(0);
 
   // Aiming state
@@ -678,10 +681,11 @@ export default function PoolDemoPage() {
       winner,
       winReason,
       isBreakShot,
+      extraShot,
       ...overrides,
     };
     setGameData(data as unknown as Record<string, unknown>);
-  }, [poolPhase, turnNumber, currentTurn, groups, pocketedByA, pocketedByB, calledPocket, winner, winReason, isBreakShot, setGameData]);
+  }, [poolPhase, turnNumber, currentTurn, groups, pocketedByA, pocketedByB, calledPocket, winner, winReason, isBreakShot, extraShot, setGameData]);
 
   // ---- Evaluate shot result ----
   const evaluateShot = useCallback((result: ShotResult, player: 'A' | 'B', isBreak: boolean, called: number | null) => {
@@ -765,9 +769,9 @@ export default function PoolDemoPage() {
       };
     }
 
-    // Group assignment: first legal pot after break
+    // Group assignment: first legal pot (including on the break)
     let newGroups = { ...groups };
-    if (!groups.A && !groups.B && !isBreak && result.pocketed.length > 0 && !isFoul) {
+    if (!groups.A && !groups.B && result.pocketed.length > 0 && !isFoul) {
       const firstPocketed = result.pocketed.find(id => id !== 8);
       if (firstPocketed !== undefined) {
         const isSolid = firstPocketed >= 1 && firstPocketed <= 7;
@@ -776,6 +780,12 @@ export default function PoolDemoPage() {
           [player === 'A' ? 'B' : 'A']: isSolid ? 'stripes' : 'solids',
         } as typeof groups;
         setGroups(newGroups);
+        // Show group assignment notification
+        const myGroup = newGroups[player];
+        if (myGroup) {
+          setGroupAssignedMsg(`You are ${myGroup.toUpperCase()}!`);
+          setTimeout(() => setGroupAssignedMsg(null), 3000);
+        }
       }
     }
 
@@ -888,6 +898,7 @@ export default function PoolDemoPage() {
           turnNumber: turnNumber + 1,
           pocketedByA: newByA,
           pocketedByB: newByB,
+          groups: result.newGroups,
           balls: ballsRef.current.map(b => ({ id: b.id, x: b.x, y: b.y, pocketed: b.pocketed })),
         });
         return;
@@ -905,18 +916,34 @@ export default function PoolDemoPage() {
         }
       }
 
-      const nextTurn = result.turnContinues ? player : (player === 'A' ? 'B' : 'A');
+      // Two-shots-on-foul logic
+      let nextExtraShot = false;
+      let effectiveTurnContinues = result.turnContinues;
+
+      if (result.foul) {
+        // Foul: opponent gets ball-in-hand + 2 shots
+        effectiveTurnContinues = false;
+        nextExtraShot = true;
+      } else if (extraShot) {
+        // This is the first of two free shots — turn continues regardless
+        effectiveTurnContinues = true;
+        nextExtraShot = false;
+      }
+
+      const nextTurn = effectiveTurnContinues ? player : (player === 'A' ? 'B' : 'A');
       const newTurnNumber = turnNumber + 1;
       setTurnNumber(newTurnNumber);
       setCurrentTurn(nextTurn);
       setCalledPocket(null);
       setNeedsCallPocket(false);
+      setExtraShot(nextExtraShot);
 
       // Check if ball-in-hand for next player (foul gives opponent ball-in-hand)
-      if (result.foul && !result.turnContinues) {
+      if (result.foul && !effectiveTurnContinues) {
         setBallInHand(true);
         setPoolPhase('ball_in_hand');
       } else {
+        setBallInHand(false);
         // Check if next player needs to call pocket
         const updatedGroups = ('newGroups' in result && result.newGroups) ? result.newGroups : groups;
         const needsCall = checkNeedsCallPocket(nextTurn, updatedGroups, newByA, newByB);
@@ -933,13 +960,15 @@ export default function PoolDemoPage() {
         currentTurn: nextTurn,
         pocketedByA: newByA,
         pocketedByB: newByB,
+        groups: result.newGroups,
         balls: ballsRef.current.map(b => ({ id: b.id, x: b.x, y: b.y, pocketed: b.pocketed })),
         isBreakShot: false,
+        extraShot: nextExtraShot,
       });
     };
 
     requestAnimationFrame(simulate);
-  }, [currentTurn, isBreakShot, calledPocket, pocketedByA, pocketedByB, groups, evaluateShot, resolveGame, gameState, authState, reportAndSettle, syncGameData, turnNumber, log, checkNeedsCallPocket]);
+  }, [currentTurn, isBreakShot, calledPocket, pocketedByA, pocketedByB, groups, evaluateShot, resolveGame, gameState, authState, reportAndSettle, syncGameData, turnNumber, log, checkNeedsCallPocket, extraShot]);
 
   // ---- Canvas rendering loop ----
   useEffect(() => {
@@ -1060,6 +1089,7 @@ export default function PoolDemoPage() {
       setGroups(data.groups);
       setPocketedByA(data.pocketedByA);
       setPocketedByB(data.pocketedByB);
+      setExtraShot(data.extraShot ?? false);
 
       if (data.poolState === 'ball_in_hand' && data.currentTurn === role) {
         setBallInHand(true);
@@ -1304,14 +1334,23 @@ export default function PoolDemoPage() {
         statusText = 'You Lost!';
         statusColor = 'text-danger-400';
       }
+    } else if (groupAssignedMsg) {
+      statusText = groupAssignedMsg;
+      statusColor = 'text-brand-400';
     } else if (ballInHand && isMyTurn) {
-      statusText = 'Ball in Hand -- Click to place the cue ball';
+      const shotLabel = extraShot ? ' (2 shots)' : '';
+      statusText = `Ball in Hand${shotLabel} -- Click to place the cue ball`;
       statusColor = 'text-blue-400';
     } else if (needsCallPocket && isMyTurn) {
       statusText = 'Call Your Pocket -- Click a pocket for the 8-ball';
       statusColor = 'text-yellow-400';
     } else if (isMyTurn) {
-      statusText = isBreakShot ? 'Your Break -- Drag from the cue ball to shoot' : 'Your Turn -- Drag from the cue ball to shoot';
+      const myGroup = role ? groups[role] : null;
+      const groupLabel = myGroup ? ` (${myGroup.toUpperCase()})` : '';
+      const shotInfo = extraShot ? ' -- 2nd shot' : '';
+      statusText = isBreakShot
+        ? 'Your Break -- Drag from the cue ball to shoot'
+        : `Your Turn${groupLabel}${shotInfo} -- Drag from the cue ball to shoot`;
       statusColor = 'text-brand-400';
     } else {
       statusText = "Opponent's Turn...";
@@ -1381,7 +1420,14 @@ export default function PoolDemoPage() {
                       style={{ background: '#f5d800' }}
                     />
                     <span className="font-mono text-xs text-text-secondary">
-                      Player A{role === 'A' ? ' (You)' : ''}{groups.A ? ` - ${groups.A}` : ''}
+                      Player A{role === 'A' ? ' (You)' : ''}
+                    </span>
+                    <span className={`font-mono text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                      groups.A === 'solids' ? 'bg-yellow-400/15 text-yellow-400'
+                        : groups.A === 'stripes' ? 'bg-blue-400/15 text-blue-400'
+                        : 'bg-white/5 text-text-muted'
+                    }`}>
+                      {groups.A ?? '?'}
                     </span>
                   </div>
                   <span className="font-mono text-[11px] text-text-muted">vs</span>
@@ -1391,7 +1437,14 @@ export default function PoolDemoPage() {
                       style={{ background: '#0055cc' }}
                     />
                     <span className="font-mono text-xs text-text-secondary">
-                      Player B{role === 'B' ? ' (You)' : ''}{groups.B ? ` - ${groups.B}` : ''}
+                      Player B{role === 'B' ? ' (You)' : ''}
+                    </span>
+                    <span className={`font-mono text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                      groups.B === 'solids' ? 'bg-yellow-400/15 text-yellow-400'
+                        : groups.B === 'stripes' ? 'bg-blue-400/15 text-blue-400'
+                        : 'bg-white/5 text-text-muted'
+                    }`}>
+                      {groups.B ?? '?'}
                     </span>
                   </div>
                 </div>
