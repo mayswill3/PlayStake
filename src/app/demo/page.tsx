@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
-import { Crosshair, Grid3x3, Layers } from 'lucide-react';
+import { Circle, Crosshair, Grid3x3, Layers } from 'lucide-react';
 
 export default function DemoIndex() {
   return (
@@ -12,7 +12,7 @@ export default function DemoIndex() {
         See how PlayStake integrates with different game types.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/demo/fps" className="group">
           <Card className="transition-colors group-hover:border-brand-400/30 group-hover:bg-surface-850">
             <div className="flex items-center gap-3 mb-3">
@@ -57,6 +57,22 @@ export default function DemoIndex() {
             </div>
             <p className="text-sm text-text-secondary font-mono">
               Classic strategy game with two-player wagering and win detection.
+            </p>
+          </Card>
+        </Link>
+
+        <Link href="/demo/pool" className="group">
+          <Card className="transition-colors group-hover:border-brand-400/30 group-hover:bg-surface-850">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-brand-400/10 text-brand-400">
+                <Circle className="h-5 w-5" />
+              </div>
+              <h2 className="font-display text-lg font-semibold text-text-primary">
+                8-Ball Pool
+              </h2>
+            </div>
+            <p className="text-sm text-text-secondary font-mono">
+              Classic 8-ball pool with realistic physics and two-player wagering.
             </p>
           </Card>
         </Link>
