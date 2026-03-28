@@ -212,6 +212,14 @@ textarea:focus {
     overflow: hidden !important;
   }
 
+  /* Make game boards fit within available space */
+  .game-fullscreen-mobile .game-board {
+    max-width: calc(100dvh - 100px) !important;
+    width: auto !important;
+    height: calc(100dvh - 100px);
+    margin: 0 auto;
+  }
+
   body:has(.game-fullscreen-mobile) #demo-nav {
     display: none !important;
   }
@@ -237,6 +245,13 @@ textarea:focus {
     height: 100dvh !important;
     max-width: none !important;
     position: relative;
+    padding-top: 44px !important;
+    padding-bottom: 44px !important;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
   }
 
   .game-fullscreen-mobile .game-area > *:not(div):not(canvas) {

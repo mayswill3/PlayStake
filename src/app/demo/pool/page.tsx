@@ -646,6 +646,17 @@ export default function PoolDemoPage() {
 
   // Aiming state
   const aimingRef = useRef(false);
+  // Refs for touch handlers to avoid stale closures
+  const isMyTurnRef = useRef(false);
+  const phaseRef = useRef(phase);
+  const winnerRef = useRef(winner);
+  const ballInHandRef = useRef(ballInHand);
+  const needsCallPocketRef = useRef(needsCallPocket);
+  const calledPocketRef = useRef(calledPocket);
+  const currentTurnRef = useRef(currentTurn);
+  const groupsRef = useRef(groups);
+  const pocketedByARef = useRef(pocketedByA);
+  const pocketedByBRef = useRef(pocketedByB);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const dragCurrentRef = useRef<{ x: number; y: number } | null>(null);
   const shotPowerRef = useRef(0);
@@ -659,6 +670,18 @@ export default function PoolDemoPage() {
   const opponentAnimProgressRef = useRef(0);
 
   const isMyTurn = currentTurn === role;
+
+  // Keep refs in sync for touch handlers
+  isMyTurnRef.current = isMyTurn;
+  phaseRef.current = phase;
+  winnerRef.current = winner;
+  ballInHandRef.current = ballInHand;
+  needsCallPocketRef.current = needsCallPocket;
+  calledPocketRef.current = calledPocket;
+  currentTurnRef.current = currentTurn;
+  groupsRef.current = groups;
+  pocketedByARef.current = pocketedByA;
+  pocketedByBRef.current = pocketedByB;
   const isBreakShot = poolPhase === 'break';
 
   // Check if current player needs to call pocket (8-ball)
@@ -1132,6 +1155,7 @@ export default function PoolDemoPage() {
     };
   }, []);
 
+
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isMyTurn || shootingRef.current || winner) return;
     if (phase !== 'playing') return;
@@ -1226,6 +1250,98 @@ export default function PoolDemoPage() {
       return;
     }
 
+    executeShot(power, angle);
+  }, [executeShot]);
+
+  // ---- Touch handlers (mirror mouse handlers for mobile) ----
+  const handleCanvasTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isMyTurnRef.current || shootingRef.current || winnerRef.current) return;
+    if (phaseRef.current !== 'playing') return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = CANVAS_WIDTH / rect.width;
+    const scaleY = CANVAS_HEIGHT / rect.height;
+    const pos = { x: (touch.clientX - rect.left) * scaleX, y: (touch.clientY - rect.top) * scaleY };
+
+    if (ballInHandRef.current) {
+      const cueBall = ballsRef.current.find(b => b.id === 0);
+      if (!cueBall) return;
+      const nx = Math.max(OFFSET + BALL_RADIUS, Math.min(OFFSET + TABLE_WIDTH - BALL_RADIUS, pos.x));
+      const ny = Math.max(OFFSET + BALL_RADIUS, Math.min(OFFSET + TABLE_HEIGHT - BALL_RADIUS, pos.y));
+      const overlaps = ballsRef.current.some(b => b.id !== 0 && !b.pocketed && dist(nx, ny, b.x, b.y) < BALL_RADIUS * 2.2);
+      if (overlaps) return;
+      cueBall.x = nx;
+      cueBall.y = ny;
+      cueBall.pocketed = false;
+      setBallInHand(false);
+      const needsCall = checkNeedsCallPocket(currentTurnRef.current, groupsRef.current, pocketedByARef.current, pocketedByBRef.current);
+      if (needsCall) {
+        setNeedsCallPocket(true);
+        setPoolPhase('calling_pocket');
+      } else {
+        setPoolPhase('aiming');
+      }
+      setRenderTick(t => t + 1);
+      return;
+    }
+
+    if (needsCallPocketRef.current && calledPocketRef.current === null) {
+      for (let i = 0; i < POCKETS.length; i++) {
+        const p = POCKETS[i];
+        if (dist(pos.x, pos.y, p.x, p.y) < p.radius + 15) {
+          setCalledPocket(i);
+          setNeedsCallPocket(false);
+          setPoolPhase('aiming');
+          return;
+        }
+      }
+      return;
+    }
+
+    const cueBall = ballsRef.current.find(b => b.id === 0 && !b.pocketed);
+    if (!cueBall) return;
+    if (dist(pos.x, pos.y, cueBall.x, cueBall.y) < BALL_RADIUS * 4) {
+      aimingRef.current = true;
+      dragStartRef.current = pos;
+      dragCurrentRef.current = pos;
+      shotPowerRef.current = 0;
+      aimAngleRef.current = 0;
+    }
+  }, [checkNeedsCallPocket]);
+
+  const handleCanvasTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (!aimingRef.current || !dragStartRef.current) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = CANVAS_WIDTH / rect.width;
+    const scaleY = CANVAS_HEIGHT / rect.height;
+    const pos = { x: (touch.clientX - rect.left) * scaleX, y: (touch.clientY - rect.top) * scaleY };
+    dragCurrentRef.current = pos;
+    const dx = dragStartRef.current.x - pos.x;
+    const dy = dragStartRef.current.y - pos.y;
+    const dragDist = Math.sqrt(dx * dx + dy * dy);
+    shotPowerRef.current = Math.min(dragDist / MAX_DRAG_DISTANCE, 1.0);
+    aimAngleRef.current = Math.atan2(dy, dx);
+    setRenderTick(t => t + 1);
+  }, []);
+
+  const handleCanvasTouchEnd = useCallback(() => {
+    if (!aimingRef.current) return;
+    aimingRef.current = false;
+    const power = shotPowerRef.current * MAX_SHOT_POWER;
+    const angle = aimAngleRef.current;
+    dragStartRef.current = null;
+    dragCurrentRef.current = null;
+    if (power < 0.5) {
+      shotPowerRef.current = 0;
+      return;
+    }
     executeShot(power, angle);
   }, [executeShot]);
 
@@ -1481,11 +1597,14 @@ export default function PoolDemoPage() {
                   width={CANVAS_WIDTH}
                   height={CANVAS_HEIGHT}
                   className="w-full rounded-sm border border-white/8 cursor-crosshair"
-                  style={{ maxWidth: `${CANVAS_WIDTH}px` }}
+                  style={{ maxWidth: `${CANVAS_WIDTH}px`, touchAction: 'none' }}
                   onMouseDown={handleCanvasMouseDown}
                   onMouseMove={handleCanvasMouseMove}
                   onMouseUp={handleCanvasMouseUp}
                   onMouseLeave={handleCanvasMouseUp}
+                  onTouchStart={handleCanvasTouchStart}
+                  onTouchMove={handleCanvasTouchMove}
+                  onTouchEnd={handleCanvasTouchEnd}
                 />
               </div>
 

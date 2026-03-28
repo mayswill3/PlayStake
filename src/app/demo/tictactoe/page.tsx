@@ -277,7 +277,7 @@ export default function TicTacToeDemoPage() {
               )}
 
               {/* Board */}
-              <div className="grid grid-cols-3 gap-2 max-w-[320px] mx-auto">
+              <div className="game-board grid grid-cols-3 gap-2 max-w-[320px] mx-auto">
                 {board.map((cell, i) => {
                   const isWinCell = winLine?.includes(i) ?? false;
                   const disabled = !isMyTurn || cell !== null || isFinished;
