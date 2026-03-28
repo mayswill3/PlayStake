@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function DemoLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-surface-950">
-      <nav className="border-b border-white/8 bg-surface-950/80 backdrop-blur-sm sticky top-0 z-50">
+      <nav id="demo-nav" className="border-b border-white/8 bg-surface-950/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center justify-between">
             <Link

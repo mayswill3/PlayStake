@@ -167,6 +167,124 @@ textarea:focus {
   50% { opacity: 0.8; }
 }
 
+/* Rotate prompt for mobile landscape lock */
+.rotate-prompt-icon {
+  width: 40px;
+  height: 64px;
+  border: 3px solid var(--color-brand-400);
+  border-radius: 8px;
+  position: relative;
+  animation: rotateHint 2s ease-in-out infinite;
+}
+
+.rotate-prompt-icon__home {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  background: var(--color-brand-400);
+  border-radius: 50%;
+}
+
+@keyframes rotateHint {
+  0%, 30% { transform: rotate(0deg); }
+  60%, 100% { transform: rotate(90deg); }
+}
+
+/* Mobile fullscreen game mode */
+@media (max-width: 1024px) {
+  .game-fullscreen-mobile {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 100;
+    background: #0a0a0f !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    width: 100dvw !important;
+    height: 100dvh !important;
+  }
+
+  body:has(.game-fullscreen-mobile) {
+    overflow: hidden !important;
+  }
+
+  body:has(.game-fullscreen-mobile) #demo-nav {
+    display: none !important;
+  }
+
+  .game-fullscreen-mobile .game-header,
+  .game-fullscreen-mobile .game-sidebar,
+  .game-fullscreen-mobile .game-ball-rack,
+  .game-fullscreen-mobile .game-shot-info {
+    display: none !important;
+  }
+
+  .game-fullscreen-mobile .game-grid {
+    display: block !important;
+    width: 100dvw;
+    height: 100dvh;
+    position: relative;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  .game-fullscreen-mobile .game-area {
+    width: 100dvw !important;
+    height: 100dvh !important;
+    max-width: none !important;
+    position: relative;
+  }
+
+  .game-fullscreen-mobile .game-area > *:not(div):not(canvas) {
+    display: none !important;
+  }
+
+  .game-fullscreen-mobile .game-area canvas {
+    width: 100dvw !important;
+    height: 100dvh !important;
+    max-width: none !important;
+    display: block;
+    object-fit: contain;
+  }
+
+  /* Players bar overlaid at top */
+  .game-fullscreen-mobile .game-players-bar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 110;
+    background: rgba(10,10,15,0.85) !important;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 6px 12px !important;
+    margin: 0 !important;
+  }
+
+  /* Status bar overlaid at bottom */
+  .game-fullscreen-mobile .game-status-bar {
+    position: fixed !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 110;
+    background: rgba(10,10,15,0.85) !important;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 6px 12px !important;
+    margin: 0 !important;
+    padding-bottom: max(6px, env(safe-area-inset-bottom)) !important;
+  }
+}
+
 /* Utility: font-display */
 @utility font-display {
   font-family: var(--font-display);

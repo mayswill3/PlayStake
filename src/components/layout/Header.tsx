@@ -63,14 +63,14 @@ export function Header({ user, balance }: HeaderProps) {
           {balance && (
             <Link
               href="/wallet"
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-sm bg-surface-800 hover:bg-surface-700 transition-colors"
+              className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-sm bg-surface-800 hover:bg-surface-700 transition-colors"
             >
-              <span className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Balance</span>
+              <span className="hidden sm:inline font-mono text-[11px] uppercase tracking-wider text-text-muted">Balance</span>
               <span className="text-sm font-mono tabular-nums text-brand-400">
                 {formatCents(balance.available)}
               </span>
               {balance.escrowed > 0 && (
-                <span className="font-mono text-xs text-text-secondary" title="In escrow">
+                <span className="hidden sm:inline font-mono text-xs text-text-secondary" title="In escrow">
                   ({formatCents(balance.escrowed)})
                 </span>
               )}

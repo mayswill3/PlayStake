@@ -83,7 +83,7 @@ export function Sidebar({ userRole }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 z-40 h-full w-64 bg-surface-950 border-r border-white/8
+          fixed top-0 left-0 z-40 h-full w-[75vw] max-w-64 bg-surface-950 border-r border-white/8
           flex flex-col
           transition-transform duration-200 ease-in-out
           lg:translate-x-0 lg:static lg:z-auto

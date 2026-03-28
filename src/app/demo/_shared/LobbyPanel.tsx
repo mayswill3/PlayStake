@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Copy, Check } from 'lucide-react';
 import type { PlayerRole } from './types';
 
 interface LobbyPanelProps {
@@ -23,6 +24,15 @@ export function LobbyPanel({
   isJoining,
 }: LobbyPanelProps) {
   const [joinCode, setJoinCode] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    if (!gameCode) return;
+    navigator.clipboard.writeText(gameCode).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [gameCode]);
 
   if (role === 'A') {
     return (
@@ -45,8 +55,15 @@ export function LobbyPanel({
             <p className="text-text-secondary font-mono text-xs mb-3">
               Share this code with Player B:
             </p>
-            <div className="font-mono text-2xl font-bold text-brand-400 tracking-widest text-center py-3 px-4 bg-surface-900 rounded-sm border-2 border-dashed border-brand-400/30">
+            <div className="relative font-mono text-2xl font-bold text-brand-400 tracking-widest text-center py-3 px-4 bg-surface-900 rounded-sm border-2 border-dashed border-brand-400/30">
               {gameCode}
+              <button
+                onClick={handleCopy}
+                className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-sm bg-surface-800 text-text-secondary hover:text-brand-400 transition-colors"
+                aria-label="Copy game code"
+              >
+                {copied ? <Check className="h-4 w-4 text-brand-400" /> : <Copy className="h-4 w-4" />}
+              </button>
             </div>
             <p className="text-text-muted font-mono text-xs text-center mt-3">
               Waiting for opponent to join...

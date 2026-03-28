@@ -3,6 +3,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Circle } from 'lucide-react';
+import { useLandscapeLock } from '@/hooks/useLandscapeLock';
+import { RotatePrompt } from '@/components/ui/RotatePrompt';
+import { GameMobileFAB } from '@/components/ui/GameMobileFAB';
 import { useEventLog } from '../_shared/use-event-log';
 import { useDemoAuth } from '../_shared/use-demo-auth';
 import { useGameSession } from '../_shared/use-game-session';
@@ -620,6 +623,7 @@ export default function PoolDemoPage() {
     setBetId,
     reportAndSettle,
   } = useGameSession(log);
+  useLandscapeLock(phase === 'playing' || phase === 'finished');
 
   // ---- Pool-specific state ----
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -1362,10 +1366,21 @@ export default function PoolDemoPage() {
   const solidBalls = [1, 2, 3, 4, 5, 6, 7];
   const stripeBalls = [9, 10, 11, 12, 13, 14, 15];
 
+  const isInGame = phase === 'playing' || phase === 'finished';
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${isInGame ? 'game-fullscreen-mobile' : ''}`}>
+      <RotatePrompt isInGame={isInGame} />
+      {isInGame && (
+        <GameMobileFAB onExit={() => window.location.reload()}>
+          <PlayStakeWidget
+            widgetToken={authState?.widgetToken ?? null}
+            gameId={authState?.gameId ?? null}
+          />
+        </GameMobileFAB>
+      )}
       {/* Header */}
-      <div className="mb-8 flex items-center gap-3">
+      <div className="game-header mb-8 flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-brand-400/10 text-brand-400">
           <Circle className="h-5 w-5" />
         </div>
@@ -1379,9 +1394,9 @@ export default function PoolDemoPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="game-grid grid gap-6 lg:grid-cols-3">
         {/* Game area */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="game-area lg:col-span-2 space-y-4">
           {/* Role selection */}
           {phase === 'role-select' && (
             <RoleSelector onSelect={handleRoleSelect} disabled={isSettingUp} />
@@ -1412,7 +1427,7 @@ export default function PoolDemoPage() {
           {(phase === 'playing' || phase === 'finished') && (
             <>
               {/* Players bar */}
-              <Card padding="sm" className="flex items-center justify-between">
+              <Card padding="sm" className="game-players-bar flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1.5">
                     <span
@@ -1452,7 +1467,7 @@ export default function PoolDemoPage() {
 
               {/* Status bar */}
               {statusText && (
-                <Card padding="sm">
+                <Card padding="sm" className="game-status-bar">
                   <p className={`font-display text-center text-sm font-semibold uppercase tracking-widest ${statusColor}`}>
                     {statusText}
                   </p>
@@ -1475,7 +1490,7 @@ export default function PoolDemoPage() {
               </div>
 
               {/* Ball rack display */}
-              <Card padding="sm">
+              <Card padding="sm" className="game-ball-rack">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
                     <span className="font-mono text-[10px] text-text-muted mr-2 uppercase">Solids</span>
@@ -1529,7 +1544,7 @@ export default function PoolDemoPage() {
 
               {/* Last shot info */}
               {lastShotInfo && (
-                <Card padding="sm">
+                <Card padding="sm" className="game-shot-info">
                   <p className="font-mono text-xs text-text-secondary text-center">
                     {lastShotInfo}
                   </p>
@@ -1573,7 +1588,7 @@ export default function PoolDemoPage() {
         </div>
 
         {/* Sidebar: Widget + Event Log */}
-        <div className="space-y-4">
+        <div className="game-sidebar space-y-4">
           <PlayStakeWidget
             ref={widgetHandleRef}
             widgetToken={authState?.widgetToken ?? null}

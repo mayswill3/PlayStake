@@ -3,6 +3,9 @@
 import { useState, useCallback, useRef } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Grid3x3 } from 'lucide-react';
+import { useLandscapeLock } from '@/hooks/useLandscapeLock';
+import { RotatePrompt } from '@/components/ui/RotatePrompt';
+import { GameMobileFAB } from '@/components/ui/GameMobileFAB';
 import { useEventLog } from '../_shared/use-event-log';
 import { useDemoAuth } from '../_shared/use-demo-auth';
 import { useGameSession } from '../_shared/use-game-session';
@@ -53,6 +56,7 @@ export default function TicTacToeDemoPage() {
     setBetId,
     reportAndSettle,
   } = useGameSession(log);
+  useLandscapeLock(phase === 'playing' || phase === 'finished');
 
   const handleRoleSelect = useCallback(async (r: PlayerRole) => {
     setRole(r);
@@ -184,10 +188,21 @@ export default function TicTacToeDemoPage() {
     startPlayingPoll(sessionId);
   }
 
+  const isInGame = phase === 'playing' || phase === 'finished';
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${isInGame ? 'game-fullscreen-mobile' : ''}`}>
+      <RotatePrompt isInGame={isInGame} />
+      {isInGame && (
+        <GameMobileFAB onExit={() => window.location.reload()}>
+          <PlayStakeWidget
+            widgetToken={authState?.widgetToken ?? null}
+            gameId={authState?.gameId ?? null}
+          />
+        </GameMobileFAB>
+      )}
       {/* Header */}
-      <div className="mb-8 flex items-center gap-3">
+      <div className="game-header mb-8 flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-brand-400/10 text-brand-400">
           <Grid3x3 className="h-5 w-5" />
         </div>
@@ -201,9 +216,9 @@ export default function TicTacToeDemoPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="game-grid grid gap-6 lg:grid-cols-3">
         {/* Game area */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="game-area lg:col-span-2 space-y-4">
           {/* Role selection */}
           {phase === 'role-select' && (
             <RoleSelector onSelect={handleRoleSelect} disabled={isSettingUp} />
@@ -234,7 +249,7 @@ export default function TicTacToeDemoPage() {
           {(phase === 'playing' || phase === 'finished') && (
             <>
               {/* Players bar */}
-              <Card padding="sm" className="flex items-center justify-between">
+              <Card padding="sm" className="game-players-bar flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1.5">
                     <span className="font-mono text-sm font-semibold text-blue-400">X</span>
@@ -254,7 +269,7 @@ export default function TicTacToeDemoPage() {
 
               {/* Status bar */}
               {statusText && (
-                <Card padding="sm">
+                <Card padding="sm" className="game-status-bar">
                   <p className={`font-display text-center text-sm font-semibold uppercase tracking-widest ${statusColor}`}>
                     {statusText}
                   </p>
@@ -309,13 +324,13 @@ export default function TicTacToeDemoPage() {
                 ) : (
                   <Card
                     padding="sm"
-                    className={
+                    className={`game-result-overlay ${
                       gameState.winner === role
                         ? 'border-brand-400/30 bg-brand-400/5'
                         : gameState.winner !== 'draw' && gameState.winner !== role
                           ? 'border-danger-400/30 bg-danger-400/5'
                           : ''
-                    }
+                    }`}
                   >
                     <p className="font-display text-center text-sm font-semibold uppercase tracking-widest">
                       <span className={statusColor}>
@@ -334,7 +349,7 @@ export default function TicTacToeDemoPage() {
         </div>
 
         {/* Sidebar: Widget + Event Log */}
-        <div className="space-y-4">
+        <div className="game-sidebar space-y-4">
           <PlayStakeWidget
             ref={widgetHandleRef}
             widgetToken={authState?.widgetToken ?? null}
