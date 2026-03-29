@@ -245,13 +245,13 @@ textarea:focus {
     height: 100svh !important;
     max-width: none !important;
     position: relative;
-    padding-top: 40px !important;
-    padding-bottom: 40px !important;
+    padding: 36px 0 !important;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
   }
 
   .game-fullscreen-mobile .game-area > *:not(div):not(canvas) {
@@ -259,9 +259,10 @@ textarea:focus {
   }
 
   .game-fullscreen-mobile .game-area canvas {
-    width: 100% !important;
-    height: calc(100svh - 80px) !important;
-    max-width: none !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    width: auto !important;
+    height: auto !important;
     display: block;
     object-fit: contain;
   }
