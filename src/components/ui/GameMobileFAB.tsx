@@ -99,7 +99,7 @@ export function GameMobileFAB({ children, onExit, balance: balanceProp, betAmoun
       {/* ---- Info bar (shown on toggle) ---- */}
       {showInfoBar && (
         <div
-          className="fixed top-0 left-0 right-0 z-[190] bg-surface-950/90 backdrop-blur-md px-4 py-2 flex items-center justify-between"
+          className="fixed top-0 left-0 right-0 z-[190] bg-surface-950/90 backdrop-blur-md py-2 pr-4 pl-12 flex items-center justify-between"
           style={{
             paddingTop: 'max(8px, env(safe-area-inset-top))',
             animation: 'slideUp 0.15s ease-out',
