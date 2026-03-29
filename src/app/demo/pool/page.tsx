@@ -1489,7 +1489,11 @@ export default function PoolDemoPage() {
     <div className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${isInGame ? 'game-fullscreen-mobile' : ''}`}>
       <RotatePrompt isInGame={isInGame} />
       {isInGame && (
-        <GameMobileFAB onExit={() => window.location.reload()}>
+        <GameMobileFAB
+          onExit={() => window.location.reload()}
+          betAmount={betAmountCents || undefined}
+          betStatus={gameState?.status === 'finished' ? 'settled' : 'in progress'}
+        >
           <PlayStakeWidget
             widgetToken={authState?.widgetToken ?? null}
             gameId={authState?.gameId ?? null}
