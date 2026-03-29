@@ -77,7 +77,15 @@ interface PoolGameData {
   groups: { A: 'solids' | 'stripes' | null; B: 'solids' | 'stripes' | null };
   pocketedByA: number[];
   pocketedByB: number[];
-  lastShot: { player: 'A' | 'B'; pocketed: number[]; foul: boolean; foulReasons: string[] } | null;
+  lastShot: {
+    player: 'A' | 'B';
+    angle: number;
+    power: number;
+    preShotBalls: { id: number; x: number; y: number; pocketed: boolean }[];
+    pocketed: number[];
+    foul: boolean;
+    foulReasons: string[];
+  } | null;
   calledPocket: string | null;
   winner: 'A' | 'B' | null;
   winReason: string | null;
@@ -665,9 +673,7 @@ export default function PoolDemoPage() {
   const animFrameRef = useRef(0);
   const prevGameDataRef = useRef<PoolGameData | null>(null);
   const animatingOpponentRef = useRef(false);
-  const opponentAnimStartRef = useRef<Ball[] | null>(null);
   const opponentAnimEndRef = useRef<Ball[] | null>(null);
-  const opponentAnimProgressRef = useRef(0);
 
   const isMyTurn = currentTurn === role;
 
@@ -847,6 +853,11 @@ export default function PoolDemoPage() {
     const cueBall = ballsRef.current.find(b => b.id === 0);
     if (!cueBall || cueBall.pocketed) return;
 
+    // Capture pre-shot state for opponent replay
+    const preShotBalls = ballsRef.current.map(b => ({ id: b.id, x: b.x, y: b.y, pocketed: b.pocketed }));
+    const shotAngle = angle;
+    const shotPower = power;
+
     cueBall.vx = Math.cos(angle) * power;
     cueBall.vy = Math.sin(angle) * power;
 
@@ -927,6 +938,10 @@ export default function PoolDemoPage() {
           pocketedByB: newByB,
           groups: result.newGroups,
           balls: ballsRef.current.map(b => ({ id: b.id, x: b.x, y: b.y, pocketed: b.pocketed })),
+          lastShot: {
+            player, angle: shotAngle, power: shotPower, preShotBalls,
+            pocketed: shotResult.pocketed, foul: result.foul, foulReasons: result.foulReasons,
+          },
         });
         return;
       }
@@ -991,6 +1006,10 @@ export default function PoolDemoPage() {
         balls: ballsRef.current.map(b => ({ id: b.id, x: b.x, y: b.y, pocketed: b.pocketed })),
         isBreakShot: false,
         extraShot: nextExtraShot,
+        lastShot: {
+          player, angle: shotAngle, power: shotPower, preShotBalls,
+          pocketed: shotResult.pocketed, foul: result.foul, foulReasons: result.foulReasons,
+        },
       });
     };
 
@@ -1015,38 +1034,33 @@ export default function PoolDemoPage() {
 
       drawTable(ctx);
 
-      // Draw balls (with opponent animation interpolation)
-      if (animatingOpponentRef.current && opponentAnimStartRef.current && opponentAnimEndRef.current) {
-        const progress = opponentAnimProgressRef.current;
-        const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-        for (const endBall of opponentAnimEndRef.current) {
-          const startBall = opponentAnimStartRef.current.find(b => b.id === endBall.id);
-          if (!startBall) continue;
-          const drawB: Ball = {
-            ...endBall,
-            x: startBall.x + (endBall.x - startBall.x) * eased,
-            y: startBall.y + (endBall.y - startBall.y) * eased,
-            pocketed: eased > 0.5 ? endBall.pocketed : startBall.pocketed,
-          };
-          drawBall(ctx, drawB);
+      // During opponent replay: run physics each frame
+      if (animatingOpponentRef.current && opponentAnimEndRef.current) {
+        // Run physics steps (same as the shooter's simulation)
+        for (let i = 0; i < 2; i++) {
+          stepPhysics(ballsRef.current, { firstContact: null, pocketed: [], cuePocketed: false, railAfterContact: false, contactMade: false });
         }
-        opponentAnimProgressRef.current = Math.min(1, progress + 0.016);
-        if (opponentAnimProgressRef.current >= 1) {
+
+        // Check if all balls at rest
+        if (allAtRest(ballsRef.current)) {
           animatingOpponentRef.current = false;
-          // Apply final positions
+          // Snap to authoritative final positions to correct any drift
           for (const endBall of opponentAnimEndRef.current) {
             const b = ballsRef.current.find(bb => bb.id === endBall.id);
             if (b) {
               b.x = endBall.x;
               b.y = endBall.y;
+              b.vx = 0;
+              b.vy = 0;
               b.pocketed = endBall.pocketed;
             }
           }
         }
-      } else {
-        for (const b of ballsRef.current) {
-          drawBall(ctx, b);
-        }
+      }
+
+      // Draw all balls at their current positions
+      for (const b of ballsRef.current) {
+        drawBall(ctx, b);
       }
 
       // Aiming visuals
@@ -1102,12 +1116,25 @@ export default function PoolDemoPage() {
       if (!prevGameDataRef.current) {
         // Initial sync — snap directly, no animation
         ballsRef.current = newBalls;
-      } else {
-        // Subsequent updates — animate from old to new positions
-        opponentAnimStartRef.current = ballsRef.current.map(b => ({ ...b }));
+      } else if (data.lastShot && data.lastShot.angle !== undefined && data.lastShot.preShotBalls) {
+        // Replay the shot with full physics for realistic animation
+        const ls = data.lastShot;
+        // Restore pre-shot ball positions
+        ballsRef.current = ls.preShotBalls.map(b => ({ id: b.id, x: b.x, y: b.y, vx: 0, vy: 0, pocketed: b.pocketed }));
+        // Apply shot velocity to cue ball
+        const cue = ballsRef.current.find(b => b.id === 0);
+        if (cue && !cue.pocketed) {
+          cue.vx = Math.cos(ls.angle) * ls.power;
+          cue.vy = Math.sin(ls.angle) * ls.power;
+        }
+        // Store final state to snap to when replay finishes
         opponentAnimEndRef.current = newBalls;
-        opponentAnimProgressRef.current = 0;
         animatingOpponentRef.current = true;
+        // The physics render loop will run and animate the balls
+        // When all at rest, we'll snap to the authoritative final positions
+      } else {
+        // Fallback: simple snap (no lastShot data)
+        ballsRef.current = newBalls;
       }
 
       // Update state from server
