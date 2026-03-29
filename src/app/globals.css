@@ -227,7 +227,9 @@ textarea:focus {
   .game-fullscreen-mobile .game-header,
   .game-fullscreen-mobile .game-sidebar,
   .game-fullscreen-mobile .game-ball-rack,
-  .game-fullscreen-mobile .game-shot-info {
+  .game-fullscreen-mobile .game-shot-info,
+  .game-fullscreen-mobile .game-players-bar,
+  .game-fullscreen-mobile .game-status-bar {
     display: none !important;
   }
 
@@ -245,60 +247,22 @@ textarea:focus {
     height: 100svh !important;
     max-width: none !important;
     position: relative;
-    padding: 36px 0 !important;
+    padding: 0 !important;
     box-sizing: border-box;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
     overflow: hidden;
   }
 
-  .game-fullscreen-mobile .game-area > *:not(div):not(canvas) {
-    display: none !important;
-  }
-
   .game-fullscreen-mobile .game-area canvas {
-    max-width: 100% !important;
-    max-height: 100% !important;
-    width: auto !important;
-    height: auto !important;
+    width: 100svw !important;
+    height: 100svh !important;
+    max-width: none !important;
     display: block;
     object-fit: contain;
   }
 
-  /* Players bar overlaid at top */
-  .game-fullscreen-mobile .game-players-bar {
-    position: fixed !important;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 110;
-    background: rgba(10,10,15,0.85) !important;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    border: none !important;
-    border-radius: 0 !important;
-    padding: 6px 12px !important;
-    margin: 0 !important;
-  }
-
-  /* Status bar overlaid at bottom */
-  .game-fullscreen-mobile .game-status-bar {
-    position: fixed !important;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 110;
-    background: rgba(10,10,15,0.85) !important;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    border: none !important;
-    border-radius: 0 !important;
-    padding: 6px 12px !important;
-    margin: 0 !important;
-    padding-bottom: max(6px, env(safe-area-inset-bottom)) !important;
-  }
 }
 
 /* Utility: font-display */
