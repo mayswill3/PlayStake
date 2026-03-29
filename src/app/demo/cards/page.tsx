@@ -101,10 +101,11 @@ export default function CardsDemoPage() {
   }, [authState, createGame, log]);
 
   const handleJoinGame = useCallback(async (code: string) => {
-    if (!authState) return;
+    if (!authState) return 'Not authenticated';
     setIsJoining(true);
-    await joinGame(code, authState.playerId);
+    const result = await joinGame(code, authState.playerId, 'cards');
     setIsJoining(false);
+    return result;
   }, [authState, joinGame]);
 
   const handleGuess = useCallback(async (direction: 'higher' | 'lower') => {

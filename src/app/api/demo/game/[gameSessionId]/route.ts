@@ -35,6 +35,12 @@ export async function PATCH(
     if (body.playerBId === session.playerAId) {
       return NextResponse.json({ error: "Cannot play against yourself" }, { status: 400 });
     }
+    if (body.gameType && body.gameType !== session.gameType) {
+      return NextResponse.json(
+        { error: `This code is for a different game (${session.gameType})` },
+        { status: 400 }
+      );
+    }
     joinSession(session, body.playerBId, body.betId);
     return NextResponse.json(session);
   }

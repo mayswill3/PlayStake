@@ -87,15 +87,15 @@ export function useGameSession(
     return session.id as string;
   }, [log, stopPolling]);
 
-  const joinGame = useCallback(async (code: string, playerId: string) => {
+  const joinGame = useCallback(async (code: string, playerId: string, gameType?: GameType): Promise<true | string> => {
     const session = await apiGet(`/api/demo/game/${code}`);
     if (session.error) {
       log(`Failed to find game: ${session.error}`, 'error');
-      return false;
+      return session.error as string;
     }
     if (session.status !== 'waiting') {
       log('Game already started', 'error');
-      return false;
+      return 'Game already started';
     }
 
     setSessionId(code);
@@ -104,11 +104,12 @@ export function useGameSession(
     const joined = await apiPatch(`/api/demo/game/${code}`, {
       action: 'join',
       playerBId: playerId,
+      gameType,
     });
 
     if (joined.error) {
       log(`Failed to join: ${joined.error}`, 'error');
-      return false;
+      return joined.error as string;
     }
 
     log('Joined! Accept the bet in the widget.', 'info');

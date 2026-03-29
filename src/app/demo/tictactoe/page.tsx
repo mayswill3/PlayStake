@@ -78,10 +78,11 @@ export default function TicTacToeDemoPage() {
   }, [authState, createGame, log]);
 
   const handleJoinGame = useCallback(async (code: string) => {
-    if (!authState) return;
+    if (!authState) return 'Not authenticated';
     setIsJoining(true);
-    await joinGame(code, authState.playerId);
+    const result = await joinGame(code, authState.playerId, 'tictactoe');
     setIsJoining(false);
+    return result;
   }, [authState, joinGame]);
 
   const handleCellClick = useCallback(async (index: number) => {

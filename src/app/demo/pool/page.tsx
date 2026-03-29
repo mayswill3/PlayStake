@@ -1366,10 +1366,11 @@ export default function PoolDemoPage() {
   }, [authState, createGame, log]);
 
   const handleJoinGame = useCallback(async (code: string) => {
-    if (!authState) return;
+    if (!authState) return 'Not authenticated';
     setIsJoining(true);
-    await joinGame(code, authState.playerId);
+    const result = await joinGame(code, authState.playerId, 'pool');
     setIsJoining(false);
+    return result;
   }, [authState, joinGame]);
 
   const handleBetCreated = useCallback(async (bet: { betId: string; amount: number }) => {

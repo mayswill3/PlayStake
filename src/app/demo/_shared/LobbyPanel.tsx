@@ -10,7 +10,7 @@ interface LobbyPanelProps {
   role: PlayerRole;
   gameCode: string | null;
   onCreateGame: () => Promise<void>;
-  onJoinGame: (code: string) => Promise<void>;
+  onJoinGame: (code: string) => Promise<true | string>;
   isCreating?: boolean;
   isJoining?: boolean;
 }
@@ -24,6 +24,7 @@ export function LobbyPanel({
   isJoining,
 }: LobbyPanelProps) {
   const [joinCode, setJoinCode] = useState('');
+  const [joinError, setJoinError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(() => {
@@ -33,6 +34,14 @@ export function LobbyPanel({
       setTimeout(() => setCopied(false), 2000);
     });
   }, [gameCode]);
+
+  const handleJoin = useCallback(async () => {
+    setJoinError(null);
+    const result = await onJoinGame(joinCode);
+    if (result !== true) {
+      setJoinError(result);
+    }
+  }, [joinCode, onJoinGame]);
 
   if (role === 'A') {
     return (
@@ -87,11 +96,16 @@ export function LobbyPanel({
         placeholder="GAME CODE"
         maxLength={6}
         value={joinCode}
-        onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+        onChange={(e) => { setJoinCode(e.target.value.toUpperCase()); setJoinError(null); }}
       />
+      {joinError && (
+        <div className="mt-2 p-2 rounded-sm bg-danger-500/10 border border-danger-500/25">
+          <p className="font-mono text-xs text-danger-400 text-center">{joinError}</p>
+        </div>
+      )}
       <Button
         className="w-full mt-3"
-        onClick={() => onJoinGame(joinCode)}
+        onClick={handleJoin}
         disabled={isJoining || !joinCode}
       >
         {isJoining ? 'Joining...' : 'Join Game'}
