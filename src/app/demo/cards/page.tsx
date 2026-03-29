@@ -222,6 +222,8 @@ export default function CardsDemoPage() {
           onExit={() => window.location.reload()}
           betAmount={betAmountCents || undefined}
           betStatus={gameState?.status === 'finished' ? 'settled' : 'in progress'}
+          turnInfo={isFinished ? (displayResult === 'correct' ? 'Correct!' : 'Wrong!') : role === 'A' ? 'Your guess' : "Waiting for guess..."}
+          playerInfo={`Guesser${role === 'A' ? ' (You)' : ''} vs Watcher${role === 'B' ? ' (You)' : ''}`}
         >
           <PlayStakeWidget
             widgetToken={authState?.widgetToken ?? null}

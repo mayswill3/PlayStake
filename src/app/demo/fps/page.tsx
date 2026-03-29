@@ -202,6 +202,8 @@ export default function FPSDemoPage() {
           onExit={() => window.location.reload()}
           betAmount={betAmountCents || undefined}
           betStatus={gameState?.status === 'finished' ? 'settled' : 'in progress'}
+          turnInfo={isFinished ? 'Match Over' : 'Awaiting Simulation'}
+          playerInfo={`Alpha${role === 'A' ? ' (You)' : ''} vs Bravo${role === 'B' ? ' (You)' : ''}`}
         >
           <PlayStakeWidget
             widgetToken={authState?.widgetToken ?? null}

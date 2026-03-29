@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Zap, X, LogOut, ChevronUp, Wallet, CircleDot } from 'lucide-react';
+import { Zap, X, LogOut, ChevronUp, Wallet, CircleDot, Info } from 'lucide-react';
 
 interface GameMobileFABProps {
   children?: React.ReactNode;
@@ -9,6 +9,8 @@ interface GameMobileFABProps {
   balance?: { available: number; escrowed: number } | null;
   betAmount?: number;
   betStatus?: string;
+  turnInfo?: string;
+  playerInfo?: string;
 }
 
 type ViewState = 'closed' | 'quick' | 'full';
@@ -17,9 +19,11 @@ function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-export function GameMobileFAB({ children, onExit, balance: balanceProp, betAmount, betStatus }: GameMobileFABProps) {
+export function GameMobileFAB({ children, onExit, balance: balanceProp, betAmount, betStatus, turnInfo, playerInfo }: GameMobileFABProps) {
   const [view, setView] = useState<ViewState>('closed');
   const [showWidget, setShowWidget] = useState(false);
+  const [showInfoBar, setShowInfoBar] = useState(false);
+  const infoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [fetchedBalance, setFetchedBalance] = useState<{ available: number; escrowed: number } | null>(null);
   const quickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -69,8 +73,51 @@ export function GameMobileFAB({ children, onExit, balance: balanceProp, betAmoun
   const escrowedDisplay = balance ? formatCents(balance.escrowed) : '--';
   const betDisplay = betAmount ? formatCents(betAmount) : null;
 
+  const handleInfoToggle = useCallback(() => {
+    setShowInfoBar(prev => {
+      if (!prev) {
+        // Auto-hide after 4 seconds
+        if (infoTimerRef.current) clearTimeout(infoTimerRef.current);
+        infoTimerRef.current = setTimeout(() => setShowInfoBar(false), 4000);
+      }
+      return !prev;
+    });
+  }, []);
+
   return (
     <div className="lg:hidden">
+      {/* ---- Info toggle button (top-left) ---- */}
+      <button
+        onClick={handleInfoToggle}
+        className="fixed top-2 left-2 z-[200] flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-text-secondary backdrop-blur-sm active:scale-90 transition-all"
+        style={{ marginTop: 'env(safe-area-inset-top, 0px)' }}
+        aria-label="Toggle game info"
+      >
+        <Info className="h-3.5 w-3.5" />
+      </button>
+
+      {/* ---- Info bar (shown on toggle) ---- */}
+      {showInfoBar && (
+        <div
+          className="fixed top-0 left-0 right-0 z-[190] bg-surface-950/90 backdrop-blur-md px-4 py-2 flex items-center justify-between"
+          style={{
+            paddingTop: 'max(8px, env(safe-area-inset-top))',
+            animation: 'slideUp 0.15s ease-out',
+          }}
+        >
+          <div className="flex items-center gap-3">
+            {playerInfo && (
+              <span className="font-mono text-[11px] text-text-secondary">{playerInfo}</span>
+            )}
+          </div>
+          <div>
+            {turnInfo && (
+              <span className="font-mono text-[11px] font-semibold text-brand-400">{turnInfo}</span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ---- FAB Button (subtler) ---- */}
       {view === 'closed' && (
         <button

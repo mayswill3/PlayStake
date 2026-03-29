@@ -199,6 +199,8 @@ export default function TicTacToeDemoPage() {
           onExit={() => window.location.reload()}
           betAmount={betAmountCents || undefined}
           betStatus={gameState?.status === 'finished' ? 'settled' : 'in progress'}
+          turnInfo={statusText}
+          playerInfo={`Player A (X)${role === 'A' ? ' You' : ''} vs Player B (O)${role === 'B' ? ' You' : ''}`}
         >
           <PlayStakeWidget
             widgetToken={authState?.widgetToken ?? null}

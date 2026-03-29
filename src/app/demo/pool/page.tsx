@@ -1520,6 +1520,8 @@ export default function PoolDemoPage() {
           onExit={() => window.location.reload()}
           betAmount={betAmountCents || undefined}
           betStatus={gameState?.status === 'finished' ? 'settled' : 'in progress'}
+          turnInfo={statusText}
+          playerInfo={`Player A${groups.A ? ` (${groups.A})` : ''} vs Player B${groups.B ? ` (${groups.B})` : ''}`}
         >
           <PlayStakeWidget
             widgetToken={authState?.widgetToken ?? null}
