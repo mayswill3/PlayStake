@@ -204,8 +204,8 @@ textarea:focus {
     padding: 0 !important;
     margin: 0 !important;
     max-width: none !important;
-    width: 100dvw !important;
-    height: 100dvh !important;
+    width: 100svw !important;
+    height: 100svh !important;
   }
 
   body:has(.game-fullscreen-mobile) {
@@ -214,9 +214,9 @@ textarea:focus {
 
   /* Make game boards fit within available space */
   .game-fullscreen-mobile .game-board {
-    max-width: calc(100dvh - 100px) !important;
+    max-width: calc(100svh - 100px) !important;
     width: auto !important;
-    height: calc(100dvh - 100px);
+    height: calc(100svh - 100px);
     margin: 0 auto;
   }
 
@@ -233,20 +233,20 @@ textarea:focus {
 
   .game-fullscreen-mobile .game-grid {
     display: block !important;
-    width: 100dvw;
-    height: 100dvh;
+    width: 100svw;
+    height: 100svh;
     position: relative;
     padding: 0 !important;
     gap: 0 !important;
   }
 
   .game-fullscreen-mobile .game-area {
-    width: 100dvw !important;
-    height: 100dvh !important;
+    width: 100svw !important;
+    height: 100svh !important;
     max-width: none !important;
     position: relative;
-    padding-top: 44px !important;
-    padding-bottom: 44px !important;
+    padding-top: 40px !important;
+    padding-bottom: 40px !important;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -259,8 +259,8 @@ textarea:focus {
   }
 
   .game-fullscreen-mobile .game-area canvas {
-    width: 100dvw !important;
-    height: 100dvh !important;
+    width: 100% !important;
+    height: calc(100svh - 80px) !important;
     max-width: none !important;
     display: block;
     object-fit: contain;
