@@ -23,6 +23,13 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const input = validateBody(changePasswordSchema, body);
 
+    // Google-only accounts have no password to change
+    if (!session.user.passwordHash) {
+      throw new AuthenticationError(
+        "This account uses Google Sign-In and has no password to change."
+      );
+    }
+
     // Verify current password
     const passwordValid = await verifyPassword(
       input.currentPassword,

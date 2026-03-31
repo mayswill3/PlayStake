@@ -88,7 +88,7 @@ export interface TestUser {
   email: string;
   displayName: string;
   role: string;
-  passwordHash: string;
+  passwordHash: string | null;
   emailVerified: boolean;
 }
 

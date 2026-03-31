@@ -48,6 +48,13 @@ export async function POST(request: NextRequest) {
       throw new AuthenticationError("Invalid credentials");
     }
 
+    // Google-only accounts have no password
+    if (!user.passwordHash) {
+      throw new AuthenticationError(
+        "This account uses Google Sign-In. Please sign in with Google."
+      );
+    }
+
     // Verify password
     const passwordValid = await verifyPassword(input.password, user.passwordHash);
     if (!passwordValid) {

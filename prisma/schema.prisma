@@ -130,7 +130,7 @@ enum AnomalyStatus {
 model User {
   id                String    @id @default(uuid()) @db.Uuid
   email             String    @unique @db.VarChar(255)
-  passwordHash      String    @map("password_hash") @db.VarChar(255)
+  passwordHash      String?   @map("password_hash") @db.VarChar(255)
   role              UserRole  @default(PLAYER)
   displayName       String    @map("display_name") @db.VarChar(100)
   avatarUrl         String?   @map("avatar_url") @db.VarChar(500)
@@ -153,6 +153,7 @@ model User {
   developerProfile  DeveloperProfile?
   widgetSessions    WidgetSession[]
   sessions          Session[]
+  oauthAccounts     OAuthAccount[]
 
   @@index([email], map: "idx_user_email")
   @@index([stripeCustomerId], map: "idx_user_stripe_customer")
@@ -175,6 +176,21 @@ model Session {
   @@index([userId], map: "idx_session_user")
   @@index([expiresAt], map: "idx_session_expires")
   @@map("sessions")
+}
+
+model OAuthAccount {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  provider       String   @db.VarChar(50)
+  providerUserId String   @map("provider_user_id") @db.VarChar(255)
+  email          String?  @db.VarChar(255)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerUserId], map: "uq_oauth_provider_user")
+  @@index([userId], map: "idx_oauth_user")
+  @@map("oauth_accounts")
 }
 
 // =============================================================================
