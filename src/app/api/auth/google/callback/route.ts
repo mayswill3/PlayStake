@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
     // Clear the OAuth state cookie
     response.cookies.set("oauth_state", "", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: (process.env.NEXT_PUBLIC_APP_URL ?? "").startsWith("https"),
       sameSite: "lax",
       path: "/",
       maxAge: 0,

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { generateOAuthState, getGoogleAuthUrl } from "../../../../lib/auth/google";
 
+const isSecure = (process.env.NEXT_PUBLIC_APP_URL ?? "").startsWith("https");
+
 export async function GET() {
   const state = generateOAuthState();
   const authUrl = getGoogleAuthUrl(state);
@@ -10,7 +12,7 @@ export async function GET() {
   // Store state in a short-lived httpOnly cookie for CSRF validation
   response.cookies.set("oauth_state", state, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecure,
     sameSite: "lax",
     path: "/",
     maxAge: 600, // 10 minutes
