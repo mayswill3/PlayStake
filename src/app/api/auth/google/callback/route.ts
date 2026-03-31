@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma, withTransaction } from "../../../../../lib/db/client";
 import { exchangeCodeForTokens, getGoogleUserInfo } from "../../../../../lib/auth/google";
 import { createSession } from "../../../../../lib/auth/session";
-import { sessionCookieValue } from "../../../../../lib/auth/helpers";
 import { getOrCreatePlayerAccount } from "../../../../../lib/ledger/accounts";
 import { getClientIp } from "../../../../../lib/middleware/rate-limit";
 
@@ -120,13 +119,23 @@ export async function GET(request: NextRequest) {
     const userAgent = request.headers.get("user-agent") ?? undefined;
     const { sessionToken, expiresAt } = await createSession(userId, ip, userAgent);
 
+    const isSecure = (process.env.NEXT_PUBLIC_APP_URL ?? "").startsWith("https");
+
     const response = NextResponse.redirect(`${appUrl}/dashboard`);
-    response.headers.append("Set-Cookie", sessionCookieValue(sessionToken, expiresAt));
+
+    // Set session cookie
+    response.cookies.set("playstake_session", sessionToken, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: "lax",
+      path: "/",
+      expires: expiresAt,
+    });
 
     // Clear the OAuth state cookie
     response.cookies.set("oauth_state", "", {
       httpOnly: true,
-      secure: (process.env.NEXT_PUBLIC_APP_URL ?? "").startsWith("https"),
+      secure: isSecure,
       sameSite: "lax",
       path: "/",
       maxAge: 0,
