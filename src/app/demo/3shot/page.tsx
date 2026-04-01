@@ -4,7 +4,9 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Target } from 'lucide-react';
 import { useLandscapeLock } from '@/hooks/useLandscapeLock';
+import { useSoundEnabled } from '@/hooks/useSoundEnabled';
 import { RotatePrompt } from '@/components/ui/RotatePrompt';
+import { MobileGameChrome } from '@/components/ui/MobileGameChrome';
 import { GameMobileFAB } from '@/components/ui/GameMobileFAB';
 import { useEventLog } from '../_shared/use-event-log';
 import { useDemoAuth } from '../_shared/use-demo-auth';
@@ -31,6 +33,9 @@ const RAIL_RESTITUTION = 0.75;
 const VELOCITY_THRESHOLD = 0.05;
 const MAX_SHOT_POWER = 25;
 const MAX_DRAG_DISTANCE = 150;
+const TOUCH_OFFSET_Y = 60;
+const MIN_DRAG_DISTANCE = 15;
+const TOUCH_TARGET_RADIUS = BALL_RADIUS * 8;
 
 const CANVAS_WIDTH = TABLE_WIDTH + RAIL_INSET * 2 + 20;
 const CANVAS_HEIGHT = TABLE_HEIGHT + RAIL_INSET * 2 + 20;
@@ -694,6 +699,8 @@ export default function ThreeShotPoolPage() {
     reportAndSettle,
   } = useGameSession(log);
   useLandscapeLock(phase === 'playing' || phase === 'finished');
+  const { isMuted, toggleMute } = useSoundEnabled();
+  const [showFABPanel, setShowFABPanel] = useState(false);
 
   // ---- 3-Shot specific state ----
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -724,6 +731,7 @@ export default function ThreeShotPoolPage() {
   const shotPowerRef = useRef(0);
   const aimAngleRef = useRef(0);
   const shootingRef = useRef(false);
+  const activeTouchIdRef = useRef<number | null>(null);
   const animFrameRef = useRef(0);
   const prevGameDataRef = useRef<ThreeShotGameData | null>(null);
   const animatingOpponentRef = useRef(false);
@@ -1388,58 +1396,87 @@ export default function ThreeShotPoolPage() {
     executeShot(power, angle);
   }, [executeShot]);
 
-  // ---- Touch handlers ----
-  const handleCanvasTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (!canShootRef.current) return;
-    const touch = e.touches[0];
-    if (!touch) return;
+  // ---- Touch handlers (mobile — with offset, palm rejection, min drag) ----
+  const getTouchCanvasPos = useCallback((clientX: number, clientY: number, applyOffset: boolean = false) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
     const scaleX = CANVAS_WIDTH / rect.width;
     const scaleY = CANVAS_HEIGHT / rect.height;
-    const pos = { x: (touch.clientX - rect.left) * scaleX, y: (touch.clientY - rect.top) * scaleY };
+    const pos = { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+    if (applyOffset) pos.y -= TOUCH_OFFSET_Y;
+    return pos;
+  }, []);
+
+  const handleCanvasTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    if (!canShootRef.current) return;
+    if (shootingRef.current || winnerRef.current) return;
+    if (phaseRef.current !== 'playing') return;
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    // Palm rejection: only accept first touch
+    if (activeTouchIdRef.current !== null) return;
+
+    const pos = getTouchCanvasPos(touch.clientX, touch.clientY, true);
+    if (!pos) return;
 
     const cueBall = ballsRef.current.find(b => b.id === 0 && !b.pocketed);
     if (!cueBall) return;
-    if (dist(pos.x, pos.y, cueBall.x, cueBall.y) < BALL_RADIUS * 4) {
+    if (dist(pos.x, pos.y, cueBall.x, cueBall.y) < TOUCH_TARGET_RADIUS) {
+      activeTouchIdRef.current = touch.identifier;
       aimingRef.current = true;
       dragStartRef.current = pos;
       dragCurrentRef.current = pos;
       shotPowerRef.current = 0;
       aimAngleRef.current = 0;
     }
-  }, []);
+  }, [getTouchCanvasPos]);
 
   const handleCanvasTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
     if (!aimingRef.current || !dragStartRef.current) return;
-    const touch = e.touches[0];
+    // Palm rejection: track only the active touch
+    const touch = Array.from(e.touches).find(t => t.identifier === activeTouchIdRef.current);
     if (!touch) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = CANVAS_WIDTH / rect.width;
-    const scaleY = CANVAS_HEIGHT / rect.height;
-    const pos = { x: (touch.clientX - rect.left) * scaleX, y: (touch.clientY - rect.top) * scaleY };
+    const pos = getTouchCanvasPos(touch.clientX, touch.clientY, true);
+    if (!pos) return;
     dragCurrentRef.current = pos;
     const dx = dragStartRef.current.x - pos.x;
     const dy = dragStartRef.current.y - pos.y;
-    shotPowerRef.current = Math.min(Math.sqrt(dx * dx + dy * dy) / MAX_DRAG_DISTANCE, 1.0);
+    const dragDist = Math.sqrt(dx * dx + dy * dy);
+    shotPowerRef.current = Math.min(dragDist / MAX_DRAG_DISTANCE, 1.0);
     aimAngleRef.current = Math.atan2(dy, dx);
     setRenderTick(t => t + 1);
-  }, []);
+  }, [getTouchCanvasPos]);
 
-  const handleCanvasTouchEnd = useCallback(() => {
+  const handleCanvasTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
     if (!aimingRef.current) return;
+    // Palm rejection: only respond to the active touch ending
+    const touch = Array.from(e.changedTouches).find(t => t.identifier === activeTouchIdRef.current);
+    if (!touch) return;
     aimingRef.current = false;
-    const power = shotPowerRef.current * MAX_SHOT_POWER;
-    const angle = aimAngleRef.current;
+    activeTouchIdRef.current = null;
+    const start = dragStartRef.current;
+    const current = dragCurrentRef.current;
     dragStartRef.current = null;
     dragCurrentRef.current = null;
-    if (power < 0.5) {
+    if (!start || !current) {
       shotPowerRef.current = 0;
       return;
     }
+    const dx = start.x - current.x;
+    const dy = start.y - current.y;
+    // Min drag distance prevents accidental shots
+    if (Math.sqrt(dx * dx + dy * dy) < MIN_DRAG_DISTANCE) {
+      shotPowerRef.current = 0;
+      return;
+    }
+    const power = shotPowerRef.current * MAX_SHOT_POWER;
+    const angle = aimAngleRef.current;
+    shotPowerRef.current = 0;
     executeShot(power, angle);
   }, [executeShot]);
 
@@ -1631,14 +1668,88 @@ export default function ThreeShotPoolPage() {
 
   const isInGame = phase === 'playing' || phase === 'finished';
 
+  // Mobile status
+  let mobileStatus = '';
+  let mobileStatusColor = 'text-text-muted';
+  if (isInGame) {
+    if (winner) {
+      mobileStatus = winner === role ? 'YOU WON' : 'YOU LOST';
+      mobileStatusColor = winner === role ? 'text-brand-400' : 'text-danger-400';
+    } else if (gamePhase === 'overtime_announce' || gamePhase === 'forced_tiebreak_announce') {
+      mobileStatus = gamePhase === 'overtime_announce' ? 'OVERTIME' : 'TIEBREAK';
+      mobileStatusColor = 'text-yellow-400';
+    } else if (isMyTurn && canShoot) {
+      mobileStatus = gamePhase === 'p1_break' ? 'YOUR BREAK' : 'YOUR SHOT';
+      mobileStatusColor = 'text-brand-400';
+    } else if (!isMyTurn) {
+      mobileStatus = 'WAITING';
+      mobileStatusColor = 'text-warning-400';
+    } else {
+      mobileStatus = '';
+    }
+  }
+
   // Shot pips for current shooter
   const currentShotsLeft = currentShooter === 'A' ? shotsRemainingA : shotsRemainingB;
   const isRegulation = !gamePhase.startsWith('ot_') && !gamePhase.startsWith('ft_') && gamePhase !== 'overtime_announce' && gamePhase !== 'forced_tiebreak_announce';
 
+  // Mobile scoreboard for Zone C
+  const mobileScoreboard = (
+    <div className="flex w-full items-center justify-between">
+      {/* P1 score + shot pips */}
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-[11px] font-semibold text-text-primary/90">
+          {role === 'A' ? 'You' : 'P1'}
+        </span>
+        <span className="font-mono text-base font-bold text-text-primary">{scoreA}</span>
+      </div>
+
+      {/* Shot pips: 3 dots, filled = remaining */}
+      {isRegulation && !winner && (
+        <div className="flex gap-1">
+          {Array.from({ length: SHOTS_PER_PLAYER }).map((_, i) => (
+            <span
+              key={i}
+              className="inline-block h-2 w-2 rounded-full border border-white/20"
+              style={{ background: i < currentShotsLeft ? '#00ff87' : 'transparent' }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* OT / Tiebreak badge */}
+      {(gamePhase.startsWith('ot_') || gamePhase === 'overtime_announce') && (
+        <span className="font-mono text-[10px] font-bold uppercase text-yellow-400">OT {otRound}</span>
+      )}
+      {(gamePhase.startsWith('ft_') || gamePhase === 'forced_tiebreak_announce') && (
+        <span className="font-mono text-[10px] font-bold uppercase text-yellow-400">TB</span>
+      )}
+
+      <span className="font-mono text-[10px] text-text-muted">vs</span>
+
+      {/* P2 score */}
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-base font-bold text-text-primary">
+          {gamePhase === 'p1_break' || gamePhase === 'p1_shooting' || gamePhase === 'p1_rolling' || gamePhase === 'p1_result' || gamePhase === 'p1_complete' || gamePhase === 'p2_setup'
+            ? '--'
+            : scoreB}
+        </span>
+        <span className="font-mono text-[11px] font-semibold text-text-primary/90">
+          {role === 'B' ? 'You' : 'P2'}
+        </span>
+      </div>
+
+      {/* Phase badge */}
+      <span className={`font-mono text-[10px] font-semibold ${mobileStatusColor}`}>
+        {mobileStatus}
+      </span>
+    </div>
+  );
+
   return (
     <div className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${isInGame ? 'game-fullscreen-mobile' : ''}`}>
       <RotatePrompt isInGame={isInGame} />
-      {isInGame && (
+      {isInGame && showFABPanel && (
         <GameMobileFAB
           onExit={() => window.location.reload()}
           betAmount={betAmountCents || undefined}
@@ -1777,58 +1888,71 @@ export default function ThreeShotPoolPage() {
                 </Card>
               )}
 
-              {/* Canvas */}
-              <div className="relative">
-                <canvas
-                  ref={canvasRef}
-                  width={CANVAS_WIDTH}
-                  height={CANVAS_HEIGHT}
-                  className="w-full rounded-sm border border-white/8 cursor-crosshair"
-                  style={{ maxWidth: `${CANVAS_WIDTH}px`, touchAction: 'none' }}
-                  onMouseDown={handleCanvasMouseDown}
-                  onMouseMove={handleCanvasMouseMove}
-                  onMouseUp={handleCanvasMouseUp}
-                  onMouseLeave={handleCanvasMouseUp}
-                  onTouchStart={handleCanvasTouchStart}
-                  onTouchMove={handleCanvasTouchMove}
-                  onTouchEnd={handleCanvasTouchEnd}
-                />
+              {/* Canvas wrapped with MobileGameChrome */}
+              <MobileGameChrome
+                onExit={() => window.location.reload()}
+                statusText={mobileStatus}
+                statusColor={mobileStatusColor}
+                isMuted={isMuted}
+                onSoundToggle={toggleMute}
+                onFABTap={() => setShowFABPanel(true)}
+                scoreboard={mobileScoreboard}
+              >
+                <div className="relative">
+                  <canvas
+                    ref={canvasRef}
+                    width={CANVAS_WIDTH}
+                    height={CANVAS_HEIGHT}
+                    className="w-full rounded-sm border border-white/8 cursor-crosshair"
+                    style={{ maxWidth: `${CANVAS_WIDTH}px`, touchAction: 'none' }}
+                    onMouseDown={handleCanvasMouseDown}
+                    onMouseMove={handleCanvasMouseMove}
+                    onMouseUp={handleCanvasMouseUp}
+                    onMouseLeave={handleCanvasMouseUp}
+                    onTouchStart={handleCanvasTouchStart}
+                    onTouchMove={handleCanvasTouchMove}
+                    onTouchEnd={handleCanvasTouchEnd}
+                  />
+                </div>
+              </MobileGameChrome>
 
-                {/* Game over overlay — positioned on top of canvas for mobile landscape */}
-                {isFinished && gameState && winner && (
-                  <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                    <div className="pointer-events-auto rounded-sm px-6 py-4 text-center"
-                      style={{ background: 'rgba(15,17,23,0.92)', border: '1px solid rgba(255,255,255,0.1)' }}
+              {/* Game over overlay */}
+              {isFinished && gameState && winner && settlementResult && role && (
+                <GameResultOverlay
+                  outcome={deriveOutcome(settlementResult, role)}
+                  amount={formatResultAmount(
+                    deriveOutcome(settlementResult, role),
+                    settlementResult.winnerPayout,
+                    betAmountCents
+                  )}
+                  visible
+                  mobile
+                  onPlayAgain={handlePlayAgain}
+                  onLobby={() => window.location.reload()}
+                />
+              )}
+              {isFinished && gameState && winner && !settlementResult && (
+                <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                  <div className="pointer-events-auto rounded-sm px-6 py-4 text-center"
+                    style={{ background: 'rgba(15,17,23,0.92)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  >
+                    <p className="font-display text-lg font-bold uppercase tracking-widest mb-1"
+                      style={{ color: winner === role ? '#00ff87' : '#ff3b5c' }}
                     >
-                      <p className="font-display text-lg font-bold uppercase tracking-widest mb-1"
-                        style={{ color: winner === role ? '#00ff87' : '#ff3b5c' }}
-                      >
-                        {winner === role ? 'Victory!' : 'Defeat'}
-                      </p>
-                      <p className="font-mono text-sm text-text-secondary mb-1">
-                        P1: {scoreA} — P2: {scoreB}
-                      </p>
-                      {settlementResult && role && (
-                        <p className="font-display text-xl font-bold mb-2"
-                          style={{ color: deriveOutcome(settlementResult, role) === 'win' ? '#00ff87' : '#ff3b5c' }}
-                        >
-                          {formatResultAmount(
-                            deriveOutcome(settlementResult, role),
-                            settlementResult.winnerPayout,
-                            betAmountCents
-                          )}
-                        </p>
-                      )}
-                      <button
-                        onClick={handlePlayAgain}
-                        className="font-mono text-xs uppercase tracking-widest px-5 py-2 rounded-sm bg-brand-400/90 text-black font-semibold hover:bg-brand-400 transition-colors"
-                      >
-                        Play Again
-                      </button>
-                    </div>
+                      {winner === role ? 'Victory!' : 'Defeat'}
+                    </p>
+                    <p className="font-mono text-sm text-text-secondary mb-1">
+                      P1: {scoreA} -- P2: {scoreB}
+                    </p>
+                    <button
+                      onClick={handlePlayAgain}
+                      className="font-mono text-xs uppercase tracking-widest px-5 py-2 rounded-sm bg-brand-400/90 text-black font-semibold hover:bg-brand-400 transition-colors"
+                    >
+                      Play Again
+                    </button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Last shot info */}
               {lastShotInfo && !winner && (

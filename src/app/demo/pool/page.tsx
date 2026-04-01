@@ -4,7 +4,9 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Circle } from 'lucide-react';
 import { useLandscapeLock } from '@/hooks/useLandscapeLock';
+import { useSoundEnabled } from '@/hooks/useSoundEnabled';
 import { RotatePrompt } from '@/components/ui/RotatePrompt';
+import { MobileGameChrome } from '@/components/ui/MobileGameChrome';
 import { GameMobileFAB } from '@/components/ui/GameMobileFAB';
 import { useEventLog } from '../_shared/use-event-log';
 import { useDemoAuth } from '../_shared/use-demo-auth';
@@ -34,6 +36,9 @@ const MAX_DRAG_DISTANCE = 150;
 
 const CANVAS_WIDTH = TABLE_WIDTH + RAIL_INSET * 2 + 20;
 const CANVAS_HEIGHT = TABLE_HEIGHT + RAIL_INSET * 2 + 20;
+const TOUCH_OFFSET_Y = 60;
+const MIN_DRAG_DISTANCE = 15;
+const TOUCH_TARGET_RADIUS = BALL_RADIUS * 8;
 
 const FELT_COLOR = '#0a5c36';
 const RAIL_COLOR = '#3d1f0a';
@@ -632,6 +637,8 @@ export default function PoolDemoPage() {
     reportAndSettle,
   } = useGameSession(log);
   useLandscapeLock(phase === 'playing' || phase === 'finished');
+  const { isMuted, toggleMute } = useSoundEnabled();
+  const [showFABPanel, setShowFABPanel] = useState(false);
 
   // ---- Pool-specific state ----
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -670,6 +677,7 @@ export default function PoolDemoPage() {
   const shotPowerRef = useRef(0);
   const aimAngleRef = useRef(0);
   const shootingRef = useRef(false);
+  const activeTouchIdRef = useRef<number | null>(null);
   const animFrameRef = useRef(0);
   const prevGameDataRef = useRef<PoolGameData | null>(null);
   const animatingOpponentRef = useRef(false);
@@ -1280,24 +1288,37 @@ export default function PoolDemoPage() {
     executeShot(power, angle);
   }, [executeShot]);
 
-  // ---- Touch handlers (mirror mouse handlers for mobile) ----
+  // ---- Touch handlers (mobile — with offset, palm rejection, min drag) ----
+  const getTouchCanvasPos = useCallback((clientX: number, clientY: number, applyOffset: boolean = false) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = CANVAS_WIDTH / rect.width;
+    const scaleY = CANVAS_HEIGHT / rect.height;
+    const pos = { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+    if (applyOffset) pos.y -= TOUCH_OFFSET_Y;
+    return pos;
+  }, []);
+
   const handleCanvasTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
     if (!isMyTurnRef.current || shootingRef.current || winnerRef.current) return;
     if (phaseRef.current !== 'playing') return;
     const touch = e.touches[0];
     if (!touch) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = CANVAS_WIDTH / rect.width;
-    const scaleY = CANVAS_HEIGHT / rect.height;
-    const pos = { x: (touch.clientX - rect.left) * scaleX, y: (touch.clientY - rect.top) * scaleY };
+
+    // Palm rejection: only accept first touch
+    if (activeTouchIdRef.current !== null) return;
+
+    // Ball-in-hand and call-pocket use raw position (no offset)
+    const rawPos = getTouchCanvasPos(touch.clientX, touch.clientY);
+    if (!rawPos) return;
 
     if (ballInHandRef.current) {
       const cueBall = ballsRef.current.find(b => b.id === 0);
       if (!cueBall) return;
-      const nx = Math.max(OFFSET + BALL_RADIUS, Math.min(OFFSET + TABLE_WIDTH - BALL_RADIUS, pos.x));
-      const ny = Math.max(OFFSET + BALL_RADIUS, Math.min(OFFSET + TABLE_HEIGHT - BALL_RADIUS, pos.y));
+      const nx = Math.max(OFFSET + BALL_RADIUS, Math.min(OFFSET + TABLE_WIDTH - BALL_RADIUS, rawPos.x));
+      const ny = Math.max(OFFSET + BALL_RADIUS, Math.min(OFFSET + TABLE_HEIGHT - BALL_RADIUS, rawPos.y));
       const overlaps = ballsRef.current.some(b => b.id !== 0 && !b.pocketed && dist(nx, ny, b.x, b.y) < BALL_RADIUS * 2.2);
       if (overlaps) return;
       cueBall.x = nx;
@@ -1318,7 +1339,7 @@ export default function PoolDemoPage() {
     if (needsCallPocketRef.current && calledPocketRef.current === null) {
       for (let i = 0; i < POCKETS.length; i++) {
         const p = POCKETS[i];
-        if (dist(pos.x, pos.y, p.x, p.y) < p.radius + 15) {
+        if (dist(rawPos.x, rawPos.y, p.x, p.y) < p.radius + 15) {
           setCalledPocket(i);
           setNeedsCallPocket(false);
           setPoolPhase('aiming');
@@ -1328,27 +1349,29 @@ export default function PoolDemoPage() {
       return;
     }
 
+    // Aiming: use offset position and expanded target
+    const pos = getTouchCanvasPos(touch.clientX, touch.clientY, true);
+    if (!pos) return;
     const cueBall = ballsRef.current.find(b => b.id === 0 && !b.pocketed);
     if (!cueBall) return;
-    if (dist(pos.x, pos.y, cueBall.x, cueBall.y) < BALL_RADIUS * 4) {
+    if (dist(pos.x, pos.y, cueBall.x, cueBall.y) < TOUCH_TARGET_RADIUS) {
+      activeTouchIdRef.current = touch.identifier;
       aimingRef.current = true;
       dragStartRef.current = pos;
       dragCurrentRef.current = pos;
       shotPowerRef.current = 0;
       aimAngleRef.current = 0;
     }
-  }, [checkNeedsCallPocket]);
+  }, [checkNeedsCallPocket, getTouchCanvasPos]);
 
   const handleCanvasTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
     if (!aimingRef.current || !dragStartRef.current) return;
-    const touch = e.touches[0];
+    // Palm rejection: track only the active touch
+    const touch = Array.from(e.touches).find(t => t.identifier === activeTouchIdRef.current);
     if (!touch) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = CANVAS_WIDTH / rect.width;
-    const scaleY = CANVAS_HEIGHT / rect.height;
-    const pos = { x: (touch.clientX - rect.left) * scaleX, y: (touch.clientY - rect.top) * scaleY };
+    const pos = getTouchCanvasPos(touch.clientX, touch.clientY, true);
+    if (!pos) return;
     dragCurrentRef.current = pos;
     const dx = dragStartRef.current.x - pos.x;
     const dy = dragStartRef.current.y - pos.y;
@@ -1356,19 +1379,34 @@ export default function PoolDemoPage() {
     shotPowerRef.current = Math.min(dragDist / MAX_DRAG_DISTANCE, 1.0);
     aimAngleRef.current = Math.atan2(dy, dx);
     setRenderTick(t => t + 1);
-  }, []);
+  }, [getTouchCanvasPos]);
 
-  const handleCanvasTouchEnd = useCallback(() => {
+  const handleCanvasTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
     if (!aimingRef.current) return;
+    // Palm rejection: only respond to the active touch ending
+    const touch = Array.from(e.changedTouches).find(t => t.identifier === activeTouchIdRef.current);
+    if (!touch) return;
     aimingRef.current = false;
-    const power = shotPowerRef.current * MAX_SHOT_POWER;
-    const angle = aimAngleRef.current;
+    activeTouchIdRef.current = null;
+    const start = dragStartRef.current;
+    const current = dragCurrentRef.current;
     dragStartRef.current = null;
     dragCurrentRef.current = null;
-    if (power < 0.5) {
+    if (!start || !current) {
       shotPowerRef.current = 0;
       return;
     }
+    const dx = start.x - current.x;
+    const dy = start.y - current.y;
+    // Min drag distance prevents accidental shots
+    if (Math.sqrt(dx * dx + dy * dy) < MIN_DRAG_DISTANCE) {
+      shotPowerRef.current = 0;
+      return;
+    }
+    const power = shotPowerRef.current * MAX_SHOT_POWER;
+    const angle = aimAngleRef.current;
+    shotPowerRef.current = 0;
     executeShot(power, angle);
   }, [executeShot]);
 
@@ -1512,10 +1550,98 @@ export default function PoolDemoPage() {
 
   const isInGame = phase === 'playing' || phase === 'finished';
 
+  // ---- Mobile-specific: compact status for Zone A ----
+  let mobileStatus = '';
+  let mobileStatusColor = 'text-text-muted';
+  if (isInGame) {
+    if (winner) {
+      mobileStatus = winner === role ? 'YOU WON' : 'YOU LOST';
+      mobileStatusColor = winner === role ? 'text-brand-400' : 'text-danger-400';
+    } else if (ballInHand && isMyTurn) {
+      mobileStatus = 'BALL IN HAND';
+      mobileStatusColor = 'text-blue-400';
+    } else if (needsCallPocket && isMyTurn) {
+      mobileStatus = 'CALL POCKET';
+      mobileStatusColor = 'text-yellow-400';
+    } else if (isMyTurn) {
+      mobileStatus = isBreakShot ? 'YOUR BREAK' : 'YOUR SHOT';
+      mobileStatusColor = 'text-brand-400';
+    } else {
+      mobileStatus = 'WAITING';
+      mobileStatusColor = 'text-warning-400';
+    }
+  }
+
+  // ---- Mobile scoreboard: remaining balls per group ----
+  const myGroup = role ? groups[role] : null;
+  const oppGroup = role ? groups[role === 'A' ? 'B' : 'A'] : null;
+  const allPocketed = [...pocketedByA, ...pocketedByB];
+  const solidsRemaining = solidBalls.filter(id => !allPocketed.includes(id)).length;
+  const stripesRemaining = stripeBalls.filter(id => !allPocketed.includes(id)).length;
+
+  const myRemaining = myGroup === 'solids' ? solidsRemaining : myGroup === 'stripes' ? stripesRemaining : null;
+  const oppRemaining = oppGroup === 'solids' ? solidsRemaining : oppGroup === 'stripes' ? stripesRemaining : null;
+
+  const mobileScoreboard = (
+    <div className="flex w-full items-center justify-between">
+      {/* Player A / You */}
+      <div className="flex items-center gap-2">
+        <span className={`inline-block h-2 w-2 rounded-full ${currentTurn === role ? 'bg-brand-400' : 'bg-surface-600'}`} />
+        <span className="font-mono text-[11px] font-semibold text-text-primary/90">
+          {role === 'A' ? 'You' : 'P1'}
+        </span>
+        {/* Group indicator */}
+        {myGroup ? (
+          <span className="flex items-center gap-1">
+            <span
+              className="inline-block h-3 w-3 rounded-full border border-white/20"
+              style={{
+                background: myGroup === 'solids' ? '#f5d800' : 'transparent',
+                boxShadow: myGroup === 'stripes' ? 'inset 0 0 0 2px #0055cc, inset 0 0 0 3.5px #fff' : 'none',
+              }}
+            />
+            <span className="font-mono text-xs font-bold text-text-primary">[{myRemaining}]</span>
+          </span>
+        ) : (
+          <span className="font-mono text-[10px] text-text-muted">?</span>
+        )}
+      </div>
+
+      <span className="font-mono text-[10px] text-text-muted">vs</span>
+
+      {/* Player B / Opponent */}
+      <div className="flex items-center gap-2">
+        {oppGroup ? (
+          <span className="flex items-center gap-1">
+            <span className="font-mono text-xs font-bold text-text-primary">[{oppRemaining}]</span>
+            <span
+              className="inline-block h-3 w-3 rounded-full border border-white/20"
+              style={{
+                background: oppGroup === 'solids' ? '#f5d800' : 'transparent',
+                boxShadow: oppGroup === 'stripes' ? 'inset 0 0 0 2px #0055cc, inset 0 0 0 3.5px #fff' : 'none',
+              }}
+            />
+          </span>
+        ) : (
+          <span className="font-mono text-[10px] text-text-muted">?</span>
+        )}
+        <span className="font-mono text-[11px] font-semibold text-text-primary/90">
+          {role === 'B' ? 'You' : 'P2'}
+        </span>
+        <span className={`inline-block h-2 w-2 rounded-full ${currentTurn !== role ? 'bg-brand-400' : 'bg-surface-600'}`} />
+      </div>
+
+      {/* Phase label */}
+      <span className={`font-mono text-[10px] font-semibold ${mobileStatusColor}`}>
+        {mobileStatus}
+      </span>
+    </div>
+  );
+
   return (
     <div className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${isInGame ? 'game-fullscreen-mobile' : ''}`}>
       <RotatePrompt isInGame={isInGame} />
-      {isInGame && (
+      {isInGame && showFABPanel && (
         <GameMobileFAB
           onExit={() => window.location.reload()}
           betAmount={betAmountCents || undefined}
@@ -1624,23 +1750,34 @@ export default function PoolDemoPage() {
                 </Card>
               )}
 
-              {/* Canvas */}
-              <div className="relative">
-                <canvas
-                  ref={canvasRef}
-                  width={CANVAS_WIDTH}
-                  height={CANVAS_HEIGHT}
-                  className="w-full rounded-sm border border-white/8 cursor-crosshair"
-                  style={{ maxWidth: `${CANVAS_WIDTH}px`, touchAction: 'none' }}
-                  onMouseDown={handleCanvasMouseDown}
-                  onMouseMove={handleCanvasMouseMove}
-                  onMouseUp={handleCanvasMouseUp}
-                  onMouseLeave={handleCanvasMouseUp}
-                  onTouchStart={handleCanvasTouchStart}
-                  onTouchMove={handleCanvasTouchMove}
-                  onTouchEnd={handleCanvasTouchEnd}
-                />
-              </div>
+              {/* Mobile chrome: Zone A (top bar) + Zone C (scoreboard) */}
+              <MobileGameChrome
+                onExit={() => window.location.reload()}
+                statusText={mobileStatus}
+                statusColor={mobileStatusColor}
+                isMuted={isMuted}
+                onSoundToggle={toggleMute}
+                onFABTap={() => setShowFABPanel(true)}
+                scoreboard={mobileScoreboard}
+              >
+                {/* Canvas */}
+                <div className="relative">
+                  <canvas
+                    ref={canvasRef}
+                    width={CANVAS_WIDTH}
+                    height={CANVAS_HEIGHT}
+                    className="w-full rounded-sm border border-white/8 cursor-crosshair"
+                    style={{ maxWidth: `${CANVAS_WIDTH}px`, touchAction: 'none' }}
+                    onMouseDown={handleCanvasMouseDown}
+                    onMouseMove={handleCanvasMouseMove}
+                    onMouseUp={handleCanvasMouseUp}
+                    onMouseLeave={handleCanvasMouseUp}
+                    onTouchStart={handleCanvasTouchStart}
+                    onTouchMove={handleCanvasTouchMove}
+                    onTouchEnd={handleCanvasTouchEnd}
+                  />
+                </div>
+              </MobileGameChrome>
 
               {/* Ball rack display */}
               <Card padding="sm" className="game-ball-rack">
@@ -1715,7 +1852,9 @@ export default function PoolDemoPage() {
                       betAmountCents
                     )}
                     visible
+                    mobile
                     onPlayAgain={handlePlayAgain}
+                    onLobby={() => window.location.reload()}
                   />
                 ) : (
                   <Card

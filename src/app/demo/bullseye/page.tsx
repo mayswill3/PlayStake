@@ -4,7 +4,9 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Disc } from 'lucide-react';
 import { useLandscapeLock } from '@/hooks/useLandscapeLock';
+import { useSoundEnabled } from '@/hooks/useSoundEnabled';
 import { RotatePrompt } from '@/components/ui/RotatePrompt';
+import { MobileGameChrome } from '@/components/ui/MobileGameChrome';
 import { GameMobileFAB } from '@/components/ui/GameMobileFAB';
 import { useEventLog } from '../_shared/use-event-log';
 import { useDemoAuth } from '../_shared/use-demo-auth';
@@ -31,6 +33,10 @@ const RAIL_RESTITUTION = 0.75;
 const VELOCITY_THRESHOLD = 0.05;
 const MAX_SHOT_POWER = 25;
 const MAX_DRAG_DISTANCE = 150;
+
+const TOUCH_OFFSET_Y = 60;
+const MIN_DRAG_DISTANCE = 15;
+const TOUCH_TARGET_RADIUS = BALL_RADIUS * 8;
 
 const CANVAS_WIDTH = TABLE_WIDTH + RAIL_INSET * 2 + 20;
 const CANVAS_HEIGHT = TABLE_HEIGHT + RAIL_INSET * 2 + 20;
@@ -550,6 +556,8 @@ export default function BullseyePoolPage() {
     setGameData, setBetId, reportAndSettle,
   } = useGameSession(log);
   useLandscapeLock(phase === 'playing' || phase === 'finished');
+  const { isMuted, toggleMute } = useSoundEnabled();
+  const [showFABPanel, setShowFABPanel] = useState(false);
 
   // ---- Game state ----
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -570,6 +578,7 @@ export default function BullseyePoolPage() {
   const shotNumberRef = useRef(0);
   const shootingRef = useRef(false);
   const aimingRef = useRef(false);
+  const activeTouchIdRef = useRef<number | null>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const dragCurrentRef = useRef<{ x: number; y: number } | null>(null);
   const shotPowerRef = useRef(0);
@@ -985,26 +994,35 @@ export default function BullseyePoolPage() {
     executeShot(power, angle);
   }, [executeShot]);
 
-  // Touch handlers
+  // Touch handlers (with palm rejection, touch offset, expanded target, min drag distance)
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
     if (!canShootRef.current) return;
     const touch = e.touches[0]; if (!touch) return;
+    // Palm rejection: only accept first touch
+    if (activeTouchIdRef.current !== null) return;
     const canvas = canvasRef.current; if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const pos = { x: (touch.clientX - rect.left) * (CANVAS_WIDTH / rect.width), y: (touch.clientY - rect.top) * (CANVAS_HEIGHT / rect.height) };
+    pos.y -= TOUCH_OFFSET_Y;
     const ball = ballsRef.current.find(b => b.id === (gamePhaseRef.current === 'p1_aiming' ? (firstShooter) : (secondShooter)) && !b.pocketed);
     if (!ball) return;
-    if (dist(pos.x, pos.y, ball.x, ball.y) < BALL_RADIUS * 4) {
+    if (dist(pos.x, pos.y, ball.x, ball.y) < TOUCH_TARGET_RADIUS) {
+      activeTouchIdRef.current = touch.identifier;
       aimingRef.current = true; dragStartRef.current = pos; dragCurrentRef.current = pos; shotPowerRef.current = 0; aimAngleRef.current = 0;
     }
   }, [firstShooter, secondShooter]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
     if (!aimingRef.current || !dragStartRef.current) return;
-    const touch = e.touches[0]; if (!touch) return;
+    // Palm rejection: track only the active touch
+    const touch = Array.from(e.touches).find(t => t.identifier === activeTouchIdRef.current);
+    if (!touch) return;
     const canvas = canvasRef.current; if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const pos = { x: (touch.clientX - rect.left) * (CANVAS_WIDTH / rect.width), y: (touch.clientY - rect.top) * (CANVAS_HEIGHT / rect.height) };
+    pos.y -= TOUCH_OFFSET_Y;
     dragCurrentRef.current = pos;
     const dx = dragStartRef.current.x - pos.x, dy = dragStartRef.current.y - pos.y;
     shotPowerRef.current = Math.min(Math.sqrt(dx * dx + dy * dy) / MAX_DRAG_DISTANCE, 1.0);
@@ -1012,13 +1030,25 @@ export default function BullseyePoolPage() {
     setRenderTick(t => t + 1);
   }, []);
 
-  const handleTouchEnd = useCallback(() => {
+  const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
     if (!aimingRef.current) return;
+    // Palm rejection: only respond to the active touch ending
+    const touch = Array.from(e.changedTouches).find(t => t.identifier === activeTouchIdRef.current);
+    if (!touch) return;
     aimingRef.current = false;
+    activeTouchIdRef.current = null;
+    const start = dragStartRef.current;
+    const current = dragCurrentRef.current;
+    dragStartRef.current = null; dragCurrentRef.current = null;
+    if (!start || !current) { shotPowerRef.current = 0; return; }
+    const dx = start.x - current.x;
+    const dy = start.y - current.y;
+    // Min drag distance prevents accidental shots
+    if (Math.sqrt(dx * dx + dy * dy) < MIN_DRAG_DISTANCE) { shotPowerRef.current = 0; return; }
     const power = shotPowerRef.current * MAX_SHOT_POWER;
     const angle = aimAngleRef.current;
-    dragStartRef.current = null; dragCurrentRef.current = null;
-    if (power < 0.5) { shotPowerRef.current = 0; return; }
+    shotPowerRef.current = 0;
     executeShot(power, angle);
   }, [executeShot]);
 
@@ -1096,10 +1126,56 @@ export default function BullseyePoolPage() {
 
   const isInGame = phase === 'playing' || phase === 'finished';
 
+  // ---- Mobile-specific: compact status for Zone A ----
+  let mobileStatus = '';
+  let mobileStatusColor = 'text-text-muted';
+  if (isInGame) {
+    if (winner) {
+      mobileStatus = winner === role ? 'YOU WON' : 'YOU LOST';
+      mobileStatusColor = winner === role ? 'text-brand-400' : 'text-danger-400';
+    } else if (canShoot) {
+      mobileStatus = 'YOUR SHOT';
+      mobileStatusColor = 'text-brand-400';
+    } else if (gamePhase === 'p1_rolling' || gamePhase === 'p2_rolling') {
+      mobileStatus = 'ROLLING';
+      mobileStatusColor = 'text-blue-400';
+    } else if (gamePhase === 'round_result' || gamePhase === 'round_transition') {
+      mobileStatus = statusMsg.includes('FOUL') ? 'FOUL' : statusMsg.includes('WINS') ? 'ROUND WON' : 'SCORING';
+      mobileStatusColor = statusMsg.includes('FOUL') ? 'text-danger-400' : statusMsg.includes('WINS') ? 'text-brand-400' : 'text-blue-400';
+    } else if (!isMyTurn) {
+      mobileStatus = 'WAITING';
+      mobileStatusColor = 'text-warning-400';
+    }
+  }
+
+  // ---- Mobile scoreboard ----
+  const mobileScoreboard = (
+    <div className="flex w-full items-center justify-between">
+      <div className="flex items-center gap-2">
+        <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: '#f5d800' }} />
+        <span className="font-mono text-[11px] font-semibold text-text-primary/90">
+          {role === 'A' ? 'You' : 'P1'}
+        </span>
+        <span className="font-mono text-base font-bold text-text-primary">{scoreA % 1 === 0 ? scoreA : scoreA.toFixed(1)}</span>
+      </div>
+      <span className="font-mono text-[10px] text-text-muted">vs</span>
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-base font-bold text-text-primary">{scoreB % 1 === 0 ? scoreB : scoreB.toFixed(1)}</span>
+        <span className="font-mono text-[11px] font-semibold text-text-primary/90">
+          {role === 'B' ? 'You' : 'P2'}
+        </span>
+        <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: '#0055cc' }} />
+      </div>
+      <span className="font-mono text-[10px] text-text-muted">
+        RD {roundNumber} · FT {ROUNDS_TO_WIN}
+      </span>
+    </div>
+  );
+
   return (
     <div className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${isInGame ? 'game-fullscreen-mobile' : ''}`}>
       <RotatePrompt isInGame={isInGame} />
-      {isInGame && (
+      {isInGame && showFABPanel && (
         <GameMobileFAB
           onExit={() => window.location.reload()}
           betAmount={betAmountCents || undefined}
@@ -1169,39 +1245,63 @@ export default function BullseyePoolPage() {
                 </Card>
               )}
 
-              {/* Canvas */}
-              <div className="relative">
-                <canvas
-                  ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT}
-                  className="w-full rounded-sm border border-white/8 cursor-crosshair"
-                  style={{ maxWidth: `${CANVAS_WIDTH}px`, touchAction: 'none' }}
-                  onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
-                  onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
-                />
+              {/* Mobile chrome: Zone A (top bar) + Zone C (scoreboard) */}
+              <MobileGameChrome
+                onExit={() => window.location.reload()}
+                statusText={mobileStatus}
+                statusColor={mobileStatusColor}
+                isMuted={isMuted}
+                onSoundToggle={toggleMute}
+                onFABTap={() => setShowFABPanel(true)}
+                scoreboard={mobileScoreboard}
+              >
+                {/* Canvas */}
+                <div className="relative">
+                  <canvas
+                    ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT}
+                    className="w-full rounded-sm border border-white/8 cursor-crosshair"
+                    style={{ maxWidth: `${CANVAS_WIDTH}px`, touchAction: 'none' }}
+                    onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
+                    onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
+                  />
+                </div>
+              </MobileGameChrome>
 
-                {/* Game over overlay on canvas */}
-                {winner && (
-                  <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                    <div className="pointer-events-auto rounded-sm px-6 py-4 text-center" style={{ background: 'rgba(15,17,23,0.92)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                      <p className="font-display text-lg font-bold uppercase tracking-widest mb-1" style={{ color: winner === role ? '#00ff87' : '#ff3b5c' }}>
-                        {winner === role ? 'Victory!' : 'Defeat'}
-                      </p>
-                      <p className="font-mono text-sm text-text-secondary mb-1">
-                        P1: {scoreA % 1 === 0 ? scoreA : scoreA.toFixed(1)} — P2: {scoreB % 1 === 0 ? scoreB : scoreB.toFixed(1)}
-                      </p>
-                      {settlementResult && role && (
-                        <p className="font-display text-xl font-bold mb-2" style={{ color: deriveOutcome(settlementResult, role) === 'win' ? '#00ff87' : '#ff3b5c' }}>
-                          {formatResultAmount(deriveOutcome(settlementResult, role), settlementResult.winnerPayout, betAmountCents)}
+              {/* Game result overlay */}
+              {winner && (
+                settlementResult && role ? (
+                  <GameResultOverlay
+                    outcome={deriveOutcome(settlementResult, role)}
+                    amount={formatResultAmount(
+                      deriveOutcome(settlementResult, role),
+                      settlementResult.winnerPayout,
+                      betAmountCents
+                    )}
+                    visible
+                    mobile
+                    onPlayAgain={handlePlayAgain}
+                    onLobby={() => window.location.reload()}
+                    scoreText={`P1: ${scoreA % 1 === 0 ? scoreA : scoreA.toFixed(1)} — P2: ${scoreB % 1 === 0 ? scoreB : scoreB.toFixed(1)}`}
+                  />
+                ) : (
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                      <div className="pointer-events-auto rounded-sm px-6 py-4 text-center" style={{ background: 'rgba(15,17,23,0.92)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <p className="font-display text-lg font-bold uppercase tracking-widest mb-1" style={{ color: winner === role ? '#00ff87' : '#ff3b5c' }}>
+                          {winner === role ? 'Victory!' : 'Defeat'}
                         </p>
-                      )}
-                      <button onClick={handlePlayAgain} className="font-mono text-xs uppercase tracking-widest px-5 py-2 rounded-sm bg-brand-400/90 text-black font-semibold hover:bg-brand-400 transition-colors">
-                        Play Again
-                      </button>
+                        <p className="font-mono text-sm text-text-secondary mb-1">
+                          P1: {scoreA % 1 === 0 ? scoreA : scoreA.toFixed(1)} — P2: {scoreB % 1 === 0 ? scoreB : scoreB.toFixed(1)}
+                        </p>
+                        <button onClick={handlePlayAgain} className="font-mono text-xs uppercase tracking-widest px-5 py-2 rounded-sm bg-brand-400/90 text-black font-semibold hover:bg-brand-400 transition-colors">
+                          Play Again
+                        </button>
+                      </div>
                     </div>
                   </div>
-                )}
-              </div>
+                )
+              )}
             </>
           )}
         </div>

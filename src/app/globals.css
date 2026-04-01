@@ -193,7 +193,7 @@ textarea:focus {
   60%, 100% { transform: rotate(90deg); }
 }
 
-/* Mobile fullscreen game mode */
+/* Mobile fullscreen game mode — 3-zone layout */
 @media (max-width: 1024px) {
   .game-fullscreen-mobile {
     position: fixed !important;
@@ -204,19 +204,26 @@ textarea:focus {
     padding: 0 !important;
     margin: 0 !important;
     max-width: none !important;
-    width: 100svw !important;
-    height: 100svh !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
   body:has(.game-fullscreen-mobile) {
     overflow: hidden !important;
+    overscroll-behavior: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Make game boards fit within available space */
   .game-fullscreen-mobile .game-board {
-    max-width: calc(100svh - 100px) !important;
+    max-width: calc(100dvh - 100px) !important;
     width: auto !important;
-    height: calc(100svh - 100px);
+    height: calc(100dvh - 100px);
     margin: 0 auto;
   }
 
@@ -224,6 +231,7 @@ textarea:focus {
     display: none !important;
   }
 
+  /* Hide desktop-only chrome on mobile */
   .game-fullscreen-mobile .game-header,
   .game-fullscreen-mobile .game-sidebar,
   .game-fullscreen-mobile .game-ball-rack,
@@ -234,17 +242,18 @@ textarea:focus {
   }
 
   .game-fullscreen-mobile .game-grid {
-    display: block !important;
-    width: 100svw;
-    height: 100svh;
-    position: relative;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1;
+    width: 100vw;
+    min-height: 0;
     padding: 0 !important;
     gap: 0 !important;
   }
 
   .game-fullscreen-mobile .game-area {
-    width: 100svw !important;
-    height: 100svh !important;
+    flex: 1;
+    min-height: 0;
     max-width: none !important;
     position: relative;
     padding: 0 !important;
@@ -256,13 +265,48 @@ textarea:focus {
   }
 
   .game-fullscreen-mobile .game-area canvas {
-    width: 100svw !important;
-    height: 100svh !important;
-    max-width: none !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    width: auto !important;
+    height: auto !important;
     display: block;
     object-fit: contain;
   }
 
+  /* Zone A: Top bar */
+  .mobile-zone-a {
+    height: calc(44px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: max(8px, env(safe-area-inset-left, 0px));
+    padding-right: max(8px, env(safe-area-inset-right, 0px));
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10, 10, 15, 0.9);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 110;
+    position: relative;
+  }
+
+  /* Zone C: Scoreboard */
+  .mobile-zone-c {
+    height: calc(48px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10, 10, 15, 0.9);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    z-index: 110;
+    position: relative;
+  }
 }
 
 /* Utility: font-display */
