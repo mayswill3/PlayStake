@@ -6,6 +6,7 @@ import { Zap, X, LogOut, ChevronUp, Wallet, CircleDot } from 'lucide-react';
 interface GameMobileFABProps {
   children?: React.ReactNode;
   onExit: () => void;
+  onClose?: () => void;
   balance?: { available: number; escrowed: number } | null;
   betAmount?: number;
   betStatus?: string;
@@ -19,7 +20,7 @@ function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-export function GameMobileFAB({ children, onExit, balance: balanceProp, betAmount, betStatus }: GameMobileFABProps) {
+export function GameMobileFAB({ children, onExit, onClose, balance: balanceProp, betAmount, betStatus }: GameMobileFABProps) {
   const [showWidget, setShowWidget] = useState(false);
   const [fetchedBalance, setFetchedBalance] = useState<{ available: number; escrowed: number } | null>(null);
 
@@ -48,7 +49,8 @@ export function GameMobileFAB({ children, onExit, balance: balanceProp, betAmoun
 
   const handleClose = useCallback(() => {
     setShowWidget(false);
-  }, []);
+    onClose?.();
+  }, [onClose]);
 
   return (
     <div className="lg:hidden">

@@ -206,8 +206,6 @@ textarea:focus {
     max-width: none !important;
     width: 100vw !important;
     height: 100dvh !important;
-    display: flex !important;
-    flex-direction: column !important;
   }
 
   body:has(.game-fullscreen-mobile) {
@@ -242,18 +240,17 @@ textarea:focus {
   }
 
   .game-fullscreen-mobile .game-grid {
-    display: flex !important;
-    flex-direction: column !important;
-    flex: 1;
+    display: block !important;
     width: 100vw;
-    min-height: 0;
+    height: 100dvh;
+    position: relative;
     padding: 0 !important;
     gap: 0 !important;
   }
 
   .game-fullscreen-mobile .game-area {
-    flex: 1;
-    min-height: 0;
+    width: 100vw !important;
+    height: 100dvh !important;
     max-width: none !important;
     position: relative;
     padding: 0 !important;
@@ -265,47 +262,64 @@ textarea:focus {
   }
 
   .game-fullscreen-mobile .game-area canvas {
-    max-width: 100% !important;
-    max-height: 100% !important;
-    width: auto !important;
-    height: auto !important;
+    width: 100vw !important;
+    height: calc(100dvh - 56px - env(safe-area-inset-top, 0px)) !important;
+    max-width: none !important;
     display: block;
     object-fit: contain;
+    margin-top: calc(56px + env(safe-area-inset-top, 0px));
   }
 
-  /* Zone A: Top bar */
+  /* Zone A: Player HUD bar — floats over canvas */
   .mobile-zone-a {
-    height: calc(44px + env(safe-area-inset-top, 0px));
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(56px + env(safe-area-inset-top, 0px));
     padding-top: env(safe-area-inset-top, 0px);
     padding-left: max(8px, env(safe-area-inset-left, 0px));
     padding-right: max(8px, env(safe-area-inset-right, 0px));
-    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: rgba(10, 10, 15, 0.9);
+    background: rgba(0, 0, 0, 0.75);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     z-index: 110;
-    position: relative;
   }
 
-  /* Zone C: Scoreboard */
-  .mobile-zone-c {
-    height: calc(48px + env(safe-area-inset-bottom, 0px));
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    padding-left: max(12px, env(safe-area-inset-left, 0px));
-    padding-right: max(12px, env(safe-area-inset-right, 0px));
-    flex-shrink: 0;
+  /* Floating action buttons — outside HUD */
+  .mobile-game-btn {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    background: rgba(10, 10, 15, 0.9);
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(20, 40, 60, 0.85);
+    color: rgba(255, 255, 255, 0.8);
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .mobile-game-btn:active {
+    transform: scale(0.92);
+  }
+
+  /* Status pill — bottom center */
+  .mobile-status-pill {
+    position: fixed;
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.75);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 6px 20px;
     z-index: 110;
-    position: relative;
+    pointer-events: none;
   }
 }
 

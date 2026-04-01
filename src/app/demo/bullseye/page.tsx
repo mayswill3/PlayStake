@@ -8,6 +8,8 @@ import { useSoundEnabled } from '@/hooks/useSoundEnabled';
 import { RotatePrompt } from '@/components/ui/RotatePrompt';
 import { MobileGameChrome } from '@/components/ui/MobileGameChrome';
 import { GameMobileFAB } from '@/components/ui/GameMobileFAB';
+import { EffectsManager, generateBurstParticles, type PhysicsEvent } from '../_shared/game-effects';
+import { GameAudio } from '../_shared/game-audio';
 import { useEventLog } from '../_shared/use-event-log';
 import { useDemoAuth } from '../_shared/use-demo-auth';
 import { useGameSession } from '../_shared/use-game-session';
@@ -41,8 +43,15 @@ const TOUCH_TARGET_RADIUS = BALL_RADIUS * 8;
 const CANVAS_WIDTH = TABLE_WIDTH + RAIL_INSET * 2 + 20;
 const CANVAS_HEIGHT = TABLE_HEIGHT + RAIL_INSET * 2 + 20;
 
-const FELT_COLOR = '#0a5c36';
-const RAIL_COLOR = '#3d1f0a';
+// Premium table visuals
+const BG_SURROUND = '#0d1b2a';
+const FELT_COLOR = '#0a6e3a';
+const RAIL_OUTER = '#4a1a0a';
+const RAIL_INNER = '#7a3018';
+const RAIL_HIGHLIGHT = '#5c2010';
+const POCKET_VOID = '#050505';
+const DIAMOND_COLOR = '#d4a868';
+
 const OFFSET = RAIL_INSET + 10;
 
 // Bullseye-specific
@@ -141,7 +150,7 @@ function distanceInTableUnits(bx: number, by: number, tx: number, ty: number) {
 // ---------------------------------------------------------------------------
 // Physics (simplified — only 1-2 balls, no rack)
 // ---------------------------------------------------------------------------
-function stepPhysics(balls: Ball[], shotResult: ShotResult): void {
+function stepPhysics(balls: Ball[], shotResult: ShotResult, onEvent?: (e: PhysicsEvent) => void): void {
   const active = balls.filter(b => !b.pocketed);
 
   for (const b of active) {
@@ -176,6 +185,12 @@ function stepPhysics(balls: Ball[], shotResult: ShotResult): void {
           b.vx += dot * nx * BALL_RESTITUTION;
           b.vy += dot * ny * BALL_RESTITUTION;
         }
+        if (onEvent) {
+          const relVel = Math.sqrt(dvx * dvx + dvy * dvy);
+          if (relVel > 3) {
+            onEvent({ type: 'collision', x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, velocity: relVel });
+          }
+        }
       }
     }
   }
@@ -194,13 +209,20 @@ function stepPhysics(balls: Ball[], shotResult: ShotResult): void {
 
   // Pocket detection
   for (const b of active) {
-    for (const p of POCKETS) {
-      if (dist(b.x, b.y, p.x, p.y) < p.radius) {
+    for (let pi = 0; pi < POCKETS.length; pi++) {
+      const p = POCKETS[pi];
+      const d = dist(b.x, b.y, p.x, p.y);
+      if (d < p.radius) {
         b.pocketed = true;
         b.vx = 0;
         b.vy = 0;
         shotResult.pocketed.push(b.id);
+        if (onEvent) {
+          onEvent({ type: 'pocketed', ballId: b.id, pocketX: p.x, pocketY: p.y });
+        }
         break;
+      } else if (onEvent && d < p.radius * 2.5 && (b.vx * b.vx + b.vy * b.vy) > 4) {
+        onEvent({ type: 'nearMiss', ballId: b.id, pocketX: p.x, pocketY: p.y });
       }
     }
   }
@@ -327,40 +349,152 @@ function drawPlayerBall(ctx: CanvasRenderingContext2D, b: Ball) {
   ctx.restore();
 }
 
-function drawTable(ctx: CanvasRenderingContext2D) {
-  ctx.fillStyle = RAIL_COLOR;
-  ctx.fillRect(OFFSET - RAIL_INSET, OFFSET - RAIL_INSET, TABLE_WIDTH + RAIL_INSET * 2, TABLE_HEIGHT + RAIL_INSET * 2);
-  ctx.fillStyle = '#5a3520';
-  ctx.fillRect(OFFSET - RAIL_INSET + 4, OFFSET - RAIL_INSET + 4, TABLE_WIDTH + RAIL_INSET * 2 - 8, TABLE_HEIGHT + RAIL_INSET * 2 - 8);
-  ctx.fillStyle = RAIL_COLOR;
-  ctx.fillRect(OFFSET - 2, OFFSET - 2, TABLE_WIDTH + 4, TABLE_HEIGHT + 4);
+function drawTable(ctx: CanvasRenderingContext2D): void {
+  const rx = OFFSET - RAIL_INSET;
+  const ry = OFFSET - RAIL_INSET;
+  const rw = TABLE_WIDTH + RAIL_INSET * 2;
+  const rh = TABLE_HEIGHT + RAIL_INSET * 2;
+
+  // Outer rail body — gradient for 3D depth
+  const railGrad = ctx.createLinearGradient(rx, ry, rx, ry + rh);
+  railGrad.addColorStop(0, RAIL_HIGHLIGHT);
+  railGrad.addColorStop(0.15, RAIL_OUTER);
+  railGrad.addColorStop(0.85, RAIL_OUTER);
+  railGrad.addColorStop(1, '#2a0e04');
+  ctx.fillStyle = railGrad;
+  ctx.fillRect(rx, ry, rw, rh);
+
+  // Outer rail subtle border
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1);
+
+  // Inner cushion face — brighter strip along inner edge
+  ctx.fillStyle = RAIL_INNER;
+  ctx.fillRect(OFFSET - 4, OFFSET - 4, TABLE_WIDTH + 8, TABLE_HEIGHT + 8);
+
+  // Inner rail border — darker line separating cushion from felt
+  ctx.fillStyle = RAIL_OUTER;
+  ctx.fillRect(OFFSET - 1.5, OFFSET - 1.5, TABLE_WIDTH + 3, TABLE_HEIGHT + 3);
+
+  // Felt surface
   ctx.fillStyle = FELT_COLOR;
   ctx.fillRect(OFFSET, OFFSET, TABLE_WIDTH, TABLE_HEIGHT);
 
-  // Felt texture
-  ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+  // Felt texture — two layers of faint lines simulating woven fabric
+  ctx.strokeStyle = 'rgba(0,0,0,0.04)';
   ctx.lineWidth = 0.5;
-  for (let y = OFFSET; y < OFFSET + TABLE_HEIGHT; y += 8) {
-    ctx.beginPath(); ctx.moveTo(OFFSET, y); ctx.lineTo(OFFSET + TABLE_WIDTH, y); ctx.stroke();
+  for (let y = OFFSET; y < OFFSET + TABLE_HEIGHT; y += 6) {
+    ctx.beginPath();
+    ctx.moveTo(OFFSET, y);
+    ctx.lineTo(OFFSET + TABLE_WIDTH, y);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+  for (let y = OFFSET + 3; y < OFFSET + TABLE_HEIGHT; y += 10) {
+    ctx.beginPath();
+    ctx.moveTo(OFFSET, y);
+    ctx.lineTo(OFFSET + TABLE_WIDTH, y);
+    ctx.stroke();
   }
 
-  // Pockets
+  // Felt inner shadow — subtle edge darkening for concave depth
+  const shadowSize = 15;
+  // Top edge
+  const topShadow = ctx.createLinearGradient(OFFSET, OFFSET, OFFSET, OFFSET + shadowSize);
+  topShadow.addColorStop(0, 'rgba(0,0,0,0.12)');
+  topShadow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = topShadow;
+  ctx.fillRect(OFFSET, OFFSET, TABLE_WIDTH, shadowSize);
+  // Bottom edge
+  const botShadow = ctx.createLinearGradient(OFFSET, OFFSET + TABLE_HEIGHT - shadowSize, OFFSET, OFFSET + TABLE_HEIGHT);
+  botShadow.addColorStop(0, 'rgba(0,0,0,0)');
+  botShadow.addColorStop(1, 'rgba(0,0,0,0.12)');
+  ctx.fillStyle = botShadow;
+  ctx.fillRect(OFFSET, OFFSET + TABLE_HEIGHT - shadowSize, TABLE_WIDTH, shadowSize);
+  // Left edge
+  const leftShadow = ctx.createLinearGradient(OFFSET, OFFSET, OFFSET + shadowSize, OFFSET);
+  leftShadow.addColorStop(0, 'rgba(0,0,0,0.10)');
+  leftShadow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = leftShadow;
+  ctx.fillRect(OFFSET, OFFSET, shadowSize, TABLE_HEIGHT);
+  // Right edge
+  const rightShadow = ctx.createLinearGradient(OFFSET + TABLE_WIDTH - shadowSize, OFFSET, OFFSET + TABLE_WIDTH, OFFSET);
+  rightShadow.addColorStop(0, 'rgba(0,0,0,0)');
+  rightShadow.addColorStop(1, 'rgba(0,0,0,0.10)');
+  ctx.fillStyle = rightShadow;
+  ctx.fillRect(OFFSET + TABLE_WIDTH - shadowSize, OFFSET, shadowSize, TABLE_HEIGHT);
+
+  // Centre line
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(OFFSET + TABLE_WIDTH / 2, OFFSET);
+  ctx.lineTo(OFFSET + TABLE_WIDTH / 2, OFFSET + TABLE_HEIGHT);
+  ctx.stroke();
+
+  // Head string
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  const headX = OFFSET + TABLE_WIDTH * 0.25;
+  ctx.beginPath();
+  ctx.moveTo(headX, OFFSET);
+  ctx.lineTo(headX, OFFSET + TABLE_HEIGHT);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Foot spot
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.beginPath();
+  ctx.arc(OFFSET + TABLE_WIDTH * 0.73, OFFSET + TABLE_HEIGHT / 2, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Pockets — dark void with wear ring
   for (const p of POCKETS) {
-    ctx.fillStyle = '#000';
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#222'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.radius + 1, 0, Math.PI * 2); ctx.stroke();
+    // Wear ring on felt
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius + 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pocket void — radial gradient for depth
+    const pocketGrad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+    pocketGrad.addColorStop(0, '#000000');
+    pocketGrad.addColorStop(0.7, '#030303');
+    pocketGrad.addColorStop(1, POCKET_VOID);
+    ctx.fillStyle = pocketGrad;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pocket rim highlight
+    ctx.strokeStyle = 'rgba(40,20,10,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius + 0.5, 0, Math.PI * 2);
+    ctx.stroke();
   }
 
   // Diamond markers
-  ctx.fillStyle = '#c4a35a';
-  for (const frac of [0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]) {
-    ctx.beginPath(); ctx.arc(OFFSET + TABLE_WIDTH * frac, OFFSET - RAIL_INSET / 2, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(OFFSET + TABLE_WIDTH * frac, OFFSET + TABLE_HEIGHT + RAIL_INSET / 2, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = DIAMOND_COLOR;
+  const diamonds = [0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875];
+  for (const frac of diamonds) {
+    ctx.beginPath();
+    ctx.arc(OFFSET + TABLE_WIDTH * frac, OFFSET - RAIL_INSET / 2, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(OFFSET + TABLE_WIDTH * frac, OFFSET + TABLE_HEIGHT + RAIL_INSET / 2, 2.5, 0, Math.PI * 2);
+    ctx.fill();
   }
-  for (const frac of [0.25, 0.5, 0.75]) {
-    ctx.beginPath(); ctx.arc(OFFSET - RAIL_INSET / 2, OFFSET + TABLE_HEIGHT * frac, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(OFFSET + TABLE_WIDTH + RAIL_INSET / 2, OFFSET + TABLE_HEIGHT * frac, 3, 0, Math.PI * 2); ctx.fill();
+  const sideDiamonds = [0.25, 0.5, 0.75];
+  for (const frac of sideDiamonds) {
+    ctx.beginPath();
+    ctx.arc(OFFSET - RAIL_INSET / 2, OFFSET + TABLE_HEIGHT * frac, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(OFFSET + TABLE_WIDTH + RAIL_INSET / 2, OFFSET + TABLE_HEIGHT * frac, 2.5, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 
@@ -471,16 +605,51 @@ function drawLeaderLine(
 }
 
 function drawPowerMeter(ctx: CanvasRenderingContext2D, power: number) {
-  const meterX = 8, meterY = OFFSET, meterW = 12, meterH = TABLE_HEIGHT;
-  ctx.fillStyle = 'rgba(0,0,0,0.4)';
-  ctx.fillRect(meterX, meterY, meterW, meterH);
-  ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1;
-  ctx.strokeRect(meterX, meterY, meterW, meterH);
-  const fillH = meterH * power;
-  const grad = ctx.createLinearGradient(0, meterY + meterH, 0, meterY);
-  grad.addColorStop(0, '#00cc44'); grad.addColorStop(0.5, '#cccc00'); grad.addColorStop(1, '#cc0000');
-  ctx.fillStyle = grad;
-  ctx.fillRect(meterX + 1, meterY + meterH - fillH, meterW - 2, fillH);
+  const meterW = 16;
+  const meterH = TABLE_HEIGHT - 40;
+  const meterX = 12;
+  const meterY = OFFSET + 20;
+  const r = meterW / 2;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = 'bold 8px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('POWER', meterX + meterW / 2, meterY - 6);
+
+  ctx.beginPath();
+  ctx.moveTo(meterX + r, meterY);
+  ctx.lineTo(meterX + meterW - r, meterY);
+  ctx.arc(meterX + meterW - r, meterY + r, r, -Math.PI / 2, Math.PI / 2);
+  ctx.lineTo(meterX + r, meterY + meterH);
+  ctx.arc(meterX + r, meterY + meterH - r, r, Math.PI / 2, (3 * Math.PI) / 2);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  if (power > 0.01) {
+    const fillH = meterH * power;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(meterX + r, meterY);
+    ctx.lineTo(meterX + meterW - r, meterY);
+    ctx.arc(meterX + meterW - r, meterY + r, r, -Math.PI / 2, Math.PI / 2);
+    ctx.lineTo(meterX + r, meterY + meterH);
+    ctx.arc(meterX + r, meterY + meterH - r, r, Math.PI / 2, (3 * Math.PI) / 2);
+    ctx.closePath();
+    ctx.clip();
+    const grad = ctx.createLinearGradient(0, meterY + meterH, 0, meterY);
+    grad.addColorStop(0, '#2ecc71');
+    grad.addColorStop(0.5, '#f39c12');
+    grad.addColorStop(1, '#e74c3c');
+    ctx.fillStyle = grad;
+    ctx.fillRect(meterX, meterY + meterH - fillH, meterW, fillH);
+    ctx.restore();
+  }
+  ctx.restore();
 }
 
 function drawCueStick(ctx: CanvasRenderingContext2D, ball: Ball, angle: number, power: number) {
@@ -522,16 +691,42 @@ function drawAimLine(ctx: CanvasRenderingContext2D, ball: Ball, angle: number, b
 function drawShotClock(ctx: CanvasRenderingContext2D, secondsLeft: number) {
   const x = OFFSET + TABLE_WIDTH - 5;
   const y = OFFSET + 20;
-  const isWarning = secondsLeft <= SHOT_CLOCK_WARNING;
   ctx.save();
   ctx.font = 'bold 18px monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-  if (isWarning) {
+
+  // Color transitions: white > 8s, amber <= 8s, red <= 4s
+  let color: string;
+  if (secondsLeft <= 4) {
     const p = 0.5 + 0.5 * Math.sin(Date.now() * 0.01);
-    ctx.fillStyle = `rgba(255,${Math.floor(60 * p)},${Math.floor(60 * p)},${0.7 + 0.3 * p})`;
+    color = `rgba(255,${Math.floor(60 * p)},${Math.floor(92 * p)},${0.7 + 0.3 * p})`;
+  } else if (secondsLeft <= 8) {
+    color = '#ffb800';
   } else {
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    color = 'rgba(255,255,255,0.5)';
   }
+
+  ctx.fillStyle = color;
   ctx.fillText(String(Math.ceil(secondsLeft)), x, y);
+
+  // Progress bar below text
+  const barW = 60;
+  const barH = 3;
+  const barX = x - barW;
+  const barY = y + 14;
+  const progress = Math.max(0, secondsLeft / SHOT_CLOCK_SECONDS);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  ctx.fillRect(barX, barY, barW, barH);
+
+  if (secondsLeft <= 4) {
+    ctx.fillStyle = '#ff3b5c';
+  } else if (secondsLeft <= 8) {
+    ctx.fillStyle = '#ffb800';
+  } else {
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  }
+  ctx.fillRect(barX, barY, barW * progress, barH);
+
   ctx.restore();
 }
 
@@ -557,6 +752,13 @@ export default function BullseyePoolPage() {
   } = useGameSession(log);
   useLandscapeLock(phase === 'playing' || phase === 'finished');
   const { isMuted, toggleMute } = useSoundEnabled();
+  const effectsRef = useRef<EffectsManager | null>(null);
+  const audioRef = useRef<GameAudio | null>(null);
+  if (!effectsRef.current) effectsRef.current = new EffectsManager();
+  if (!audioRef.current) audioRef.current = new GameAudio();
+
+  useEffect(() => { audioRef.current?.setMuted(isMuted); }, [isMuted]);
+
   const [showFABPanel, setShowFABPanel] = useState(false);
 
   // ---- Game state ----
@@ -593,6 +795,7 @@ export default function BullseyePoolPage() {
   const shotClockStartRef = useRef<number | null>(null);
   const shotClockFiredRef = useRef(false);
   const [shotClockRemaining, setShotClockRemaining] = useState(SHOT_CLOCK_SECONDS);
+  const lastTickSecRef = useRef<number | null>(null);
 
   // Who shoots when
   const secondShooter = firstShooter === 'A' ? 'B' : 'A';
@@ -649,6 +852,16 @@ export default function BullseyePoolPage() {
   const settleWinner = useCallback((w: 'A' | 'B') => {
     setWinner(w);
     setGamePhase('match_over');
+    if (w === role) {
+      effectsRef.current?.spawn({
+        type: 'particleBurst',
+        x: CANVAS_WIDTH / 2,
+        y: CANVAS_HEIGHT / 2,
+        duration: 1500,
+        particles: generateBurstParticles(60, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
+      });
+      audioRef.current?.playWinChime();
+    }
     resolveGame(w).then(() => {
       const activeBetId = gameState?.betId || betIdRef.current;
       if (activeBetId && authState && !settledRef.current) {
@@ -659,13 +872,21 @@ export default function BullseyePoolPage() {
       }
     });
     syncGameData({ phase: 'match_over', winner: w });
-  }, [resolveGame, gameState, authState, reportAndSettle, syncGameData]);
+  }, [role, resolveGame, gameState, authState, reportAndSettle, syncGameData]);
 
   // ---- Start a new round ----
   const startRound = useCallback((rNum: number, prevQ: number | null) => {
     const placement = placeBullseye(prevQ);
     setBullseye({ x: placement.x, y: placement.y });
     setPrevQuadrant(placement.quadrant);
+
+    effectsRef.current?.spawn({
+      type: 'sonarPing',
+      x: placement.x,
+      y: placement.y,
+      maxRadius: BULLSEYE_OUTER,
+      duration: 600,
+    });
 
     const shooter = rNum % 2 === 1 ? 'A' : 'B';
     setFirstShooter(shooter);
@@ -696,10 +917,38 @@ export default function BullseyePoolPage() {
     ball.vx = Math.cos(angle) * power;
     ball.vy = Math.sin(angle) * power;
 
+    audioRef.current?.ensureContext();
+    effectsRef.current?.spawn({
+      type: 'impact',
+      x: ball.x + Math.cos(angle) * BALL_RADIUS,
+      y: ball.y + Math.sin(angle) * BALL_RADIUS,
+      angle: angle + Math.PI,
+      intensity: power / MAX_SHOT_POWER,
+      duration: 120,
+    });
+    audioRef.current?.playStrike(power / MAX_SHOT_POWER);
+
     const shotResult: ShotResult = { pocketed: [] };
 
+    const handlePhysicsEvent = (event: PhysicsEvent) => {
+      if (event.type === 'collision') {
+        if (effectsRef.current?.spawnCollision(event.x, event.y, event.velocity, 0, 0)) {
+          audioRef.current?.playCollision(event.velocity);
+        }
+      } else if (event.type === 'pocketed') {
+        const color = PLAYER_COLORS[event.ballId as 'A' | 'B'] || '#888';
+        effectsRef.current?.spawn({ type: 'pocketRipple', x: event.pocketX, y: event.pocketY, duration: 300 });
+        effectsRef.current?.spawn({ type: 'ghostBall', x: event.pocketX, y: event.pocketY, color, radius: BALL_RADIUS, duration: 200 });
+        audioRef.current?.playPot();
+      } else if (event.type === 'nearMiss') {
+        if (effectsRef.current?.spawnNearMiss(event.ballId, `${event.pocketX}-${event.pocketY}`)) {
+          audioRef.current?.playNearMiss();
+        }
+      }
+    };
+
     const simulate = () => {
-      for (let i = 0; i < 2; i++) stepPhysics(ballsRef.current, shotResult);
+      for (let i = 0; i < 2; i++) stepPhysics(ballsRef.current, shotResult, handlePhysicsEvent);
       if (!allAtRest(ballsRef.current)) { requestAnimationFrame(simulate); return; }
 
       shootingRef.current = false;
@@ -714,6 +963,16 @@ export default function BullseyePoolPage() {
         const d = b.pocketed ? MAX_DISTANCE : distanceInTableUnits(b.x, b.y, bullseye.x, bullseye.y);
 
         if (firstShooter === 'A') setDistanceA(d); else setDistanceB(d);
+
+        if (!b.pocketed) {
+          const dPx = d * TABLE_UNIT;
+          if (dPx < BULLSEYE_INNER) {
+            effectsRef.current?.spawn({ type: 'bullseyeLanding', x: b.x, y: b.y, zone: 'inner', duration: 400 });
+          } else if (dPx < BULLSEYE_MIDDLE) {
+            effectsRef.current?.spawn({ type: 'bullseyeLanding', x: b.x, y: b.y, zone: 'middle', duration: 300 });
+          }
+          audioRef.current?.playBullseyeSettle(d);
+        }
 
         if (b.pocketed) {
           setStatusMsg(`FOUL! ${firstShooter === 'A' ? 'Player A' : 'Player B'} ball pocketed.`);
@@ -754,6 +1013,16 @@ export default function BullseyePoolPage() {
         const d2 = b.pocketed ? MAX_DISTANCE : distanceInTableUnits(b.x, b.y, bullseye.x, bullseye.y);
 
         if (secondShooter === 'A') setDistanceA(d2); else setDistanceB(d2);
+
+        if (!b.pocketed) {
+          const dPx2 = d2 * TABLE_UNIT;
+          if (dPx2 < BULLSEYE_INNER) {
+            effectsRef.current?.spawn({ type: 'bullseyeLanding', x: b.x, y: b.y, zone: 'inner', duration: 400 });
+          } else if (dPx2 < BULLSEYE_MIDDLE) {
+            effectsRef.current?.spawn({ type: 'bullseyeLanding', x: b.x, y: b.y, zone: 'middle', duration: 300 });
+          }
+          audioRef.current?.playBullseyeSettle(d2);
+        }
 
         // Also re-measure first shooter (might have been knocked)
         const b1 = ballsRef.current.find(bl => bl.id === firstShooter);
@@ -857,7 +1126,7 @@ export default function BullseyePoolPage() {
     const render = () => {
       animFrameRef.current++;
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-      ctx.fillStyle = '#1a1a2e';
+      ctx.fillStyle = BG_SURROUND;
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       drawTable(ctx);
 
@@ -878,7 +1147,18 @@ export default function BullseyePoolPage() {
       }
 
       // Draw balls
-      for (const b of ballsRef.current) drawPlayerBall(ctx, b);
+      const now = performance.now();
+      for (const b of ballsRef.current) {
+        const rattleX = effectsRef.current?.getRattleOffset(b.id, now) ?? 0;
+        if (rattleX !== 0) {
+          const origX = b.x;
+          b.x += rattleX;
+          drawPlayerBall(ctx, b);
+          b.x = origX;
+        } else {
+          drawPlayerBall(ctx, b);
+        }
+      }
 
       // Leader lines (after both settle or after P1 settles)
       const ballA = ballsRef.current.find(b => b.id === 'A');
@@ -904,8 +1184,21 @@ export default function BullseyePoolPage() {
         drawPowerMeter(ctx, shotPowerRef.current);
       }
 
-      // Shot clock
-      if (canShoot && !shootingRef.current) drawShotClock(ctx, shotClockRemaining);
+      // Shot clock now shown in status pill (not on canvas)
+      if (canShoot && !shootingRef.current) {
+        // Shot clock tick sound under 5 seconds
+        if (shotClockRemaining <= 5 && shotClockRemaining > 0) {
+          const sec = Math.ceil(shotClockRemaining);
+          if (lastTickSecRef.current !== sec) {
+            lastTickSecRef.current = sec;
+            audioRef.current?.playTick();
+          }
+        }
+      } else {
+        lastTickSecRef.current = null;
+      }
+
+      effectsRef.current?.render(ctx, now);
 
       frameId = requestAnimationFrame(render);
     };
@@ -996,7 +1289,6 @@ export default function BullseyePoolPage() {
 
   // Touch handlers (with palm rejection, touch offset, expanded target, min drag distance)
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
     if (!canShootRef.current) return;
     const touch = e.touches[0]; if (!touch) return;
     // Palm rejection: only accept first touch
@@ -1014,7 +1306,6 @@ export default function BullseyePoolPage() {
   }, [firstShooter, secondShooter]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
     if (!aimingRef.current || !dragStartRef.current) return;
     // Palm rejection: track only the active touch
     const touch = Array.from(e.touches).find(t => t.identifier === activeTouchIdRef.current);
@@ -1031,26 +1322,56 @@ export default function BullseyePoolPage() {
   }, []);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    if (!aimingRef.current) return;
-    // Palm rejection: only respond to the active touch ending
     const touch = Array.from(e.changedTouches).find(t => t.identifier === activeTouchIdRef.current);
     if (!touch) return;
-    aimingRef.current = false;
+
+    // Clear touch tracking unconditionally to prevent stuck state
     activeTouchIdRef.current = null;
+
+    if (!aimingRef.current) {
+      dragStartRef.current = null;
+      dragCurrentRef.current = null;
+      shotPowerRef.current = 0;
+      return;
+    }
+
+    aimingRef.current = false;
     const start = dragStartRef.current;
     const current = dragCurrentRef.current;
-    dragStartRef.current = null; dragCurrentRef.current = null;
+    dragStartRef.current = null;
+    dragCurrentRef.current = null;
     if (!start || !current) { shotPowerRef.current = 0; return; }
     const dx = start.x - current.x;
     const dy = start.y - current.y;
-    // Min drag distance prevents accidental shots
     if (Math.sqrt(dx * dx + dy * dy) < MIN_DRAG_DISTANCE) { shotPowerRef.current = 0; return; }
     const power = shotPowerRef.current * MAX_SHOT_POWER;
     const angle = aimAngleRef.current;
     shotPowerRef.current = 0;
     executeShot(power, angle);
   }, [executeShot]);
+
+  const handleTouchCancel = useCallback(() => {
+    activeTouchIdRef.current = null;
+    aimingRef.current = false;
+    dragStartRef.current = null;
+    dragCurrentRef.current = null;
+    shotPowerRef.current = 0;
+  }, []);
+
+  // Register native non-passive touch listeners to allow preventDefault
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const prevent = (e: Event) => e.preventDefault();
+    canvas.addEventListener('touchstart', prevent, { passive: false });
+    canvas.addEventListener('touchmove', prevent, { passive: false });
+    canvas.addEventListener('touchend', prevent, { passive: false });
+    return () => {
+      canvas.removeEventListener('touchstart', prevent);
+      canvas.removeEventListener('touchmove', prevent);
+      canvas.removeEventListener('touchend', prevent);
+    };
+  }, []);
 
   // ---- PlayStake integration ----
   const handleRoleSelect = useCallback(async (r: PlayerRole) => {
@@ -1126,51 +1447,37 @@ export default function BullseyePoolPage() {
 
   const isInGame = phase === 'playing' || phase === 'finished';
 
-  // ---- Mobile-specific: compact status for Zone A ----
-  let mobileStatus = '';
-  let mobileStatusColor = 'text-text-muted';
+  // ---- Mobile HUD: status pill message ----
+  let mobileStatusMsg = '';
   if (isInGame) {
     if (winner) {
-      mobileStatus = winner === role ? 'YOU WON' : 'YOU LOST';
-      mobileStatusColor = winner === role ? 'text-brand-400' : 'text-danger-400';
+      mobileStatusMsg = winner === role ? 'You win!' : 'Opponent wins!';
     } else if (canShoot) {
-      mobileStatus = 'YOUR SHOT';
-      mobileStatusColor = 'text-brand-400';
+      const clockStr = shotClockRemaining > 0 ? ` (${Math.ceil(shotClockRemaining)}s)` : '';
+      mobileStatusMsg = `Your shot — aim for the bullseye!${clockStr}`;
     } else if (gamePhase === 'p1_rolling' || gamePhase === 'p2_rolling') {
-      mobileStatus = 'ROLLING';
-      mobileStatusColor = 'text-blue-400';
+      mobileStatusMsg = 'Rolling...';
     } else if (gamePhase === 'round_result' || gamePhase === 'round_transition') {
-      mobileStatus = statusMsg.includes('FOUL') ? 'FOUL' : statusMsg.includes('WINS') ? 'ROUND WON' : 'SCORING';
-      mobileStatusColor = statusMsg.includes('FOUL') ? 'text-danger-400' : statusMsg.includes('WINS') ? 'text-brand-400' : 'text-blue-400';
+      mobileStatusMsg = 'Round over!';
     } else if (!isMyTurn) {
-      mobileStatus = 'WAITING';
-      mobileStatusColor = 'text-warning-400';
+      mobileStatusMsg = "Opponent's turn...";
     }
   }
 
-  // ---- Mobile scoreboard ----
-  const mobileScoreboard = (
-    <div className="flex w-full items-center justify-between">
-      <div className="flex items-center gap-2">
-        <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: '#f5d800' }} />
-        <span className="font-mono text-[11px] font-semibold text-text-primary/90">
-          {role === 'A' ? 'You' : 'P1'}
-        </span>
-        <span className="font-mono text-base font-bold text-text-primary">{scoreA % 1 === 0 ? scoreA : scoreA.toFixed(1)}</span>
-      </div>
-      <span className="font-mono text-[10px] text-text-muted">vs</span>
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-base font-bold text-text-primary">{scoreB % 1 === 0 ? scoreB : scoreB.toFixed(1)}</span>
-        <span className="font-mono text-[11px] font-semibold text-text-primary/90">
-          {role === 'B' ? 'You' : 'P2'}
-        </span>
-        <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: '#0055cc' }} />
-      </div>
-      <span className="font-mono text-[10px] text-text-muted">
-        RD {roundNumber} · FT {ROUNDS_TO_WIN}
-      </span>
+  // ---- Mobile HUD: player trackers ----
+  const p1Tracker = (
+    <div className="flex items-center gap-1">
+      <span className="font-mono text-sm font-bold text-white">{scoreA % 1 === 0 ? scoreA : scoreA.toFixed(1)}</span>
+      <span className="font-mono text-[8px] text-white/40">/{ROUNDS_TO_WIN}</span>
     </div>
   );
+  const p2Tracker = (
+    <div className="flex items-center gap-1">
+      <span className="font-mono text-sm font-bold text-white">{scoreB % 1 === 0 ? scoreB : scoreB.toFixed(1)}</span>
+      <span className="font-mono text-[8px] text-white/40">/{ROUNDS_TO_WIN}</span>
+    </div>
+  );
+  const wagerDisplay = betAmountCents > 0 ? `$${(betAmountCents / 100).toFixed(2)}` : undefined;
 
   return (
     <div className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${isInGame ? 'game-fullscreen-mobile' : ''}`}>
@@ -1178,6 +1485,7 @@ export default function BullseyePoolPage() {
       {isInGame && showFABPanel && (
         <GameMobileFAB
           onExit={() => window.location.reload()}
+          onClose={() => setShowFABPanel(false)}
           betAmount={betAmountCents || undefined}
           betStatus={gameState?.status === 'finished' ? 'settled' : 'in progress'}
           turnInfo={statusMsg}
@@ -1247,13 +1555,18 @@ export default function BullseyePoolPage() {
 
               {/* Mobile chrome: Zone A (top bar) + Zone C (scoreboard) */}
               <MobileGameChrome
+                player1Name={role === 'A' ? 'You' : 'Player 1'}
+                player2Name={role === 'B' ? 'You' : 'Player 2'}
+                isPlayer1Turn={currentShooter === 'A'}
+                player1Tracker={p1Tracker}
+                player2Tracker={p2Tracker}
+                wagerAmount={wagerDisplay}
+                gameType="BULLSEYE"
                 onExit={() => window.location.reload()}
-                statusText={mobileStatus}
-                statusColor={mobileStatusColor}
                 isMuted={isMuted}
                 onSoundToggle={toggleMute}
                 onFABTap={() => setShowFABPanel(true)}
-                scoreboard={mobileScoreboard}
+                statusMessage={mobileStatusMsg}
               >
                 {/* Canvas */}
                 <div className="relative">
@@ -1263,7 +1576,7 @@ export default function BullseyePoolPage() {
                     style={{ maxWidth: `${CANVAS_WIDTH}px`, touchAction: 'none' }}
                     onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
-                    onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
+                    onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel}
                   />
                 </div>
               </MobileGameChrome>

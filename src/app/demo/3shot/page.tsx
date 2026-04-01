@@ -8,6 +8,8 @@ import { useSoundEnabled } from '@/hooks/useSoundEnabled';
 import { RotatePrompt } from '@/components/ui/RotatePrompt';
 import { MobileGameChrome } from '@/components/ui/MobileGameChrome';
 import { GameMobileFAB } from '@/components/ui/GameMobileFAB';
+import { EffectsManager, generateBurstParticles, type PhysicsEvent } from '../_shared/game-effects';
+import { GameAudio } from '../_shared/game-audio';
 import { useEventLog } from '../_shared/use-event-log';
 import { useDemoAuth } from '../_shared/use-demo-auth';
 import { useGameSession } from '../_shared/use-game-session';
@@ -40,8 +42,14 @@ const TOUCH_TARGET_RADIUS = BALL_RADIUS * 8;
 const CANVAS_WIDTH = TABLE_WIDTH + RAIL_INSET * 2 + 20;
 const CANVAS_HEIGHT = TABLE_HEIGHT + RAIL_INSET * 2 + 20;
 
-const FELT_COLOR = '#0a5c36';
-const RAIL_COLOR = '#3d1f0a';
+// Premium table visuals
+const BG_SURROUND = '#0d1b2a';
+const FELT_COLOR = '#0a6e3a';
+const RAIL_OUTER = '#4a1a0a';
+const RAIL_INNER = '#7a3018';
+const RAIL_HIGHLIGHT = '#5c2010';
+const POCKET_VOID = '#050505';
+const DIAMOND_COLOR = '#d4a868';
 
 // 3-Shot specific
 const SHOTS_PER_PLAYER = 3;
@@ -201,7 +209,7 @@ function allAtRest(balls: Ball[]): boolean {
   return balls.every(b => b.pocketed || (Math.abs(b.vx) < VELOCITY_THRESHOLD && Math.abs(b.vy) < VELOCITY_THRESHOLD));
 }
 
-function stepPhysics(balls: Ball[], shotResult: ShotResult): void {
+function stepPhysics(balls: Ball[], shotResult: ShotResult, onEvent?: (e: PhysicsEvent) => void): void {
   const activeBalls = balls.filter(b => !b.pocketed);
 
   for (const b of activeBalls) {
@@ -245,6 +253,13 @@ function stepPhysics(balls: Ball[], shotResult: ShotResult): void {
           b.vx += dot * nx * BALL_RESTITUTION;
           b.vy += dot * ny * BALL_RESTITUTION;
         }
+
+        if (onEvent) {
+          const relVel = Math.sqrt(dvx * dvx + dvy * dvy);
+          if (relVel > 3) {
+            onEvent({ type: 'collision', x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, velocity: relVel });
+          }
+        }
       }
     }
   }
@@ -266,8 +281,10 @@ function stepPhysics(balls: Ball[], shotResult: ShotResult): void {
   }
 
   for (const b of activeBalls) {
-    for (const p of POCKETS) {
-      if (dist(b.x, b.y, p.x, p.y) < p.radius) {
+    for (let pi = 0; pi < POCKETS.length; pi++) {
+      const p = POCKETS[pi];
+      const d = dist(b.x, b.y, p.x, p.y);
+      if (d < p.radius) {
         b.pocketed = true;
         b.vx = 0;
         b.vy = 0;
@@ -276,7 +293,12 @@ function stepPhysics(balls: Ball[], shotResult: ShotResult): void {
         } else {
           shotResult.pocketed.push(b.id);
         }
+        if (onEvent) {
+          onEvent({ type: 'pocketed', ballId: b.id, pocketX: p.x, pocketY: p.y });
+        }
         break;
+      } else if (onEvent && d < p.radius * 2.5 && (b.vx * b.vx + b.vy * b.vy) > 4) {
+        onEvent({ type: 'nearMiss', ballId: b.id, pocketX: p.x, pocketY: p.y });
       }
     }
   }
@@ -405,28 +427,91 @@ function lightenColor(hex: string, percent: number): string {
 }
 
 function drawTable(ctx: CanvasRenderingContext2D): void {
-  ctx.fillStyle = RAIL_COLOR;
-  ctx.fillRect(OFFSET - RAIL_INSET, OFFSET - RAIL_INSET, TABLE_WIDTH + RAIL_INSET * 2, TABLE_HEIGHT + RAIL_INSET * 2);
+  const rx = OFFSET - RAIL_INSET;
+  const ry = OFFSET - RAIL_INSET;
+  const rw = TABLE_WIDTH + RAIL_INSET * 2;
+  const rh = TABLE_HEIGHT + RAIL_INSET * 2;
 
-  ctx.fillStyle = '#5a3520';
-  ctx.fillRect(OFFSET - RAIL_INSET + 4, OFFSET - RAIL_INSET + 4,
-    TABLE_WIDTH + RAIL_INSET * 2 - 8, TABLE_HEIGHT + RAIL_INSET * 2 - 8);
-  ctx.fillStyle = RAIL_COLOR;
-  ctx.fillRect(OFFSET - 2, OFFSET - 2, TABLE_WIDTH + 4, TABLE_HEIGHT + 4);
+  // Outer rail body — gradient for 3D depth
+  const railGrad = ctx.createLinearGradient(rx, ry, rx, ry + rh);
+  railGrad.addColorStop(0, RAIL_HIGHLIGHT);
+  railGrad.addColorStop(0.15, RAIL_OUTER);
+  railGrad.addColorStop(0.85, RAIL_OUTER);
+  railGrad.addColorStop(1, '#2a0e04');
+  ctx.fillStyle = railGrad;
+  ctx.fillRect(rx, ry, rw, rh);
 
+  // Outer rail subtle border
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1);
+
+  // Inner cushion face — brighter strip along inner edge
+  ctx.fillStyle = RAIL_INNER;
+  ctx.fillRect(OFFSET - 4, OFFSET - 4, TABLE_WIDTH + 8, TABLE_HEIGHT + 8);
+
+  // Inner rail border — darker line separating cushion from felt
+  ctx.fillStyle = RAIL_OUTER;
+  ctx.fillRect(OFFSET - 1.5, OFFSET - 1.5, TABLE_WIDTH + 3, TABLE_HEIGHT + 3);
+
+  // Felt surface
   ctx.fillStyle = FELT_COLOR;
   ctx.fillRect(OFFSET, OFFSET, TABLE_WIDTH, TABLE_HEIGHT);
 
-  ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+  // Felt texture — two layers of faint lines simulating woven fabric
+  ctx.strokeStyle = 'rgba(0,0,0,0.04)';
   ctx.lineWidth = 0.5;
-  for (let y = OFFSET; y < OFFSET + TABLE_HEIGHT; y += 8) {
+  for (let y = OFFSET; y < OFFSET + TABLE_HEIGHT; y += 6) {
+    ctx.beginPath();
+    ctx.moveTo(OFFSET, y);
+    ctx.lineTo(OFFSET + TABLE_WIDTH, y);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+  for (let y = OFFSET + 3; y < OFFSET + TABLE_HEIGHT; y += 10) {
     ctx.beginPath();
     ctx.moveTo(OFFSET, y);
     ctx.lineTo(OFFSET + TABLE_WIDTH, y);
     ctx.stroke();
   }
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  // Felt inner shadow — subtle edge darkening for concave depth
+  const shadowSize = 15;
+  // Top edge
+  const topShadow = ctx.createLinearGradient(OFFSET, OFFSET, OFFSET, OFFSET + shadowSize);
+  topShadow.addColorStop(0, 'rgba(0,0,0,0.12)');
+  topShadow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = topShadow;
+  ctx.fillRect(OFFSET, OFFSET, TABLE_WIDTH, shadowSize);
+  // Bottom edge
+  const botShadow = ctx.createLinearGradient(OFFSET, OFFSET + TABLE_HEIGHT - shadowSize, OFFSET, OFFSET + TABLE_HEIGHT);
+  botShadow.addColorStop(0, 'rgba(0,0,0,0)');
+  botShadow.addColorStop(1, 'rgba(0,0,0,0.12)');
+  ctx.fillStyle = botShadow;
+  ctx.fillRect(OFFSET, OFFSET + TABLE_HEIGHT - shadowSize, TABLE_WIDTH, shadowSize);
+  // Left edge
+  const leftShadow = ctx.createLinearGradient(OFFSET, OFFSET, OFFSET + shadowSize, OFFSET);
+  leftShadow.addColorStop(0, 'rgba(0,0,0,0.10)');
+  leftShadow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = leftShadow;
+  ctx.fillRect(OFFSET, OFFSET, shadowSize, TABLE_HEIGHT);
+  // Right edge
+  const rightShadow = ctx.createLinearGradient(OFFSET + TABLE_WIDTH - shadowSize, OFFSET, OFFSET + TABLE_WIDTH, OFFSET);
+  rightShadow.addColorStop(0, 'rgba(0,0,0,0)');
+  rightShadow.addColorStop(1, 'rgba(0,0,0,0.10)');
+  ctx.fillStyle = rightShadow;
+  ctx.fillRect(OFFSET + TABLE_WIDTH - shadowSize, OFFSET, shadowSize, TABLE_HEIGHT);
+
+  // Centre line
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(OFFSET + TABLE_WIDTH / 2, OFFSET);
+  ctx.lineTo(OFFSET + TABLE_WIDTH / 2, OFFSET + TABLE_HEIGHT);
+  ctx.stroke();
+
+  // Head string
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 4]);
   const headX = OFFSET + TABLE_WIDTH * 0.25;
@@ -436,63 +521,106 @@ function drawTable(ctx: CanvasRenderingContext2D): void {
   ctx.stroke();
   ctx.setLineDash([]);
 
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  // Foot spot
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
   ctx.beginPath();
-  ctx.arc(OFFSET + TABLE_WIDTH * 0.73, OFFSET + TABLE_HEIGHT / 2, 3, 0, Math.PI * 2);
+  ctx.arc(OFFSET + TABLE_WIDTH * 0.73, OFFSET + TABLE_HEIGHT / 2, 2.5, 0, Math.PI * 2);
   ctx.fill();
 
+  // Pockets — dark void with wear ring
   for (const p of POCKETS) {
-    ctx.fillStyle = '#000';
+    // Wear ring on felt
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius + 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pocket void — radial gradient for depth
+    const pocketGrad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+    pocketGrad.addColorStop(0, '#000000');
+    pocketGrad.addColorStop(0.7, '#030303');
+    pocketGrad.addColorStop(1, POCKET_VOID);
+    ctx.fillStyle = pocketGrad;
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#222';
-    ctx.lineWidth = 2;
+
+    // Pocket rim highlight
+    ctx.strokeStyle = 'rgba(40,20,10,0.6)';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.radius + 1, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, p.radius + 0.5, 0, Math.PI * 2);
     ctx.stroke();
   }
 
-  ctx.fillStyle = '#c4a35a';
+  // Diamond markers
+  ctx.fillStyle = DIAMOND_COLOR;
   const diamonds = [0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875];
   for (const frac of diamonds) {
     ctx.beginPath();
-    ctx.arc(OFFSET + TABLE_WIDTH * frac, OFFSET - RAIL_INSET / 2, 3, 0, Math.PI * 2);
+    ctx.arc(OFFSET + TABLE_WIDTH * frac, OFFSET - RAIL_INSET / 2, 2.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(OFFSET + TABLE_WIDTH * frac, OFFSET + TABLE_HEIGHT + RAIL_INSET / 2, 3, 0, Math.PI * 2);
+    ctx.arc(OFFSET + TABLE_WIDTH * frac, OFFSET + TABLE_HEIGHT + RAIL_INSET / 2, 2.5, 0, Math.PI * 2);
     ctx.fill();
   }
   const sideDiamonds = [0.25, 0.5, 0.75];
   for (const frac of sideDiamonds) {
     ctx.beginPath();
-    ctx.arc(OFFSET - RAIL_INSET / 2, OFFSET + TABLE_HEIGHT * frac, 3, 0, Math.PI * 2);
+    ctx.arc(OFFSET - RAIL_INSET / 2, OFFSET + TABLE_HEIGHT * frac, 2.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(OFFSET + TABLE_WIDTH + RAIL_INSET / 2, OFFSET + TABLE_HEIGHT * frac, 3, 0, Math.PI * 2);
+    ctx.arc(OFFSET + TABLE_WIDTH + RAIL_INSET / 2, OFFSET + TABLE_HEIGHT * frac, 2.5, 0, Math.PI * 2);
     ctx.fill();
   }
 }
 
 function drawPowerMeter(ctx: CanvasRenderingContext2D, power: number): void {
-  const meterX = 8;
-  const meterY = OFFSET;
-  const meterW = 12;
-  const meterH = TABLE_HEIGHT;
+  const meterW = 16;
+  const meterH = TABLE_HEIGHT - 40;
+  const meterX = 12;
+  const meterY = OFFSET + 20;
+  const r = meterW / 2;
 
-  ctx.fillStyle = 'rgba(0,0,0,0.4)';
-  ctx.fillRect(meterX, meterY, meterW, meterH);
-  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = 'bold 8px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('POWER', meterX + meterW / 2, meterY - 6);
+
+  ctx.beginPath();
+  ctx.moveTo(meterX + r, meterY);
+  ctx.lineTo(meterX + meterW - r, meterY);
+  ctx.arc(meterX + meterW - r, meterY + r, r, -Math.PI / 2, Math.PI / 2);
+  ctx.lineTo(meterX + r, meterY + meterH);
+  ctx.arc(meterX + r, meterY + meterH - r, r, Math.PI / 2, (3 * Math.PI) / 2);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
   ctx.lineWidth = 1;
-  ctx.strokeRect(meterX, meterY, meterW, meterH);
+  ctx.stroke();
 
-  const fillH = meterH * power;
-  const grad = ctx.createLinearGradient(0, meterY + meterH, 0, meterY);
-  grad.addColorStop(0, '#00cc44');
-  grad.addColorStop(0.5, '#cccc00');
-  grad.addColorStop(1, '#cc0000');
-  ctx.fillStyle = grad;
-  ctx.fillRect(meterX + 1, meterY + meterH - fillH, meterW - 2, fillH);
+  if (power > 0.01) {
+    const fillH = meterH * power;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(meterX + r, meterY);
+    ctx.lineTo(meterX + meterW - r, meterY);
+    ctx.arc(meterX + meterW - r, meterY + r, r, -Math.PI / 2, Math.PI / 2);
+    ctx.lineTo(meterX + r, meterY + meterH);
+    ctx.arc(meterX + r, meterY + meterH - r, r, Math.PI / 2, (3 * Math.PI) / 2);
+    ctx.closePath();
+    ctx.clip();
+    const grad = ctx.createLinearGradient(0, meterY + meterH, 0, meterY);
+    grad.addColorStop(0, '#2ecc71');
+    grad.addColorStop(0.5, '#f39c12');
+    grad.addColorStop(1, '#e74c3c');
+    ctx.fillStyle = grad;
+    ctx.fillRect(meterX, meterY + meterH - fillH, meterW, fillH);
+    ctx.restore();
+  }
+  ctx.restore();
 }
 
 function drawCueStick(
@@ -591,22 +719,44 @@ function drawShotClock(ctx: CanvasRenderingContext2D, secondsLeft: number): void
   const x = OFFSET + TABLE_WIDTH - 5;
   const y = OFFSET + 20;
 
-  const isWarning = secondsLeft <= SHOT_CLOCK_WARNING;
   const displayTime = Math.ceil(secondsLeft);
+
+  // Color transitions: white > 8s, amber <= 8s, red <= 4s
+  let color: string;
+  let alpha = 1;
+  if (secondsLeft <= 3) {
+    const pulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.01);
+    alpha = 0.7 + 0.3 * pulse;
+    color = `rgba(255,59,92,${alpha})`;
+  } else if (secondsLeft <= 4) {
+    color = `rgba(255,59,92,0.9)`;
+  } else if (secondsLeft <= 8) {
+    color = `rgba(255,184,0,0.8)`;
+  } else {
+    color = 'rgba(255,255,255,0.5)';
+  }
 
   ctx.save();
   ctx.font = 'bold 18px monospace';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
-
-  if (isWarning) {
-    const pulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.01);
-    ctx.fillStyle = `rgba(255,${Math.floor(60 * pulse)},${Math.floor(60 * pulse)},${0.7 + 0.3 * pulse})`;
-  } else {
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  }
-
+  ctx.fillStyle = color;
   ctx.fillText(String(displayTime), x, y);
+
+  // Progress bar below text
+  const barWidth = 40;
+  const barX = x - barWidth;
+  const barY = y + 12;
+  const progress = secondsLeft / SHOT_CLOCK_SECONDS;
+
+  // Bar background
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  ctx.fillRect(barX, barY, barWidth, 3);
+
+  // Bar fill
+  ctx.fillStyle = color;
+  ctx.fillRect(barX, barY, barWidth * progress, 3);
+
   ctx.restore();
 }
 
@@ -700,6 +850,14 @@ export default function ThreeShotPoolPage() {
   } = useGameSession(log);
   useLandscapeLock(phase === 'playing' || phase === 'finished');
   const { isMuted, toggleMute } = useSoundEnabled();
+  const effectsRef = useRef<EffectsManager | null>(null);
+  const audioRef = useRef<GameAudio | null>(null);
+  if (!effectsRef.current) effectsRef.current = new EffectsManager();
+  if (!audioRef.current) audioRef.current = new GameAudio();
+  const lastTickSecRef = useRef(0);
+
+  useEffect(() => { audioRef.current?.setMuted(isMuted); }, [isMuted]);
+
   const [showFABPanel, setShowFABPanel] = useState(false);
 
   // ---- 3-Shot specific state ----
@@ -825,6 +983,17 @@ export default function ThreeShotPoolPage() {
     setWinner(w);
     setGamePhase('game_over');
 
+    if (w === role) {
+      effectsRef.current?.spawn({
+        type: 'particleBurst',
+        x: CANVAS_WIDTH / 2,
+        y: CANVAS_HEIGHT / 2,
+        duration: 1500,
+        particles: generateBurstParticles(60, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
+      });
+      audioRef.current?.playWinChime();
+    }
+
     resolveGame(w).then(() => {
       const activeBetId = gameState?.betId || betIdRef.current;
       if (activeBetId && authState && !settledRef.current) {
@@ -839,7 +1008,7 @@ export default function ThreeShotPoolPage() {
     });
 
     syncGameData({ phase: 'game_over', winner: w });
-  }, [resolveGame, gameState, authState, reportAndSettle, syncGameData]);
+  }, [resolveGame, gameState, authState, reportAndSettle, syncGameData, role]);
 
   // ---- Respot cue ball helper ----
   const respotCueBall = useCallback(() => {
@@ -876,6 +1045,17 @@ export default function ThreeShotPoolPage() {
     cueBall.vx = Math.cos(angle) * power;
     cueBall.vy = Math.sin(angle) * power;
 
+    audioRef.current?.ensureContext();
+    effectsRef.current?.spawn({
+      type: 'impact',
+      x: cueBall.x + Math.cos(angle) * BALL_RADIUS,
+      y: cueBall.y + Math.sin(angle) * BALL_RADIUS,
+      angle: angle + Math.PI,
+      intensity: power / MAX_SHOT_POWER,
+      duration: 120,
+    });
+    audioRef.current?.playStrike(power / MAX_SHOT_POWER);
+
     const shotResult: ShotResult = {
       firstContact: null,
       pocketed: [],
@@ -884,9 +1064,26 @@ export default function ThreeShotPoolPage() {
       contactMade: false,
     };
 
+    const handlePhysicsEvent = (event: PhysicsEvent) => {
+      if (event.type === 'collision') {
+        if (effectsRef.current?.spawnCollision(event.x, event.y, event.velocity, 0, 0)) {
+          audioRef.current?.playCollision(event.velocity);
+        }
+      } else if (event.type === 'pocketed') {
+        const color = BALL_COLORS[event.ballId as number] || '#888';
+        effectsRef.current?.spawn({ type: 'pocketRipple', x: event.pocketX, y: event.pocketY, duration: 300 });
+        effectsRef.current?.spawn({ type: 'ghostBall', x: event.pocketX, y: event.pocketY, color, radius: BALL_RADIUS, duration: 200 });
+        audioRef.current?.playPot();
+      } else if (event.type === 'nearMiss') {
+        if (effectsRef.current?.spawnNearMiss(event.ballId, `${event.pocketX}-${event.pocketY}`)) {
+          audioRef.current?.playNearMiss();
+        }
+      }
+    };
+
     const simulate = () => {
       for (let i = 0; i < 2; i++) {
-        stepPhysics(ballsRef.current, shotResult);
+        stepPhysics(ballsRef.current, shotResult, handlePhysicsEvent);
       }
 
       if (!allAtRest(ballsRef.current)) {
@@ -1054,21 +1251,19 @@ export default function ThreeShotPoolPage() {
         const newRemaining = shotsRemainingA - 1;
         setShotsRemainingA(newRemaining);
 
-        setGamePhase('p1_result');
+        const objectBallsLeft = ballsRef.current.filter(b => b.id !== 0 && !b.pocketed).length;
 
-        setTimeout(() => {
-          setShotResultMsg(null);
-          // Check if remaining object balls exist
-          const objectBallsLeft = ballsRef.current.filter(b => b.id !== 0 && !b.pocketed).length;
+        if (newRemaining <= 0 || objectBallsLeft === 0) {
+          // P1 done — show result then transition
+          setGamePhase('p1_result');
 
-          if (newRemaining <= 0 || objectBallsLeft === 0) {
-            // P1 done
+          setTimeout(() => {
+            setShotResultMsg(null);
             setGamePhase('p1_complete');
             log(`Player 1 finished. Score: ${newScore}`, 'success');
 
             setTimeout(() => {
               if (objectBallsLeft === 0) {
-                // All balls potted — P2 has nothing to shoot at
                 setGamePhase('scoring');
                 setTimeout(() => {
                   if (newScore > scoreB) {
@@ -1076,7 +1271,6 @@ export default function ThreeShotPoolPage() {
                   } else if (scoreB > newScore) {
                     settleWinner('B');
                   } else {
-                    // Tie — but no balls for OT. Go to forced tiebreak.
                     setOtRound(1);
                     setGamePhase('forced_tiebreak_announce');
                     respotCueBall();
@@ -1087,10 +1281,8 @@ export default function ThreeShotPoolPage() {
                   }
                 }, TURN_COMPLETE_DISPLAY_MS);
               } else {
-                // P2's turn
                 setGamePhase('p2_setup');
                 respotCueBall();
-
                 setTimeout(() => {
                   setGamePhase('p2_shooting');
                   syncGameData({
@@ -1103,18 +1295,20 @@ export default function ThreeShotPoolPage() {
                 }, P2_SETUP_PAUSE_MS);
               }
             }, TURN_COMPLETE_DISPLAY_MS);
-          } else {
-            // P1 has more shots
-            setGamePhase('p1_shooting');
-            syncGameData({
-              phase: 'p1_shooting',
-              scoreA: newScore,
-              shotsRemainingA: newRemaining,
-              lastShot: lastShotData,
-              shotNumber: shotNum,
-            });
-          }
-        }, SHOT_RESULT_DISPLAY_MS);
+          }, SHOT_RESULT_DISPLAY_MS);
+        } else {
+          // P1 has more shots — transition immediately so aiming is re-enabled
+          setGamePhase('p1_shooting');
+          syncGameData({
+            phase: 'p1_shooting',
+            scoreA: newScore,
+            shotsRemainingA: newRemaining,
+            lastShot: lastShotData,
+            shotNumber: shotNum,
+          });
+          // Clear result message after display period
+          setTimeout(() => { setShotResultMsg(null); }, SHOT_RESULT_DISPLAY_MS);
+        }
         return;
       }
 
@@ -1125,14 +1319,14 @@ export default function ThreeShotPoolPage() {
         const newRemaining = shotsRemainingB - 1;
         setShotsRemainingB(newRemaining);
 
-        setGamePhase('p2_result');
+        const objectBallsLeft = ballsRef.current.filter(b => b.id !== 0 && !b.pocketed).length;
 
-        setTimeout(() => {
-          setShotResultMsg(null);
-          const objectBallsLeft = ballsRef.current.filter(b => b.id !== 0 && !b.pocketed).length;
+        if (newRemaining <= 0 || objectBallsLeft === 0) {
+          // P2 done — show result then transition
+          setGamePhase('p2_result');
 
-          if (newRemaining <= 0 || objectBallsLeft === 0) {
-            // P2 done — go to scoring
+          setTimeout(() => {
+            setShotResultMsg(null);
             setGamePhase('scoring');
             log(`Player 2 finished. Score: ${newScore}`, 'success');
 
@@ -1142,10 +1336,8 @@ export default function ThreeShotPoolPage() {
               } else if (newScore > scoreA) {
                 settleWinner('B');
               } else {
-                // Tie — overtime
                 const objectBallsRemain = ballsRef.current.filter(b => b.id !== 0 && !b.pocketed).length;
                 if (objectBallsRemain === 0) {
-                  // No balls — forced tiebreak
                   setOtRound(1);
                   setGamePhase('forced_tiebreak_announce');
                   respotCueBall();
@@ -1159,7 +1351,6 @@ export default function ThreeShotPoolPage() {
                   setOtScoreB(0);
                   setGamePhase('overtime_announce');
                   respotCueBall();
-
                   setTimeout(() => {
                     setGamePhase('ot_p1_shooting');
                     syncGameData({
@@ -1176,18 +1367,19 @@ export default function ThreeShotPoolPage() {
                 }
               }
             }, TURN_COMPLETE_DISPLAY_MS);
-          } else {
-            // P2 has more shots
-            setGamePhase('p2_shooting');
-            syncGameData({
-              phase: 'p2_shooting',
-              scoreB: newScore,
-              shotsRemainingB: newRemaining,
-              lastShot: lastShotData,
-              shotNumber: shotNum,
-            });
-          }
-        }, SHOT_RESULT_DISPLAY_MS);
+          }, SHOT_RESULT_DISPLAY_MS);
+        } else {
+          // P2 has more shots — transition immediately so aiming is re-enabled
+          setGamePhase('p2_shooting');
+          syncGameData({
+            phase: 'p2_shooting',
+            scoreB: newScore,
+            shotsRemainingB: newRemaining,
+            lastShot: lastShotData,
+            shotNumber: shotNum,
+          });
+          setTimeout(() => { setShotResultMsg(null); }, SHOT_RESULT_DISPLAY_MS);
+        }
         return;
       }
     };
@@ -1219,7 +1411,7 @@ export default function ThreeShotPoolPage() {
       animFrameRef.current++;
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      ctx.fillStyle = '#1a1a2e';
+      ctx.fillStyle = BG_SURROUND;
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
       drawTable(ctx);
@@ -1250,8 +1442,17 @@ export default function ThreeShotPoolPage() {
         }
       }
 
+      const now = performance.now();
       for (const b of ballsRef.current) {
-        drawBall(ctx, b);
+        const rattleX = effectsRef.current?.getRattleOffset(b.id, now) ?? 0;
+        if (rattleX !== 0) {
+          const origX = b.x;
+          b.x += rattleX;
+          drawBall(ctx, b);
+          b.x = origX;
+        } else {
+          drawBall(ctx, b);
+        }
       }
 
       // Aiming visuals
@@ -1262,10 +1463,18 @@ export default function ThreeShotPoolPage() {
         drawPowerMeter(ctx, shotPowerRef.current);
       }
 
-      // Shot clock
-      if (canShoot && !shootingRef.current) {
-        drawShotClock(ctx, shotClockRemaining);
+      // Shot clock now shown in status pill (not on canvas)
+
+      // Shot clock tick audio
+      if (shotClockRemaining !== null && shotClockRemaining <= 5) {
+        const sec = Math.ceil(shotClockRemaining);
+        if (sec !== lastTickSecRef.current && sec > 0) {
+          lastTickSecRef.current = sec;
+          audioRef.current?.playTick();
+        }
       }
+
+      effectsRef.current?.render(ctx, now);
 
       frameId = requestAnimationFrame(render);
     };
@@ -1409,7 +1618,6 @@ export default function ThreeShotPoolPage() {
   }, []);
 
   const handleCanvasTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
     if (!canShootRef.current) return;
     if (shootingRef.current || winnerRef.current) return;
     if (phaseRef.current !== 'playing') return;
@@ -1435,7 +1643,6 @@ export default function ThreeShotPoolPage() {
   }, [getTouchCanvasPos]);
 
   const handleCanvasTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
     if (!aimingRef.current || !dragStartRef.current) return;
     // Palm rejection: track only the active touch
     const touch = Array.from(e.touches).find(t => t.identifier === activeTouchIdRef.current);
@@ -1452,13 +1659,22 @@ export default function ThreeShotPoolPage() {
   }, [getTouchCanvasPos]);
 
   const handleCanvasTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    if (!aimingRef.current) return;
-    // Palm rejection: only respond to the active touch ending
+    // Always check if the active touch ended — clear it regardless of aiming state
     const touch = Array.from(e.changedTouches).find(t => t.identifier === activeTouchIdRef.current);
     if (!touch) return;
-    aimingRef.current = false;
+
+    // Clear touch tracking unconditionally to prevent stuck state
     activeTouchIdRef.current = null;
+
+    if (!aimingRef.current) {
+      // Touch ended but we weren't aiming — just clean up
+      dragStartRef.current = null;
+      dragCurrentRef.current = null;
+      shotPowerRef.current = 0;
+      return;
+    }
+
+    aimingRef.current = false;
     const start = dragStartRef.current;
     const current = dragCurrentRef.current;
     dragStartRef.current = null;
@@ -1479,6 +1695,31 @@ export default function ThreeShotPoolPage() {
     shotPowerRef.current = 0;
     executeShot(power, angle);
   }, [executeShot]);
+
+  // Touch cancel — clean up all touch state to prevent stuck interactions
+  const handleCanvasTouchCancel = useCallback(() => {
+    activeTouchIdRef.current = null;
+    aimingRef.current = false;
+    dragStartRef.current = null;
+    dragCurrentRef.current = null;
+    shotPowerRef.current = 0;
+  }, []);
+
+  // Register native non-passive touch listeners to allow preventDefault
+  // React registers touch listeners as passive, making preventDefault fail
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const prevent = (e: Event) => e.preventDefault();
+    canvas.addEventListener('touchstart', prevent, { passive: false });
+    canvas.addEventListener('touchmove', prevent, { passive: false });
+    canvas.addEventListener('touchend', prevent, { passive: false });
+    return () => {
+      canvas.removeEventListener('touchstart', prevent);
+      canvas.removeEventListener('touchmove', prevent);
+      canvas.removeEventListener('touchend', prevent);
+    };
+  }, []);
 
   // ---- PlayStake integration ----
   const handleRoleSelect = useCallback(async (r: PlayerRole) => {
@@ -1668,83 +1909,64 @@ export default function ThreeShotPoolPage() {
 
   const isInGame = phase === 'playing' || phase === 'finished';
 
-  // Mobile status
-  let mobileStatus = '';
-  let mobileStatusColor = 'text-text-muted';
+  // Mobile HUD: status pill message
+  let mobileStatusMsg = '';
   if (isInGame) {
     if (winner) {
-      mobileStatus = winner === role ? 'YOU WON' : 'YOU LOST';
-      mobileStatusColor = winner === role ? 'text-brand-400' : 'text-danger-400';
-    } else if (gamePhase === 'overtime_announce' || gamePhase === 'forced_tiebreak_announce') {
-      mobileStatus = gamePhase === 'overtime_announce' ? 'OVERTIME' : 'TIEBREAK';
-      mobileStatusColor = 'text-yellow-400';
+      mobileStatusMsg = winner === role ? 'You win!' : 'Opponent wins!';
+    } else if (gamePhase === 'overtime_announce') {
+      mobileStatusMsg = `Overtime! Tied ${scoreA}-${scoreB}`;
+    } else if (gamePhase === 'forced_tiebreak_announce') {
+      mobileStatusMsg = 'Final tiebreak — closest to center wins';
+    } else if (gamePhase === 'p1_break' && isMyTurn) {
+      mobileStatusMsg = 'Your break — good luck!';
+    } else if (gamePhase === 'p1_break' && !isMyTurn) {
+      mobileStatusMsg = "Opponent's break...";
     } else if (isMyTurn && canShoot) {
-      mobileStatus = gamePhase === 'p1_break' ? 'YOUR BREAK' : 'YOUR SHOT';
-      mobileStatusColor = 'text-brand-400';
+      const shots = currentShooter === 'A' ? shotsRemainingA : shotsRemainingB;
+      const clockStr = shotClockRemaining > 0 ? ` (${Math.ceil(shotClockRemaining)}s)` : '';
+      if (gamePhase.startsWith('ot_')) {
+        mobileStatusMsg = `Overtime Rd ${otRound} — your shot!${clockStr}`;
+      } else if (gamePhase.startsWith('ft_')) {
+        mobileStatusMsg = `Tiebreak — shoot closest to center${clockStr}`;
+      } else if (shots === 1) {
+        mobileStatusMsg = `Last shot — make it count!${clockStr}`;
+      } else {
+        mobileStatusMsg = `Your turn — ${shots} shots remaining${clockStr}`;
+      }
     } else if (!isMyTurn) {
-      mobileStatus = 'WAITING';
-      mobileStatusColor = 'text-warning-400';
-    } else {
-      mobileStatus = '';
+      mobileStatusMsg = "Opponent's turn...";
+    } else if (shotResultMsg) {
+      mobileStatusMsg = shotResultMsg;
     }
   }
 
-  // Shot pips for current shooter
-  const currentShotsLeft = currentShooter === 'A' ? shotsRemainingA : shotsRemainingB;
-  const isRegulation = !gamePhase.startsWith('ot_') && !gamePhase.startsWith('ft_') && gamePhase !== 'overtime_announce' && gamePhase !== 'forced_tiebreak_announce';
-
-  // Mobile scoreboard for Zone C
-  const mobileScoreboard = (
-    <div className="flex w-full items-center justify-between">
-      {/* P1 score + shot pips */}
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-[11px] font-semibold text-text-primary/90">
-          {role === 'A' ? 'You' : 'P1'}
-        </span>
-        <span className="font-mono text-base font-bold text-text-primary">{scoreA}</span>
-      </div>
-
-      {/* Shot pips: 3 dots, filled = remaining */}
-      {isRegulation && !winner && (
-        <div className="flex gap-1">
-          {Array.from({ length: SHOTS_PER_PLAYER }).map((_, i) => (
-            <span
-              key={i}
-              className="inline-block h-2 w-2 rounded-full border border-white/20"
-              style={{ background: i < currentShotsLeft ? '#00ff87' : 'transparent' }}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* OT / Tiebreak badge */}
-      {(gamePhase.startsWith('ot_') || gamePhase === 'overtime_announce') && (
-        <span className="font-mono text-[10px] font-bold uppercase text-yellow-400">OT {otRound}</span>
-      )}
-      {(gamePhase.startsWith('ft_') || gamePhase === 'forced_tiebreak_announce') && (
-        <span className="font-mono text-[10px] font-bold uppercase text-yellow-400">TB</span>
-      )}
-
-      <span className="font-mono text-[10px] text-text-muted">vs</span>
-
-      {/* P2 score */}
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-base font-bold text-text-primary">
-          {gamePhase === 'p1_break' || gamePhase === 'p1_shooting' || gamePhase === 'p1_rolling' || gamePhase === 'p1_result' || gamePhase === 'p1_complete' || gamePhase === 'p2_setup'
-            ? '--'
-            : scoreB}
-        </span>
-        <span className="font-mono text-[11px] font-semibold text-text-primary/90">
-          {role === 'B' ? 'You' : 'P2'}
-        </span>
-      </div>
-
-      {/* Phase badge */}
-      <span className={`font-mono text-[10px] font-semibold ${mobileStatusColor}`}>
-        {mobileStatus}
-      </span>
+  // Shot dot trackers for P1 and P2
+  const p1Tracker = (
+    <div className="flex gap-1">
+      {Array.from({ length: SHOTS_PER_PLAYER }).map((_, i) => (
+        <span key={i} className="inline-block rounded-full" style={{
+          width: 8, height: 8,
+          background: i < shotsRemainingA ? '#ffffff' : 'transparent',
+          border: '1.5px solid rgba(255,255,255,0.4)',
+        }} />
+      ))}
     </div>
   );
+
+  const p2Tracker = (
+    <div className="flex gap-1">
+      {Array.from({ length: SHOTS_PER_PLAYER }).map((_, i) => (
+        <span key={i} className="inline-block rounded-full" style={{
+          width: 8, height: 8,
+          background: i < shotsRemainingB ? '#ffffff' : 'transparent',
+          border: '1.5px solid rgba(255,255,255,0.4)',
+        }} />
+      ))}
+    </div>
+  );
+
+  const wagerDisplay = betAmountCents > 0 ? `$${(betAmountCents / 100).toFixed(2)}` : undefined;
 
   return (
     <div className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${isInGame ? 'game-fullscreen-mobile' : ''}`}>
@@ -1752,6 +1974,7 @@ export default function ThreeShotPoolPage() {
       {isInGame && showFABPanel && (
         <GameMobileFAB
           onExit={() => window.location.reload()}
+          onClose={() => setShowFABPanel(false)}
           betAmount={betAmountCents || undefined}
           betStatus={gameState?.status === 'finished' ? 'settled' : 'in progress'}
           turnInfo={statusText}
@@ -1837,7 +2060,7 @@ export default function ThreeShotPoolPage() {
                   </div>
 
                   {/* Shot pips */}
-                  {isRegulation && !winner && (
+                  {!gamePhase.startsWith('ot_') && !gamePhase.startsWith('ft_') && gamePhase !== 'overtime_announce' && gamePhase !== 'forced_tiebreak_announce' && !winner && (
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-[10px] text-text-muted uppercase">
                         {currentShooter === 'A' ? 'P1' : 'P2'} Shots
@@ -1848,7 +2071,7 @@ export default function ThreeShotPoolPage() {
                             key={i}
                             className="inline-block h-2.5 w-2.5 rounded-full border border-white/20"
                             style={{
-                              background: i < currentShotsLeft ? '#00ff87' : 'transparent',
+                              background: i < (currentShooter === 'A' ? shotsRemainingA : shotsRemainingB) ? '#00ff87' : 'transparent',
                             }}
                           />
                         ))}
@@ -1890,13 +2113,18 @@ export default function ThreeShotPoolPage() {
 
               {/* Canvas wrapped with MobileGameChrome */}
               <MobileGameChrome
+                player1Name={role === 'A' ? 'You' : 'Player 1'}
+                player2Name={role === 'B' ? 'You' : 'Player 2'}
+                isPlayer1Turn={currentShooter === 'A'}
+                player1Tracker={p1Tracker}
+                player2Tracker={p2Tracker}
+                wagerAmount={wagerDisplay}
+                gameType="3 SHOT"
                 onExit={() => window.location.reload()}
-                statusText={mobileStatus}
-                statusColor={mobileStatusColor}
                 isMuted={isMuted}
                 onSoundToggle={toggleMute}
                 onFABTap={() => setShowFABPanel(true)}
-                scoreboard={mobileScoreboard}
+                statusMessage={mobileStatusMsg}
               >
                 <div className="relative">
                   <canvas
@@ -1912,6 +2140,7 @@ export default function ThreeShotPoolPage() {
                     onTouchStart={handleCanvasTouchStart}
                     onTouchMove={handleCanvasTouchMove}
                     onTouchEnd={handleCanvasTouchEnd}
+                    onTouchCancel={handleCanvasTouchCancel}
                   />
                 </div>
               </MobileGameChrome>
