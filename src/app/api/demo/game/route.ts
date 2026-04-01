@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "playerAId required" }, { status: 400 });
   }
 
-  const validTypes: GameType[] = ['tictactoe', 'fps', 'cards', 'pool'];
+  const validTypes: GameType[] = ['tictactoe', 'fps', 'cards', 'pool', '3shot'];
   const type: GameType = validTypes.includes(gameType) ? gameType : 'tictactoe';
 
   const session = createSession(playerAId, betId ?? null, type);

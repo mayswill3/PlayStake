@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
-import { Circle, Crosshair, Grid3x3, Layers } from 'lucide-react';
+import { Circle, Crosshair, Grid3x3, Layers, Target } from 'lucide-react';
 
 export default function DemoIndex() {
   return (
@@ -73,6 +73,22 @@ export default function DemoIndex() {
             </div>
             <p className="text-sm text-text-secondary font-mono">
               Classic 8-ball pool with realistic physics and two-player wagering.
+            </p>
+          </Card>
+        </Link>
+
+        <Link href="/demo/3shot" className="group">
+          <Card className="transition-colors group-hover:border-brand-400/30 group-hover:bg-surface-850">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-brand-400/10 text-brand-400">
+                <Target className="h-5 w-5" />
+              </div>
+              <h2 className="font-display text-lg font-semibold text-text-primary">
+                3-Shot Pool
+              </h2>
+            </div>
+            <p className="text-sm text-text-secondary font-mono">
+              3 shots each. Most balls potted wins. Fast-paced wagered match.
             </p>
           </Card>
         </Link>
