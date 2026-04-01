@@ -903,6 +903,8 @@ export default function ThreeShotPoolPage() {
   gamePhaseRef.current = gamePhase;
   phaseRef.current = phase;
   winnerRef.current = winner;
+  const shotClockRemainingRef = useRef(shotClockRemaining);
+  shotClockRemainingRef.current = shotClockRemaining;
 
   // Who is currently shooting?
   const currentShooter = (() => {
@@ -1034,13 +1036,15 @@ export default function ThreeShotPoolPage() {
 
     const preShotBalls = ballsRef.current.map(b => ({ id: b.id, x: b.x, y: b.y, pocketed: b.pocketed }));
 
-    // Set rolling phase
-    if (gamePhase === 'p1_break' || gamePhase === 'p1_shooting') setGamePhase('p1_rolling');
-    else if (gamePhase === 'p2_shooting') setGamePhase('p2_rolling');
-    else if (gamePhase === 'ot_p1_shooting') setGamePhase('ot_p1_rolling');
-    else if (gamePhase === 'ot_p2_shooting') setGamePhase('ot_p2_rolling');
-    else if (gamePhase === 'ft_p1_shooting') setGamePhase('ft_p1_rolling');
-    else if (gamePhase === 'ft_p2_shooting') setGamePhase('ft_p2_rolling');
+    // Set rolling phase — read from ref (not closure) and sync both ref + state
+    // gamePhase closure may be stale if executeShot hasn't been recreated after a phase change
+    const gp = gamePhaseRef.current;
+    if (gp === 'p1_break' || gp === 'p1_shooting') { setGamePhase('p1_rolling'); gamePhaseRef.current = 'p1_rolling'; }
+    else if (gp === 'p2_shooting') { setGamePhase('p2_rolling'); gamePhaseRef.current = 'p2_rolling'; }
+    else if (gp === 'ot_p1_shooting') { setGamePhase('ot_p1_rolling'); gamePhaseRef.current = 'ot_p1_rolling'; }
+    else if (gp === 'ot_p2_shooting') { setGamePhase('ot_p2_rolling'); gamePhaseRef.current = 'ot_p2_rolling'; }
+    else if (gp === 'ft_p1_shooting') { setGamePhase('ft_p1_rolling'); gamePhaseRef.current = 'ft_p1_rolling'; }
+    else if (gp === 'ft_p2_shooting') { setGamePhase('ft_p2_rolling'); gamePhaseRef.current = 'ft_p2_rolling'; }
 
     cueBall.vx = Math.cos(angle) * power;
     cueBall.vy = Math.sin(angle) * power;
@@ -1081,14 +1085,20 @@ export default function ThreeShotPoolPage() {
       }
     };
 
+    const simulateStart = performance.now();
     const simulate = () => {
-      for (let i = 0; i < 2; i++) {
-        stepPhysics(ballsRef.current, shotResult, handlePhysicsEvent);
-      }
-
-      if (!allAtRest(ballsRef.current)) {
-        requestAnimationFrame(simulate);
-        return;
+      // Force-settle safety net — no shot should take longer than 5s to settle
+      if (performance.now() - simulateStart > 5000) {
+        console.warn('Force settle — balls did not reach rest within 5s');
+        for (const b of ballsRef.current) { b.vx = 0; b.vy = 0; }
+      } else {
+        for (let i = 0; i < 2; i++) {
+          stepPhysics(ballsRef.current, shotResult, handlePhysicsEvent);
+        }
+        if (!allAtRest(ballsRef.current)) {
+          requestAnimationFrame(simulate);
+          return;
+        }
       }
 
       shootingRef.current = false;
@@ -1299,6 +1309,7 @@ export default function ThreeShotPoolPage() {
         } else {
           // P1 has more shots — transition immediately so aiming is re-enabled
           setGamePhase('p1_shooting');
+          gamePhaseRef.current = 'p1_shooting';
           syncGameData({
             phase: 'p1_shooting',
             scoreA: newScore,
@@ -1371,6 +1382,7 @@ export default function ThreeShotPoolPage() {
         } else {
           // P2 has more shots — transition immediately so aiming is re-enabled
           setGamePhase('p2_shooting');
+          gamePhaseRef.current = 'p2_shooting';
           syncGameData({
             phase: 'p2_shooting',
             scoreB: newScore,
@@ -1417,7 +1429,7 @@ export default function ThreeShotPoolPage() {
       drawTable(ctx);
 
       // Draw center target during forced tiebreak
-      if (['forced_tiebreak_announce', 'ft_p1_shooting', 'ft_p1_rolling', 'ft_p2_shooting', 'ft_p2_rolling', 'ft_scoring'].includes(gamePhase)) {
+      if (['forced_tiebreak_announce', 'ft_p1_shooting', 'ft_p1_rolling', 'ft_p2_shooting', 'ft_p2_rolling', 'ft_scoring'].includes(gamePhaseRef.current)) {
         drawCenterTarget(ctx, animFrameRef.current);
       }
 
@@ -1466,8 +1478,8 @@ export default function ThreeShotPoolPage() {
       // Shot clock now shown in status pill (not on canvas)
 
       // Shot clock tick audio
-      if (shotClockRemaining !== null && shotClockRemaining <= 5) {
-        const sec = Math.ceil(shotClockRemaining);
+      if (shotClockRemainingRef.current !== null && shotClockRemainingRef.current <= 5) {
+        const sec = Math.ceil(shotClockRemainingRef.current);
         if (sec !== lastTickSecRef.current && sec > 0) {
           lastTickSecRef.current = sec;
           audioRef.current?.playTick();
@@ -1481,7 +1493,7 @@ export default function ThreeShotPoolPage() {
 
     frameId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(frameId);
-  }, [phase, gamePhase, canShoot, shotClockRemaining]);
+  }, [phase]); // Only recreate when entering/exiting game — volatile state read via refs
 
   // ---- Poll for opponent state changes ----
   useEffect(() => {
@@ -1559,7 +1571,8 @@ export default function ThreeShotPoolPage() {
   }, []);
 
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!canShoot) return;
+    if (shootingRef.current || winnerRef.current || phaseRef.current !== 'playing') return;
+    if (!SHOOTING_PHASES.includes(gamePhaseRef.current)) return;
     const pos = getCanvasPos(e);
     const cueBall = ballsRef.current.find(b => b.id === 0 && !b.pocketed);
     if (!cueBall) return;
@@ -1617,10 +1630,13 @@ export default function ThreeShotPoolPage() {
     return pos;
   }, []);
 
+  const SHOOTING_PHASES = ['p1_break', 'p1_shooting', 'p2_shooting', 'ot_p1_shooting', 'ot_p2_shooting', 'ft_p1_shooting', 'ft_p2_shooting'];
+
   const handleCanvasTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (!canShootRef.current) return;
+    // Compute canShoot from refs directly — React state may be stale
     if (shootingRef.current || winnerRef.current) return;
     if (phaseRef.current !== 'playing') return;
+    if (!SHOOTING_PHASES.includes(gamePhaseRef.current)) return;
     const touch = e.touches[0];
     if (!touch) return;
 

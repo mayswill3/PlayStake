@@ -1031,15 +1031,21 @@ export default function PoolDemoPage() {
       }
     };
 
+    const simulateStart = performance.now();
     const simulate = () => {
-      // Run multiple sub-steps per frame for stability
-      for (let i = 0; i < 2; i++) {
-        stepPhysics(ballsRef.current, shotResult, handlePhysicsEvent);
-      }
-
-      if (!allAtRest(ballsRef.current)) {
-        requestAnimationFrame(simulate);
-        return;
+      // Force-settle safety net
+      if (performance.now() - simulateStart > 5000) {
+        console.warn('Force settle — balls did not reach rest within 5s');
+        for (const b of ballsRef.current) { b.vx = 0; b.vy = 0; }
+      } else {
+        // Run multiple sub-steps per frame for stability
+        for (let i = 0; i < 2; i++) {
+          stepPhysics(ballsRef.current, shotResult, handlePhysicsEvent);
+        }
+        if (!allAtRest(ballsRef.current)) {
+          requestAnimationFrame(simulate);
+          return;
+        }
       }
 
       // Shot complete - evaluate

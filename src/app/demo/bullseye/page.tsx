@@ -790,6 +790,10 @@ export default function BullseyePoolPage() {
   const animatingOpponentRef = useRef(false);
   const gamePhaseRef = useRef(gamePhase);
   gamePhaseRef.current = gamePhase;
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
+  const winnerRef = useRef(winner);
+  winnerRef.current = winner;
 
   // Shot clock
   const shotClockStartRef = useRef<number | null>(null);
@@ -809,6 +813,16 @@ export default function BullseyePoolPage() {
     (gamePhase === 'p1_aiming' || gamePhase === 'p2_aiming');
   const canShootRef = useRef(canShoot);
   canShootRef.current = canShoot;
+  const bullseyeRef = useRef(bullseye);
+  bullseyeRef.current = bullseye;
+  const distanceARef = useRef(distanceA);
+  distanceARef.current = distanceA;
+  const distanceBRef = useRef(distanceB);
+  distanceBRef.current = distanceB;
+  const currentShooterRef = useRef(currentShooter);
+  currentShooterRef.current = currentShooter;
+  const shotClockRemainingRef = useRef(shotClockRemaining);
+  shotClockRemainingRef.current = shotClockRemaining;
 
   // ---- Shot clock effect ----
   useEffect(() => {
@@ -911,8 +925,10 @@ export default function BullseyePoolPage() {
     const ball = ballsRef.current.find(b => b.id === shooterId);
     if (!ball || ball.pocketed) { shootingRef.current = false; return; }
 
-    if (gamePhase === 'p1_aiming') setGamePhase('p1_rolling');
-    else if (gamePhase === 'p2_aiming') setGamePhase('p2_rolling');
+    // Read from ref (not closure) and sync both ref + state
+    const gp = gamePhaseRef.current;
+    if (gp === 'p1_aiming') { setGamePhase('p1_rolling'); gamePhaseRef.current = 'p1_rolling'; }
+    else if (gp === 'p2_aiming') { setGamePhase('p2_rolling'); gamePhaseRef.current = 'p2_rolling'; }
 
     ball.vx = Math.cos(angle) * power;
     ball.vy = Math.sin(angle) * power;
@@ -947,9 +963,15 @@ export default function BullseyePoolPage() {
       }
     };
 
+    const simulateStart = performance.now();
     const simulate = () => {
-      for (let i = 0; i < 2; i++) stepPhysics(ballsRef.current, shotResult, handlePhysicsEvent);
-      if (!allAtRest(ballsRef.current)) { requestAnimationFrame(simulate); return; }
+      if (performance.now() - simulateStart > 5000) {
+        console.warn('Force settle — balls did not reach rest within 5s');
+        for (const b of ballsRef.current) { b.vx = 0; b.vy = 0; }
+      } else {
+        for (let i = 0; i < 2; i++) stepPhysics(ballsRef.current, shotResult, handlePhysicsEvent);
+        if (!allAtRest(ballsRef.current)) { requestAnimationFrame(simulate); return; }
+      }
 
       shootingRef.current = false;
       shotNumberRef.current++;
@@ -996,6 +1018,7 @@ export default function BullseyePoolPage() {
           const ball2: Ball = { id: secondShooter, x: spawnX, y: spawnY, vx: 0, vy: 0, pocketed: false };
           ballsRef.current = [...ballsRef.current.filter(bl => bl.id === firstShooter), ball2];
           setGamePhase('p2_aiming');
+          gamePhaseRef.current = 'p2_aiming';
 
           syncGameData({
             phase: 'p2_aiming',
@@ -1131,14 +1154,15 @@ export default function BullseyePoolPage() {
       drawTable(ctx);
 
       // Bullseye
+      const be = bullseyeRef.current;
       let nearestDist = Infinity;
       for (const b of ballsRef.current) {
         if (!b.pocketed) {
-          const d = dist(b.x, b.y, bullseye.x, bullseye.y);
+          const d = dist(b.x, b.y, be.x, be.y);
           if (d < nearestDist) nearestDist = d;
         }
       }
-      drawBullseye(ctx, bullseye.x, bullseye.y, animFrameRef.current, nearestDist);
+      drawBullseye(ctx, be.x, be.y, animFrameRef.current, nearestDist);
 
       // Opponent replay physics
       if (animatingOpponentRef.current) {
@@ -1163,21 +1187,23 @@ export default function BullseyePoolPage() {
       // Leader lines (after both settle or after P1 settles)
       const ballA = ballsRef.current.find(b => b.id === 'A');
       const ballB = ballsRef.current.find(b => b.id === 'B');
-      if (distanceA != null && ballA) {
-        const statusA = distanceB != null
-          ? (distanceA <= MAX_DISTANCE - 1 ? (distanceA <= distanceB ? 'winner' : 'loser') : 'foul')
-          : (distanceA >= MAX_DISTANCE ? 'foul' : 'pending');
-        drawLeaderLine(ctx, ballA, bullseye, distanceA, statusA as 'winner' | 'loser' | 'pending' | 'foul');
+      const dA = distanceARef.current;
+      const dB = distanceBRef.current;
+      if (dA != null && ballA) {
+        const statusA = dB != null
+          ? (dA <= MAX_DISTANCE - 1 ? (dA <= dB ? 'winner' : 'loser') : 'foul')
+          : (dA >= MAX_DISTANCE ? 'foul' : 'pending');
+        drawLeaderLine(ctx, ballA, be, dA, statusA as 'winner' | 'loser' | 'pending' | 'foul');
       }
-      if (distanceB != null && ballB) {
-        const statusB = distanceA != null
-          ? (distanceB <= MAX_DISTANCE - 1 ? (distanceB < distanceA ? 'winner' : 'loser') : 'foul')
-          : (distanceB >= MAX_DISTANCE ? 'foul' : 'pending');
-        drawLeaderLine(ctx, ballB, bullseye, distanceB, statusB as 'winner' | 'loser' | 'pending' | 'foul');
+      if (dB != null && ballB) {
+        const statusB = dA != null
+          ? (dB <= MAX_DISTANCE - 1 ? (dB < dA ? 'winner' : 'loser') : 'foul')
+          : (dB >= MAX_DISTANCE ? 'foul' : 'pending');
+        drawLeaderLine(ctx, ballB, be, dB, statusB as 'winner' | 'loser' | 'pending' | 'foul');
       }
 
       // Aiming visuals
-      const shooterBall = ballsRef.current.find(b => b.id === currentShooter && !b.pocketed);
+      const shooterBall = ballsRef.current.find(b => b.id === currentShooterRef.current && !b.pocketed);
       if (shooterBall && aimingRef.current && dragStartRef.current) {
         drawAimLine(ctx, shooterBall, aimAngleRef.current, ballsRef.current);
         drawCueStick(ctx, shooterBall, aimAngleRef.current, shotPowerRef.current);
@@ -1185,10 +1211,10 @@ export default function BullseyePoolPage() {
       }
 
       // Shot clock now shown in status pill (not on canvas)
-      if (canShoot && !shootingRef.current) {
+      if (canShootRef.current && !shootingRef.current) {
         // Shot clock tick sound under 5 seconds
-        if (shotClockRemaining <= 5 && shotClockRemaining > 0) {
-          const sec = Math.ceil(shotClockRemaining);
+        if (shotClockRemainingRef.current <= 5 && shotClockRemainingRef.current > 0) {
+          const sec = Math.ceil(shotClockRemainingRef.current);
           if (lastTickSecRef.current !== sec) {
             lastTickSecRef.current = sec;
             audioRef.current?.playTick();
@@ -1204,7 +1230,7 @@ export default function BullseyePoolPage() {
     };
     frameId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(frameId);
-  }, [phase, gamePhase, canShoot, shotClockRemaining, bullseye, distanceA, distanceB, currentShooter]);
+  }, [phase]); // Only recreate when entering/exiting game — volatile state read via refs
 
   // ---- Poll for opponent ----
   useEffect(() => {
@@ -1254,9 +1280,11 @@ export default function BullseyePoolPage() {
   }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!canShoot) return;
+    if (shootingRef.current || winnerRef.current) return;
+    if (phaseRef.current !== 'playing') return;
+    if (gamePhaseRef.current !== 'p1_aiming' && gamePhaseRef.current !== 'p2_aiming') return;
     const pos = getCanvasPos(e);
-    const ball = ballsRef.current.find(b => b.id === currentShooter && !b.pocketed);
+    const ball = ballsRef.current.find(b => b.id === currentShooterRef.current && !b.pocketed);
     if (!ball) return;
     if (dist(pos.x, pos.y, ball.x, ball.y) < BALL_RADIUS * 4) {
       aimingRef.current = true;
@@ -1289,7 +1317,10 @@ export default function BullseyePoolPage() {
 
   // Touch handlers (with palm rejection, touch offset, expanded target, min drag distance)
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (!canShootRef.current) return;
+    // Compute canShoot from refs — React state may be stale
+    if (shootingRef.current || winnerRef.current) return;
+    if (phaseRef.current !== 'playing') return;
+    if (gamePhaseRef.current !== 'p1_aiming' && gamePhaseRef.current !== 'p2_aiming') return;
     const touch = e.touches[0]; if (!touch) return;
     // Palm rejection: only accept first touch
     if (activeTouchIdRef.current !== null) return;
