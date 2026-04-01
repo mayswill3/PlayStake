@@ -1793,48 +1793,50 @@ export default function ThreeShotPoolPage() {
                   onTouchMove={handleCanvasTouchMove}
                   onTouchEnd={handleCanvasTouchEnd}
                 />
+
+                {/* Game over overlay — positioned on top of canvas for mobile landscape */}
+                {isFinished && gameState && winner && (
+                  <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                    <div className="pointer-events-auto rounded-sm px-6 py-4 text-center"
+                      style={{ background: 'rgba(15,17,23,0.92)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    >
+                      <p className="font-display text-lg font-bold uppercase tracking-widest mb-1"
+                        style={{ color: winner === role ? '#00ff87' : '#ff3b5c' }}
+                      >
+                        {winner === role ? 'Victory!' : 'Defeat'}
+                      </p>
+                      <p className="font-mono text-sm text-text-secondary mb-1">
+                        P1: {scoreA} — P2: {scoreB}
+                      </p>
+                      {settlementResult && role && (
+                        <p className="font-display text-xl font-bold mb-2"
+                          style={{ color: deriveOutcome(settlementResult, role) === 'win' ? '#00ff87' : '#ff3b5c' }}
+                        >
+                          {formatResultAmount(
+                            deriveOutcome(settlementResult, role),
+                            settlementResult.winnerPayout,
+                            betAmountCents
+                          )}
+                        </p>
+                      )}
+                      <button
+                        onClick={handlePlayAgain}
+                        className="font-mono text-xs uppercase tracking-widest px-5 py-2 rounded-sm bg-brand-400/90 text-black font-semibold hover:bg-brand-400 transition-colors"
+                      >
+                        Play Again
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Last shot info */}
-              {lastShotInfo && (
+              {lastShotInfo && !winner && (
                 <Card padding="sm" className="game-shot-info">
                   <p className="font-mono text-xs text-text-secondary text-center">
                     {lastShotInfo}
                   </p>
                 </Card>
-              )}
-
-              {/* Result overlay */}
-              {isFinished && gameState && winner && (
-                settlementResult && role ? (
-                  <GameResultOverlay
-                    outcome={deriveOutcome(settlementResult, role)}
-                    amount={formatResultAmount(
-                      deriveOutcome(settlementResult, role),
-                      settlementResult.winnerPayout,
-                      betAmountCents
-                    )}
-                    visible
-                    onPlayAgain={handlePlayAgain}
-                  />
-                ) : (
-                  <Card
-                    padding="sm"
-                    className={
-                      winner === role
-                        ? 'border-brand-400/30 bg-brand-400/5'
-                        : 'border-danger-400/30 bg-danger-400/5'
-                    }
-                  >
-                    <p className="font-display text-center text-sm font-semibold uppercase tracking-widest">
-                      <span className={statusColor}>
-                        {winner === role
-                          ? `Victory! Final Score: P1 ${scoreA} - P2 ${scoreB}`
-                          : `Defeat! Final Score: P1 ${scoreA} - P2 ${scoreB}`}
-                      </span>
-                    </p>
-                  </Card>
-                )
               )}
             </>
           )}
