@@ -9,7 +9,7 @@ import { UserRole, LedgerAccountType } from "../../../../../generated/prisma/cli
 
 const DEMO_DEV_EMAIL = "system-demo@playstake.internal";
 
-type DemoGameType = 'fps' | 'cards' | 'tictactoe' | 'pool' | '3shot';
+type DemoGameType = 'fps' | 'cards' | 'tictactoe' | 'pool' | '3shot' | 'bullseye';
 
 const DEMO_GAMES: Record<DemoGameType, { slug: string; name: string; description: string }> = {
   fps: {
@@ -36,6 +36,11 @@ const DEMO_GAMES: Record<DemoGameType, { slug: string; name: string; description
     slug: "3-shot-pool",
     name: "3-Shot Pool",
     description: "3 shots each. Most balls potted wins. Fast-paced wagered match.",
+  },
+  bullseye: {
+    slug: "bullseye-pool",
+    name: "Bullseye Pool",
+    description: "Land closest to the target. Win the round. Precision wagered match.",
   },
 };
 
