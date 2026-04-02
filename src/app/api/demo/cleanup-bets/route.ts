@@ -20,11 +20,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Only void truly stale bets — NOT matched or result-reported bets
+  // which represent active games that should settle normally
   const activeStatuses = [
     BetStatus.PENDING_CONSENT,
     BetStatus.OPEN,
-    BetStatus.MATCHED,
-    BetStatus.RESULT_REPORTED,
   ];
 
   // Find all active bets for this player across all games
