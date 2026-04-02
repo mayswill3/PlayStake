@@ -164,6 +164,16 @@ export async function POST(request: NextRequest) {
             ? bet.playerAId
             : playerBId;
 
+        console.log("[PAYOUT]", {
+          betId,
+          outcome,
+          winnerId,
+          loserId: winnerId === bet.playerAId ? playerBId : bet.playerAId,
+          playerAId: bet.playerAId,
+          playerBId,
+          amount: remainingEscrow.toString(),
+        });
+
         await releaseEscrow(tx, {
           betId,
           winnerId,

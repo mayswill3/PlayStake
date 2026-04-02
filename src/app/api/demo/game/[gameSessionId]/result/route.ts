@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "../../store";
+import { prisma } from "@/lib/db/client";
 
 // POST /api/demo/game/:id/result — Report game result to PlayStake
 export async function POST(
@@ -31,11 +32,53 @@ export async function POST(
     return NextResponse.json({ error: "apiKey required" }, { status: 400 });
   }
 
-  // Map game winner to PlayStake outcome
+  // Determine the winner's userId from the game session
+  const winnerUserId =
+    session.winner === "A" ? session.playerAId
+    : session.winner === "B" ? session.playerBId
+    : null; // draw
+
+  // Look up the bet to map the winner's userId to the correct bet player
+  // (bet.playerAId may differ from session.playerAId if a different player created the bet)
   let outcome: string;
-  if (session.winner === "A") outcome = "PLAYER_A_WIN";
-  else if (session.winner === "B") outcome = "PLAYER_B_WIN";
-  else outcome = "DRAW";
+  if (session.winner === "draw" || !winnerUserId) {
+    outcome = "DRAW";
+  } else {
+    const bet = await prisma.bet.findUnique({
+      where: { id: session.betId },
+      select: { playerAId: true, playerBId: true },
+    });
+
+    if (!bet) {
+      return NextResponse.json({ error: "Bet not found" }, { status: 404 });
+    }
+
+    if (winnerUserId === bet.playerAId) {
+      outcome = "PLAYER_A_WIN";
+    } else if (winnerUserId === bet.playerBId) {
+      outcome = "PLAYER_B_WIN";
+    } else {
+      console.error("[RESULT] Winner userId not found in bet players", {
+        winnerUserId,
+        betPlayerAId: bet.playerAId,
+        betPlayerBId: bet.playerBId,
+        sessionId: gameSessionId,
+      });
+      return NextResponse.json(
+        { error: "Winner not a participant in this bet" },
+        { status: 400 }
+      );
+    }
+
+    console.log("[RESULT]", {
+      gameSessionId,
+      gameWinner: session.winner,
+      winnerUserId,
+      betPlayerAId: bet.playerAId,
+      betPlayerBId: bet.playerBId,
+      outcome,
+    });
+  }
 
   // Call PlayStake API to report result (server-to-server)
   const baseUrl = request.nextUrl.origin;
@@ -51,6 +94,7 @@ export async function POST(
       resultPayload: {
         board: session.board,
         winner: session.winner,
+        winnerUserId,
         gameSessionId,
       },
     }),
