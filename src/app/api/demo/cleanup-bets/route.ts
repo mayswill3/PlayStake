@@ -20,19 +20,25 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Only void truly stale bets — NOT matched or result-reported bets
-  // which represent active games that should settle normally
-  const activeStatuses = [
-    BetStatus.PENDING_CONSENT,
-    BetStatus.OPEN,
-  ];
+  // Void unmatched bets immediately, and orphaned matched/reported bets after 10 min
+  const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
 
-  // Find all active bets for this player across all games
-  // (not filtered by gameId so stale bets from other demo games get cleaned up too)
   const staleBets = await prisma.bet.findMany({
     where: {
-      status: { in: activeStatuses },
-      OR: [{ playerAId: playerId }, { playerBId: playerId }],
+      OR: [
+        // Unmatched bets — always safe to void
+        {
+          status: { in: [BetStatus.PENDING_CONSENT, BetStatus.OPEN] },
+          OR: [{ playerAId: playerId }, { playerBId: playerId }],
+        },
+        // Orphaned matched/reported bets — only if older than 10 minutes
+        // (game session is gone after server restart, bet can't settle)
+        {
+          status: { in: [BetStatus.MATCHED, BetStatus.RESULT_REPORTED] },
+          OR: [{ playerAId: playerId }, { playerBId: playerId }],
+          updatedAt: { lt: tenMinAgo },
+        },
+      ],
     },
     select: {
       id: true,
