@@ -566,10 +566,12 @@
   color: var(--ps-primary);
 }
 
-.ps-bet-create__preset--active {
+.ps-bet-create__preset--active,
+.ps-bet-create__preset--active:hover {
   background: var(--ps-primary);
   border-color: var(--ps-primary);
-  color: var(--ps-primary-text);
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
 }
 
 .ps-bet-create__preset:disabled {
