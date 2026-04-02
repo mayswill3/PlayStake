@@ -56,7 +56,7 @@ export async function POST(
     },
     body: JSON.stringify({
       outcome,
-      idempotencyKey: `demo_${gameSessionId}_${Date.now()}`,
+      idempotencyKey: `demo_${gameSessionId}_result`,
       resultPayload: {
         board: session.board,
         winner: session.winner,

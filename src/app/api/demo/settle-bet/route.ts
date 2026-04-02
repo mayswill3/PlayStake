@@ -12,6 +12,7 @@ import {
   getEscrowAccountForBet,
   getAccountBalance,
 } from "@/lib/ledger/accounts";
+import { getSession } from "../game/store";
 
 /**
  * POST /api/demo/settle-bet
@@ -22,7 +23,7 @@ import {
  */
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { betId, apiKey } = body;
+  const { betId, apiKey, sessionId } = body;
 
   if (!betId || !apiKey) {
     return NextResponse.json(
@@ -55,9 +56,68 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Bet not found" }, { status: 404 });
   }
 
-  if (bet.status !== BetStatus.RESULT_REPORTED) {
+  // Accept MATCHED (report result inline) or RESULT_REPORTED (already reported)
+  if (bet.status === BetStatus.MATCHED) {
+    // Bet hasn't had result reported yet — do it inline
+    // Look up game session to determine outcome
+    const session = sessionId ? getSession(sessionId) : null;
+    if (!session || !session.winner) {
+      console.error("[SETTLE] Cannot settle MATCHED bet without game session", { betId, sessionId });
+      return NextResponse.json(
+        { error: "Bet is MATCHED but game session not found — cannot determine outcome" },
+        { status: 400 }
+      );
+    }
+
+    let outcome: BetOutcome;
+    if (session.winner === "A") outcome = BetOutcome.PLAYER_A_WIN;
+    else if (session.winner === "B") outcome = BetOutcome.PLAYER_B_WIN;
+    else outcome = BetOutcome.DRAW;
+
+    console.log("[SETTLE] Reporting result inline for MATCHED bet", { betId, outcome });
+
+    await prisma.bet.update({
+      where: { id: betId },
+      data: {
+        status: BetStatus.RESULT_REPORTED,
+        outcome,
+        resultReportedAt: new Date(),
+        resultIdempotencyKey: `demo_settle_inline_${betId}`,
+      },
+    });
+
+    // Re-fetch bet with updated status
+    const updatedBet = await prisma.bet.findUnique({
+      where: { id: betId },
+      include: {
+        game: {
+          include: {
+            developerProfile: {
+              include: { escrowLimit: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!updatedBet) {
+      return NextResponse.json({ error: "Bet not found after update" }, { status: 500 });
+    }
+
+    // Replace bet reference for rest of function
+    Object.assign(bet, updatedBet);
+  } else if (bet.status === BetStatus.SETTLED) {
+    // Already settled — return success
+    return NextResponse.json({
+      success: true,
+      betId,
+      outcome: bet.outcome,
+      winnerPayout: 0,
+      alreadySettled: true,
+    });
+  } else if (bet.status !== BetStatus.RESULT_REPORTED) {
     return NextResponse.json(
-      { error: `Bet is in ${bet.status} status, expected RESULT_REPORTED` },
+      { error: `Bet is in ${bet.status} status, cannot settle` },
       { status: 400 }
     );
   }

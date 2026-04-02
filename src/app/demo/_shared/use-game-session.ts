@@ -212,9 +212,9 @@ export function useGameSession(
       log('Result report skipped, proceeding to settlement...', 'info');
     }
 
-    // Step 2: Try to settle
+    // Step 2: Try to settle (pass sessionId so settle can self-heal if result wasn't reported)
     try {
-      const settle = await apiPost('/api/demo/settle-bet', { betId, apiKey });
+      const settle = await apiPost('/api/demo/settle-bet', { betId, apiKey, sessionId });
       if (settle.success) {
         const payoutDisplay = settle.winnerPayout.toFixed(2);
         const outcomeLabel = settle.outcome === 'DRAW'
@@ -222,9 +222,12 @@ export function useGameSession(
           : `Winner receives $${payoutDisplay}`;
         log(`Bet settled! ${outcomeLabel}`, 'success');
         return { outcome: settle.outcome, winnerPayout: settle.winnerPayout };
+      } else {
+        log(`Settlement response: ${settle.error || 'unknown'}`, 'error');
       }
-    } catch {
-      // Settlement failed — bet may already be settled
+    } catch (err) {
+      console.error('[SETTLE] Settlement API failed:', err);
+      log('Settlement failed — will retry on next attempt', 'error');
     }
 
     // Step 3: Bet was already settled by opponent — fetch the result
