@@ -83,6 +83,7 @@ interface Ball {
   vx: number;
   vy: number;
   pocketed: boolean;
+  moving: boolean;
 }
 
 interface ShotResult {
@@ -139,9 +140,6 @@ function dist(x1: number, y1: number, x2: number, y2: number) {
   return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
 }
 
-function allAtRest(balls: Ball[]) {
-  return balls.every(b => b.pocketed || (Math.abs(b.vx) < VELOCITY_THRESHOLD && Math.abs(b.vy) < VELOCITY_THRESHOLD));
-}
 
 function distanceInTableUnits(bx: number, by: number, tx: number, ty: number) {
   return dist(bx, by, tx, ty) / TABLE_UNIT;
@@ -150,23 +148,33 @@ function distanceInTableUnits(bx: number, by: number, tx: number, ty: number) {
 // ---------------------------------------------------------------------------
 // Physics (simplified — only 1-2 balls, no rack)
 // ---------------------------------------------------------------------------
-function stepPhysics(balls: Ball[], shotResult: ShotResult, onEvent?: (e: PhysicsEvent) => void): void {
-  const active = balls.filter(b => !b.pocketed);
+function stepPhysics(
+  balls: Ball[],
+  shotResult: ShotResult,
+  onEvent?: (e: PhysicsEvent) => void,
+  onSettle?: () => void,
+): void {
+  const activeBalls = balls.filter(b => !b.pocketed);
 
-  for (const b of active) {
+  // Move + friction + hard-zero (only moving balls)
+  for (const b of activeBalls) {
+    if (!b.moving) continue;
     b.x += b.vx;
     b.y += b.vy;
     b.vx *= FRICTION;
     b.vy *= FRICTION;
-    if (Math.abs(b.vx) < VELOCITY_THRESHOLD) b.vx = 0;
-    if (Math.abs(b.vy) < VELOCITY_THRESHOLD) b.vy = 0;
+    if (Math.abs(b.vx) < VELOCITY_THRESHOLD && Math.abs(b.vy) < VELOCITY_THRESHOLD) {
+      b.vx = 0;
+      b.vy = 0;
+      b.moving = false;
+    }
   }
 
   // Ball-ball collisions
-  for (let i = 0; i < active.length; i++) {
-    for (let j = i + 1; j < active.length; j++) {
-      const a = active[i];
-      const b = active[j];
+  for (let i = 0; i < activeBalls.length; i++) {
+    for (let j = i + 1; j < activeBalls.length; j++) {
+      const a = activeBalls[i];
+      const b = activeBalls[j];
       const d = dist(a.x, a.y, b.x, b.y);
       if (d < BALL_RADIUS * 2 && d > 0) {
         const overlap = BALL_RADIUS * 2 - d;
@@ -184,6 +192,8 @@ function stepPhysics(balls: Ball[], shotResult: ShotResult, onEvent?: (e: Physic
           a.vy -= dot * ny * BALL_RESTITUTION;
           b.vx += dot * nx * BALL_RESTITUTION;
           b.vy += dot * ny * BALL_RESTITUTION;
+          a.moving = true;
+          b.moving = true;
         }
         if (onEvent) {
           const relVel = Math.sqrt(dvx * dvx + dvy * dvy);
@@ -200,15 +210,15 @@ function stepPhysics(balls: Ball[], shotResult: ShotResult, onEvent?: (e: Physic
   const maxX = OFFSET + TABLE_WIDTH - BALL_RADIUS;
   const minY = OFFSET + BALL_RADIUS;
   const maxY = OFFSET + TABLE_HEIGHT - BALL_RADIUS;
-  for (const b of active) {
-    if (b.x < minX) { b.x = minX; b.vx = Math.abs(b.vx) * RAIL_RESTITUTION; }
-    if (b.x > maxX) { b.x = maxX; b.vx = -Math.abs(b.vx) * RAIL_RESTITUTION; }
-    if (b.y < minY) { b.y = minY; b.vy = Math.abs(b.vy) * RAIL_RESTITUTION; }
-    if (b.y > maxY) { b.y = maxY; b.vy = -Math.abs(b.vy) * RAIL_RESTITUTION; }
+  for (const b of activeBalls) {
+    if (b.x < minX) { b.x = minX; b.vx = Math.abs(b.vx) * RAIL_RESTITUTION; b.moving = true; }
+    if (b.x > maxX) { b.x = maxX; b.vx = -Math.abs(b.vx) * RAIL_RESTITUTION; b.moving = true; }
+    if (b.y < minY) { b.y = minY; b.vy = Math.abs(b.vy) * RAIL_RESTITUTION; b.moving = true; }
+    if (b.y > maxY) { b.y = maxY; b.vy = -Math.abs(b.vy) * RAIL_RESTITUTION; b.moving = true; }
   }
 
   // Pocket detection
-  for (const b of active) {
+  for (const b of activeBalls) {
     for (let pi = 0; pi < POCKETS.length; pi++) {
       const p = POCKETS[pi];
       const d = dist(b.x, b.y, p.x, p.y);
@@ -216,6 +226,7 @@ function stepPhysics(balls: Ball[], shotResult: ShotResult, onEvent?: (e: Physic
         b.pocketed = true;
         b.vx = 0;
         b.vy = 0;
+        b.moving = false;
         shotResult.pocketed.push(b.id);
         if (onEvent) {
           onEvent({ type: 'pocketed', ballId: b.id, pocketX: p.x, pocketY: p.y });
@@ -225,6 +236,11 @@ function stepPhysics(balls: Ball[], shotResult: ShotResult, onEvent?: (e: Physic
         onEvent({ type: 'nearMiss', ballId: b.id, pocketX: p.x, pocketY: p.y });
       }
     }
+  }
+
+  // Settle detection — fires when no active ball is moving
+  if (onSettle && !activeBalls.some(b => b.moving)) {
+    onSettle();
   }
 }
 
@@ -908,7 +924,7 @@ export default function BullseyePoolPage() {
     setDistanceB(null);
 
     // Place first shooter's ball
-    const ball: Ball = { id: shooter, x: HEAD_X, y: HEAD_Y, vx: 0, vy: 0, pocketed: false };
+    const ball: Ball = { id: shooter, x: HEAD_X, y: HEAD_Y, vx: 0, vy: 0, pocketed: false, moving: false };
     ballsRef.current = [ball];
 
     setGamePhase('p1_aiming');
@@ -932,6 +948,7 @@ export default function BullseyePoolPage() {
 
     ball.vx = Math.cos(angle) * power;
     ball.vy = Math.sin(angle) * power;
+    ball.moving = true;
 
     audioRef.current?.ensureContext();
     effectsRef.current?.spawn({
@@ -963,14 +980,24 @@ export default function BullseyePoolPage() {
       }
     };
 
+    let settled = false;
     const simulateStart = performance.now();
+    const handleSettle = () => { settled = true; };
+
     const simulate = () => {
       if (performance.now() - simulateStart > 5000) {
         console.warn('Force settle — balls did not reach rest within 5s');
-        for (const b of ballsRef.current) { b.vx = 0; b.vy = 0; }
+        for (const b of ballsRef.current) { b.vx = 0; b.vy = 0; b.moving = false; }
+        settled = true;
       } else {
-        for (let i = 0; i < 2; i++) stepPhysics(ballsRef.current, shotResult, handlePhysicsEvent);
-        if (!allAtRest(ballsRef.current)) { requestAnimationFrame(simulate); return; }
+        for (let i = 0; i < 2; i++) {
+          stepPhysics(ballsRef.current, shotResult, handlePhysicsEvent, handleSettle);
+        }
+      }
+
+      if (!settled) {
+        requestAnimationFrame(simulate);
+        return;
       }
 
       shootingRef.current = false;
@@ -1015,7 +1042,7 @@ export default function BullseyePoolPage() {
             spawnY = HEAD_Y - BALL_RADIUS * 4;
             if (spawnY < OFFSET + BALL_RADIUS) spawnY = HEAD_Y + BALL_RADIUS * 4;
           }
-          const ball2: Ball = { id: secondShooter, x: spawnX, y: spawnY, vx: 0, vy: 0, pocketed: false };
+          const ball2: Ball = { id: secondShooter, x: spawnX, y: spawnY, vx: 0, vy: 0, pocketed: false, moving: false };
           ballsRef.current = [...ballsRef.current.filter(bl => bl.id === firstShooter), ball2];
           setGamePhase('p2_aiming');
           gamePhaseRef.current = 'p2_aiming';
@@ -1167,7 +1194,7 @@ export default function BullseyePoolPage() {
       // Opponent replay physics
       if (animatingOpponentRef.current) {
         for (let i = 0; i < 2; i++) stepPhysics(ballsRef.current, { pocketed: [] });
-        if (allAtRest(ballsRef.current)) animatingOpponentRef.current = false;
+        if (!ballsRef.current.some(b => b.moving)) animatingOpponentRef.current = false;
       }
 
       // Draw balls
@@ -1241,8 +1268,8 @@ export default function BullseyePoolPage() {
     if (!prevGameDataRef.current || data.shotNumber > prevGameDataRef.current.shotNumber) {
       // Reconstruct balls from server
       const newBalls: Ball[] = [];
-      if (data.ballA) newBalls.push({ id: 'A', x: data.ballA.x, y: data.ballA.y, vx: 0, vy: 0, pocketed: data.ballA.pocketed });
-      if (data.ballB) newBalls.push({ id: 'B', x: data.ballB.x, y: data.ballB.y, vx: 0, vy: 0, pocketed: data.ballB.pocketed });
+      if (data.ballA) newBalls.push({ id: 'A', x: data.ballA.x, y: data.ballA.y, vx: 0, vy: 0, pocketed: data.ballA.pocketed, moving: false });
+      if (data.ballB) newBalls.push({ id: 'B', x: data.ballB.x, y: data.ballB.y, vx: 0, vy: 0, pocketed: data.ballB.pocketed, moving: false });
 
       if (data.lastShot && data.lastShot.player !== role) {
         // Replay opponent's shot

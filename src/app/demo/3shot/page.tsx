@@ -87,6 +87,7 @@ interface Ball {
   vx: number;
   vy: number;
   pocketed: boolean;
+  moving: boolean;
 }
 
 interface ShotResult {
@@ -172,7 +173,7 @@ function rackBalls(): Ball[] {
   const balls: Ball[] = [];
   const cueX = OFFSET + TABLE_WIDTH * 0.25;
   const cueY = OFFSET + TABLE_HEIGHT / 2;
-  balls.push({ id: 0, x: cueX, y: cueY, vx: 0, vy: 0, pocketed: false });
+  balls.push({ id: 0, x: cueX, y: cueY, vx: 0, vy: 0, pocketed: false, moving: false });
 
   const startX = OFFSET + TABLE_WIDTH * 0.73;
   const startY = OFFSET + TABLE_HEIGHT / 2;
@@ -191,7 +192,7 @@ function rackBalls(): Ball[] {
     const rowX = startX + row * spacing * Math.cos(Math.PI / 6);
     for (let col = 0; col < rowBalls.length; col++) {
       const colOffset = (col - (rowBalls.length - 1) / 2) * spacing;
-      balls.push({ id: rowBalls[col], x: rowX, y: startY + colOffset, vx: 0, vy: 0, pocketed: false });
+      balls.push({ id: rowBalls[col], x: rowX, y: startY + colOffset, vx: 0, vy: 0, pocketed: false, moving: false });
     }
   }
 
@@ -205,22 +206,29 @@ function dist(x1: number, y1: number, x2: number, y2: number): number {
   return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
 }
 
-function allAtRest(balls: Ball[]): boolean {
-  return balls.every(b => b.pocketed || (Math.abs(b.vx) < VELOCITY_THRESHOLD && Math.abs(b.vy) < VELOCITY_THRESHOLD));
-}
-
-function stepPhysics(balls: Ball[], shotResult: ShotResult, onEvent?: (e: PhysicsEvent) => void): void {
+function stepPhysics(
+  balls: Ball[],
+  shotResult: ShotResult,
+  onEvent?: (e: PhysicsEvent) => void,
+  onSettle?: () => void,
+): void {
   const activeBalls = balls.filter(b => !b.pocketed);
 
+  // Move + friction + hard-zero (only moving balls)
   for (const b of activeBalls) {
+    if (!b.moving) continue;
     b.x += b.vx;
     b.y += b.vy;
     b.vx *= FRICTION;
     b.vy *= FRICTION;
-    if (Math.abs(b.vx) < VELOCITY_THRESHOLD) b.vx = 0;
-    if (Math.abs(b.vy) < VELOCITY_THRESHOLD) b.vy = 0;
+    if (Math.abs(b.vx) < VELOCITY_THRESHOLD && Math.abs(b.vy) < VELOCITY_THRESHOLD) {
+      b.vx = 0;
+      b.vy = 0;
+      b.moving = false;
+    }
   }
 
+  // Ball-ball collisions
   for (let i = 0; i < activeBalls.length; i++) {
     for (let j = i + 1; j < activeBalls.length; j++) {
       const a = activeBalls[i];
@@ -252,6 +260,8 @@ function stepPhysics(balls: Ball[], shotResult: ShotResult, onEvent?: (e: Physic
           a.vy -= dot * ny * BALL_RESTITUTION;
           b.vx += dot * nx * BALL_RESTITUTION;
           b.vy += dot * ny * BALL_RESTITUTION;
+          a.moving = true;
+          b.moving = true;
         }
 
         if (onEvent) {
@@ -264,6 +274,7 @@ function stepPhysics(balls: Ball[], shotResult: ShotResult, onEvent?: (e: Physic
     }
   }
 
+  // Rail bounces
   const minX = OFFSET + BALL_RADIUS;
   const maxX = OFFSET + TABLE_WIDTH - BALL_RADIUS;
   const minY = OFFSET + BALL_RADIUS;
@@ -271,15 +282,16 @@ function stepPhysics(balls: Ball[], shotResult: ShotResult, onEvent?: (e: Physic
 
   for (const b of activeBalls) {
     let hitRail = false;
-    if (b.x < minX) { b.x = minX; b.vx = Math.abs(b.vx) * RAIL_RESTITUTION; hitRail = true; }
-    if (b.x > maxX) { b.x = maxX; b.vx = -Math.abs(b.vx) * RAIL_RESTITUTION; hitRail = true; }
-    if (b.y < minY) { b.y = minY; b.vy = Math.abs(b.vy) * RAIL_RESTITUTION; hitRail = true; }
-    if (b.y > maxY) { b.y = maxY; b.vy = -Math.abs(b.vy) * RAIL_RESTITUTION; hitRail = true; }
+    if (b.x < minX) { b.x = minX; b.vx = Math.abs(b.vx) * RAIL_RESTITUTION; hitRail = true; b.moving = true; }
+    if (b.x > maxX) { b.x = maxX; b.vx = -Math.abs(b.vx) * RAIL_RESTITUTION; hitRail = true; b.moving = true; }
+    if (b.y < minY) { b.y = minY; b.vy = Math.abs(b.vy) * RAIL_RESTITUTION; hitRail = true; b.moving = true; }
+    if (b.y > maxY) { b.y = maxY; b.vy = -Math.abs(b.vy) * RAIL_RESTITUTION; hitRail = true; b.moving = true; }
     if (hitRail && shotResult.contactMade) {
       shotResult.railAfterContact = true;
     }
   }
 
+  // Pocket detection
   for (const b of activeBalls) {
     for (let pi = 0; pi < POCKETS.length; pi++) {
       const p = POCKETS[pi];
@@ -288,6 +300,7 @@ function stepPhysics(balls: Ball[], shotResult: ShotResult, onEvent?: (e: Physic
         b.pocketed = true;
         b.vx = 0;
         b.vy = 0;
+        b.moving = false;
         if (b.id === 0) {
           shotResult.cuePocketed = true;
         } else {
@@ -301,6 +314,11 @@ function stepPhysics(balls: Ball[], shotResult: ShotResult, onEvent?: (e: Physic
         onEvent({ type: 'nearMiss', ballId: b.id, pocketX: p.x, pocketY: p.y });
       }
     }
+  }
+
+  // Settle detection — fires when no active ball is moving
+  if (onSettle && !activeBalls.some(b => b.moving)) {
+    onSettle();
   }
 }
 
@@ -1022,6 +1040,7 @@ export default function ThreeShotPoolPage() {
       cue.y = pos.y;
       cue.vx = 0;
       cue.vy = 0;
+      cue.moving = false;
     }
   }, []);
 
@@ -1048,6 +1067,7 @@ export default function ThreeShotPoolPage() {
 
     cueBall.vx = Math.cos(angle) * power;
     cueBall.vy = Math.sin(angle) * power;
+    cueBall.moving = true;
 
     audioRef.current?.ensureContext();
     effectsRef.current?.spawn({
@@ -1085,20 +1105,24 @@ export default function ThreeShotPoolPage() {
       }
     };
 
+    let settled = false;
     const simulateStart = performance.now();
+    const handleSettle = () => { settled = true; };
+
     const simulate = () => {
-      // Force-settle safety net — no shot should take longer than 5s to settle
       if (performance.now() - simulateStart > 5000) {
         console.warn('Force settle — balls did not reach rest within 5s');
-        for (const b of ballsRef.current) { b.vx = 0; b.vy = 0; }
+        for (const b of ballsRef.current) { b.vx = 0; b.vy = 0; b.moving = false; }
+        settled = true;
       } else {
         for (let i = 0; i < 2; i++) {
-          stepPhysics(ballsRef.current, shotResult, handlePhysicsEvent);
+          stepPhysics(ballsRef.current, shotResult, handlePhysicsEvent, handleSettle);
         }
-        if (!allAtRest(ballsRef.current)) {
-          requestAnimationFrame(simulate);
-          return;
-        }
+      }
+
+      if (!settled) {
+        requestAnimationFrame(simulate);
+        return;
       }
 
       shootingRef.current = false;
@@ -1439,7 +1463,7 @@ export default function ThreeShotPoolPage() {
           stepPhysics(ballsRef.current, { firstContact: null, pocketed: [], cuePocketed: false, railAfterContact: false, contactMade: false });
         }
 
-        if (allAtRest(ballsRef.current)) {
+        if (!ballsRef.current.some(b => b.moving)) {
           animatingOpponentRef.current = false;
           for (const endBall of opponentAnimEndRef.current) {
             const b = ballsRef.current.find(bb => bb.id === endBall.id);
@@ -1503,18 +1527,19 @@ export default function ThreeShotPoolPage() {
 
     if (!prevGameDataRef.current || data.shotNumber > prevGameDataRef.current.shotNumber) {
       const newBalls = data.balls.map(bd => ({
-        id: bd.id, x: bd.x, y: bd.y, vx: 0, vy: 0, pocketed: bd.pocketed,
+        id: bd.id, x: bd.x, y: bd.y, vx: 0, vy: 0, pocketed: bd.pocketed, moving: false,
       }));
 
       if (!prevGameDataRef.current) {
         ballsRef.current = newBalls;
       } else if (data.lastShot && data.lastShot.angle !== undefined && data.lastShot.preShotBalls && data.lastShot.player !== role) {
         const ls = data.lastShot;
-        ballsRef.current = ls.preShotBalls.map(b => ({ id: b.id, x: b.x, y: b.y, vx: 0, vy: 0, pocketed: b.pocketed }));
+        ballsRef.current = ls.preShotBalls.map(b => ({ id: b.id, x: b.x, y: b.y, vx: 0, vy: 0, pocketed: b.pocketed, moving: false }));
         const cue = ballsRef.current.find(b => b.id === 0);
         if (cue && !cue.pocketed) {
           cue.vx = Math.cos(ls.angle) * ls.power;
           cue.vy = Math.sin(ls.angle) * ls.power;
+          cue.moving = true;
         }
         opponentAnimEndRef.current = newBalls;
         animatingOpponentRef.current = true;
