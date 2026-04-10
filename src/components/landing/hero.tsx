@@ -14,15 +14,34 @@ export function Hero() {
               <span>Real money. Real stakes.</span>
             </div>
 
-            {/* Headline */}
+            {/* Headline — action verbs in brand gradient */}
             <h1 className="mt-6 font-display text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight text-fg">
-              <span className="block animate-fade-up animate-fade-up-delay-100">Play your game.</span>
-              <span className="block animate-fade-up animate-fade-up-delay-200">Stake your skill.</span>
-              <span
-                className="block animate-fade-up animate-fade-up-delay-300 bg-clip-text text-transparent"
-                style={{ backgroundImage: 'linear-gradient(135deg, #22c55e 0%, #10b981 50%, #06b6d4 100%)' }}
-              >
-                Earn your winnings.
+              <span className="block animate-fade-up animate-fade-up-delay-100">
+                <span
+                  className="bg-clip-text text-transparent"
+                  style={{ backgroundImage: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' }}
+                >
+                  Play
+                </span>
+                {' your game.'}
+              </span>
+              <span className="block animate-fade-up animate-fade-up-delay-200">
+                <span
+                  className="bg-clip-text text-transparent"
+                  style={{ backgroundImage: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                >
+                  Stake
+                </span>
+                {' your skill.'}
+              </span>
+              <span className="block animate-fade-up animate-fade-up-delay-300">
+                <span
+                  className="bg-clip-text text-transparent"
+                  style={{ backgroundImage: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)' }}
+                >
+                  Earn
+                </span>
+                {' your winnings.'}
               </span>
             </h1>
 

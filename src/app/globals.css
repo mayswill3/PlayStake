@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
 
+/* Enable class-based dark mode (Tailwind v4 requires this explicitly) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* PlayStake brand — lime/emerald green matching logo controller */
   --color-brand-50: #f0fdf4;

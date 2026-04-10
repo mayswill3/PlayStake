@@ -37,7 +37,7 @@ const playerNav: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Wallet', href: '/wallet', icon: Wallet },
   { label: 'Bets', href: '/bets', icon: Swords },
-  { label: 'Demo Games', href: '/demo', icon: Gamepad2 },
+  { label: 'Play', href: '/play', icon: Gamepad2 },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -190,6 +190,6 @@ function isActive(pathname: string, href: string): boolean {
   if (href === '/dashboard') return pathname === '/dashboard';
   if (href === '/developer') return pathname === '/developer';
   if (href === '/admin') return pathname === '/admin';
-  if (href === '/demo') return pathname.startsWith('/demo');
+  if (href === '/play') return pathname.startsWith('/play');
   return pathname.startsWith(href);
 }

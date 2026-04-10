@@ -6,13 +6,13 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Demo | PlayStake',
-    template: '%s | PlayStake Demo',
+    default: 'Play | PlayStake',
+    template: '%s | PlayStake',
   },
-  description: 'See how PlayStake integrates with your favorite games.',
+  description: 'Play real-money wagered games on PlayStake.',
 };
 
-export default function DemoLayout({ children }: { children: React.ReactNode }) {
+export default function PlayLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-page text-fg">
       <nav
@@ -23,7 +23,7 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center justify-between">
             <Link
-              href="/demo"
+              href="/play"
               className="font-display text-lg font-bold tracking-wider text-fg"
             >
               <span className="inline-flex items-center gap-2">

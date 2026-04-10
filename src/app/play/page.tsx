@@ -11,31 +11,31 @@ interface DemoCardProps {
 
 const DEMOS: DemoCardProps[] = [
   {
-    href: '/demo/cards',
+    href: '/play/cards',
     icon: Layers,
     title: 'Higher / Lower',
     description: 'Classic card game with turn-based wagering and score tracking.',
   },
   {
-    href: '/demo/tictactoe',
+    href: '/play/tictactoe',
     icon: Grid3x3,
     title: 'Tic-Tac-Toe',
     description: 'Classic strategy game with two-player wagering and win detection.',
   },
   {
-    href: '/demo/pool',
+    href: '/play/pool',
     icon: Circle,
     title: '8-Ball Pool',
     description: 'Classic 8-ball pool with realistic physics and two-player wagering.',
   },
   {
-    href: '/demo/3shot',
+    href: '/play/3shot',
     icon: Target,
     title: '3-Shot Pool',
     description: '3 shots each. Most balls potted wins. Fast-paced wagered match.',
   },
   {
-    href: '/demo/bullseye',
+    href: '/play/bullseye',
     icon: Disc,
     title: 'Bullseye Pool',
     description: 'Land closest to the target. Win the round. Precision wagered match.',
