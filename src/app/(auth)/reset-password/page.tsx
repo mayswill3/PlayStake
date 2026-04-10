@@ -3,8 +3,6 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Card } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Button } from '@/components/ui/Button';
 
@@ -53,25 +51,25 @@ export default function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <Card>
-        <h1 className="text-2xl font-bold font-display text-text-primary mb-4">Invalid Link</h1>
-        <p className="text-text-secondary font-mono mb-4">
+      <div className="rounded-2xl border border-themed bg-card p-8 shadow-sm">
+        <h1 className="text-2xl font-bold font-display text-fg mb-4">Invalid Link</h1>
+        <p className="text-fg-secondary mb-4">
           This password reset link is invalid or has expired.
         </p>
-        <Link href="/forgot-password" className="text-brand-400 hover:text-brand-400 text-sm transition-colors">
+        <Link href="/forgot-password" className="text-brand-600 hover:text-brand-700 font-semibold text-sm transition-colors">
           Request a new reset link
         </Link>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <h1 className="text-2xl font-bold font-display text-text-primary mb-1">Set new password</h1>
-      <p className="text-sm text-text-secondary font-mono mb-6">Enter your new password below.</p>
+    <div className="rounded-2xl border border-themed bg-card p-8 shadow-sm">
+      <h1 className="text-2xl font-bold font-display text-fg mb-1">Set new password</h1>
+      <p className="text-sm text-fg-secondary mb-6">Enter your new password below.</p>
 
       {error && (
-        <div className="mb-4 p-3 rounded-sm bg-danger-500/10 border border-danger-500/25 text-danger-400 text-sm" role="alert">
+        <div className="mb-4 p-3 rounded-lg bg-danger-500/10 border border-danger-500/25 text-danger-500 text-sm" role="alert">
           {error}
         </div>
       )}
@@ -101,6 +99,6 @@ export default function ResetPasswordPage() {
           Reset Password
         </Button>
       </form>
-    </Card>
+    </div>
   );
 }

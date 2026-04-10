@@ -3,7 +3,6 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Button } from '@/components/ui/Button';
@@ -19,7 +18,7 @@ function getPasswordStrength(pw: string): { score: number; label: string; color:
   if (score <= 1) return { score, label: 'Weak', color: 'bg-danger-500' };
   if (score <= 2) return { score, label: 'Fair', color: 'bg-warning-400' };
   if (score <= 3) return { score, label: 'Good', color: 'bg-blue-400' };
-  return { score, label: 'Strong', color: 'bg-brand-400' };
+  return { score, label: 'Strong', color: 'bg-brand-500' };
 }
 
 export default function RegisterPage() {
@@ -75,19 +74,19 @@ export default function RegisterPage() {
   }
 
   return (
-    <Card>
-      <h1 className="text-2xl font-display font-bold text-text-primary mb-1">Create your account</h1>
-      <p className="text-sm font-mono text-text-secondary mb-6">Start wagering on your favorite games</p>
+    <div className="rounded-2xl border border-themed bg-card p-8 shadow-sm">
+      <h1 className="text-2xl font-display font-bold text-fg mb-1">Create your account</h1>
+      <p className="text-sm text-fg-secondary mb-6">Start wagering on your favorite games</p>
 
       {error && (
-        <div className="mb-4 p-3 rounded-sm bg-danger-500/10 border border-danger-500/25 text-danger-400 text-sm font-mono" role="alert">
+        <div className="mb-4 p-3 rounded-lg bg-danger-500/10 border border-danger-500/25 text-danger-500 text-sm" role="alert">
           {error}
         </div>
       )}
 
       <a
         href="/api/auth/google"
-        className="flex items-center justify-center gap-3 w-full px-4 py-2.5 rounded-sm border border-surface-700 bg-surface-800 hover:bg-surface-700 transition-colors text-sm font-mono text-text-primary"
+        className="flex items-center justify-center gap-3 w-full px-4 py-2.5 rounded-lg border border-themed bg-elevated hover:bg-page transition-colors text-sm font-medium text-fg"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
@@ -98,12 +97,12 @@ export default function RegisterPage() {
         Sign up with Google
       </a>
 
-      <div className="relative my-4">
+      <div className="relative my-5">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-surface-700" />
+          <div className="w-full border-t border-themed" />
         </div>
-        <div className="relative flex justify-center text-xs font-mono">
-          <span className="bg-surface-900 px-2 text-text-secondary">or</span>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-card px-2 text-fg-muted">or</span>
         </div>
       </div>
 
@@ -116,13 +115,13 @@ export default function RegisterPage() {
           {password.length > 0 && (
             <div className="mt-2">
               <div className="flex items-center gap-2">
-                <div className="flex-1 h-1.5 rounded-sm bg-surface-800 overflow-hidden">
+                <div className="flex-1 h-1.5 rounded-full bg-elevated overflow-hidden">
                   <div
-                    className={`h-full rounded-sm transition-all duration-300 ${strength.color}`}
+                    className={`h-full rounded-full transition-all duration-300 ${strength.color}`}
                     style={{ width: `${(strength.score / 5) * 100}%` }}
                   />
                 </div>
-                <span className="font-mono text-xs text-text-secondary">{strength.label}</span>
+                <span className="text-xs text-fg-secondary">{strength.label}</span>
               </div>
             </div>
           )}
@@ -133,12 +132,12 @@ export default function RegisterPage() {
         </Button>
       </form>
 
-      <p className="mt-4 text-center text-sm font-mono text-text-secondary">
+      <p className="mt-4 text-center text-sm text-fg-secondary">
         Already have an account?{' '}
-        <Link href="/login" className="text-brand-400 hover:text-brand-500 transition-colors">
+        <Link href="/login" className="text-brand-600 hover:text-brand-700 font-semibold transition-colors">
           Sign in
         </Link>
       </p>
-    </Card>
+    </div>
   );
 }

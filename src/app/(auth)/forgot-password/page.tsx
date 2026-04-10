@@ -2,7 +2,6 @@
 
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 
@@ -30,20 +29,20 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <Card>
-      <h1 className="text-2xl font-bold font-display text-text-primary mb-1">Reset your password</h1>
-      <p className="text-sm text-text-secondary font-mono mb-6">
+    <div className="rounded-2xl border border-themed bg-card p-8 shadow-sm">
+      <h1 className="text-2xl font-bold font-display text-fg mb-1">Reset your password</h1>
+      <p className="text-sm text-fg-secondary mb-6">
         Enter your email and we will send you a reset link.
       </p>
 
       {submitted ? (
         <div>
-          <div className="p-4 rounded-sm bg-brand-500/10 border border-brand-500/25 text-brand-400 text-sm mb-4">
+          <div className="p-4 rounded-lg bg-brand-600/10 border border-brand-600/25 text-brand-700 dark:text-brand-400 text-sm mb-4">
             If an account exists with that email, you will receive a password reset link shortly.
           </div>
           <Link
             href="/login"
-            className="block text-center text-sm text-brand-400 hover:text-brand-400 transition-colors"
+            className="block text-center text-sm text-brand-600 hover:text-brand-700 font-semibold transition-colors"
           >
             Back to login
           </Link>
@@ -66,12 +65,12 @@ export default function ForgotPasswordPage() {
 
           <Link
             href="/login"
-            className="block text-center text-sm text-text-secondary hover:text-text-primary transition-colors"
+            className="block text-center text-sm text-fg-secondary hover:text-fg transition-colors"
           >
             Back to login
           </Link>
         </form>
       )}
-    </Card>
+    </div>
   );
 }

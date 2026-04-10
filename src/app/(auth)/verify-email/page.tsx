@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 
 export default function VerifyEmailPage() {
@@ -41,24 +40,24 @@ export default function VerifyEmailPage() {
   }, [token]);
 
   return (
-    <Card>
+    <div className="rounded-2xl border border-themed bg-card p-8 shadow-sm">
       {status === 'loading' && (
         <div className="flex flex-col items-center py-8">
           <Spinner size="lg" />
-          <p className="mt-4 text-text-secondary font-mono">Verifying your email...</p>
+          <p className="mt-4 text-fg-secondary">Verifying your email...</p>
         </div>
       )}
 
       {status === 'success' && (
         <div className="text-center py-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-500/15 text-brand-400 text-3xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-600/15 text-brand-600 dark:text-brand-400 text-3xl mb-4">
             &#10003;
           </div>
-          <h1 className="text-2xl font-bold font-display text-text-primary mb-2">Email Verified</h1>
-          <p className="text-text-secondary font-mono mb-6">Your email has been verified successfully.</p>
+          <h1 className="text-2xl font-bold font-display text-fg mb-2">Email Verified</h1>
+          <p className="text-fg-secondary mb-6">Your email has been verified successfully.</p>
           <Link
             href="/login"
-            className="inline-flex items-center px-5 py-2.5 rounded-sm bg-brand-400 text-surface-950 text-sm font-medium hover:bg-brand-500 transition-colors"
+            className="inline-flex items-center h-11 px-5 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors"
           >
             Continue to Login
           </Link>
@@ -67,19 +66,19 @@ export default function VerifyEmailPage() {
 
       {status === 'error' && (
         <div className="text-center py-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-danger-500/15 text-danger-400 text-3xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-danger-500/15 text-danger-500 text-3xl mb-4">
             &#10007;
           </div>
-          <h1 className="text-2xl font-bold font-display text-text-primary mb-2">Verification Failed</h1>
-          <p className="text-text-secondary font-mono mb-6">{errorMsg}</p>
+          <h1 className="text-2xl font-bold font-display text-fg mb-2">Verification Failed</h1>
+          <p className="text-fg-secondary mb-6">{errorMsg}</p>
           <Link
             href="/login"
-            className="text-brand-400 hover:text-brand-400 text-sm transition-colors"
+            className="text-brand-600 hover:text-brand-700 font-semibold text-sm transition-colors"
           >
             Back to login
           </Link>
         </div>
       )}
-    </Card>
+    </div>
   );
 }
