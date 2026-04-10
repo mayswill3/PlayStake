@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -66,7 +67,7 @@ export function Sidebar({ userRole }: SidebarProps) {
       {/* Mobile hamburger */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-sm bg-surface-800 text-surface-300 hover:text-text-primary"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-elevated border border-themed text-fg-secondary hover:text-fg"
         aria-label="Toggle navigation"
       >
         {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -83,7 +84,7 @@ export function Sidebar({ userRole }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 z-40 h-full w-[75vw] max-w-64 bg-surface-950 border-r border-white/8
+          fixed top-0 left-0 z-40 h-full w-[75vw] max-w-64 bg-page border-r border-themed
           flex flex-col
           transition-transform duration-200 ease-in-out
           lg:translate-x-0 lg:static lg:z-auto
@@ -91,16 +92,16 @@ export function Sidebar({ userRole }: SidebarProps) {
         `}
       >
         {/* Logo */}
-        <div className="px-6 py-5 border-b border-white/8">
+        <div className="px-6 py-5 border-b border-themed">
           <Link href="/dashboard" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
-            <img src="/logo.png" alt="PlayStake" className="h-8 w-8" />
-            <span className="text-lg font-display font-semibold text-text-primary">PlayStake</span>
+            <Image src="/logo.png" alt="PlayStake" width={32} height={32} className="h-8 w-8" />
+            <span className="text-lg font-display font-semibold text-fg">PlayStake</span>
           </Link>
         </div>
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <div className="mb-2 px-3 font-mono text-[10px] uppercase tracking-widest text-text-muted">
+          <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-fg-muted">
             Player
           </div>
           {playerNav.map((item) => (
@@ -114,7 +115,7 @@ export function Sidebar({ userRole }: SidebarProps) {
 
           {isDeveloper && (
             <>
-              <div className="mt-6 mb-2 px-3 font-mono text-[10px] uppercase tracking-widest text-text-muted">
+              <div className="mt-6 mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-fg-muted">
                 Developer
               </div>
               {developerNav.map((item) => (
@@ -130,7 +131,7 @@ export function Sidebar({ userRole }: SidebarProps) {
 
           {userRole === 'ADMIN' && (
             <>
-              <div className="mt-6 mb-2 px-3 font-mono text-[10px] uppercase tracking-widest text-text-muted">
+              <div className="mt-6 mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-fg-muted">
                 Admin
               </div>
               {adminNav.map((item) => (
@@ -146,8 +147,8 @@ export function Sidebar({ userRole }: SidebarProps) {
         </nav>
 
         {/* Bottom */}
-        <div className="px-4 py-4 border-t border-white/8">
-          <p className="font-mono text-[10px] text-text-muted text-center uppercase tracking-widest">PlayStake v1.0</p>
+        <div className="px-4 py-4 border-t border-themed">
+          <p className="text-[10px] text-fg-muted text-center uppercase tracking-widest">PlayStake v1.0</p>
         </div>
       </aside>
     </>
@@ -169,12 +170,12 @@ function NavLink({
       href={item.href}
       onClick={onClick}
       className={`
-        flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-mono
+        flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
         transition-colors duration-150 mb-0.5
         ${
           active
-            ? 'bg-brand-400/10 text-brand-400 border-l-2 border-brand-400'
-            : 'text-surface-400 hover:text-text-primary hover:bg-surface-800'
+            ? 'bg-brand-600/10 text-brand-600 dark:text-brand-400 border-l-2 border-brand-600 dark:border-brand-400'
+            : 'text-fg-secondary hover:text-fg hover:bg-elevated'
         }
       `}
       aria-current={active ? 'page' : undefined}

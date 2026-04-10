@@ -1,98 +1,84 @@
 import Link from 'next/link';
-import { Card } from '@/components/ui/Card';
 import { Circle, Disc, Grid3x3, Layers, Target } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
+interface DemoCardProps {
+  href: string;
+  icon: LucideIcon;
+  title: string;
+  description: string;
+}
+
+const DEMOS: DemoCardProps[] = [
+  {
+    href: '/demo/cards',
+    icon: Layers,
+    title: 'Higher / Lower',
+    description: 'Classic card game with turn-based wagering and score tracking.',
+  },
+  {
+    href: '/demo/tictactoe',
+    icon: Grid3x3,
+    title: 'Tic-Tac-Toe',
+    description: 'Classic strategy game with two-player wagering and win detection.',
+  },
+  {
+    href: '/demo/pool',
+    icon: Circle,
+    title: '8-Ball Pool',
+    description: 'Classic 8-ball pool with realistic physics and two-player wagering.',
+  },
+  {
+    href: '/demo/3shot',
+    icon: Target,
+    title: '3-Shot Pool',
+    description: '3 shots each. Most balls potted wins. Fast-paced wagered match.',
+  },
+  {
+    href: '/demo/bullseye',
+    icon: Disc,
+    title: 'Bullseye Pool',
+    description: 'Land closest to the target. Win the round. Precision wagered match.',
+  },
+];
 
 export default function DemoIndex() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-      <h1 className="font-display text-3xl font-bold text-text-primary mb-2">
-        Game Demos
-      </h1>
-      <p className="text-text-secondary font-mono text-sm mb-10">
-        See how PlayStake integrates with different game types.
-      </p>
+    <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
+      <div className="mb-10">
+        <h1 className="font-display text-3xl sm:text-4xl font-bold text-fg mb-2">
+          Game Demos
+        </h1>
+        <p className="text-base text-fg-secondary">
+          See how PlayStake integrates with different game types.
+        </p>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Link href="/demo/cards" className="group">
-          <Card className="h-full transition-colors group-hover:border-brand-400/30 group-hover:bg-surface-850">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-brand-400/10 text-brand-400">
-                <Layers className="h-5 w-5" />
-              </div>
-              <h2 className="font-display text-lg font-semibold text-text-primary">
-                Higher / Lower
-              </h2>
-            </div>
-            <p className="text-sm text-text-secondary font-mono">
-              Classic card game with turn-based wagering and score tracking.
-            </p>
-          </Card>
-        </Link>
-
-        <Link href="/demo/tictactoe" className="group">
-          <Card className="h-full transition-colors group-hover:border-brand-400/30 group-hover:bg-surface-850">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-brand-400/10 text-brand-400">
-                <Grid3x3 className="h-5 w-5" />
-              </div>
-              <h2 className="font-display text-lg font-semibold text-text-primary">
-                Tic-Tac-Toe
-              </h2>
-            </div>
-            <p className="text-sm text-text-secondary font-mono">
-              Classic strategy game with two-player wagering and win detection.
-            </p>
-          </Card>
-        </Link>
-
-        <Link href="/demo/pool" className="group">
-          <Card className="h-full transition-colors group-hover:border-brand-400/30 group-hover:bg-surface-850">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-brand-400/10 text-brand-400">
-                <Circle className="h-5 w-5" />
-              </div>
-              <h2 className="font-display text-lg font-semibold text-text-primary">
-                8-Ball Pool
-              </h2>
-            </div>
-            <p className="text-sm text-text-secondary font-mono">
-              Classic 8-ball pool with realistic physics and two-player wagering.
-            </p>
-          </Card>
-        </Link>
-
-        <Link href="/demo/3shot" className="group">
-          <Card className="h-full transition-colors group-hover:border-brand-400/30 group-hover:bg-surface-850">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-brand-400/10 text-brand-400">
-                <Target className="h-5 w-5" />
-              </div>
-              <h2 className="font-display text-lg font-semibold text-text-primary">
-                3-Shot Pool
-              </h2>
-            </div>
-            <p className="text-sm text-text-secondary font-mono">
-              3 shots each. Most balls potted wins. Fast-paced wagered match.
-            </p>
-          </Card>
-        </Link>
-
-        <Link href="/demo/bullseye" className="group">
-          <Card className="h-full transition-colors group-hover:border-brand-400/30 group-hover:bg-surface-850">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-brand-400/10 text-brand-400">
-                <Disc className="h-5 w-5" />
-              </div>
-              <h2 className="font-display text-lg font-semibold text-text-primary">
-                Bullseye Pool
-              </h2>
-            </div>
-            <p className="text-sm text-text-secondary font-mono">
-              Land closest to the target. Win the round. Precision wagered match.
-            </p>
-          </Card>
-        </Link>
+        {DEMOS.map((demo) => (
+          <DemoCard key={demo.href} {...demo} />
+        ))}
       </div>
     </div>
+  );
+}
+
+function DemoCard({ href, icon: Icon, title, description }: DemoCardProps) {
+  return (
+    <Link href={href} className="group">
+      <div className="h-full rounded-xl border border-themed bg-card p-6 transition-all group-hover:-translate-y-0.5 group-hover:shadow-lg group-hover:border-brand-600/30">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-600/10 text-brand-600 dark:text-brand-400">
+            <Icon className="h-5 w-5" />
+          </div>
+          <h2 className="font-display text-lg font-semibold text-fg">
+            {title}
+          </h2>
+        </div>
+        <p className="text-sm leading-relaxed text-fg-secondary">
+          {description}
+        </p>
+      </div>
+    </Link>
   );
 }

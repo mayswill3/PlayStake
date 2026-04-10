@@ -78,7 +78,7 @@
   --font-mono: var(--font-inter), ui-monospace, monospace;
 }
 
-/* Light mode (default) — themable tokens for landing/auth pages */
+/* Light mode (default) — themable tokens for landing/auth/dashboard */
 :root {
   --bg: #ffffff;
   --bg-elevated: #f8f9fa;
@@ -88,6 +88,25 @@
   --fg-muted: #71717a;
   --border: rgba(0, 0, 0, 0.08);
   --border-strong: rgba(0, 0, 0, 0.12);
+
+  /* Override Tailwind @theme tokens for LIGHT mode so bg-surface-900,
+     text-text-primary, etc. follow the theme automatically */
+  --color-surface-950: #ffffff;
+  --color-surface-900: #ffffff;
+  --color-surface-850: #f8f9fa;
+  --color-surface-800: #f1f5f9;
+  --color-surface-700: #e2e8f0;
+  --color-surface-600: #cbd5e1;
+  --color-surface-500: #94a3b8;
+  --color-surface-400: #64748b;
+  --color-surface-300: #475569;
+  --color-surface-200: #334155;
+  --color-surface-100: #1e293b;
+  --color-surface-50:  #0f172a;
+
+  --color-text-primary: #0f0f0f;
+  --color-text-secondary: #4a4a5a;
+  --color-text-muted: #71717a;
 }
 
 /* Dark mode — applied when `.dark` class is on <html> */
@@ -100,6 +119,24 @@
   --fg-muted: #71717a;
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.15);
+
+  /* Restore dark surface scale */
+  --color-surface-950: #0a0a0f;
+  --color-surface-900: #0f0f1a;
+  --color-surface-850: #14141f;
+  --color-surface-800: #1a1a2e;
+  --color-surface-700: #2a2a3e;
+  --color-surface-600: #52525b;
+  --color-surface-500: #71717a;
+  --color-surface-400: #a1a1aa;
+  --color-surface-300: #d4d4d8;
+  --color-surface-200: #e4e4e7;
+  --color-surface-100: #f0f0f5;
+  --color-surface-50:  #fafafa;
+
+  --color-text-primary: #f0f0f5;
+  --color-text-secondary: #a0a0b0;
+  --color-text-muted: #71717a;
 }
 
 /* Body uses themable tokens — default light, dark when .dark is set */
@@ -115,8 +152,23 @@ html.theme-transition, html.theme-transition * {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
 }
 
-/* Landing-specific utility: force-dark sections (in-game surfaces) */
-.force-dark {
+/* Legacy border-white/N → themable border (scoped: not inside force-dark)
+   Dashboard pages use border-white/8 heavily; it's invisible on white.
+   Override at the CSS layer but ONLY outside force-dark regions. */
+:where(:root:not(.dark)) .border-white\/8,
+:where(:root:not(.dark)) .border-white\/10,
+:where(:root:not(.dark)) .border-white\/5 {
+  border-color: var(--border);
+}
+.force-dark .border-white\/8,
+.force-dark .border-white\/10,
+.force-dark .border-white\/5 {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Force-dark: keep in-game surfaces dark regardless of theme toggle */
+.force-dark,
+body:has(.game-fullscreen-mobile) .force-dark {
   --bg: #0a0a0f;
   --bg-elevated: #0f0f1a;
   --bg-card: #14141f;
@@ -124,21 +176,31 @@ html.theme-transition, html.theme-transition * {
   --fg-secondary: #a0a0b0;
   --fg-muted: #71717a;
   --border: rgba(255, 255, 255, 0.08);
+
+  --color-surface-950: #0a0a0f;
+  --color-surface-900: #0f0f1a;
+  --color-surface-850: #14141f;
+  --color-surface-800: #1a1a2e;
+  --color-surface-700: #2a2a3e;
+  --color-text-primary: #f0f0f5;
+  --color-text-secondary: #a0a0b0;
+  --color-text-muted: #71717a;
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling — themable */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-surface-900;
+  background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-surface-700 rounded;
+  background: var(--border-strong);
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-surface-600;
+  background: var(--fg-muted);
 }
 
 /* Form defaults — themable */
