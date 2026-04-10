@@ -15,8 +15,8 @@ import { useDemoAuth } from '../_shared/use-demo-auth';
 import { useGameSession } from '../_shared/use-game-session';
 import { PlayStakeWidget, type PlayStakeWidgetHandle } from '../_shared/PlayStakeWidget';
 import { GameResultOverlay, deriveOutcome, formatResultAmount, type SettlementResult } from '../_shared/GameResultOverlay';
-import { RoleSelector } from '../_shared/RoleSelector';
 import { LobbyPanel } from '../_shared/LobbyPanel';
+import { GameLobbyLayout } from '@/components/games/game-lobby-layout';
 import { EventLog } from '../_shared/EventLog';
 import type { PlayerRole } from '../_shared/types';
 
@@ -2009,6 +2009,32 @@ export default function ThreeShotPoolPage() {
 
   const wagerDisplay = betAmountCents > 0 ? `$${(betAmountCents / 100).toFixed(2)}` : undefined;
 
+  // Pre-game: render the new lobby layout
+  if (!isInGame) {
+    return (
+      <GameLobbyLayout
+        gameKey="3shot"
+        phase={phase === 'role-select' || phase === 'lobby' ? phase : 'role-select'}
+        role={role}
+        isSettingUp={isSettingUp}
+        onRoleSelect={handleRoleSelect}
+        gameCode={sessionId}
+        onCreateGame={handleCreateGame}
+        onJoinGame={handleJoinGame}
+        isCreating={isCreating}
+        isJoining={isJoining}
+        widgetToken={authState?.widgetToken ?? null}
+        gameId={authState?.gameId ?? null}
+        widgetRef={widgetHandleRef}
+        onBetCreated={handleBetCreated}
+        onBetAccepted={handleBetAccepted}
+        onBetSettled={handleBetSettled}
+        onWidgetError={(err) => log(`Widget error: ${err.message}`, 'error')}
+        events={entries}
+      />
+    );
+  }
+
   return (
     <div className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 ${isInGame ? 'game-fullscreen-mobile' : ''}`}>
       <RotatePrompt isInGame={isInGame} />
@@ -2046,29 +2072,6 @@ export default function ThreeShotPoolPage() {
       <div className="game-grid grid gap-6 lg:grid-cols-3">
         {/* Game area */}
         <div className="game-area lg:col-span-2 space-y-4">
-          {phase === 'role-select' && (
-            <RoleSelector onSelect={handleRoleSelect} disabled={isSettingUp} />
-          )}
-
-          {isSettingUp && (
-            <Card padding="sm">
-              <p className="font-mono text-xs text-text-muted text-center uppercase tracking-widest">
-                Setting up authentication...
-              </p>
-            </Card>
-          )}
-
-          {phase === 'lobby' && role && (
-            <LobbyPanel
-              role={role}
-              gameCode={sessionId}
-              onCreateGame={handleCreateGame}
-              onJoinGame={handleJoinGame}
-              isCreating={isCreating}
-              isJoining={isJoining}
-            />
-          )}
-
           {(phase === 'playing' || phase === 'finished') && (
             <>
               {/* Score bar */}
