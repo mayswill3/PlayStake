@@ -2,10 +2,31 @@
 @plugin "@tailwindcss/forms";
 
 @theme {
-  /* PlayStake neon mint brand colors */
-  --color-brand-400: #00ff87;
-  --color-brand-500: #00cc6a;
-  --color-brand-600: #00995a;
+  /* PlayStake emerald brand */
+  --color-brand-50: #f0fdf4;
+  --color-brand-100: #dcfce7;
+  --color-brand-200: #bbf7d0;
+  --color-brand-300: #86efac;
+  --color-brand-400: #4ade80;
+  --color-brand-500: #22c55e;
+  --color-brand-600: #16a34a;
+  --color-brand-700: #15803d;
+
+  /* Accents used on landing (amber for Play, slate for Stake) */
+  --color-amber-50: #fffbeb;
+  --color-amber-100: #fef3c7;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
 
   --color-danger-50: #fef2f2;
   --color-danger-100: #fee2e2;
@@ -19,6 +40,7 @@
   --color-warning-400: #ffcf33;
   --color-warning-500: #ffb800;
 
+  /* Surface scale — darks stay for in-game surfaces */
   --color-surface-50: #fafafa;
   --color-surface-100: #f0f0f5;
   --color-surface-200: #e4e4e7;
@@ -32,19 +54,63 @@
   --color-surface-900: #0f0f1a;
   --color-surface-950: #0a0a0f;
 
-  /* Text tokens */
+  /* Text tokens (dark defaults — overridden by :root/.dark below for themable pages) */
   --color-text-primary: #f0f0f5;
   --color-text-secondary: #8888a0;
   --color-text-muted: #44445a;
 
   /* Font families */
-  --font-display: var(--font-chakra-petch), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-dm-mono), ui-monospace, monospace;
+  --font-display: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-inter), ui-monospace, monospace;
 }
 
-/* Dark theme base */
+/* Light mode (default) — themable tokens for landing/auth pages */
+:root {
+  --bg: #ffffff;
+  --bg-elevated: #f8f9fa;
+  --bg-card: #ffffff;
+  --fg: #0f0f0f;
+  --fg-secondary: #4a4a5a;
+  --fg-muted: #71717a;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.12);
+}
+
+/* Dark mode — applied when `.dark` class is on <html> */
+.dark {
+  --bg: #0a0a0f;
+  --bg-elevated: #0f0f1a;
+  --bg-card: #14141f;
+  --fg: #f0f0f5;
+  --fg-secondary: #a0a0b0;
+  --fg-muted: #71717a;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.15);
+}
+
+/* Body uses themable tokens — default light, dark when .dark is set */
 body {
-  @apply bg-surface-950 text-text-primary antialiased;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv02", "cv03", "cv04";
+}
+
+/* Smooth theme transitions */
+html.theme-transition, html.theme-transition * {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+}
+
+/* Landing-specific utility: force-dark sections (in-game surfaces) */
+.force-dark {
+  --bg: #0a0a0f;
+  --bg-elevated: #0f0f1a;
+  --bg-card: #14141f;
+  --fg: #f0f0f5;
+  --fg-secondary: #a0a0b0;
+  --fg-muted: #71717a;
+  --border: rgba(255, 255, 255, 0.08);
 }
 
 /* Scrollbar styling */
@@ -92,9 +158,12 @@ textarea:focus {
 
 /* Border/glow custom properties */
 :root {
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-glow: rgba(22, 163, 74, 0.25);
+  --glow-brand: 0 0 20px rgba(22, 163, 74, 0.15);
+}
+.dark {
   --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-glow: rgba(0, 255, 135, 0.25);
-  --glow-brand: 0 0 20px rgba(0, 255, 135, 0.15);
 }
 
 /* Toast slide-up animation */
@@ -326,4 +395,54 @@ textarea:focus {
 /* Utility: font-display */
 @utility font-display {
   font-family: var(--font-display);
+}
+
+/* ---------- Landing page animations ---------- */
+@keyframes fadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-fade-up {
+    opacity: 0;
+    animation: fadeUp 0.6s ease-out forwards;
+  }
+  .animate-fade-up-delay-100 { animation-delay: 100ms; }
+  .animate-fade-up-delay-200 { animation-delay: 200ms; }
+  .animate-fade-up-delay-300 { animation-delay: 300ms; }
+  .animate-fade-up-delay-400 { animation-delay: 400ms; }
+  .animate-fade-up-delay-500 { animation-delay: 500ms; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up { opacity: 1; }
+}
+
+/* Themable tailwind-like utilities */
+@utility bg-page {
+  background-color: var(--bg);
+}
+@utility bg-elevated {
+  background-color: var(--bg-elevated);
+}
+@utility bg-card {
+  background-color: var(--bg-card);
+}
+@utility text-fg {
+  color: var(--fg);
+}
+@utility text-fg-secondary {
+  color: var(--fg-secondary);
+}
+@utility text-fg-muted {
+  color: var(--fg-muted);
+}
+@utility border-themed {
+  border-color: var(--border);
 }
