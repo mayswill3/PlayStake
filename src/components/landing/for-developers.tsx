@@ -67,7 +67,7 @@ export function ForDevelopers() {
                 const Icon = feature.icon;
                 return (
                   <li key={feature.title} className="flex gap-4">
-                    <div className="flex-shrink-0 flex h-11 w-11 items-center justify-center rounded-lg bg-slate-800/10 text-slate-700 dark:bg-slate-700/20 dark:text-slate-300">
+                    <div className="flex-shrink-0 flex h-11 w-11 items-center justify-center rounded-lg bg-[#06b6d4]/10 text-[#0891b2] dark:bg-[#06b6d4]/15 dark:text-[#22d3ee]">
                       <Icon size={20} strokeWidth={2} />
                     </div>
                     <div>

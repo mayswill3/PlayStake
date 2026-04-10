@@ -2,17 +2,30 @@
 @plugin "@tailwindcss/forms";
 
 @theme {
-  /* PlayStake emerald brand */
+  /* PlayStake brand — lime/emerald green matching logo controller */
   --color-brand-50: #f0fdf4;
   --color-brand-100: #dcfce7;
   --color-brand-200: #bbf7d0;
   --color-brand-300: #86efac;
   --color-brand-400: #4ade80;
-  --color-brand-500: #22c55e;
+  --color-brand-500: #22c55e;  /* lime green — matches logo */
   --color-brand-600: #16a34a;
   --color-brand-700: #15803d;
 
-  /* Accents used on landing (amber for Play, slate for Stake) */
+  /* Accent — teal/cyan matching logo coin */
+  --color-accent-50: #ecfeff;
+  --color-accent-100: #cffafe;
+  --color-accent-200: #a5f3fc;
+  --color-accent-300: #67e8f9;
+  --color-accent-400: #22d3ee;
+  --color-accent-500: #06b6d4;  /* teal cyan — matches coin */
+  --color-accent-600: #0891b2;
+  --color-accent-700: #0e7490;
+
+  /* Gradient stops for brand gradient */
+  --gradient-brand: linear-gradient(135deg, #22c55e 0%, #10b981 50%, #06b6d4 100%);
+
+  /* Slate for Stake step (neutral anchor) */
   --color-amber-50: #fffbeb;
   --color-amber-100: #fef3c7;
   --color-amber-400: #fbbf24;
@@ -128,7 +141,7 @@ html.theme-transition, html.theme-transition * {
   @apply bg-surface-600;
 }
 
-/* Form defaults for dark theme */
+/* Form defaults — themable */
 [type='text'],
 [type='email'],
 [type='url'],
@@ -143,7 +156,20 @@ html.theme-transition, html.theme-transition * {
 [type='week'],
 select,
 textarea {
-  @apply bg-surface-800 border-surface-700 text-text-primary rounded-sm font-mono;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  border-radius: 0.5rem;
+}
+
+[type='text']::placeholder,
+[type='email']::placeholder,
+[type='password']::placeholder,
+[type='number']::placeholder,
+[type='search']::placeholder,
+[type='tel']::placeholder,
+textarea::placeholder {
+  color: var(--fg-muted);
 }
 
 [type='text']:focus,
@@ -153,7 +179,25 @@ textarea {
 [type='number']:focus,
 select:focus,
 textarea:focus {
-  @apply border-brand-400 ring-0;
+  border-color: #16a34a;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+
+/* Dark-mode surfaces (dashboard, games, widget) preserve their dark styling */
+.force-dark [type='text'],
+.force-dark [type='email'],
+.force-dark [type='url'],
+.force-dark [type='password'],
+.force-dark [type='number'],
+.force-dark select,
+.force-dark textarea,
+body:has(.game-fullscreen-mobile) [type='text'],
+body:has(.game-fullscreen-mobile) [type='email'],
+body:has(.game-fullscreen-mobile) [type='password'] {
+  background-color: #1a1a2e;
+  border-color: #2a2a3e;
+  color: #f0f0f5;
 }
 
 /* Border/glow custom properties */

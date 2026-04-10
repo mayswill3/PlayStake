@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { Zap } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { MobileMenu } from '@/components/ui/mobile-menu';
 
@@ -38,9 +38,14 @@ export function LandingNav() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
-              <Zap size={18} strokeWidth={2.5} />
-            </div>
+            <Image
+              src="/logo.png"
+              alt="PlayStake"
+              width={40}
+              height={40}
+              priority
+              className="h-10 w-10"
+            />
             <span className="font-display text-xl font-bold text-fg">PlayStake</span>
           </Link>
 

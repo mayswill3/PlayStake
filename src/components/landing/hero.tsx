@@ -18,7 +18,12 @@ export function Hero() {
             <h1 className="mt-6 font-display text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight text-fg">
               <span className="block animate-fade-up animate-fade-up-delay-100">Play your game.</span>
               <span className="block animate-fade-up animate-fade-up-delay-200">Stake your skill.</span>
-              <span className="block text-brand-600 animate-fade-up animate-fade-up-delay-300">Earn your winnings.</span>
+              <span
+                className="block animate-fade-up animate-fade-up-delay-300 bg-clip-text text-transparent"
+                style={{ backgroundImage: 'linear-gradient(135deg, #22c55e 0%, #10b981 50%, #06b6d4 100%)' }}
+              >
+                Earn your winnings.
+              </span>
             </h1>
 
             {/* Subheadline */}
@@ -79,45 +84,52 @@ function HeroGraphic() {
   return (
     <div className="relative aspect-square max-w-lg mx-auto">
       <svg viewBox="0 0 500 500" className="w-full h-full" aria-hidden="true">
-        {/* Large green circle */}
-        <circle cx="280" cy="220" r="160" fill="#16a34a" opacity="0.15" />
-        {/* Amber hex */}
+        <defs>
+          <linearGradient id="brandGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#22c55e" />
+            <stop offset="50%" stopColor="#10b981" />
+            <stop offset="100%" stopColor="#06b6d4" />
+          </linearGradient>
+        </defs>
+        {/* Large brand gradient circle */}
+        <circle cx="280" cy="220" r="160" fill="url(#brandGradient)" opacity="0.18" />
+        {/* Teal hex */}
         <polygon
           points="150,120 220,120 255,180 220,240 150,240 115,180"
-          fill="#f59e0b"
-          opacity="0.2"
+          fill="#06b6d4"
+          opacity="0.22"
         />
-        {/* Slate circle */}
-        <circle cx="150" cy="340" r="90" fill="#1e293b" opacity="0.15" />
-        {/* Brand green ring */}
-        <circle cx="280" cy="220" r="160" fill="none" stroke="#16a34a" strokeWidth="2" opacity="0.4" />
+        {/* Green circle */}
+        <circle cx="150" cy="340" r="90" fill="#22c55e" opacity="0.15" />
+        {/* Brand gradient ring */}
+        <circle cx="280" cy="220" r="160" fill="none" stroke="url(#brandGradient)" strokeWidth="2" opacity="0.5" />
         {/* Small accent circles */}
-        <circle cx="400" cy="100" r="20" fill="#16a34a" opacity="0.5" />
-        <circle cx="80" cy="220" r="12" fill="#f59e0b" opacity="0.6" />
-        <circle cx="380" cy="380" r="16" fill="#16a34a" opacity="0.3" />
-        {/* Dashed connector line */}
+        <circle cx="400" cy="100" r="20" fill="#22c55e" opacity="0.6" />
+        <circle cx="80" cy="220" r="12" fill="#06b6d4" opacity="0.7" />
+        <circle cx="380" cy="380" r="16" fill="#10b981" opacity="0.5" />
+        {/* Dashed connector lines */}
         <line
           x1="150"
           y1="180"
           x2="280"
           y2="220"
-          stroke="#16a34a"
+          stroke="#22c55e"
           strokeWidth="1.5"
           strokeDasharray="6 6"
-          opacity="0.4"
+          opacity="0.45"
         />
         <line
           x1="280"
           y1="220"
           x2="150"
           y2="340"
-          stroke="#16a34a"
+          stroke="#06b6d4"
           strokeWidth="1.5"
           strokeDasharray="6 6"
-          opacity="0.4"
+          opacity="0.45"
         />
         {/* Center pulse */}
-        <circle cx="280" cy="220" r="8" fill="#16a34a">
+        <circle cx="280" cy="220" r="8" fill="url(#brandGradient)">
           <animate attributeName="r" values="8;14;8" dur="2s" repeatCount="indefinite" />
           <animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite" />
         </circle>

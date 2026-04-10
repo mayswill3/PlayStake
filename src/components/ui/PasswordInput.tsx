@@ -19,7 +19,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block font-mono text-[11px] uppercase tracking-wider text-text-secondary mb-1.5"
+            className="block text-[11px] font-semibold uppercase tracking-wider text-fg-secondary mb-1.5"
           >
             {label}
           </label>
@@ -29,14 +29,17 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             ref={ref}
             id={inputId}
             type={visible ? 'text' : 'password'}
+            style={{
+              backgroundColor: 'var(--bg-elevated)',
+              borderColor: error ? '#ff3b5c' : 'var(--border)',
+              color: 'var(--fg)',
+            }}
             className={`
-              block w-full rounded-sm border bg-surface-800 text-text-primary font-mono
-              placeholder:text-text-muted
+              block w-full rounded-lg border
               transition-colors duration-150
-              focus:border-brand-400 focus:ring-0 focus:outline-none
+              focus:outline-none
               disabled:opacity-50 disabled:cursor-not-allowed
-              ${error ? 'border-danger-500 focus:border-danger-500' : 'border-surface-700'}
-              pl-3 pr-10 py-2 text-sm
+              pl-3 pr-10 py-2.5 text-sm
               ${className}
             `}
             aria-invalid={error ? 'true' : undefined}
@@ -46,7 +49,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           <button
             type="button"
             onClick={() => setVisible((v) => !v)}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-text-muted hover:text-text-secondary transition-colors"
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-fg-muted hover:text-fg-secondary transition-colors"
             aria-label={visible ? 'Hide password' : 'Show password'}
             tabIndex={-1}
           >
@@ -54,7 +57,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           </button>
         </div>
         {error && (
-          <p id={`${inputId}-error`} className="mt-1.5 text-sm text-danger-400 font-mono" role="alert">
+          <p id={`${inputId}-error`} className="mt-1.5 text-sm text-danger-500" role="alert">
             {error}
           </p>
         )}
