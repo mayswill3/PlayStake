@@ -47,9 +47,10 @@ export function OpenBets({ bets, loading, currentPlayerId, onAccept }: OpenBetsP
       </h4>
 
       {bets.length === 0 ? (
-        <div className="ps-empty">
-          <p>No open challenges right now.</p>
-          <p className="ps-hint">Create one above or wait for opponents.</p>
+        <div className="ps-empty ps-empty--illustrated">
+          <div className="ps-empty__icon" aria-hidden="true">🎮</div>
+          <p className="ps-empty__title">No open challenges</p>
+          <p className="ps-empty__subtitle">Invite a player to get started</p>
         </div>
       ) : (
         <ul className="ps-open-bets__list" role="list">
@@ -78,7 +79,7 @@ export function OpenBets({ bets, loading, currentPlayerId, onAccept }: OpenBetsP
                     <span className="ps-open-bets__own-label">Your bet</span>
                   ) : (
                     <button
-                      className="ps-btn ps-btn--accent ps-btn--small"
+                      className="ps-btn ps-btn--primary ps-btn--small"
                       onClick={() => handleAccept(bet.betId)}
                       disabled={isAccepting}
                       aria-label={`Accept ${formatCents(bet.amount)} challenge from ${bet.playerA?.displayName || "Anonymous"}`}

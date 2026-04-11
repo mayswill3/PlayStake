@@ -1,6 +1,35 @@
 'use client';
 
-import { useEffect, useRef, forwardRef, useImperativeHandle, useId } from 'react';
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle, useId } from 'react';
+
+// ---------------------------------------------------------------------------
+// useIsDarkTheme — reactively tracks the main site's theme by watching the
+// `dark` class on <html>. Theme toggle in src/components/ui/theme-toggle.tsx
+// flips that class + writes localStorage; this hook mirrors the class into
+// React state so the widget iframe can be re-initialised with the correct
+// theme URL parameter whenever the user toggles.
+// ---------------------------------------------------------------------------
+function useIsDarkTheme(): boolean {
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof document === 'undefined') return true;
+    return document.documentElement.classList.contains('dark');
+  });
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const html = document.documentElement;
+    // Read the current value once on mount in case it was set after hydration.
+    setIsDark(html.classList.contains('dark'));
+
+    const observer = new MutationObserver(() => {
+      setIsDark(html.classList.contains('dark'));
+    });
+    observer.observe(html, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  return isDark;
+}
 
 // Module-level promise for loading the SDK script exactly once across all
 // PlayStakeWidget instances on the page. Without this, StrictMode's double
@@ -88,6 +117,11 @@ export const PlayStakeWidget = forwardRef<PlayStakeWidgetHandle, PlayStakeWidget
   const reactId = useId();
   const containerId = `playstake-widget-container-${reactId.replace(/[:]/g, '')}`;
 
+  // Reactive theme — the widget iframe URL bakes in a `theme` query param,
+  // so whenever the main site toggles light/dark we destroy and re-init the
+  // SDK with the new value.
+  const isDark = useIsDarkTheme();
+
   // Keep the latest callbacks in refs so we don't re-init the SDK every time
   // the parent re-renders (callbacks are recreated on every render).
   const onBetCreatedRef = useRef(onBetCreated);
@@ -116,7 +150,7 @@ export const PlayStakeWidget = forwardRef<PlayStakeWidgetHandle, PlayStakeWidget
         widgetToken: token,
         gameId: game,
         containerId,
-        theme: 'dark',
+        theme: isDark ? 'dark' : 'light',
         onBetCreated: (bet) => onBetCreatedRef.current?.(bet),
         onBetAccepted: (bet) => onBetAcceptedRef.current?.(bet),
         onBetSettled: (bet) => onBetSettledRef.current?.(bet),
@@ -137,8 +171,8 @@ export const PlayStakeWidget = forwardRef<PlayStakeWidgetHandle, PlayStakeWidget
         widgetRef.current = null;
       }
     };
-    // Only re-init when token/gameId or containerId change
-  }, [widgetToken, gameId, containerId]);
+    // Only re-init when token/gameId, containerId, or the theme changes.
+  }, [widgetToken, gameId, containerId, isDark]);
 
   if (!widgetToken) {
     return (

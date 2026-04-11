@@ -32,19 +32,67 @@ export function timeRemaining(expiresAt: string): string {
 
 /**
  * Parse URL search params into the widget config.
+ *
+ * Theme defaults to "auto" — the widget will follow the user's OS
+ * preference via prefers-color-scheme. Hosts can override by passing
+ * theme="dark" or theme="light" in PlayStake.init().
  */
 export function parseWidgetParams(): {
   token: string;
   gameId: string;
-  theme: "dark" | "light";
+  theme: "dark" | "light" | "auto";
   instanceId: string;
 } {
   const params = new URLSearchParams(window.location.search);
+  const rawTheme = params.get("theme");
+  const theme: "dark" | "light" | "auto" =
+    rawTheme === "dark" || rawTheme === "light" || rawTheme === "auto"
+      ? rawTheme
+      : "auto";
 
   return {
     token: params.get("token") || "",
     gameId: params.get("gameId") || "",
-    theme: (params.get("theme") as "dark" | "light") || "dark",
+    theme,
     instanceId: params.get("instanceId") || "",
   };
+}
+
+/**
+ * Resolve "auto" to a concrete dark/light theme using the host OS
+ * preference. Accepts "dark" or "light" as passthrough.
+ */
+export function resolveTheme(
+  themeParam: "dark" | "light" | "auto"
+): "dark" | "light" {
+  if (themeParam === "dark" || themeParam === "light") return themeParam;
+  if (typeof window === "undefined") return "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
+/**
+ * Map from the internal lowercase gameType enum to a human-readable
+ * display name. Used everywhere the widget might otherwise leak a raw
+ * gameType value to end users.
+ */
+export const GAME_DISPLAY_NAMES: Record<string, string> = {
+  bullseye: "Bullseye Pool",
+  pool: "8-Ball Pool",
+  "3shot": "3-Shot Pool",
+  tictactoe: "Tic-Tac-Toe",
+  cards: "Higher / Lower",
+  fps: "FPS Scoreboard",
+};
+
+export function getGameDisplayName(
+  gameType: string | null | undefined
+): string | null {
+  if (!gameType) return null;
+  return (
+    GAME_DISPLAY_NAMES[gameType] ??
+    GAME_DISPLAY_NAMES[gameType.toLowerCase()] ??
+    null
+  );
 }

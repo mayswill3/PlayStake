@@ -45,7 +45,7 @@ export function Balance({ balance, loading, error }: BalanceProps) {
       {balance.escrowed > 0 && (
         <div className="ps-balance__row">
           <span className="ps-balance__label">In Bets</span>
-          <span className="ps-balance__value ps-balance__value--escrowed">
+          <span className="ps-balance__value ps-balance__value--small">
             {formatCents(balance.escrowed)}
           </span>
         </div>

@@ -1,6 +1,6 @@
 import React from "react";
 import type { BetData } from "../types";
-import { formatCents } from "../utils";
+import { formatCents, getGameDisplayName } from "../utils";
 
 interface ActiveBetProps {
   bet: BetData;
@@ -35,6 +35,14 @@ export function ActiveBet({ bet, onConfirmResult, onConsent }: ActiveBetProps) {
   const statusClass = STATUS_COLORS[bet.status] || "";
   const showResultConfirm = bet.status === "RESULT_REPORTED" && bet.outcome && !bet.resultVerified;
   const showConsent = bet.status === "PENDING_CONSENT" && onConsent;
+
+  // Derive a clean, user-facing info line from the bet's metadata. Never
+  // render raw gameMetadata key/value pairs — that's how debug strings like
+  // "source: lobby" and "gameType: bullseye" used to leak into the UI.
+  const rawGameType =
+    (bet.gameMetadata as { gameType?: string } | null)?.gameType ?? null;
+  const gameName = getGameDisplayName(rawGameType);
+  const totalPot = formatCents(bet.amount * 2);
 
   return (
     <div className="ps-active-bet">
@@ -94,13 +102,9 @@ export function ActiveBet({ bet, onConfirmResult, onConsent }: ActiveBetProps) {
           </div>
         )}
 
-        {bet.gameMetadata && Object.keys(bet.gameMetadata).length > 0 && (
-          <div className="ps-active-bet__meta">
-            {Object.entries(bet.gameMetadata).map(([key, value]) => (
-              <span key={key} className="ps-tag">
-                {key}: {String(value)}
-              </span>
-            ))}
+        {gameName && (
+          <div className="ps-active-bet__info">
+            {gameName} &middot; {totalPot} total pot
           </div>
         )}
       </div>

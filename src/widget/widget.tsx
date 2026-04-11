@@ -1,15 +1,13 @@
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import type { WidgetConfig, BetOutcome } from "./types";
-import { parseWidgetParams } from "./utils";
+import { parseWidgetParams, resolveTheme } from "./utils";
 import { useWidgetAuth } from "./hooks/useWidgetAuth";
 import { useBalance } from "./hooks/useBalance";
 import { useBets } from "./hooks/useBets";
 import { usePostMessage } from "./hooks/usePostMessage";
 import { WidgetAuth } from "./components/WidgetAuth";
 import { Balance } from "./components/Balance";
-import { BetCreate } from "./components/BetCreate";
-import { OpenBets } from "./components/OpenBets";
 import { ActiveBet } from "./components/ActiveBet";
 import { BetHistory } from "./components/BetHistory";
 import { ResultConfirmation } from "./components/ResultConfirmation";
@@ -30,11 +28,8 @@ const API_BASE_URL =
 // Widget App
 // ---------------------------------------------------------------------------
 
-type Tab = "bets" | "history";
-
 function WidgetApp() {
   const params = parseWidgetParams();
-  const [activeTab, setActiveTab] = useState<Tab>("bets");
 
   const config: WidgetConfig = useMemo(
     () => ({
@@ -61,14 +56,11 @@ function WidgetApp() {
 
   // Bets
   const {
-    openBets,
     activeBet,
     recentBets,
-    loading: betsLoading,
     error: betsError,
     createBet,
     consentBet,
-    acceptBet,
     confirmResult,
     disputeResult,
     refresh: refreshBets,
@@ -106,26 +98,13 @@ function WidgetApp() {
 
   sendBetCreatedRef.current = sendBetCreated;
 
-  // Wrap bet actions to also send postMessage events
-  const handleCreateBet = useCallback(
-    async (params: { amount: number; opponentId?: string | null; metadata?: Record<string, unknown> | null }) => {
-      const bet = await createBet(params);
-      if (bet) sendBetCreated(bet);
-      else sendError({ code: "CREATE_FAILED", message: betsError || "Failed to create bet" });
-      return bet;
-    },
-    [createBet, sendBetCreated, sendError, betsError]
-  );
-
-  const handleAcceptBet = useCallback(
-    async (betId: string) => {
-      const bet = await acceptBet(betId);
-      if (bet) sendBetAccepted(bet as any);
-      else sendError({ code: "ACCEPT_FAILED", message: betsError || "Failed to accept bet" });
-      return bet;
-    },
-    [acceptBet, sendBetAccepted, sendError, betsError]
-  );
+  // Note: handleCreateBet / handleAcceptBet were removed along with the
+  // BetCreate / OpenBets UI. Bet creation is now driven externally by the
+  // matchmaking lobby (via the server-side /api/lobby/respond flow), and
+  // the postMessage bridge above still exposes PlayStake.createBet() to any
+  // host that wants to drive bet creation from the SDK.
+  void sendBetAccepted;
+  void sendError;
 
   const handleConfirmResult = useCallback(
     async (betId: string, outcomeOrDispute: string) => {
@@ -142,8 +121,30 @@ function WidgetApp() {
     [confirmResult, activeBet, sendBetSettled]
   );
 
-  // Apply theme
-  const themeClass = config.theme === "light" ? "ps-widget--light" : "ps-widget--dark";
+  // Apply theme — resolve "auto" against prefers-color-scheme and subscribe
+  // to OS changes so the widget flips live when the user toggles their system
+  // theme.
+  const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">(() =>
+    resolveTheme(params.theme)
+  );
+
+  useEffect(() => {
+    if (params.theme !== "auto") {
+      setResolvedTheme(params.theme);
+      return;
+    }
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    setResolvedTheme(mq.matches ? "dark" : "light");
+    const handler = (e: MediaQueryListEvent) => {
+      setResolvedTheme(e.matches ? "dark" : "light");
+    };
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [params.theme]);
+
+  const themeClass =
+    resolvedTheme === "light" ? "ps-widget--light" : "ps-widget--dark";
 
   // ---- Not authenticated ----
   if (!isAuthenticated) {
@@ -166,9 +167,13 @@ function WidgetApp() {
       {/* Header */}
       <header className="ps-widget__header">
         <div className="ps-widget__logo">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-          </svg>
+          <img
+            src="/logo.png"
+            alt="PlayStake"
+            className="ps-widget__logo-img"
+            width={24}
+            height={24}
+          />
           <span>PlayStake</span>
         </div>
         <Balance balance={balance} loading={balanceLoading} error={balanceError} />
@@ -195,47 +200,18 @@ function WidgetApp() {
         <ActiveBet bet={activeBet} onConfirmResult={handleConfirmResult} onConsent={consentBet} />
       )}
 
-      {/* Tab navigation */}
-      <nav className="ps-tabs" role="tablist" aria-label="Widget sections">
-        <button
-          className={`ps-tabs__tab ${activeTab === "bets" ? "ps-tabs__tab--active" : ""}`}
-          role="tab"
-          aria-selected={activeTab === "bets"}
-          onClick={() => setActiveTab("bets")}
-        >
-          Bets
-        </button>
-        <button
-          className={`ps-tabs__tab ${activeTab === "history" ? "ps-tabs__tab--active" : ""}`}
-          role="tab"
-          aria-selected={activeTab === "history"}
-          onClick={() => setActiveTab("history")}
-        >
-          History
-        </button>
-      </nav>
-
-      {/* Tab content */}
-      <div className="ps-widget__content" role="tabpanel">
-        {activeTab === "bets" && (
-          <>
-            {!activeBet && (
-              <BetCreate
-                balance={balance}
-                onCreateBet={handleCreateBet}
-                onConsentBet={consentBet}
-              />
-            )}
-            <OpenBets
-              bets={openBets}
-              loading={betsLoading}
-              currentPlayerId={authState.playerId}
-              onAccept={handleAcceptBet}
-            />
-          </>
+      {/* Content — recent bets only, or an empty prompt when nothing's going on.
+          The matchmaking lobby now owns bet creation + opponent discovery, so
+          the widget's job is limited to showing the live bet + history. */}
+      <div className="ps-widget__content">
+        {!activeBet && recentBets.length === 0 && (
+          <div className="ps-empty ps-empty--illustrated">
+            <div className="ps-empty__icon" aria-hidden="true">🎯</div>
+            <p className="ps-empty__title">No active bet</p>
+            <p className="ps-empty__subtitle">Matchmake from the lobby to get started</p>
+          </div>
         )}
-
-        {activeTab === "history" && <BetHistory bets={recentBets} />}
+        <BetHistory bets={recentBets} />
       </div>
     </div>
   );

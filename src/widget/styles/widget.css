@@ -4,7 +4,10 @@
  * Self-contained CSS with no global side-effects.
  * All selectors are prefixed with `ps-` to avoid collisions.
  * Theme support via CSS custom properties on `.ps-widget`.
+ * Palette mirrors the main site design system (green-forward).
  * --------------------------------------------------------------------------- */
+
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600&display=swap');
 
 /* ---- Reset (scoped to widget root) ---- */
 
@@ -19,53 +22,69 @@
 /* ---- Theme variables ---- */
 
 .ps-widget--dark {
-  --ps-bg: #0f1117;
-  --ps-bg-elevated: #1a1d27;
-  --ps-bg-hover: #242836;
-  --ps-bg-active: #2d3245;
-  --ps-border: #2d3245;
-  --ps-text: #e8eaed;
-  --ps-text-secondary: #9aa0b0;
-  --ps-text-muted: #6b7185;
-  --ps-primary: #6c5ce7;
-  --ps-primary-hover: #7d6ff0;
+  --ps-bg: #0a0a0f;
+  --ps-bg-elevated: #0f0f1a;
+  --ps-bg-card: #14141f;
+  --ps-bg-hover: #1a1a2e;
+  --ps-bg-active: #22223a;
+  --ps-border: rgba(255, 255, 255, 0.08);
+  --ps-border-strong: rgba(255, 255, 255, 0.16);
+  --ps-text: #f0f0f5;
+  --ps-text-secondary: #a0a0b0;
+  --ps-text-muted: #71717a;
+  --ps-primary: #22c55e;
+  --ps-primary-hover: #16a34a;
+  --ps-primary-bg: rgba(34, 197, 94, 0.10);
+  --ps-primary-border: rgba(34, 197, 94, 0.25);
   --ps-primary-text: #ffffff;
-  --ps-accent: #00cec9;
-  --ps-accent-hover: #20e3de;
-  --ps-danger: #ff6b6b;
-  --ps-danger-hover: #ff8787;
-  --ps-warning: #ffa502;
-  --ps-success: #2ed573;
-  --ps-info: #4facfe;
+  --ps-danger: #f87171;
+  --ps-danger-hover: #ef4444;
+  --ps-warning: #f59e0b;
+  --ps-success: #22c55e;
+  --ps-info: #60a5fa;
   --ps-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .ps-widget--light {
   --ps-bg: #ffffff;
-  --ps-bg-elevated: #f5f6f8;
-  --ps-bg-hover: #ebedf2;
-  --ps-bg-active: #dfe1e8;
-  --ps-border: #dfe1e8;
-  --ps-text: #1a1d27;
-  --ps-text-secondary: #5a5f72;
-  --ps-text-muted: #8b90a0;
-  --ps-primary: #6c5ce7;
-  --ps-primary-hover: #5a4bd6;
+  --ps-bg-elevated: #f8f9fa;
+  --ps-bg-card: #ffffff;
+  --ps-bg-hover: #f1f5f9;
+  --ps-bg-active: #e2e8f0;
+  --ps-border: rgba(0, 0, 0, 0.08);
+  --ps-border-strong: rgba(0, 0, 0, 0.16);
+  --ps-text: #0f0f0f;
+  --ps-text-secondary: #4a4a5a;
+  --ps-text-muted: #94a3b8;
+  --ps-primary: #16a34a;
+  --ps-primary-hover: #15803d;
+  --ps-primary-bg: #f0fdf4;
+  --ps-primary-border: #bbf7d0;
   --ps-primary-text: #ffffff;
-  --ps-accent: #00b894;
-  --ps-accent-hover: #009e80;
-  --ps-danger: #e74c3c;
-  --ps-danger-hover: #d63031;
-  --ps-warning: #e67e22;
-  --ps-success: #27ae60;
-  --ps-info: #3498db;
+  --ps-danger: #ef4444;
+  --ps-danger-hover: #dc2626;
+  --ps-warning: #f59e0b;
+  --ps-success: #16a34a;
+  --ps-info: #3b82f6;
   --ps-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* ---- Smooth theme transitions ---- */
+
+.ps-widget,
+.ps-widget *,
+.ps-widget *::before,
+.ps-widget *::after {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.15s ease;
 }
 
 /* ---- Root ---- */
 
 .ps-widget {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
   font-size: 14px;
   line-height: 1.5;
@@ -96,14 +115,23 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  font-family: 'Sora', sans-serif;
   font-weight: 700;
   font-size: 15px;
-  color: var(--ps-primary);
+  color: var(--ps-text);
+}
+
+.ps-widget__logo-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .ps-widget__error {
   padding: 8px 16px;
-  background: rgba(255, 107, 107, 0.12);
+  background: color-mix(in srgb, var(--ps-danger) 12%, transparent);
   color: var(--ps-danger);
   font-size: 13px;
   border-bottom: 1px solid var(--ps-border);
@@ -249,17 +277,18 @@
 }
 
 .ps-balance__value {
-  font-size: 14px;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
   font-weight: 700;
+  color: var(--ps-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .ps-balance__value--available {
-  color: var(--ps-success);
+  color: var(--ps-primary);
 }
 
-.ps-balance__value--escrowed {
-  color: var(--ps-warning);
+.ps-balance__value--small {
   font-size: 12px;
 }
 
@@ -278,8 +307,9 @@
 /* ---- Section titles ---- */
 
 .ps-section-title {
+  font-family: 'Sora', sans-serif;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--ps-text);
   margin-bottom: 12px;
   display: flex;
@@ -332,14 +362,7 @@
   background: var(--ps-bg-active);
 }
 
-.ps-btn--accent {
-  background: var(--ps-accent);
-  color: #000;
-}
-
-.ps-btn--accent:hover:not(:disabled) {
-  background: var(--ps-accent-hover);
-}
+/* .ps-btn--accent removed — use .ps-btn--primary */
 
 .ps-btn--danger {
   background: var(--ps-danger);
@@ -517,7 +540,7 @@
   font-size: 13px;
   color: var(--ps-danger);
   padding: 8px 12px;
-  background: rgba(255, 107, 107, 0.08);
+  background: color-mix(in srgb, var(--ps-danger) 8%, transparent);
   border-radius: 6px;
   margin: 8px 0;
 }
@@ -531,6 +554,29 @@
   color: var(--ps-text-muted);
   font-size: 13px;
   gap: 4px;
+}
+
+.ps-empty--illustrated {
+  padding: 32px 16px;
+  gap: 4px;
+}
+
+.ps-empty__icon {
+  font-size: 32px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.ps-empty__title {
+  font-family: 'Sora', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ps-text);
+}
+
+.ps-empty__subtitle {
+  font-size: 12px;
+  color: var(--ps-text-muted);
 }
 
 /* ---- Bet Create ---- */
@@ -589,17 +635,20 @@
 }
 
 .ps-bet-create__confirm-title {
+  font-family: 'Sora', sans-serif;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   margin-bottom: 8px;
 }
 
 .ps-bet-create__confirm-amount {
+  font-family: 'Sora', sans-serif;
   font-size: 32px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--ps-primary);
   margin-bottom: 8px;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 .ps-bet-create__confirm-text {
@@ -639,7 +688,7 @@
 }
 
 .ps-open-bets__item:hover {
-  border-color: var(--ps-accent);
+  border-color: var(--ps-primary);
 }
 
 .ps-open-bets__info {
@@ -655,9 +704,10 @@
 }
 
 .ps-open-bets__amount {
+  font-family: 'Sora', sans-serif;
   font-size: 15px;
   font-weight: 700;
-  color: var(--ps-accent);
+  color: var(--ps-primary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -695,10 +745,12 @@
 }
 
 .ps-active-bet__amount {
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--ps-accent);
+  font-family: 'Sora', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ps-primary);
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 .ps-active-bet__versus {
@@ -741,28 +793,21 @@
   color: var(--ps-text-muted);
 }
 
-.ps-active-bet__meta {
-  display: flex;
-  gap: 6px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-
-.ps-tag {
+.ps-active-bet__info {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ps-border);
+  text-align: center;
   font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: var(--ps-bg-hover);
   color: var(--ps-text-secondary);
 }
 
 .ps-active-bet__result-prompt {
   margin-top: 12px;
   padding: 12px;
-  background: rgba(255, 165, 2, 0.08);
-  border: 1px solid rgba(255, 165, 2, 0.2);
-  border-radius: 8px;
+  background: var(--ps-primary-bg);
+  border: 1px solid var(--ps-primary-border);
+  border-radius: 10px;
   text-align: center;
 }
 

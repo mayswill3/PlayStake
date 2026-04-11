@@ -5,7 +5,7 @@
 export interface WidgetConfig {
   token: string;
   gameId: string;
-  theme: "dark" | "light";
+  theme: "dark" | "light" | "auto";
   instanceId: string;
   apiBaseUrl: string;
 }
