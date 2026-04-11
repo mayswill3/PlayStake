@@ -2,13 +2,12 @@
 
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
-import type { Ref } from 'react';
 import { GAME_CONFIG } from './game-config';
 import { GameInfoPanel } from './game-info-panel';
 import { RoleSelectionPanel } from './role-selection-panel';
 import { CollapsibleEventLog } from './collapsible-event-log';
 import type { PlayerRole, LogEntry } from '@/app/play/_shared/types';
-import type { PlayStakeWidgetHandle } from '@/app/play/_shared/PlayStakeWidget';
+import type { LobbyMatchResult } from '@/components/lobby/LobbyContainer';
 
 interface GameLobbyLayoutProps {
   gameKey: keyof typeof GAME_CONFIG;
@@ -16,20 +15,10 @@ interface GameLobbyLayoutProps {
   role: PlayerRole | null;
   isSettingUp: boolean;
   onRoleSelect: (role: PlayerRole) => void;
-  // Lobby
-  gameCode?: string | null;
-  onCreateGame?: () => Promise<void>;
-  onJoinGame?: (code: string) => Promise<true | string>;
-  isCreating?: boolean;
-  isJoining?: boolean;
-  // Widget
-  widgetToken?: string | null;
-  gameId?: string | null;
-  widgetRef?: Ref<PlayStakeWidgetHandle>;
-  onBetCreated?: (bet: { betId: string; amount: number }) => void;
-  onBetAccepted?: (bet: { betId: string }) => void;
-  onBetSettled?: (bet: { outcome: string }) => void;
-  onWidgetError?: (err: { message: string }) => void;
+  // Matchmaking
+  myUserId: string;
+  myDisplayName: string;
+  onMatched: (result: LobbyMatchResult) => void;
   // Events
   events: LogEntry[];
 }
@@ -56,7 +45,7 @@ export function GameLobbyLayout(props: GameLobbyLayoutProps) {
           <GameInfoPanel config={config} />
         </div>
 
-        {/* Right: role selection / lobby / widget */}
+        {/* Right: role selection + matchmaking lobby */}
         <div className="order-first lg:order-last">
           <RoleSelectionPanel
             config={config}
@@ -64,18 +53,10 @@ export function GameLobbyLayout(props: GameLobbyLayoutProps) {
             role={props.role}
             isSettingUp={props.isSettingUp}
             onRoleSelect={props.onRoleSelect}
-            gameCode={props.gameCode}
-            onCreateGame={props.onCreateGame}
-            onJoinGame={props.onJoinGame}
-            isCreating={props.isCreating}
-            isJoining={props.isJoining}
-            widgetToken={props.widgetToken}
-            gameId={props.gameId}
-            widgetRef={props.widgetRef}
-            onBetCreated={props.onBetCreated}
-            onBetAccepted={props.onBetAccepted}
-            onBetSettled={props.onBetSettled}
-            onWidgetError={props.onWidgetError}
+            gameType={props.gameKey as string}
+            myUserId={props.myUserId}
+            myDisplayName={props.myDisplayName}
+            onMatched={props.onMatched}
           />
         </div>
       </div>

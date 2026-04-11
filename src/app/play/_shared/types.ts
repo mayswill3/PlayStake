@@ -7,6 +7,7 @@ export interface DemoAuthState {
   apiKey: string;
   gameId: string;
   widgetToken: string;
+  displayName: string;
 }
 
 export interface LogEntry {

@@ -58,6 +58,7 @@ export function useDemoAuth(gameType: GameType, onLog?: (msg: string, level: 'in
         apiKey: result.apiKey,
         gameId: result.gameId,
         widgetToken: result.widgetToken,
+        displayName: result.displayName ?? 'Player',
       };
       setAuthState(state);
       setIsSettingUp(false);

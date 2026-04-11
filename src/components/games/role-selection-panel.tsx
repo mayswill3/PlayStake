@@ -3,10 +3,8 @@
 import { Check, User, Users } from 'lucide-react';
 import type { GameConfig, RoleMeta } from './game-config';
 import type { PlayerRole } from '@/app/play/_shared/types';
-import { LobbyPanel } from '@/app/play/_shared/LobbyPanel';
-import { PlayStakeWidget, type PlayStakeWidgetHandle } from '@/app/play/_shared/PlayStakeWidget';
 import { Spinner } from '@/components/ui/Spinner';
-import type { Ref } from 'react';
+import { LobbyContainer, type LobbyMatchResult } from '@/components/lobby/LobbyContainer';
 
 interface RoleSelectionPanelProps {
   config: GameConfig;
@@ -14,20 +12,11 @@ interface RoleSelectionPanelProps {
   role: PlayerRole | null;
   isSettingUp: boolean;
   onRoleSelect: (role: PlayerRole) => void;
-  // Lobby
-  gameCode?: string | null;
-  onCreateGame?: () => Promise<void>;
-  onJoinGame?: (code: string) => Promise<true | string>;
-  isCreating?: boolean;
-  isJoining?: boolean;
-  // Widget
-  widgetToken?: string | null;
-  gameId?: string | null;
-  widgetRef?: Ref<PlayStakeWidgetHandle>;
-  onBetCreated?: (bet: { betId: string; amount: number }) => void;
-  onBetAccepted?: (bet: { betId: string }) => void;
-  onBetSettled?: (bet: { outcome: string }) => void;
-  onWidgetError?: (err: { message: string }) => void;
+  // Lobby (matchmaking)
+  gameType: string;
+  myUserId: string;
+  myDisplayName: string;
+  onMatched?: (result: LobbyMatchResult) => void;
 }
 
 export function RoleSelectionPanel({
@@ -36,18 +25,10 @@ export function RoleSelectionPanel({
   role,
   isSettingUp,
   onRoleSelect,
-  gameCode,
-  onCreateGame,
-  onJoinGame,
-  isCreating,
-  isJoining,
-  widgetToken,
-  gameId,
-  widgetRef,
-  onBetCreated,
-  onBetAccepted,
-  onBetSettled,
-  onWidgetError,
+  gameType,
+  myUserId,
+  myDisplayName,
+  onMatched,
 }: RoleSelectionPanelProps) {
   return (
     <div className="rounded-2xl border border-themed bg-card p-5 lg:p-6 lg:sticky lg:top-20 space-y-5">
@@ -59,7 +40,7 @@ export function RoleSelectionPanel({
         </p>
       </div>
 
-      {/* Role cards — disabled during setup but still visible */}
+      {/* Role cards — disabled during setup & once in the lobby */}
       <div className="grid grid-cols-2 gap-3">
         <RoleCard
           role="A"
@@ -85,34 +66,16 @@ export function RoleSelectionPanel({
         </div>
       )}
 
-      {/* Lobby panel — create game / join game */}
-      {phase === 'lobby' && role && onCreateGame && onJoinGame && (
-        <LobbyPanel
+      {/* Matchmaking lobby — replaces the old LobbyPanel + widget block */}
+      {phase === 'lobby' && role && onMatched && (
+        <LobbyContainer
           role={role}
-          gameCode={gameCode ?? null}
-          onCreateGame={onCreateGame}
-          onJoinGame={onJoinGame}
-          isCreating={isCreating}
-          isJoining={isJoining}
+          gameType={gameType}
+          gameName={config.name}
+          myUserId={myUserId}
+          myDisplayName={myDisplayName}
+          onMatched={onMatched}
         />
-      )}
-
-      {/* Widget — renders once authenticated */}
-      {widgetToken && gameId && (
-        <div>
-          <h3 className="text-[11px] font-semibold text-fg-muted uppercase tracking-widest mb-2">
-            Place your wager
-          </h3>
-          <PlayStakeWidget
-            ref={widgetRef}
-            widgetToken={widgetToken}
-            gameId={gameId}
-            onBetCreated={onBetCreated}
-            onBetAccepted={onBetAccepted}
-            onBetSettled={onBetSettled}
-            onError={onWidgetError}
-          />
-        </div>
       )}
     </div>
   );

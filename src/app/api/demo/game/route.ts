@@ -5,7 +5,7 @@ import type { GameType } from "./store";
 // POST /api/demo/game — Create a new game session
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { playerAId, betId, gameType } = body;
+  const { playerAId, betId, gameType, sessionId } = body;
 
   if (!playerAId) {
     return NextResponse.json({ error: "playerAId required" }, { status: 400 });
@@ -14,7 +14,12 @@ export async function POST(request: NextRequest) {
   const validTypes: GameType[] = ['tictactoe', 'fps', 'cards', 'pool', '3shot', 'bullseye'];
   const type: GameType = validTypes.includes(gameType) ? gameType : 'tictactoe';
 
-  const session = createSession(playerAId, betId ?? null, type);
+  // Optional explicit session id — used by the lobby match handoff to derive
+  // a deterministic, shared session id from betId so both players land on the
+  // same board-state session without an extra coordination step.
+  const explicitId = typeof sessionId === "string" && sessionId.length > 0 ? sessionId : undefined;
+
+  const session = createSession(playerAId, betId ?? null, type, explicitId);
   return NextResponse.json(session, { status: 201 });
 }
 

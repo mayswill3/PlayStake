@@ -11,9 +11,9 @@ import { useDemoAuth } from '../_shared/use-demo-auth';
 import { useGameSession } from '../_shared/use-game-session';
 import { PlayStakeWidget, type PlayStakeWidgetHandle } from '../_shared/PlayStakeWidget';
 import { GameResultOverlay, deriveOutcome, formatResultAmount, type SettlementResult } from '../_shared/GameResultOverlay';
-import { LobbyPanel } from '../_shared/LobbyPanel';
 import { EventLog } from '../_shared/EventLog';
 import { GameLobbyLayout } from '@/components/games/game-lobby-layout';
+import type { LobbyMatchResult } from '@/components/lobby/LobbyContainer';
 import type { PlayerRole } from '../_shared/types';
 
 type CellValue = 'X' | 'O' | null;
@@ -34,8 +34,6 @@ function getWinLine(board: (string | null)[]): number[] | null {
 
 export default function TicTacToeDemoPage() {
   const [role, setRole] = useState<PlayerRole | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const [isJoining, setIsJoining] = useState(false);
   const [settlementResult, setSettlementResult] = useState<SettlementResult | null>(null);
   const [betAmountCents, setBetAmountCents] = useState(0);
   const betIdRef = useRef<string | null>(null);
@@ -49,9 +47,7 @@ export default function TicTacToeDemoPage() {
     gameState,
     phase,
     setPhase,
-    createGame,
-    joinGame,
-    startPlayingPoll,
+    joinFromLobby,
     makeMove,
     setBetId,
     reportAndSettle,
@@ -67,23 +63,19 @@ export default function TicTacToeDemoPage() {
     }
   }, [setup, log, setPhase]);
 
-  const handleCreateGame = useCallback(async () => {
+  const handleMatched = useCallback(async (match: LobbyMatchResult) => {
     if (!authState) return;
-    setIsCreating(true);
-    const id = await createGame(authState.playerId, 'tictactoe');
-    setIsCreating(false);
-    if (id) {
-      log('Open the widget to create a bet, then consent to lock funds.', 'info');
-    }
-  }, [authState, createGame, log]);
-
-  const handleJoinGame = useCallback(async (code: string) => {
-    if (!authState) return 'Not authenticated';
-    setIsJoining(true);
-    const result = await joinGame(code, authState.playerId, 'tictactoe');
-    setIsJoining(false);
-    return result;
-  }, [authState, joinGame]);
+    log(`Match locked in — bet ${match.betId.slice(0, 8)}...`, 'bet');
+    betIdRef.current = match.betId;
+    setBetAmountCents(match.stakeCents);
+    await joinFromLobby({
+      betId: match.betId,
+      myRole: match.myRole,
+      playerId: authState.playerId,
+      playerAId: match.playerAUserId,
+      gameType: 'tictactoe',
+    });
+  }, [authState, joinFromLobby, log]);
 
   const handleCellClick = useCallback(async (index: number) => {
     if (!role || !gameState) return;
@@ -152,12 +144,6 @@ export default function TicTacToeDemoPage() {
     }
   }
 
-  // Start playing poll for Player A when game transitions from lobby to playing
-  if (phase === 'playing' && role === 'A' && sessionId && gameState?.status === 'playing') {
-    // Player A's poll was for waiting; now start game state poll
-    // This is handled inside useGameSession when status changes to 'playing'
-  }
-
   // Status bar
   let statusText = '';
   let statusColor = 'text-text-secondary';
@@ -182,12 +168,8 @@ export default function TicTacToeDemoPage() {
     }
   }
 
-  // After Player A's game transitions to playing, start the playing poll
-  const playingPollStarted = useRef(false);
-  if (phase === 'playing' && role === 'A' && sessionId && !playingPollStarted.current) {
-    playingPollStarted.current = true;
-    startPlayingPoll(sessionId);
-  }
+  // joinFromLobby already starts the game-state poll for both roles,
+  // so no additional poll bootstrap is needed here.
 
   const isInGame = phase === 'playing' || phase === 'finished';
 
@@ -200,18 +182,9 @@ export default function TicTacToeDemoPage() {
         role={role}
         isSettingUp={isSettingUp}
         onRoleSelect={handleRoleSelect}
-        gameCode={sessionId}
-        onCreateGame={handleCreateGame}
-        onJoinGame={handleJoinGame}
-        isCreating={isCreating}
-        isJoining={isJoining}
-        widgetToken={authState?.widgetToken ?? null}
-        gameId={authState?.gameId ?? null}
-        widgetRef={widgetHandleRef}
-        onBetCreated={handleBetCreated}
-        onBetAccepted={handleBetAccepted}
-        onBetSettled={handleBetSettled}
-        onWidgetError={(err) => log(`Widget error: ${err.message}`, 'error')}
+        myUserId={authState?.playerId ?? ''}
+        myDisplayName={authState?.displayName ?? 'Player'}
+        onMatched={handleMatched}
         events={entries}
       />
     );

@@ -28,9 +28,19 @@ const sessions =
 export function createSession(
   playerAId: string,
   betId: string | null,
-  gameType: GameType = 'tictactoe'
+  gameType: GameType = 'tictactoe',
+  explicitId?: string
 ): GameSession {
-  const id = Math.random().toString(36).slice(2, 8).toUpperCase();
+  // Idempotent when an explicit id is provided: if a session already exists
+  // with that id, return it unchanged. This lets both lobby-matched players
+  // POST /api/demo/game with the same deterministic session id without the
+  // second caller clobbering the first.
+  if (explicitId) {
+    const existing = sessions.get(explicitId);
+    if (existing) return existing;
+  }
+
+  const id = explicitId ?? Math.random().toString(36).slice(2, 8).toUpperCase();
   const session: GameSession = {
     id,
     betId,

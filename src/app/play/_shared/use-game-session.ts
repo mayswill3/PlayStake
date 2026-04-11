@@ -130,6 +130,83 @@ export function useGameSession(
     return true;
   }, [log, stopPolling]);
 
+  /**
+   * joinFromLobby — hand off from the matchmaking lobby into gameplay.
+   *
+   * Both players land here after a MATCH_CONFIRMED event. They derive a
+   * shared `sessionId` from the betId so that `createSession` is idempotent
+   * server-side — whoever arrives first creates the session, the second
+   * caller just gets back the existing row. Player B additionally PATCHes
+   * the session with `action: 'join'` to flip `status` to `playing`.
+   */
+  const joinFromLobby = useCallback(
+    async (args: {
+      betId: string;
+      myRole: 'A' | 'B';
+      playerId: string;
+      playerAId: string; // creator id for the session row
+      gameType: GameType;
+    }) => {
+      const derivedSessionId = args.betId.slice(0, 8).toUpperCase();
+
+      // 1. Upsert the session (idempotent on explicit id)
+      const created = await apiPost('/api/demo/game', {
+        sessionId: derivedSessionId,
+        playerAId: args.playerAId,
+        betId: args.betId,
+        gameType: args.gameType,
+      });
+      if (created?.error) {
+        log(`Failed to create lobby session: ${created.error}`, 'error');
+        return null;
+      }
+
+      setSessionId(derivedSessionId);
+      let latest = created;
+
+      // 2. Player B joins the session to flip it to "playing"
+      if (args.myRole === 'B') {
+        const joined = await apiPatch(`/api/demo/game/${derivedSessionId}`, {
+          action: 'join',
+          playerBId: args.playerId,
+          betId: args.betId,
+          gameType: args.gameType,
+        });
+        if (joined?.error) {
+          // The inviter may have already flipped it if they raced us — that's
+          // fine. Refetch to get current state.
+          const refetched = await apiGet(`/api/demo/game/${derivedSessionId}`);
+          if (refetched?.error) {
+            log(`Failed to join lobby session: ${joined.error}`, 'error');
+            return null;
+          }
+          latest = refetched;
+        } else {
+          latest = joined;
+        }
+      }
+
+      setGameState(latest);
+      setPhase('playing');
+      log('Lobby match locked in — game starting', 'success');
+
+      // 3. Start gameplay state polling (both roles)
+      stopPolling();
+      pollRef.current = setInterval(async () => {
+        const state = await apiGet(`/api/demo/game/${derivedSessionId}`);
+        if (state.error) return;
+        setGameState(state);
+        if (state.status === 'finished') {
+          stopPolling();
+          setPhase('finished');
+        }
+      }, 1000);
+
+      return { sessionId: derivedSessionId, session: latest };
+    },
+    [log, stopPolling]
+  );
+
   const startPlayingPoll = useCallback((id: string) => {
     // Start polling for game state (used by Player A after transition to playing)
     stopPolling();
@@ -252,6 +329,7 @@ export function useGameSession(
     setPhase,
     createGame,
     joinGame,
+    joinFromLobby,
     startPlayingPoll,
     makeMove,
     resolveGame,
