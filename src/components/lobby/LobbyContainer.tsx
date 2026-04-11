@@ -104,6 +104,11 @@ export function LobbyContainer({
   // only. Needed at match time because the MATCHED status response clears
   // `invitedBy`.
   const lastInvitedByRef = useRef<{ userId: string; displayName: string } | null>(null);
+  // Flips true once Player A has observed the invited target actually
+  // drop out of the waiting-players list (meaning the server flipped them
+  // to INVITED). Until that happens, any cached list that still contains
+  // the target is stale from before the invite landed — ignore it.
+  const inviteVanishConfirmedRef = useRef(false);
 
   useEffect(() => {
     lobbyEntryIdRef.current = lobbyEntryId;
@@ -153,19 +158,36 @@ export function LobbyContainer({
   // Player A's own lobby entry never changes state — only the target's entry
   // transitions WAITING → INVITED → (WAITING | MATCHED). We can't read the
   // target's entry directly via /api/lobby/status (auth-scoped to caller),
-  // so we watch the players list instead: when Player B is INVITED they
-  // drop out of the WAITING list; if they decline or the invite times out
-  // they flip back to WAITING and reappear. If MATCHED fires first, the
-  // status poll handles the match transition before this check matters.
+  // so we watch the players list instead. The sequence we look for:
+  //   1. After sending the invite, a poll returns a list WITHOUT the target
+  //      (they've been flipped to INVITED server-side). Set the "vanish
+  //      confirmed" flag.
+  //   2. After that, a poll returns a list WITH the target again — that
+  //      means B declined or the server-side expiry worker flipped them
+  //      back to WAITING. Toast and revert.
+  //
+  // Gating on the vanish confirmation prevents a false-positive on the very
+  // first render after invite-sent, where the cached playersData still
+  // reflects the state from BEFORE the invite hit the server.
   // -------------------------------------------------------------------------
 
   useEffect(() => {
     if (role !== 'A' || status !== 'invite-sent' || !invitedTarget) return;
     if (!playersData) return;
-    const targetBack = playersData.players.some(
+    const targetInList = playersData.players.some(
       (p) => p.lobbyEntryId === invitedTarget.targetEntryId
     );
-    if (targetBack) {
+    if (!targetInList) {
+      // Target has transitioned to INVITED — any subsequent reappearance
+      // is now a real decline/expiry signal.
+      if (!inviteVanishConfirmedRef.current) {
+        inviteVanishConfirmedRef.current = true;
+      }
+      return;
+    }
+    // Target is in the list. Only treat this as a decline if we've already
+    // confirmed they vanished at some point during this invite.
+    if (inviteVanishConfirmedRef.current) {
       toast('info', `${invitedTarget.targetName} didn't accept — choose another player.`);
       setInvitedTarget(null);
       setStatus('waiting');
@@ -321,6 +343,9 @@ export function LobbyContainer({
         if (!res.ok) {
           throw new Error(body?.error || 'Failed to send invite');
         }
+        // Reset the vanish-confirmation flag so the decline detector can
+        // prove absence → presence for THIS invite specifically.
+        inviteVanishConfirmedRef.current = false;
         setInvitedTarget({
           targetEntryId,
           targetUserId: target?.userId ?? '',
