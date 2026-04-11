@@ -43,13 +43,13 @@ export const GAME_CONFIG: Record<string, GameConfig> = {
     preview: BullseyePreview,
     roleA: {
       title: 'Player A',
-      subtitle: 'Creates the bet',
-      description: 'Set the stake amount and share your game code',
+      subtitle: 'Sets the stake',
+      description: 'Pick your wager and invite a waiting opponent',
     },
     roleB: {
       title: 'Player B',
-      subtitle: 'Accepts the bet',
-      description: "Enter Player A's code and match the stake",
+      subtitle: 'Waits for an invite',
+      description: 'Join the lobby and accept the first invite you like',
     },
   },
   pool: {
@@ -67,13 +67,13 @@ export const GAME_CONFIG: Record<string, GameConfig> = {
     preview: PoolPreview,
     roleA: {
       title: 'Player A',
-      subtitle: 'Creates the bet',
-      description: 'Set the stake amount and share your game code',
+      subtitle: 'Sets the stake',
+      description: 'Pick your wager and invite a waiting opponent',
     },
     roleB: {
       title: 'Player B',
-      subtitle: 'Accepts the bet',
-      description: "Enter Player A's code and match the stake",
+      subtitle: 'Waits for an invite',
+      description: 'Join the lobby and accept the first invite you like',
     },
   },
   '3shot': {
@@ -91,13 +91,13 @@ export const GAME_CONFIG: Record<string, GameConfig> = {
     preview: ThreeShotPreview,
     roleA: {
       title: 'Player A',
-      subtitle: 'Creates the bet',
-      description: 'Set the stake amount and share your game code',
+      subtitle: 'Sets the stake',
+      description: 'Pick your wager and invite a waiting opponent',
     },
     roleB: {
       title: 'Player B',
-      subtitle: 'Accepts the bet',
-      description: "Enter Player A's code and match the stake",
+      subtitle: 'Waits for an invite',
+      description: 'Join the lobby and accept the first invite you like',
     },
   },
   tictactoe: {
@@ -115,13 +115,13 @@ export const GAME_CONFIG: Record<string, GameConfig> = {
     preview: TicTacToePreview,
     roleA: {
       title: 'Player X',
-      subtitle: 'Creates the bet',
-      description: 'Set the stake amount and share your game code',
+      subtitle: 'Sets the stake',
+      description: 'Pick your wager and invite a waiting opponent',
     },
     roleB: {
       title: 'Player O',
-      subtitle: 'Accepts the bet',
-      description: "Enter Player X's code and match the stake",
+      subtitle: 'Waits for an invite',
+      description: 'Join the lobby and accept the first invite you like',
     },
   },
   cards: {
@@ -139,13 +139,13 @@ export const GAME_CONFIG: Record<string, GameConfig> = {
     preview: CardsPreview,
     roleA: {
       title: 'Guesser',
-      subtitle: 'Creates the bet',
-      description: 'Set the stake and start guessing',
+      subtitle: 'Sets the stake',
+      description: 'Pick your wager and invite a waiting watcher',
     },
     roleB: {
       title: 'Watcher',
-      subtitle: 'Accepts the bet',
-      description: "Join and wait for Player A's guesses",
+      subtitle: 'Waits for an invite',
+      description: 'Join the lobby and accept a guesser invite',
     },
   },
   fps: {
@@ -163,13 +163,13 @@ export const GAME_CONFIG: Record<string, GameConfig> = {
     preview: FpsPreview,
     roleA: {
       title: 'Team Alpha',
-      subtitle: 'Creates the bet',
-      description: 'Set the stake amount and share your game code',
+      subtitle: 'Sets the stake',
+      description: 'Pick your wager and invite a waiting opponent',
     },
     roleB: {
       title: 'Team Bravo',
-      subtitle: 'Accepts the bet',
-      description: "Enter Team Alpha's code and match the stake",
+      subtitle: 'Waits for an invite',
+      description: 'Join the lobby and accept an Alpha invite',
     },
   },
 };

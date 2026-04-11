@@ -148,6 +148,31 @@ export function LobbyContainer({
   }, [playersData, role, status, toast]);
 
   // -------------------------------------------------------------------------
+  // Invite decline / expiry detection (Player A only)
+  //
+  // Player A's own lobby entry never changes state — only the target's entry
+  // transitions WAITING → INVITED → (WAITING | MATCHED). We can't read the
+  // target's entry directly via /api/lobby/status (auth-scoped to caller),
+  // so we watch the players list instead: when Player B is INVITED they
+  // drop out of the WAITING list; if they decline or the invite times out
+  // they flip back to WAITING and reappear. If MATCHED fires first, the
+  // status poll handles the match transition before this check matters.
+  // -------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (role !== 'A' || status !== 'invite-sent' || !invitedTarget) return;
+    if (!playersData) return;
+    const targetBack = playersData.players.some(
+      (p) => p.lobbyEntryId === invitedTarget.targetEntryId
+    );
+    if (targetBack) {
+      toast('info', `${invitedTarget.targetName} didn't accept — choose another player.`);
+      setInvitedTarget(null);
+      setStatus('waiting');
+    }
+  }, [playersData, role, status, invitedTarget, toast]);
+
+  // -------------------------------------------------------------------------
   // 2-minute expiry warning
   // -------------------------------------------------------------------------
 
@@ -244,13 +269,9 @@ export function LobbyContainer({
       return;
     }
 
-    // Player A: the target reverted to WAITING (declined or timed out their invite)
-    if (role === 'A' && statusRef.current === 'invite-sent' && statusResp.status === 'WAITING') {
-      const wasInvited = invitedTarget?.targetName ?? 'Opponent';
-      toast('info', `${wasInvited} didn't accept — choose another player.`);
-      setInvitedTarget(null);
-      setStatus('waiting');
-    }
+    // Player A's own lobby entry is always WAITING — the INVITED state lives
+    // on the target's entry, not ours. Decline / invite-expiry detection
+    // happens via the separate players-list polling effect below.
   };
 
   // -------------------------------------------------------------------------
@@ -382,7 +403,12 @@ export function LobbyContainer({
   }, [lobbyEntryId]);
 
   // -------------------------------------------------------------------------
-  // Beacon on unmount
+  // Leave lobby on unmount — covers both "component unmount" (e.g. user
+  // switches role on the page) and "page close/navigate" via `keepalive`.
+  // We use fetch instead of sendBeacon because the leave endpoint is DELETE
+  // and sendBeacon only issues POST. If the request doesn't reach the server
+  // (hard kill), the 30-second expiry worker will still clean up stale
+  // entries.
   // -------------------------------------------------------------------------
 
   useEffect(() => {
@@ -391,16 +417,13 @@ export function LobbyContainer({
       const s = statusRef.current;
       if (!id) return;
       if (s === 'matched') return;
-      if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-        try {
-          // DELETE via beacon: we send a POST (sendBeacon only POSTs), the
-          // leave route also accepts this via our wrapper. If the DELETE
-          // beacon fails, the server-side expiry scanner will clean up.
-          const url = `/api/lobby/leave?lobbyEntryId=${encodeURIComponent(id)}`;
-          navigator.sendBeacon(url);
-        } catch {
-          /* ignore */
-        }
+      try {
+        void fetch(`/api/lobby/leave?lobbyEntryId=${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          keepalive: true,
+        });
+      } catch {
+        /* ignore */
       }
     };
   }, []);

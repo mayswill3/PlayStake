@@ -40,20 +40,24 @@ export function RoleSelectionPanel({
         </p>
       </div>
 
-      {/* Role cards — disabled during setup & once in the lobby */}
+      {/* Role cards — the currently-selected card is disabled (no-op click);
+          the other card remains clickable so the user can switch. Switching
+          unmounts the LobbyContainer (keyed on role) which fires a DELETE
+          /api/lobby/leave against the old entry, then a fresh container
+          mounts for the new role. */}
       <div className="grid grid-cols-2 gap-3">
         <RoleCard
           role="A"
           meta={config.roleA}
           selected={role === 'A'}
-          disabled={isSettingUp || phase === 'lobby'}
+          disabled={isSettingUp || role === 'A'}
           onSelect={() => onRoleSelect('A')}
         />
         <RoleCard
           role="B"
           meta={config.roleB}
           selected={role === 'B'}
-          disabled={isSettingUp || phase === 'lobby'}
+          disabled={isSettingUp || role === 'B'}
           onSelect={() => onRoleSelect('B')}
         />
       </div>
@@ -66,9 +70,11 @@ export function RoleSelectionPanel({
         </div>
       )}
 
-      {/* Matchmaking lobby — replaces the old LobbyPanel + widget block */}
+      {/* Matchmaking lobby — keyed on role so switching roles unmounts the
+          current container, firing its beacon-based leave cleanup. */}
       {phase === 'lobby' && role && onMatched && (
         <LobbyContainer
+          key={role}
           role={role}
           gameType={gameType}
           gameName={config.name}
