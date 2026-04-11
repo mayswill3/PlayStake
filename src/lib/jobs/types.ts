@@ -63,6 +63,13 @@ export interface LedgerAuditPayload {
   triggeredAt: string;
 }
 
+/**
+ * Lobby expiry scan: expires stale WAITING entries and times out INVITED entries.
+ */
+export interface LobbyExpiryScanPayload {
+  triggeredAt: string;
+}
+
 // ---------------------------------------------------------------------------
 // Queue name constants
 // ---------------------------------------------------------------------------
@@ -76,6 +83,7 @@ export const QUEUE_NAMES = {
   UNVERIFIED_RESULT: "unverified-result",
   DISPUTE_ESCALATION: "dispute-escalation",
   LEDGER_AUDIT: "ledger-audit",
+  LOBBY_EXPIRY: "lobby-expiry",
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];

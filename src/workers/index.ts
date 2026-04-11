@@ -19,6 +19,7 @@ import { createUnverifiedResultWorker } from "./unverified-result.worker";
 import { createAnomalyDetectionWorker } from "./anomaly-detection.worker";
 import { createDisputeEscalationWorker } from "./dispute-escalation.worker";
 import { createLedgerAuditWorker } from "./ledger-audit.worker";
+import { createLobbyExpiryWorker } from "./lobby-expiry.worker";
 
 // ---------------------------------------------------------------------------
 // Logging
@@ -46,6 +47,7 @@ async function start(): Promise<void> {
   workers.push(createAnomalyDetectionWorker());
   workers.push(createDisputeEscalationWorker());
   workers.push(createLedgerAuditWorker());
+  workers.push(createLobbyExpiryWorker());
 
   log("info", "workers_created", { count: workers.length });
 

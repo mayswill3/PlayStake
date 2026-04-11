@@ -154,6 +154,8 @@ model User {
   widgetSessions    WidgetSession[]
   sessions          Session[]
   oauthAccounts     OAuthAccount[]
+  lobbyEntries      LobbyEntry[]     @relation("LobbyUser")
+  lobbyInvitesSent  LobbyEntry[]     @relation("LobbyInviter")
 
   @@index([email], map: "idx_user_email")
   @@index([stripeCustomerId], map: "idx_user_stripe_customer")
@@ -545,4 +547,38 @@ model AnomalyAlert {
   @@index([type, status], map: "idx_anomaly_type_status")
   @@index([createdAt], map: "idx_anomaly_created")
   @@map("anomaly_alerts")
+}
+
+enum LobbyRole {
+  PLAYER_A
+  PLAYER_B
+}
+
+enum LobbyStatus {
+  WAITING
+  INVITED
+  MATCHED
+  EXPIRED
+  CANCELLED
+}
+
+model LobbyEntry {
+  id              String      @id @default(cuid())
+  gameType        String      @map("game_type") @db.VarChar(50)
+  userId          String      @map("user_id") @db.Uuid
+  user            User        @relation("LobbyUser", fields: [userId], references: [id])
+  role            LobbyRole
+  stakeAmount     Int         @map("stake_amount")
+  status          LobbyStatus @default(WAITING)
+  invitedById     String?     @map("invited_by_id") @db.Uuid
+  invitedBy       User?       @relation("LobbyInviter", fields: [invitedById], references: [id])
+  betId           String?     @map("bet_id") @db.Uuid
+  expiresAt       DateTime    @map("expires_at")
+  inviteExpiresAt DateTime?   @map("invite_expires_at")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  @@index([gameType, role, status, expiresAt], map: "idx_lobby_match")
+  @@index([userId, status], map: "idx_lobby_user")
+  @@map("lobby_entries")
 }

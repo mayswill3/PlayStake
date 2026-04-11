@@ -71,6 +71,11 @@ const SCHEDULES: ScheduleEntry[] = [
     jobName: "ledger-audit",
     pattern: "0 3 * * *", // daily at 03:00 UTC
   },
+  {
+    queueName: QUEUE_NAMES.LOBBY_EXPIRY,
+    jobName: "lobby-expiry-scan",
+    every: 30_000, // every 30 seconds
+  },
 ];
 
 // ---------------------------------------------------------------------------
