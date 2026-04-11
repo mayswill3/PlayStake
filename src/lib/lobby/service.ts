@@ -15,6 +15,7 @@ import {
   ValidationError,
 } from "@/lib/errors/index";
 import { centsToDollars } from "@/lib/utils/money";
+import { holdEscrow } from "@/lib/ledger/escrow";
 import {
   isLobbyGameType,
   getDemoGameId,
@@ -437,8 +438,12 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
       throw new ConflictError("Player A is no longer waiting");
     }
 
-    // Create the bet in PENDING_CONSENT so the existing widget flow can
-    // run escrow via consent + accept.
+    // Create the bet in PENDING_CONSENT as the starting point of the
+    // lifecycle (for audit trail), then immediately run escrow holds for
+    // both players in the same transaction. The lobby join + invite
+    // acceptance flow is itself the explicit consent action, so we skip
+    // the widget's "Confirm & Lock Funds" step entirely and deliver a
+    // MATCHED bet to the client.
     const consentExpiresAt = new Date(now.getTime() + BET_CONSENT_TTL_MS);
     const expiresAt = new Date(now.getTime() + BET_TTL_MS);
     const amountDollars = centsToDollars(playerAEntry.stakeAmount);
@@ -455,6 +460,43 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
         gameMetadata: { gameType, source: "lobby" },
         consentExpiresAt,
         expiresAt,
+      },
+    });
+
+    // Hold escrow for Player A — bet is currently PENDING_CONSENT which
+    // holdEscrow accepts. This locks Player A's stake.
+    await holdEscrow(tx, {
+      playerId: playerAEntry.userId,
+      betId: bet.id,
+      amount: amountDollars,
+      idempotencyKey: `lobby:consentA:${bet.id}`,
+    });
+
+    // Transition to OPEN so Player B's escrow hold passes the status guard.
+    await tx.bet.update({
+      where: { id: bet.id },
+      data: {
+        status: BetStatus.OPEN,
+        playerAConsentedAt: now,
+      },
+    });
+
+    // Hold escrow for Player B.
+    await holdEscrow(tx, {
+      playerId: playerBEntry.userId,
+      betId: bet.id,
+      amount: amountDollars,
+      idempotencyKey: `lobby:consentB:${bet.id}`,
+    });
+
+    // Transition to MATCHED — both escrows are now locked and the bet is
+    // ready for gameplay.
+    await tx.bet.update({
+      where: { id: bet.id },
+      data: {
+        status: BetStatus.MATCHED,
+        playerBConsentedAt: now,
+        matchedAt: now,
       },
     });
 

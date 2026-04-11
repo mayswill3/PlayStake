@@ -1,6 +1,34 @@
 'use client';
 
-import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle, useId } from 'react';
+
+// Module-level promise for loading the SDK script exactly once across all
+// PlayStakeWidget instances on the page. Without this, StrictMode's double
+// effect invocation (and multiple widget mounts) each append their own
+// <script> tag and each register their own onload callback, producing orphan
+// iframes when those closures fire after the component has already cleaned up.
+let sdkLoadPromise: Promise<void> | null = null;
+function loadSdkOnce(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve();
+  if (window.PlayStake) return Promise.resolve();
+  if (sdkLoadPromise) return sdkLoadPromise;
+  sdkLoadPromise = new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[data-playstake-sdk]');
+    if (existing) {
+      if (window.PlayStake) return resolve();
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener('error', () => reject(new Error('SDK load failed')), { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = '/widget/sdk.js';
+    script.dataset.playstakeSdk = '1';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('SDK load failed'));
+    document.head.appendChild(script);
+  });
+  return sdkLoadPromise;
+}
 
 // Declare the global PlayStake SDK type
 declare global {
@@ -53,16 +81,33 @@ export const PlayStakeWidget = forwardRef<PlayStakeWidgetHandle, PlayStakeWidget
   useImperativeHandle(ref, () => ({
     refreshBalance: () => widgetRef.current?.refreshBalance(),
   }));
-  const containerId = 'playstake-widget-container';
+
+  // Unique container id per instance so concurrent widgets can't step on
+  // each other's DOM slot. useId is stable across renders and unique per
+  // component instance.
+  const reactId = useId();
+  const containerId = `playstake-widget-container-${reactId.replace(/[:]/g, '')}`;
+
+  // Keep the latest callbacks in refs so we don't re-init the SDK every time
+  // the parent re-renders (callbacks are recreated on every render).
+  const onBetCreatedRef = useRef(onBetCreated);
+  const onBetAcceptedRef = useRef(onBetAccepted);
+  const onBetSettledRef = useRef(onBetSettled);
+  const onErrorRef = useRef(onError);
+  onBetCreatedRef.current = onBetCreated;
+  onBetAcceptedRef.current = onBetAccepted;
+  onBetSettledRef.current = onBetSettled;
+  onErrorRef.current = onError;
 
   useEffect(() => {
     if (!widgetToken || !gameId) return;
 
     const token = widgetToken;
     const game = gameId;
+    let cancelled = false;
 
-    // Load SDK if not already loaded
-    function initWidget() {
+    const initWidget = () => {
+      if (cancelled) return;
       if (!window.PlayStake) return;
 
       window.PlayStake._setOrigin(window.location.origin);
@@ -72,33 +117,28 @@ export const PlayStakeWidget = forwardRef<PlayStakeWidgetHandle, PlayStakeWidget
         gameId: game,
         containerId,
         theme: 'dark',
-        onBetCreated,
-        onBetAccepted,
-        onBetSettled,
-        onError,
+        onBetCreated: (bet) => onBetCreatedRef.current?.(bet),
+        onBetAccepted: (bet) => onBetAcceptedRef.current?.(bet),
+        onBetSettled: (bet) => onBetSettledRef.current?.(bet),
+        onError: (err) => onErrorRef.current?.(err),
       });
 
       widgetRef.current.open();
-    }
+    };
 
-    if (window.PlayStake) {
-      initWidget();
-    } else {
-      const script = document.createElement('script');
-      script.src = '/widget/sdk.js';
-      script.onload = initWidget;
-      document.head.appendChild(script);
-    }
+    loadSdkOnce()
+      .then(() => initWidget())
+      .catch((err) => onErrorRef.current?.({ message: err?.message ?? 'SDK load failed' }));
 
     return () => {
+      cancelled = true;
       if (widgetRef.current) {
         widgetRef.current.destroy();
         widgetRef.current = null;
       }
     };
-    // Only re-init when token/gameId change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [widgetToken, gameId]);
+    // Only re-init when token/gameId or containerId change
+  }, [widgetToken, gameId, containerId]);
 
   if (!widgetToken) {
     return (
