@@ -12,6 +12,7 @@ import {
   Gamepad2,
   ChevronRight,
   ArrowRight,
+  Layers,
   Grid3x3,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -46,6 +47,7 @@ interface RecentBet {
 }
 
 const QUICK_PLAY_GAMES = [
+  { name: 'Higher / Lower', description: 'Guess the next card', href: '/play/cards', icon: Layers },
   { name: 'Tic-Tac-Toe', description: 'Classic strategy game', href: '/play/tictactoe', icon: Grid3x3 },
 ];
 
