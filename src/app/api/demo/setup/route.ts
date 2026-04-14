@@ -9,14 +9,9 @@ import { UserRole, LedgerAccountType } from "../../../../../generated/prisma/cli
 
 const DEMO_DEV_EMAIL = "system-demo@playstake.internal";
 
-type DemoGameType = 'fps' | 'cards' | 'tictactoe' | 'pool' | '3shot' | 'bullseye';
+type DemoGameType = 'cards' | 'tictactoe';
 
 const DEMO_GAMES: Record<DemoGameType, { slug: string; name: string; description: string }> = {
-  fps: {
-    slug: "fps-scoreboard",
-    name: "FPS Scoreboard",
-    description: "Team-based shooter with live scoreboard and real-time wagering.",
-  },
   cards: {
     slug: "higher-lower",
     name: "Higher / Lower",
@@ -26,21 +21,6 @@ const DEMO_GAMES: Record<DemoGameType, { slug: string; name: string; description
     slug: "tic-tac-toe",
     name: "Tic-Tac-Toe",
     description: "Classic strategy game with two-player wagering and win detection.",
-  },
-  pool: {
-    slug: "8-ball-pool",
-    name: "8-Ball Pool",
-    description: "Classic 8-ball pool with realistic physics and two-player wagering.",
-  },
-  '3shot': {
-    slug: "3-shot-pool",
-    name: "3-Shot Pool",
-    description: "3 shots each. Most balls potted wins. Fast-paced wagered match.",
-  },
-  bullseye: {
-    slug: "bullseye-pool",
-    name: "Bullseye Pool",
-    description: "Land closest to the target. Win the round. Precision wagered match.",
   },
 };
 

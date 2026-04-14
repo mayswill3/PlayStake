@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Circle, Disc, Grid3x3, Layers, Target } from 'lucide-react';
+import { Grid3x3, Layers } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 interface DemoCardProps {
@@ -21,24 +21,6 @@ const DEMOS: DemoCardProps[] = [
     icon: Grid3x3,
     title: 'Tic-Tac-Toe',
     description: 'Classic strategy game with two-player wagering and win detection.',
-  },
-  {
-    href: '/play/pool',
-    icon: Circle,
-    title: '8-Ball Pool',
-    description: 'Classic 8-ball pool with realistic physics and two-player wagering.',
-  },
-  {
-    href: '/play/3shot',
-    icon: Target,
-    title: '3-Shot Pool',
-    description: '3 shots each. Most balls potted wins. Fast-paced wagered match.',
-  },
-  {
-    href: '/play/bullseye',
-    icon: Disc,
-    title: 'Bullseye Pool',
-    description: 'Land closest to the target. Win the round. Precision wagered match.',
   },
 ];
 

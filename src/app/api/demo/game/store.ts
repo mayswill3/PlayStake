@@ -1,6 +1,6 @@
 // In-memory game session store (demo only — not for production)
 
-export type GameType = 'tictactoe' | 'fps' | 'cards' | 'pool' | '3shot' | 'bullseye';
+export type GameType = 'tictactoe' | 'cards';
 
 export interface GameSession {
   id: string;

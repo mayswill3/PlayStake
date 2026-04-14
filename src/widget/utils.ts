@@ -78,12 +78,8 @@ export function resolveTheme(
  * gameType value to end users.
  */
 export const GAME_DISPLAY_NAMES: Record<string, string> = {
-  bullseye: "Bullseye Pool",
-  pool: "8-Ball Pool",
-  "3shot": "3-Shot Pool",
   tictactoe: "Tic-Tac-Toe",
   cards: "Higher / Lower",
-  fps: "FPS Scoreboard",
 };
 
 export function getGameDisplayName(
