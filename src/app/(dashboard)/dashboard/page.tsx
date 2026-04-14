@@ -12,9 +12,6 @@ import {
   Gamepad2,
   ChevronRight,
   ArrowRight,
-  Target,
-  Circle,
-  Disc,
   Grid3x3,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -49,9 +46,6 @@ interface RecentBet {
 }
 
 const QUICK_PLAY_GAMES = [
-  { name: '3-Shot Pool', description: 'Pot balls in 3 shots', href: '/play/3shot', icon: Target },
-  { name: '8-Ball Pool', description: 'Classic 8-ball match', href: '/play/pool', icon: Circle },
-  { name: 'Bullseye Pool', description: 'Closest to target wins', href: '/play/bullseye', icon: Disc },
   { name: 'Tic-Tac-Toe', description: 'Classic strategy game', href: '/play/tictactoe', icon: Grid3x3 },
 ];
 
