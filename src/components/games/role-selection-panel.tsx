@@ -1,6 +1,7 @@
 'use client';
 
-import { Check, User, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Check, User, Users, Wallet, Trophy, TrendingUp } from 'lucide-react';
 import type { GameConfig, RoleMeta } from './game-config';
 import type { PlayerRole } from '@/app/play/_shared/types';
 import { Spinner } from '@/components/ui/Spinner';
@@ -19,6 +20,12 @@ interface RoleSelectionPanelProps {
   onMatched?: (result: LobbyMatchResult) => void;
 }
 
+interface PlayerInfo {
+  balance: number;
+  escrowed: number;
+  stats: { wins: number; losses: number; draws: number; winRate: number } | null;
+}
+
 export function RoleSelectionPanel({
   config,
   phase,
@@ -30,6 +37,38 @@ export function RoleSelectionPanel({
   myDisplayName,
   onMatched,
 }: RoleSelectionPanelProps) {
+  const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
+  const [loadingInfo, setLoadingInfo] = useState(false);
+
+  // Fetch balance and stats when the user is identified
+  useEffect(() => {
+    if (!myUserId) return;
+    let cancelled = false;
+    setLoadingInfo(true);
+
+    Promise.all([
+      fetch('/api/wallet/balance').then(r => r.ok ? r.json() : null),
+      fetch('/api/dashboard/stats').then(r => r.ok ? r.json() : null),
+    ]).then(([balanceData, statsData]) => {
+      if (cancelled) return;
+      setPlayerInfo({
+        balance: balanceData?.available ?? 0,
+        escrowed: balanceData?.escrowed ?? 0,
+        stats: statsData ? {
+          wins: statsData.wins ?? 0,
+          losses: statsData.losses ?? 0,
+          draws: statsData.draws ?? 0,
+          winRate: statsData.winRate ?? 0,
+        } : null,
+      });
+      setLoadingInfo(false);
+    }).catch(() => {
+      if (!cancelled) setLoadingInfo(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [myUserId]);
+
   return (
     <div className="rounded-2xl border border-themed bg-card p-5 lg:p-6 lg:sticky lg:top-20 space-y-5">
       {/* Header */}
@@ -40,11 +79,90 @@ export function RoleSelectionPanel({
         </p>
       </div>
 
-      {/* Role cards — the currently-selected card is disabled (no-op click);
-          the other card remains clickable so the user can switch. Switching
-          unmounts the LobbyContainer (keyed on role) which fires a DELETE
-          /api/lobby/leave against the old entry, then a fresh container
-          mounts for the new role. */}
+      {/* Player info card — balance, record, display name */}
+      {myUserId && (
+        <div className="rounded-xl border border-themed bg-elevated p-4 space-y-3">
+          {/* Name row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600/15 text-brand-600 dark:text-brand-400">
+                <User size={14} strokeWidth={2.5} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-fg">{myDisplayName || 'Player'}</p>
+                <p className="text-[10px] text-fg-muted font-mono">{myUserId.slice(0, 8)}...</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats grid */}
+          {loadingInfo ? (
+            <div className="flex items-center gap-2 py-2">
+              <Spinner size="sm" />
+              <span className="text-xs text-fg-muted">Loading account...</span>
+            </div>
+          ) : playerInfo ? (
+            <div className="grid grid-cols-3 gap-3">
+              {/* Balance */}
+              <div className="rounded-lg bg-page p-2.5 text-center">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Wallet size={11} className="text-brand-600 dark:text-brand-400" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-muted">Balance</span>
+                </div>
+                <p className="text-base font-bold text-fg font-mono tabular-nums">
+                  ${(playerInfo.balance / 100).toFixed(2)}
+                </p>
+                {playerInfo.escrowed > 0 && (
+                  <p className="text-[9px] text-fg-muted mt-0.5">
+                    ${(playerInfo.escrowed / 100).toFixed(2)} in play
+                  </p>
+                )}
+              </div>
+
+              {/* Win/Loss */}
+              <div className="rounded-lg bg-page p-2.5 text-center">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Trophy size={11} className="text-brand-600 dark:text-brand-400" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-muted">Record</span>
+                </div>
+                {playerInfo.stats ? (
+                  <>
+                    <p className="text-base font-bold text-fg font-mono tabular-nums">
+                      <span className="text-brand-600 dark:text-brand-400">{playerInfo.stats.wins}</span>
+                      <span className="text-fg-muted mx-0.5">-</span>
+                      <span className="text-danger-600 dark:text-danger-400">{playerInfo.stats.losses}</span>
+                    </p>
+                    {playerInfo.stats.draws > 0 && (
+                      <p className="text-[9px] text-fg-muted mt-0.5">
+                        {playerInfo.stats.draws} draw{playerInfo.stats.draws !== 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-fg-muted">—</p>
+                )}
+              </div>
+
+              {/* Win rate */}
+              <div className="rounded-lg bg-page p-2.5 text-center">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <TrendingUp size={11} className="text-brand-600 dark:text-brand-400" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-muted">Win %</span>
+                </div>
+                {playerInfo.stats ? (
+                  <p className="text-base font-bold text-fg font-mono tabular-nums">
+                    {Math.round(playerInfo.stats.winRate * 100)}%
+                  </p>
+                ) : (
+                  <p className="text-sm text-fg-muted">—</p>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {/* Role cards */}
       <div className="grid grid-cols-2 gap-3">
         <RoleCard
           role="A"
@@ -70,8 +188,7 @@ export function RoleSelectionPanel({
         </div>
       )}
 
-      {/* Matchmaking lobby — keyed on role so switching roles unmounts the
-          current container, firing its beacon-based leave cleanup. */}
+      {/* Matchmaking lobby */}
       {phase === 'lobby' && role && onMatched && (
         <LobbyContainer
           key={role}

@@ -1,7 +1,9 @@
 import type { LucideIcon } from 'lucide-react';
-import { Grid3x3, Layers } from 'lucide-react';
+import { Grid3x3, Layers, Target, CircleDot } from 'lucide-react';
 import { TicTacToePreview } from './previews/tictactoe-preview';
 import { CardsPreview } from './previews/cards-preview';
+import { DartsPreview } from './previews/darts-preview';
+import { PoolPreview } from './previews/pool-preview';
 
 export interface RoleMeta {
   title: string;
@@ -70,6 +72,57 @@ export const GAME_CONFIG: Record<string, GameConfig> = {
       title: 'Watcher',
       subtitle: 'Waits for an invite',
       description: 'Join the lobby and accept a guesser invite',
+    },
+  },
+  darts: {
+    key: 'darts',
+    name: 'Darts 501',
+    description: 'Classic 501 darts — first to check out wins.',
+    icon: Target,
+    accentBg: 'bg-brand-600/10',
+    accentText: 'text-brand-600 dark:text-brand-400',
+    rules: [
+      'Both players start at 501 — subtract your score each turn',
+      'Throw 3 darts per turn, aiming the wobbling reticle',
+      'Must finish on exactly 0 with a double or bullseye (50)',
+      'Bust resets your score to the pre-turn total',
+    ],
+    preview: DartsPreview,
+    roleA: {
+      title: 'Thrower 1',
+      subtitle: 'Sets the stake',
+      description: 'Throw first and set the pace of the match',
+    },
+    roleB: {
+      title: 'Thrower 2',
+      subtitle: 'Waits for an invite',
+      description: 'Join the lobby and accept a thrower invite',
+    },
+  },
+  pool: {
+    key: 'pool',
+    name: 'Bullseye Pool',
+    description: 'Pot the object ball, land the cue on the bullseye.',
+    icon: CircleDot,
+    accentBg: 'bg-brand-600/10',
+    accentText: 'text-brand-600 dark:text-brand-400',
+    rules: [
+      'Each shot: pot the object ball, then score where the cue ball rests on the bullseye',
+      'Inner bull = 5 pts, mid ring = 3 pts, outer ring = 1 pt',
+      'Miss the pot = 0 pts. Scratch = opponent gets +1 bonus',
+      '3 shots per turn, object ball position rotates each shot',
+      'First to 21 points wins',
+    ],
+    preview: PoolPreview,
+    roleA: {
+      title: 'Player 1',
+      subtitle: 'Sets the stake',
+      description: 'Shoot first and set the pace of the match',
+    },
+    roleB: {
+      title: 'Player 2',
+      subtitle: 'Waits for an invite',
+      description: 'Join the lobby and accept a player invite',
     },
   },
 };

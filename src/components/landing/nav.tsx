@@ -9,7 +9,7 @@ import { MobileMenu } from '@/components/ui/mobile-menu';
 const NAV_LINKS = [
   { href: '#how-it-works', label: 'How it works' },
   { href: '#for-players', label: 'For Players' },
-  { href: '#for-developers', label: 'For Developers' },
+  { href: '#for-referees', label: 'Become a Referee' },
   { href: '#pricing', label: 'Fees' },
 ];
 

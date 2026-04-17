@@ -1,65 +1,58 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { Code2, Webhook, PieChart, Globe, ArrowRight, Check, Copy } from 'lucide-react';
+import { Eye, ShieldCheck, Banknote, Clock, ArrowRight, Users, Gavel } from 'lucide-react';
 
 const FEATURES = [
   {
-    icon: Code2,
-    title: 'REST API + Widget SDK',
-    description: 'One API key, one <script> tag, full wagering in your game.',
+    icon: Eye,
+    title: 'Watch live matches',
+    description: 'Spectate staked games in real-time and verify the outcome is fair.',
   },
   {
-    icon: Webhook,
-    title: 'Webhook events',
-    description: 'Get notified on every bet state change. HMAC-signed payloads.',
+    icon: ShieldCheck,
+    title: 'Validate results',
+    description: 'Confirm the winner, flag disputes, and ensure every match is clean.',
   },
   {
-    icon: PieChart,
-    title: 'Revenue share',
-    description: 'Earn a percentage of every bet placed in your game.',
+    icon: Banknote,
+    title: 'Earn per match',
+    description: 'Get paid a fee from every match you referee. More matches = more earnings.',
   },
   {
-    icon: Globe,
-    title: 'Any browser game',
-    description: 'Works in any iframe-embeddable game. No platform restrictions.',
+    icon: Clock,
+    title: 'Flexible schedule',
+    description: 'Pick up matches whenever you want. No shifts, no minimums.',
   },
 ];
 
-const CODE_SNIPPET = `// Add wagering to your game in minutes
-const widget = PlayStake.init({
-  gameId: "your-game-uuid",
-  widgetToken: "wt_...",
-  theme: "dark",
-  onBetSettled: function(bet) {
-    console.log("Winner:", bet.outcome);
-    endMatch(bet);
-  }
-});
-
-widget.createBet({ amount: 1000 });`;
+const STEPS = [
+  { step: '01', title: 'Sign up as a referee', description: 'Create your account and opt in to the referee program.' },
+  { step: '02', title: 'Get assigned matches', description: 'Receive notifications when staked matches need a referee.' },
+  { step: '03', title: 'Watch & validate', description: 'Spectate the match live, confirm the result when it ends.' },
+  { step: '04', title: 'Get paid', description: 'Earn your referee fee automatically after settlement.' },
+];
 
 export function ForDevelopers() {
   return (
-    <section id="for-developers" className="py-20 lg:py-28 bg-elevated">
+    <section id="for-referees" className="py-20 lg:py-28 bg-elevated">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* Code block (left on desktop) */}
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+          {/* How it works steps (left on desktop) */}
           <div className="order-2 lg:order-1">
-            <CodeBlock />
+            <HowItWorksCard />
           </div>
 
           {/* Text (right on desktop) */}
           <div className="order-1 lg:order-2">
             <div className="text-xs font-semibold uppercase tracking-widest text-brand-600 mb-3">
-              For Developers
+              Become a Referee
             </div>
             <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-fg leading-tight">
-              Add real-money wagering to your game in 15 minutes.
+              Watch games. Verify results. Get paid.
             </h2>
             <p className="mt-4 text-lg text-fg-secondary">
-              A drop-in widget, a REST API, and a revenue share. Ship wagering without building a ledger, escrow system, or payment pipeline.
+              Nominate yourself to referee staked matches. You watch the game live, confirm the outcome is legit, and earn a fee from every match you officiate.
             </p>
 
             <ul className="mt-8 space-y-6">
@@ -80,10 +73,10 @@ export function ForDevelopers() {
             </ul>
 
             <Link
-              href="/developer"
+              href="/register"
               className="inline-flex items-center gap-2 mt-8 text-brand-600 hover:text-brand-700 font-semibold transition-colors"
             >
-              Read the developer docs
+              Sign up to referee
               <ArrowRight size={16} />
             </Link>
           </div>
@@ -93,78 +86,58 @@ export function ForDevelopers() {
   );
 }
 
-function CodeBlock() {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(CODE_SNIPPET).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
+function HowItWorksCard() {
   return (
     <div
       className="rounded-xl overflow-hidden shadow-2xl max-w-xl mx-auto"
       style={{ background: '#0d1117', border: '1px solid rgba(255,255,255,0.08)' }}
     >
-      {/* Title bar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/8" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-        <div className="flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full bg-red-500"></span>
-          <span className="h-3 w-3 rounded-full bg-yellow-500"></span>
-          <span className="h-3 w-3 rounded-full bg-green-500"></span>
-          <span className="ml-3 text-xs text-white/50 font-mono">integration.js</span>
+      {/* Header */}
+      <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600/15 text-brand-400">
+          <Gavel size={18} />
         </div>
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition-colors px-2 py-1 rounded"
-          aria-label="Copy code"
-        >
-          {copied ? (
-            <>
-              <Check size={14} className="text-brand-400" />
-              <span className="text-brand-400">Copied</span>
-            </>
-          ) : (
-            <>
-              <Copy size={14} />
-              <span>Copy</span>
-            </>
-          )}
-        </button>
+        <div>
+          <p className="text-sm font-semibold text-white/90">How Refereeing Works</p>
+          <p className="text-xs text-white/40">4 simple steps to start earning</p>
+        </div>
       </div>
 
-      {/* Code */}
-      <pre className="px-5 py-5 overflow-x-auto text-sm leading-relaxed">
-        <code className="font-mono" style={{ color: '#c9d1d9' }}>
-          <span style={{ color: '#8b949e' }}>{'// Add wagering to your game in minutes\n'}</span>
-          <span style={{ color: '#ff7b72' }}>{'const'}</span>
-          <span>{' widget '}</span>
-          <span style={{ color: '#ff7b72' }}>{'='}</span>
-          <span>{' PlayStake.'}</span>
-          <span style={{ color: '#d2a8ff' }}>{'init'}</span>
-          <span>{'({\n  gameId: '}</span>
-          <span style={{ color: '#a5d6ff' }}>{'"your-game-uuid"'}</span>
-          <span>{',\n  widgetToken: '}</span>
-          <span style={{ color: '#a5d6ff' }}>{'"wt_..."'}</span>
-          <span>{',\n  theme: '}</span>
-          <span style={{ color: '#a5d6ff' }}>{'"dark"'}</span>
-          <span>{',\n  onBetSettled: '}</span>
-          <span style={{ color: '#ff7b72' }}>{'function'}</span>
-          <span>{'(bet) {\n    console.'}</span>
-          <span style={{ color: '#d2a8ff' }}>{'log'}</span>
-          <span>{'('}</span>
-          <span style={{ color: '#a5d6ff' }}>{'"Winner:"'}</span>
-          <span>{', bet.outcome);\n    '}</span>
-          <span style={{ color: '#d2a8ff' }}>{'endMatch'}</span>
-          <span>{'(bet);\n  }\n});\n\nwidget.'}</span>
-          <span style={{ color: '#d2a8ff' }}>{'createBet'}</span>
-          <span>{'({ amount: '}</span>
-          <span style={{ color: '#79c0ff' }}>{'1000'}</span>
-          <span>{' });'}</span>
-        </code>
-      </pre>
+      {/* Steps */}
+      <div className="px-5 py-5 space-y-5">
+        {STEPS.map((s, i) => (
+          <div key={s.step} className="flex gap-4">
+            <div className="flex-shrink-0 flex flex-col items-center">
+              <div
+                className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold"
+                style={{
+                  background: 'rgba(6,182,212,0.12)',
+                  color: '#22d3ee',
+                  border: '1px solid rgba(6,182,212,0.25)',
+                }}
+              >
+                {s.step}
+              </div>
+              {i < STEPS.length - 1 && (
+                <div className="w-px flex-1 mt-2" style={{ background: 'rgba(255,255,255,0.08)' }} />
+              )}
+            </div>
+            <div className="pt-1.5">
+              <h4 className="text-sm font-semibold text-white/90">{s.title}</h4>
+              <p className="mt-1 text-sm text-white/50 leading-relaxed">{s.description}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Stats footer */}
+      <div className="px-5 py-4 border-t flex items-center justify-between" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+        <div className="flex items-center gap-2">
+          <Users size={14} className="text-white/40" />
+          <span className="text-xs text-white/40">Open to all verified users</span>
+        </div>
+        <span className="text-xs font-mono text-brand-400">Earn per match</span>
+      </div>
     </div>
   );
 }

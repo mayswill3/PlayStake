@@ -64,8 +64,8 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="#for-developers" className="text-sm text-fg-secondary hover:text-brand-600 transition-colors">
-                  For Developers
+                <Link href="#for-referees" className="text-sm text-fg-secondary hover:text-brand-600 transition-colors">
+                  Become a Referee
                 </Link>
               </li>
               <li>
