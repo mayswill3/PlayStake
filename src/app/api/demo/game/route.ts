@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "playerAId required" }, { status: 400 });
   }
 
-  const validTypes: GameType[] = ['tictactoe', 'cards', 'darts', 'pool'];
+  const validTypes: GameType[] = ['tictactoe', 'cards'];
   const type: GameType = validTypes.includes(gameType) ? gameType : 'tictactoe';
 
   // Optional explicit session id — used by the lobby match handoff to derive

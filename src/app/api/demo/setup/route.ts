@@ -9,7 +9,7 @@ import { UserRole, LedgerAccountType } from "../../../../../generated/prisma/cli
 
 const DEMO_DEV_EMAIL = "system-demo@playstake.internal";
 
-type DemoGameType = 'cards' | 'tictactoe' | 'darts' | 'pool';
+type DemoGameType = 'cards' | 'tictactoe';
 
 const DEMO_GAMES: Record<DemoGameType, { slug: string; name: string; description: string }> = {
   cards: {
@@ -21,16 +21,6 @@ const DEMO_GAMES: Record<DemoGameType, { slug: string; name: string; description
     slug: "tic-tac-toe",
     name: "Tic-Tac-Toe",
     description: "Classic strategy game with two-player wagering and win detection.",
-  },
-  darts: {
-    slug: "darts-501",
-    name: "Darts 501",
-    description: "Classic 501 darts with two-player wagering and checkout strategy.",
-  },
-  pool: {
-    slug: "bullseye-pool",
-    name: "Bullseye Pool",
-    description: "Cue ball control game with bullseye scoring — first to 21 wins.",
   },
 };
 

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Grid3x3, Layers, Target, CircleDot } from 'lucide-react';
+import { Grid3x3, Layers } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 interface DemoCardProps {
@@ -21,18 +21,6 @@ const DEMOS: DemoCardProps[] = [
     icon: Grid3x3,
     title: 'Tic-Tac-Toe',
     description: 'Classic strategy game with two-player wagering and win detection.',
-  },
-  {
-    href: '/play/darts',
-    icon: Target,
-    title: 'Darts 501',
-    description: 'Classic 501 darts with checkout strategy and two-player wagering.',
-  },
-  {
-    href: '/play/pool',
-    icon: CircleDot,
-    title: 'Bullseye Pool',
-    description: 'Cue ball control — pot the object ball, land on the bullseye.',
   },
 ];
 

@@ -8,20 +8,16 @@
 
 import { prisma } from "@/lib/db/client";
 
-export type LobbyGameType = "cards" | "tictactoe" | "darts" | "pool";
+export type LobbyGameType = "cards" | "tictactoe";
 
 export const LOBBY_GAME_TYPES: readonly LobbyGameType[] = [
   "cards",
   "tictactoe",
-  "darts",
-  "pool",
 ] as const;
 
 export const LOBBY_GAME_META: Record<LobbyGameType, { slug: string; name: string }> = {
   cards: { slug: "higher-lower", name: "Higher / Lower" },
   tictactoe: { slug: "tic-tac-toe", name: "Tic-Tac-Toe" },
-  darts: { slug: "darts-501", name: "Darts 501" },
-  pool: { slug: "bullseye-pool", name: "Bullseye Pool" },
 };
 
 export function isLobbyGameType(value: unknown): value is LobbyGameType {
