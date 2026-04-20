@@ -1,7 +1,8 @@
 import type { LucideIcon } from 'lucide-react';
-import { Grid3x3, Layers } from 'lucide-react';
+import { Grid3x3, Layers, Target } from 'lucide-react';
 import { TicTacToePreview } from './previews/tictactoe-preview';
 import { CardsPreview } from './previews/cards-preview';
+import { DartsPreview } from './previews/darts-preview';
 
 export interface RoleMeta {
   title: string;
@@ -70,6 +71,32 @@ export const GAME_CONFIG: Record<string, GameConfig> = {
       title: 'Watcher',
       subtitle: 'Waits for an invite',
       description: 'Join the lobby and accept a guesser invite',
+    },
+  },
+  darts: {
+    key: 'darts',
+    name: 'Darts 301',
+    description: 'Start at 301, subtract your score each turn — first to zero wins.',
+    icon: Target,
+    accentBg: 'bg-brand-600/10',
+    accentText: 'text-brand-600 dark:text-brand-400',
+    rules: [
+      'Start at 301 — subtract your score each turn',
+      'Aim the moving crosshair and click to throw (3 darts per turn)',
+      'Treble = 3×, Double = 2×, Bull = 25, Bullseye = 50',
+      'Going below 0 is a BUST — score reverts, turn ends',
+      'First to reach exactly 0 wins',
+    ],
+    preview: DartsPreview,
+    roleA: {
+      title: 'Home',
+      subtitle: 'Sets the stake',
+      description: 'Throw first and put the pressure on',
+    },
+    roleB: {
+      title: 'Away',
+      subtitle: 'Waits for an invite',
+      description: 'Join the lobby and accept a match invite',
     },
   },
 };
