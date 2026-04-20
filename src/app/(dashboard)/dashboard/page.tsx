@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Layers,
   Grid3x3,
+  Target,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { FadeIn } from '@/components/ui/FadeIn';
@@ -49,6 +50,7 @@ interface RecentBet {
 const QUICK_PLAY_GAMES = [
   { name: 'Higher / Lower', description: 'Guess the next card', href: '/play/cards', icon: Layers },
   { name: 'Tic-Tac-Toe', description: 'Classic strategy game', href: '/play/tictactoe', icon: Grid3x3 },
+  { name: 'Darts 301', description: 'Aim and throw to zero', href: '/play/darts', icon: Target },
 ];
 
 function timeOfDay(): string {
