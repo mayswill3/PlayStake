@@ -207,7 +207,7 @@ export default function DartsDemoPage() {
           phase: 'aiming',
           message: '',
           roundFlash: bustTurnsEqualAfter
-            ? { label: `ROUND ${bustUpcomingRound}`, timeMs: performance.now() }
+            ? { label: `ROUND ${bustUpcomingRound}`, timeMs: Date.now() }
             : next.roundFlash,
         };
         if (bustTurnsEqualAfter) {
@@ -327,7 +327,7 @@ export default function DartsDemoPage() {
             phase: 'aiming',
             message: '',
             roundFlash: isRoundBoundary
-              ? { label: `ROUND ${upcomingRound}`, timeMs: performance.now() }
+              ? { label: `ROUND ${upcomingRound}`, timeMs: Date.now() }
               : showing.roundFlash,
           };
           if (isRoundBoundary) {

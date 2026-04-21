@@ -762,12 +762,13 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
   }, []);
 
   // ── Draw round announcement banner ───────────────────────────────────────────
-  const drawRoundFlash = useCallback((ctx: CanvasRenderingContext2D, gs: DartsState, now: number) => {
+  const drawRoundFlash = useCallback((ctx: CanvasRenderingContext2D, gs: DartsState, _now: number) => {
     if (!gs.roundFlash) return;
-    const age = now - gs.roundFlash.timeMs;
+    // Use Date.now() so both clients share the same wall-clock reference
+    const age = Math.max(0, Date.now() - gs.roundFlash.timeMs);
     if (age > 2000) return;
-    const scale = age < 200 ? 0.85 + (age / 200) * 0.15 : 1;
-    const opacity = age > 1600 ? 1 - (age - 1600) / 400 : 1;
+    const scale = Math.min(Math.max(age < 200 ? 0.85 + (age / 200) * 0.15 : 1, 0.1), 2);
+    const opacity = Math.min(Math.max(age > 1600 ? 1 - (age - 1600) / 400 : 1, 0), 1);
     const isFinal = gs.roundFlash.label.includes('3');
 
     ctx.save();

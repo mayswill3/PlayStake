@@ -1,13 +1,53 @@
 // ---------------------------------------------------------------------------
-// Darts Audio — synthesized sounds via Web Audio API (no audio files)
+// Darts Audio — synthesized sounds via Web Audio API (no external files)
 // ---------------------------------------------------------------------------
 
 import { GameAudio } from '../_shared/game-audio';
 
 export class DartsAudio extends GameAudio {
+  constructor() {
+    super();
+    this.setMuted(false); // unmuted by default — game has no mute toggle
+  }
+
   // ---------------------------------------------------------------------------
-  // Dart hitting board — noise burst + low thud
-  // accuracy: 0 (miss) to 1 (bullseye)
+  // Dart throw — sharp whoosh (shaped noise + pitch sweep)
+  // ---------------------------------------------------------------------------
+  playThrow(): void {
+    if (this.muted) return;
+    const ctx = this.ensureContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // Noise burst shaped into a whoosh
+    const bufSize = ctx.sampleRate * 0.15;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+
+    const hipass = ctx.createBiquadFilter();
+    hipass.type = 'highpass';
+    hipass.frequency.setValueAtTime(2000, now);
+    hipass.frequency.linearRampToValueAtTime(400, now + 0.13);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.35, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+
+    src.connect(hipass);
+    hipass.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(now);
+    src.stop(now + 0.15);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Dart hitting board — sharp thwack + wooden thud
   // ---------------------------------------------------------------------------
   playDartImpact(accuracy: number): void {
     if (this.muted) return;
@@ -16,41 +56,45 @@ export class DartsAudio extends GameAudio {
 
     const now = ctx.currentTime;
 
-    // High-freq thwack (bandpass noise 600-900Hz)
-    const noiseGain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
-    const noiseOsc = ctx.createOscillator();
-    noiseOsc.type = 'sawtooth';
-    noiseOsc.frequency.value = 600 + accuracy * 300;
-    filter.type = 'bandpass';
-    filter.frequency.value = 750;
-    filter.Q.value = 0.8;
+    // Sharp crack (noise burst)
+    const crackBuf = ctx.createBuffer(1, ctx.sampleRate * 0.06, ctx.sampleRate);
+    const crackData = crackBuf.getChannelData(0);
+    for (let i = 0; i < crackData.length; i++) crackData[i] = Math.random() * 2 - 1;
 
-    noiseGain.gain.setValueAtTime(0.18 + accuracy * 0.12, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+    const crackSrc = ctx.createBufferSource();
+    crackSrc.buffer = crackBuf;
 
-    noiseOsc.connect(filter);
-    filter.connect(noiseGain);
-    noiseGain.connect(ctx.destination);
-    noiseOsc.start(now);
-    noiseOsc.stop(now + 0.08);
+    const crackFilter = ctx.createBiquadFilter();
+    crackFilter.type = 'bandpass';
+    crackFilter.frequency.value = 3000 + accuracy * 1500;
+    crackFilter.Q.value = 0.5;
 
-    // Low thud (80Hz sine)
-    const thudOsc = ctx.createOscillator();
+    const crackGain = ctx.createGain();
+    crackGain.gain.setValueAtTime(0.55 + accuracy * 0.25, now);
+    crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+    crackSrc.connect(crackFilter);
+    crackFilter.connect(crackGain);
+    crackGain.connect(ctx.destination);
+    crackSrc.start(now);
+    crackSrc.stop(now + 0.07);
+
+    // Woody resonance thud
+    const thud = ctx.createOscillator();
     const thudGain = ctx.createGain();
-    thudOsc.type = 'sine';
-    thudOsc.frequency.setValueAtTime(90, now);
-    thudOsc.frequency.linearRampToValueAtTime(60, now + 0.06);
-    thudGain.gain.setValueAtTime(0.22, now);
-    thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
-    thudOsc.connect(thudGain);
+    thud.type = 'sine';
+    thud.frequency.setValueAtTime(180 + accuracy * 80, now);
+    thud.frequency.exponentialRampToValueAtTime(60, now + 0.08);
+    thudGain.gain.setValueAtTime(0.3, now);
+    thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    thud.connect(thudGain);
     thudGain.connect(ctx.destination);
-    thudOsc.start(now);
-    thudOsc.stop(now + 0.1);
+    thud.start(now);
+    thud.stop(now + 0.12);
   }
 
   // ---------------------------------------------------------------------------
-  // Bust — descending square wave
+  // Bust — descending failure tones
   // ---------------------------------------------------------------------------
   playBust(): void {
     if (this.muted) return;
@@ -58,24 +102,29 @@ export class DartsAudio extends GameAudio {
     if (!ctx) return;
 
     const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    // Two descending tones: classic "fail" feel
+    const notes = [
+      { freq: 440, start: 0,    dur: 0.15 },
+      { freq: 330, start: 0.14, dur: 0.18 },
+      { freq: 220, start: 0.28, dur: 0.22 },
+    ];
 
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(320, now);
-    osc.frequency.linearRampToValueAtTime(180, now + 0.28);
-
-    gain.gain.setValueAtTime(0.08, now);
-    gain.gain.linearRampToValueAtTime(0.001, now + 0.3);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.32);
+    for (const n of notes) {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = n.freq;
+      g.gain.setValueAtTime(0.001, now + n.start);
+      g.gain.linearRampToValueAtTime(0.12, now + n.start + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, now + n.start + n.dur);
+      osc.connect(g); g.connect(ctx.destination);
+      osc.start(now + n.start);
+      osc.stop(now + n.start + n.dur + 0.02);
+    }
   }
 
   // ---------------------------------------------------------------------------
-  // Double or treble scored — resonant ping
+  // Double or treble scored — bright metallic ping
   // ---------------------------------------------------------------------------
   playDouble(): void {
     if (this.muted) return;
@@ -83,24 +132,23 @@ export class DartsAudio extends GameAudio {
     if (!ctx) return;
 
     const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
 
-    osc.type = 'sine';
-    osc.frequency.value = 440;
-
-    gain.gain.setValueAtTime(0.001, now);
-    gain.gain.linearRampToValueAtTime(0.18, now + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.1);
+    for (const [i, freq] of [[0, 880], [1, 1108]] as const) {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0.001, now + i * 0.04);
+      g.gain.linearRampToValueAtTime(0.18, now + i * 0.04 + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + 0.18);
+      osc.connect(g); g.connect(ctx.destination);
+      osc.start(now + i * 0.04);
+      osc.stop(now + i * 0.04 + 0.2);
+    }
   }
 
   // ---------------------------------------------------------------------------
-  // Bull or bullseye — two-note chime
+  // Bull or bullseye — rich resonant chime (3 harmonics)
   // ---------------------------------------------------------------------------
   playBullseye(): void {
     if (this.muted) return;
@@ -108,66 +156,42 @@ export class DartsAudio extends GameAudio {
     if (!ctx) return;
 
     const now = ctx.currentTime;
+    // C5, E5, G5 — bright major chord, staggered
     const notes = [
-      { freq: 523.25, start: 0 },    // C5
-      { freq: 659.25, start: 0.06 }, // E5
+      { freq: 523.25, start: 0,    vol: 0.22 },
+      { freq: 659.25, start: 0.05, vol: 0.20 },
+      { freq: 783.99, start: 0.10, vol: 0.18 },
     ];
 
-    for (const note of notes) {
+    for (const n of notes) {
       const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+      const g = ctx.createGain();
       osc.type = 'sine';
-      osc.frequency.value = note.freq;
-      gain.gain.setValueAtTime(0.001, now + note.start);
-      gain.gain.linearRampToValueAtTime(0.2, now + note.start + 0.005);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + note.start + 0.12);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now + note.start);
-      osc.stop(now + note.start + 0.14);
+      osc.frequency.value = n.freq;
+      g.gain.setValueAtTime(0.001, now + n.start);
+      g.gain.linearRampToValueAtTime(n.vol, now + n.start + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.001, now + n.start + 0.5);
+      osc.connect(g); g.connect(ctx.destination);
+      osc.start(now + n.start);
+      osc.stop(now + n.start + 0.55);
     }
   }
 
   // ---------------------------------------------------------------------------
-  // Turn change — three quick ticks
+  // Turn change — two soft clave ticks
   // ---------------------------------------------------------------------------
   playTurnChange(): void {
     if (this.muted) return;
     const ctx = this.ensureContext();
     if (!ctx) return;
 
-    [0, 0.08, 0.16].forEach(offset => {
+    [0, 0.1].forEach(offset => {
       setTimeout(() => this.playTick(), offset * 1000);
     });
   }
 
   // ---------------------------------------------------------------------------
-  // Throw — dart-in-flight whoosh (sawtooth sweep 1200→300 Hz, 120 ms)
-  // ---------------------------------------------------------------------------
-  playThrow(): void {
-    if (this.muted) return;
-    const ctx = this.ensureContext();
-    if (!ctx) return;
-
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(1200, now);
-    osc.frequency.exponentialRampToValueAtTime(300, now + 0.12);
-
-    gain.gain.setValueAtTime(0.12, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.13);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Round start — boxing-bell style (A4+E5 double-strike; 3 strikes for final)
+  // Round start — boxing bell (FM synthesis, number of strikes = round)
   // ---------------------------------------------------------------------------
   playRoundStart(round: number): void {
     if (this.muted) return;
@@ -178,50 +202,65 @@ export class DartsAudio extends GameAudio {
     const strikes = round >= 3 ? 3 : 2;
 
     for (let i = 0; i < strikes; i++) {
-      for (const freq of [440, 659]) {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.20, now + i * 0.22);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.22 + 0.4);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + i * 0.22);
-        osc.stop(now + i * 0.22 + 0.42);
-      }
+      const t = now + i * 0.28;
+
+      // Carrier sine
+      const carrier = ctx.createOscillator();
+      const modulator = ctx.createOscillator();
+      const modGain = ctx.createGain();
+      const outGain = ctx.createGain();
+
+      carrier.type = 'sine';
+      carrier.frequency.value = 587; // D5
+      modulator.type = 'sine';
+      modulator.frequency.value = 587 * 7; // 7th harmonic → bell-like
+      modGain.gain.setValueAtTime(600, t);
+      modGain.gain.exponentialRampToValueAtTime(1, t + 0.5);
+
+      outGain.gain.setValueAtTime(0.28, t);
+      outGain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+
+      modulator.connect(modGain);
+      modGain.connect(carrier.frequency);
+      carrier.connect(outGain);
+      outGain.connect(ctx.destination);
+
+      modulator.start(t); modulator.stop(t + 0.6);
+      carrier.start(t); carrier.stop(t + 0.6);
     }
   }
 
   // ---------------------------------------------------------------------------
-  // Win — extended chime (C5→E5→G5→A5→C6)
+  // Win — triumphant ascending fanfare
   // ---------------------------------------------------------------------------
   playWin(): void {
     if (this.muted) return;
     const ctx = this.ensureContext();
     if (!ctx) return;
 
-    const notes = [
-      { freq: 523.25, start: 0,    dur: 0.08 }, // C5
-      { freq: 659.25, start: 0.1,  dur: 0.08 }, // E5
-      { freq: 783.99, start: 0.2,  dur: 0.08 }, // G5
-      { freq: 880.00, start: 0.3,  dur: 0.10 }, // A5
-      { freq: 1046.5, start: 0.42, dur: 0.16 }, // C6
-    ];
     const now = ctx.currentTime;
+    const notes = [
+      { freq: 523.25, start: 0,    dur: 0.10 }, // C5
+      { freq: 659.25, start: 0.11, dur: 0.10 }, // E5
+      { freq: 783.99, start: 0.22, dur: 0.10 }, // G5
+      { freq: 1046.5, start: 0.33, dur: 0.10 }, // C6
+      { freq: 1318.5, start: 0.44, dur: 0.22 }, // E6 — held finish
+    ];
 
-    for (const note of notes) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = note.freq;
-      gain.gain.setValueAtTime(0.001, now + note.start);
-      gain.gain.linearRampToValueAtTime(0.2, now + note.start + 0.005);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + note.start + note.dur);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now + note.start);
-      osc.stop(now + note.start + note.dur + 0.02);
+    for (const n of notes) {
+      for (const type of ['sine', 'triangle'] as OscillatorType[]) {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = type;
+        osc.frequency.value = n.freq;
+        const vol = type === 'sine' ? 0.22 : 0.08;
+        g.gain.setValueAtTime(0.001, now + n.start);
+        g.gain.linearRampToValueAtTime(vol, now + n.start + 0.008);
+        g.gain.exponentialRampToValueAtTime(0.001, now + n.start + n.dur + 0.05);
+        osc.connect(g); g.connect(ctx.destination);
+        osc.start(now + n.start);
+        osc.stop(now + n.start + n.dur + 0.08);
+      }
     }
   }
 }
