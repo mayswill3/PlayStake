@@ -427,6 +427,18 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     drawPanel(12, 160, 130, 140, 'A');
     drawPanel(W - 142, 160, 130, 140, 'B');
 
+    // Round counter — centered between panels
+    const turnsA = gs.turnHistory.filter(t => t.player === 'A').length;
+    const turnsB = gs.turnHistory.filter(t => t.player === 'B').length;
+    const completedRounds = Math.min(turnsA, turnsB);
+    const currentRound = Math.min(completedRounds + 1, 3);
+    const roundLabel = gs.phase === 'finished' ? 'FINAL' : `ROUND ${currentRound} / 3`;
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = gs.phase === 'finished' ? 'rgba(255,200,80,0.8)' : 'rgba(180,180,180,0.5)';
+    ctx.fillText(roundLabel, W / 2, 230);
+
     // Current turn indicator — brighter when it's your turn, different label for opponent
     if (gs.phase !== 'finished') {
       const activeX   = gs.currentTurn === 'A' ? 77 : W - 77;
@@ -740,11 +752,20 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
 
   // ── Draw throw hint (idle, your turn) ────────────────────────────────────────
   const drawThrowHint = useCallback((ctx: CanvasRenderingContext2D) => {
-    ctx.font = '13px sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    const text = '🎯  Press & drag to aim — release to throw';
+    ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Press & drag to aim — release to throw', W / 2, H - 18);
+
+    // Dark pill background for contrast
+    const tw = ctx.measureText(text).width + 24;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.beginPath();
+    ctx.roundRect(W / 2 - tw / 2, H - 28, tw, 22, 6);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText(text, W / 2, H - 17);
   }, []);
 
   // ── Animation loop ──────────────────────────────────────────────────────────

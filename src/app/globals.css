@@ -441,12 +441,14 @@ body:has(.game-fullscreen-mobile) [type='password'] {
   }
 
   .game-fullscreen-mobile .game-area canvas {
-    width: 100vw !important;
-    height: calc(100dvh - 56px - env(safe-area-inset-top, 0px)) !important;
+    /* Fill the full viewport height; width scales with aspect ratio (900:550 ≈ 1.636).
+       min() caps width at 100vw so the canvas never overflows horizontally. */
+    height: 100dvh !important;
+    width: min(100vw, calc(100dvh * 900 / 550)) !important;
     max-width: none !important;
     display: block;
-    object-fit: contain;
-    margin-top: calc(56px + env(safe-area-inset-top, 0px));
+    margin: 0 !important;
+    border-radius: 0 !important;
   }
 
   /* Zone A: Player HUD bar — floats over canvas */

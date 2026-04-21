@@ -19,6 +19,7 @@ import { DartboardCanvas, hitTest, applyDeviation, type DartsState, type DartThr
 import { DartsAudio } from './darts-audio';
 
 const STARTING_SCORE = 301;
+const MAX_ROUNDS = 3;
 
 const INITIAL: DartsState = {
   scoreA: STARTING_SCORE,
@@ -45,6 +46,7 @@ export default function DartsDemoPage() {
   const [gs, setGs] = useState<DartsState>(INITIAL);
   const gsRef = useRef(gs); gsRef.current = gs;
   const [playerNames, setPlayerNames] = useState<{ A: string; B: string }>({ A: '', B: '' });
+  const playerNamesRef = useRef(playerNames); playerNamesRef.current = playerNames;
 
   const audio = useMemo(() => new DartsAudio(), []);
 
@@ -161,19 +163,46 @@ export default function DartsDemoPage() {
 
       // Advance turn after delay
       setTimeout(async () => {
+        const bustTurnsA = next.turnHistory.filter(t => t.player === 'A').length;
+        const bustTurnsB = next.turnHistory.filter(t => t.player === 'B').length;
+        const allRoundsDone = bustTurnsA >= MAX_ROUNDS && bustTurnsB >= MAX_ROUNDS;
+
+        if (allRoundsDone) {
+          const gameWinner: 'A' | 'B' | null = next.scoreA < next.scoreB ? 'A' : next.scoreB < next.scoreA ? 'B' : null;
+          const resultMsg = gameWinner === null
+            ? "It's a draw! Equal scores 🎯"
+            : `${gameWinner === role ? 'You win' : (gameWinner === 'A' ? playerNamesRef.current.A : playerNamesRef.current.B) + ' wins'} — lowest score wins! 🎯`;
+          audio.playWin();
+          const finalState: DartsState = { ...next, phase: 'finished', winner: gameWinner, message: resultMsg };
+          setGs(finalState);
+          await setGameData(finalState as unknown as Record<string, unknown>);
+          log(resultMsg, 'success');
+          if (gameWinner && !settledRef.current) {
+            settledRef.current = true;
+            const resolved = await resolveGame(gameWinner);
+            if (resolved) {
+              const bid = resolved.betId || betIdRef.current;
+              if (bid && authState) {
+                if (!resolved.betId && betIdRef.current) await setBetId(betIdRef.current);
+                const s = await reportAndSettle(authState.apiKey, bid);
+                if (s) { setSettlementResult(s as SettlementResult); widgetHandleRef.current?.refreshBalance(); }
+              }
+            }
+          }
+          return;
+        }
+
         const nextTurn = cur.currentTurn === 'A' ? 'B' : 'A';
+        const correctedStartScore = nextTurn === 'A' ? next.scoreA : next.scoreB;
         const nextState: DartsState = {
           ...next,
           currentTurn: nextTurn,
           dartsThrown: 0,
-          turnStartScore: next.currentTurn === 'A' ? next.scoreB : next.scoreA,
+          turnStartScore: correctedStartScore,
           currentDarts: [],
           phase: 'aiming',
           message: '',
         };
-        // Correct turnStartScore after bust revert
-        const correctedStartScore = nextTurn === 'A' ? next.scoreA : next.scoreB;
-        nextState.turnStartScore = correctedStartScore;
         audio.playTurnChange();
         setGs(nextState);
         await setGameData(nextState as unknown as Record<string, unknown>);
@@ -225,6 +254,7 @@ export default function DartsDemoPage() {
       const turnResult = { player: cur.currentTurn, total: totalThisTurn, wasBust: false };
       const nextTurn = cur.currentTurn === 'A' ? 'B' : 'A';
       const correctedStartScore = nextTurn === 'A' ? (cur.currentTurn === 'A' ? newScore : cur.scoreA) : (cur.currentTurn === 'B' ? newScore : cur.scoreB);
+      const newHistory = [...cur.turnHistory, { ...turnResult, scoreAfter: newScore }];
 
       const showing: DartsState = {
         ...cur,
@@ -232,7 +262,7 @@ export default function DartsDemoPage() {
         currentDarts: newCurrentDarts,
         dartsThrown: newDartsThrown,
         lastTurnResult: turnResult,
-        turnHistory: [...cur.turnHistory, { ...turnResult, scoreAfter: newScore }],
+        turnHistory: newHistory,
         phase: 'showing',
         message: `Turn: −${totalThisTurn}`,
       };
@@ -240,20 +270,53 @@ export default function DartsDemoPage() {
       await setGameData(showing as unknown as Record<string, unknown>);
       log(`Turn ended — scored ${totalThisTurn}, remaining: ${newScore}`, 'info');
 
-      setTimeout(async () => {
-        audio.playTurnChange();
-        const nextState: DartsState = {
-          ...showing,
-          currentTurn: nextTurn,
-          dartsThrown: 0,
-          turnStartScore: correctedStartScore,
-          currentDarts: [],
-          phase: 'aiming',
-          message: '',
-        };
-        setGs(nextState);
-        await setGameData(nextState as unknown as Record<string, unknown>);
-      }, 1400);
+      // Check if all rounds are done
+      const newTurnsA = newHistory.filter(t => t.player === 'A').length;
+      const newTurnsB = newHistory.filter(t => t.player === 'B').length;
+      const allRoundsDone = newTurnsA >= MAX_ROUNDS && newTurnsB >= MAX_ROUNDS;
+
+      if (allRoundsDone) {
+        const finalScoreA = cur.currentTurn === 'A' ? newScore : cur.scoreA;
+        const finalScoreB = cur.currentTurn === 'B' ? newScore : cur.scoreB;
+        const gameWinner: 'A' | 'B' | null = finalScoreA < finalScoreB ? 'A' : finalScoreB < finalScoreA ? 'B' : null;
+        const resultMsg = gameWinner === null
+          ? "It's a draw! Equal scores 🎯"
+          : `${gameWinner === role ? 'You win' : (gameWinner === 'A' ? playerNamesRef.current.A : playerNamesRef.current.B) + ' wins'} — lowest score wins! 🎯`;
+        audio.playWin();
+        const finalState: DartsState = { ...showing, phase: 'finished', winner: gameWinner, message: resultMsg };
+        setTimeout(async () => {
+          setGs(finalState);
+          await setGameData(finalState as unknown as Record<string, unknown>);
+          log(resultMsg, 'success');
+          if (gameWinner && !settledRef.current) {
+            settledRef.current = true;
+            const resolved = await resolveGame(gameWinner);
+            if (resolved) {
+              const bid = resolved.betId || betIdRef.current;
+              if (bid && authState) {
+                if (!resolved.betId && betIdRef.current) await setBetId(betIdRef.current);
+                const s = await reportAndSettle(authState.apiKey, bid);
+                if (s) { setSettlementResult(s as SettlementResult); widgetHandleRef.current?.refreshBalance(); }
+              }
+            }
+          }
+        }, 1400);
+      } else {
+        setTimeout(async () => {
+          audio.playTurnChange();
+          const nextState: DartsState = {
+            ...showing,
+            currentTurn: nextTurn,
+            dartsThrown: 0,
+            turnStartScore: correctedStartScore,
+            currentDarts: [],
+            phase: 'aiming',
+            message: '',
+          };
+          setGs(nextState);
+          await setGameData(nextState as unknown as Record<string, unknown>);
+        }, 1400);
+      }
     } else {
       const next: DartsState = {
         ...cur,
@@ -323,7 +386,7 @@ export default function DartsDemoPage() {
         </div>
         <div>
           <h1 className="font-display text-2xl font-bold text-text-primary">Darts 301</h1>
-          <p className="text-sm text-text-muted font-mono">Aim the crosshair — click to throw</p>
+          <p className="text-sm text-text-muted font-mono">3 rounds — lowest score wins</p>
         </div>
       </div>
 
@@ -409,21 +472,28 @@ export default function DartsDemoPage() {
               </Card>
 
               {/* Result overlay */}
-              {isFinished && gs.winner && (
-                settlementResult && role ? (
+              {isFinished && gs.phase === 'finished' && (
+                gs.winner && settlementResult && role ? (
                   <GameResultOverlay
                     outcome={deriveOutcome(settlementResult, role)}
                     amount={formatResultAmount(deriveOutcome(settlementResult, role), settlementResult.winnerPayout, betAmountCents)}
                     visible
                     onPlayAgain={handlePlayAgain}
-                    scoreText={`${STARTING_SCORE - gs.scoreA} — ${STARTING_SCORE - gs.scoreB}`}
+                    scoreText={`${gs.scoreA} — ${gs.scoreB} remaining`}
                   />
                 ) : (
-                  <Card padding="sm" className={gs.winner === role ? 'border-brand-400/30 bg-brand-400/5' : 'border-danger-400/30 bg-danger-400/5'}>
+                  <Card padding="sm" className={
+                    !gs.winner ? 'border-yellow-400/30 bg-yellow-400/5'
+                    : gs.winner === role ? 'border-brand-400/30 bg-brand-400/5'
+                    : 'border-danger-400/30 bg-danger-400/5'
+                  }>
                     <p className="font-display text-center text-sm font-semibold uppercase tracking-widest">
-                      <span className={gs.winner === role ? 'text-brand-400' : 'text-danger-400'}>
-                        {gs.winner === role ? 'Victory! 🎯' : 'Defeat.'}
+                      <span className={!gs.winner ? 'text-yellow-400' : gs.winner === role ? 'text-brand-400' : 'text-danger-400'}>
+                        {!gs.winner ? "It's a draw! 🤝" : gs.winner === role ? 'Victory! 🎯' : 'Defeat.'}
                       </span>
+                    </p>
+                    <p className="text-center text-xs text-text-muted mt-1">
+                      {gs.scoreA} vs {gs.scoreB} remaining after 3 rounds
                     </p>
                   </Card>
                 )
