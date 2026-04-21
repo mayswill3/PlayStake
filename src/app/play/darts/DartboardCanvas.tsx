@@ -181,6 +181,13 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     ctx.lineTo(740, H - 20);
     ctx.stroke();
     ctx.setLineDash([]);
+
+    // Pub spotlight halo around the board
+    const haloGrad = ctx.createRadialGradient(BOARD_CX, BOARD_CY, R_DOUBLE_OUT, BOARD_CX, BOARD_CY, R_DOUBLE_OUT + 130);
+    haloGrad.addColorStop(0, 'rgba(255,220,140,0.09)');
+    haloGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = haloGrad;
+    ctx.fillRect(0, 0, W, H);
   }, []);
 
   // ── Draw dartboard ──────────────────────────────────────────────────────────
@@ -189,24 +196,28 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     const cy = BOARD_CY;
     const SEG_ANG = (2 * Math.PI) / 20;
 
-    // Board surround (black circle)
+    // ── 3D raised surround with drop shadow ────────────────────────────────
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.9)';
+    ctx.shadowBlur = 28;
     ctx.beginPath();
-    ctx.arc(cx, cy, R_WIRE + 20, 0, Math.PI * 2);
-    ctx.fillStyle = '#111';
+    ctx.arc(cx, cy, R_WIRE + 22, 0, Math.PI * 2);
+    const surroundGrad = ctx.createRadialGradient(cx - 35, cy - 35, 8, cx, cy, R_WIRE + 22);
+    surroundGrad.addColorStop(0,   '#2e2418');
+    surroundGrad.addColorStop(0.5, '#141008');
+    surroundGrad.addColorStop(1,   '#060403');
+    ctx.fillStyle = surroundGrad;
     ctx.fill();
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 3;
-    ctx.stroke();
+    ctx.restore();
 
-    // Draw 20 segments, each with 4 rings
+    // ── Segment fills ──────────────────────────────────────────────────────
     for (let i = 0; i < 20; i++) {
-      // Start angle offset so segment 20 is centered at top
       const startAng = -Math.PI / 2 - SEG_ANG / 2 + i * SEG_ANG;
-      const endAng = startAng + SEG_ANG;
-      const colors = SEG_COLORS[i % 2];
-      const accent = i % 2 === 0 ? RED : GREEN;
+      const endAng   = startAng + SEG_ANG;
+      const colors   = SEG_COLORS[i % 2];
+      const accent   = i % 2 === 0 ? RED : GREEN;
 
-      // Inner single (bull→treble_in)
+      // Inner single (bull → treble_in)
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.arc(cx, cy, R_TREBLE_IN, startAng, endAng);
@@ -225,63 +236,127 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
       // Outer single (treble_out → double_in)
       ctx.beginPath();
       ctx.arc(cx, cy, R_TREBLE_OUT, startAng, endAng);
-      ctx.arc(cx, cy, R_DOUBLE_IN, endAng, startAng, true);
+      ctx.arc(cx, cy, R_DOUBLE_IN,  endAng, startAng, true);
       ctx.closePath();
       ctx.fillStyle = colors[0];
       ctx.fill();
 
       // Double ring
       ctx.beginPath();
-      ctx.arc(cx, cy, R_DOUBLE_IN, startAng, endAng);
+      ctx.arc(cx, cy, R_DOUBLE_IN,  startAng, endAng);
       ctx.arc(cx, cy, R_DOUBLE_OUT, endAng, startAng, true);
       ctx.closePath();
       ctx.fillStyle = accent;
       ctx.fill();
     }
 
-    // Bull (25)
+    // ── Sisal fibre texture (deterministic stipple on scoring areas) ───────
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, R_DOUBLE_OUT, 0, Math.PI * 2);
+    ctx.clip();
+    const step = 5;
+    for (let tx = cx - R_DOUBLE_OUT; tx <= cx + R_DOUBLE_OUT; tx += step) {
+      for (let ty = cy - R_DOUBLE_OUT; ty <= cy + R_DOUBLE_OUT; ty += step) {
+        const r2 = (tx - cx) ** 2 + (ty - cy) ** 2;
+        if (r2 > R_DOUBLE_OUT ** 2) continue;
+        if (r2 < R_BULL ** 2)       continue;
+        const r = Math.sqrt(r2);
+        // Skip metallic scoring rings
+        if (r >= R_TREBLE_IN  && r <= R_TREBLE_OUT) continue;
+        if (r >= R_DOUBLE_IN  && r <= R_DOUBLE_OUT) continue;
+        // Deterministic dot using sin hash of position
+        const s = Math.sin(tx * 0.71 + ty * 1.33) * 0.5 + 0.5;
+        if (s > 0.58) {
+          ctx.fillStyle = 'rgba(0,0,0,0.1)';
+          ctx.fillRect(tx, ty, 1, 1);
+        }
+      }
+    }
+    ctx.restore();
+
+    // ── Bull (25) with radial gradient for convex look ─────────────────────
+    const bullGrad = ctx.createRadialGradient(cx - 4, cy - 4, 1, cx, cy, R_BULL);
+    bullGrad.addColorStop(0,   '#3a9a3a');
+    bullGrad.addColorStop(0.5, '#226622');
+    bullGrad.addColorStop(1,   '#123812');
     ctx.beginPath();
     ctx.arc(cx, cy, R_BULL, 0, Math.PI * 2);
-    ctx.fillStyle = GREEN;
+    ctx.fillStyle = bullGrad;
     ctx.fill();
 
-    // Bullseye (50)
+    // ── Bullseye (50) with gradient and specular dot ───────────────────────
+    const bullseyeGrad = ctx.createRadialGradient(cx - 2, cy - 2, 0.5, cx, cy, R_BULLSEYE);
+    bullseyeGrad.addColorStop(0,   '#e83333');
+    bullseyeGrad.addColorStop(0.6, '#cc2222');
+    bullseyeGrad.addColorStop(1,   '#881111');
     ctx.beginPath();
     ctx.arc(cx, cy, R_BULLSEYE, 0, Math.PI * 2);
-    ctx.fillStyle = RED;
+    ctx.fillStyle = bullseyeGrad;
+    ctx.fill();
+    // Specular highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.beginPath();
+    ctx.ellipse(cx - 2, cy - 2.5, 2.5, 1.5, -Math.PI / 4, 0, Math.PI * 2);
     ctx.fill();
 
-    // Wire lines (thin radial)
-    ctx.strokeStyle = 'rgba(200,200,200,0.5)';
-    ctx.lineWidth = 0.8;
+    // ── Metallic wire lines (radial spokes) ────────────────────────────────
     for (let i = 0; i < 20; i++) {
       const ang = -Math.PI / 2 - SEG_ANG / 2 + i * SEG_ANG;
+      const cos = Math.cos(ang), sin = Math.sin(ang);
+      const perp = ang + Math.PI / 2;
+      const pc = Math.cos(perp) * 0.4, ps = Math.sin(perp) * 0.4;
+      const x1 = cx + cos * R_BULL, y1 = cy + sin * R_BULL;
+      const x2 = cx + cos * R_DOUBLE_OUT, y2 = cy + sin * R_DOUBLE_OUT;
+
+      // Shadow side
+      ctx.strokeStyle = 'rgba(15,15,15,0.85)';
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
-      ctx.moveTo(cx + Math.cos(ang) * R_BULL, cy + Math.sin(ang) * R_BULL);
-      ctx.lineTo(cx + Math.cos(ang) * R_DOUBLE_OUT, cy + Math.sin(ang) * R_DOUBLE_OUT);
+      ctx.moveTo(x1 + pc, y1 + ps);
+      ctx.lineTo(x2 + pc, y2 + ps);
+      ctx.stroke();
+      // Highlight side
+      ctx.strokeStyle = 'rgba(200,200,180,0.75)';
+      ctx.lineWidth = 0.65;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
       ctx.stroke();
     }
 
-    // Ring wires
+    // ── Metallic ring wires ────────────────────────────────────────────────
     for (const r of [R_BULL, R_TREBLE_IN, R_TREBLE_OUT, R_DOUBLE_IN, R_DOUBLE_OUT]) {
+      const thick = r === R_DOUBLE_OUT;
+      // Shadow ring (slightly larger)
+      ctx.strokeStyle = 'rgba(15,15,15,0.8)';
+      ctx.lineWidth = thick ? 2.2 : 1.4;
       ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(200,200,200,0.55)';
-      ctx.lineWidth = r === R_DOUBLE_OUT ? 1.2 : 0.8;
+      ctx.arc(cx, cy, r + 0.5, 0, Math.PI * 2);
+      ctx.stroke();
+      // Highlight ring (slightly smaller)
+      ctx.strokeStyle = 'rgba(210,210,185,0.82)';
+      ctx.lineWidth = thick ? 1 : 0.65;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r - 0.3, 0, Math.PI * 2);
       ctx.stroke();
     }
 
-    // Number labels
-    ctx.font = 'bold 14px monospace';
+    // ── Number labels with depth shadow ───────────────────────────────────
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.85)';
+    ctx.shadowBlur = 4;
+    ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (let i = 0; i < 20; i++) {
       const ang = -Math.PI / 2 + i * SEG_ANG;
-      const lx = cx + Math.cos(ang) * R_NUMBERS;
-      const ly = cy + Math.sin(ang) * R_NUMBERS;
       ctx.fillStyle = '#f0e8d0';
-      ctx.fillText(String(SEGMENTS[i]), lx, ly);
+      ctx.fillText(String(SEGMENTS[i]),
+        cx + Math.cos(ang) * R_NUMBERS,
+        cy + Math.sin(ang) * R_NUMBERS);
     }
+    ctx.restore();
   }, []);
 
   // ── Draw scoreboards ─────────────────────────────────────────────────────────
@@ -381,88 +456,126 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     ctx.rotate((angleDeg * Math.PI) / 180);
     ctx.scale(scale, scale);
 
-    // === Tip / point ===
-    // Thin needle from origin back ~10px
+    // === Tip — tapered metallic cone ===
     const tipGrad = ctx.createLinearGradient(0, 0, -10, 0);
-    tipGrad.addColorStop(0, '#e8e8e8');
-    tipGrad.addColorStop(1, '#aaa');
+    tipGrad.addColorStop(0, '#f8f8f8');
+    tipGrad.addColorStop(0.6, '#b8b8b8');
+    tipGrad.addColorStop(1,   '#888');
     ctx.beginPath();
     ctx.moveTo(0, 0);
+    ctx.lineTo(-1.2, -0.7);
     ctx.lineTo(-10, 0);
-    ctx.strokeStyle = tipGrad;
-    ctx.lineWidth = 1;
-    ctx.lineCap = 'round';
-    ctx.stroke();
+    ctx.lineTo(-1.2,  0.7);
+    ctx.closePath();
+    ctx.fillStyle = tipGrad;
+    ctx.fill();
 
-    // === Barrel ===
-    // Tapered cylinder from -10 to -34 (fat in middle, tapered at shaft end)
-    const barrelGrad = ctx.createLinearGradient(0, -3, 0, 3);
-    barrelGrad.addColorStop(0, '#f0f0f0');
-    barrelGrad.addColorStop(0.35, '#c8c8c8');
-    barrelGrad.addColorStop(0.65, '#909090');
-    barrelGrad.addColorStop(1, '#b0b0b0');
+    // === Barrel — brass / tungsten cylindrical look ===
+    const barrelGrad = ctx.createLinearGradient(0, -3.5, 0, 3.5);
+    barrelGrad.addColorStop(0,    '#f0ead8');  // top specular
+    barrelGrad.addColorStop(0.18, '#d4a84b');  // brass highlight
+    barrelGrad.addColorStop(0.5,  '#7a5420');  // mid shadow
+    barrelGrad.addColorStop(0.78, '#c89040');  // reflected light
+    barrelGrad.addColorStop(1,    '#a07030');  // bottom
 
-    // Main barrel body
     ctx.beginPath();
-    ctx.moveTo(-10, -1.5);
-    ctx.lineTo(-10, 1.5);
-    ctx.lineTo(-30, 2);
-    ctx.lineTo(-30, -2);
+    ctx.moveTo(-10, -2);
+    ctx.lineTo(-10,  2);
+    ctx.lineTo(-30,  2.4);
+    ctx.lineTo(-30, -2.4);
     ctx.closePath();
     ctx.fillStyle = barrelGrad;
     ctx.fill();
 
-    // Grip knurls (tiny vertical lines across barrel)
-    ctx.strokeStyle = 'rgba(60,60,60,0.5)';
-    ctx.lineWidth = 0.6;
-    for (let kx = -12; kx >= -29; kx -= 2.5) {
+    // Specular highlight stripe along top
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(-10, -1.3);
+    ctx.lineTo(-30, -1.6);
+    ctx.strokeStyle = 'rgba(255,245,200,0.55)';
+    ctx.lineWidth = 0.9;
+    ctx.stroke();
+    ctx.restore();
+
+    // Knurls — angled notches for grip texture
+    for (let kx = -11.5; kx >= -28.5; kx -= 2.5) {
+      ctx.strokeStyle = 'rgba(30,18,5,0.65)';
+      ctx.lineWidth = 0.8;
       ctx.beginPath();
-      ctx.moveTo(kx, -2);
-      ctx.lineTo(kx, 2);
+      ctx.moveTo(kx,       -2.2);
+      ctx.lineTo(kx + 0.6,  2.2);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,225,140,0.28)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(kx + 0.8, -2.2);
+      ctx.lineTo(kx + 1.3,  2.2);
       ctx.stroke();
     }
 
-    // Barrel highlight
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-    ctx.lineWidth = 0.7;
-    ctx.beginPath();
-    ctx.moveTo(-10, -0.8);
-    ctx.lineTo(-30, -1.2);
-    ctx.stroke();
-
-    // === Shaft (narrow tube from barrel to flights) ===
+    // === Shaft — dark carbon fibre ===
+    const shaftGrad = ctx.createLinearGradient(0, -1.5, 0, 1.5);
+    shaftGrad.addColorStop(0,    '#3a3a4a');
+    shaftGrad.addColorStop(0.45, '#1a1a28');
+    shaftGrad.addColorStop(0.7,  '#0e0e18');
+    shaftGrad.addColorStop(1,    '#2a2a3a');
     ctx.beginPath();
     ctx.moveTo(-30, -1.5);
-    ctx.lineTo(-30, 1.5);
-    ctx.lineTo(-40, 1);
-    ctx.lineTo(-40, -1);
+    ctx.lineTo(-30,  1.5);
+    ctx.lineTo(-40,  1.1);
+    ctx.lineTo(-40, -1.1);
     ctx.closePath();
-    ctx.fillStyle = '#2a2a3a';
+    ctx.fillStyle = shaftGrad;
     ctx.fill();
+    // Carbon sheen
+    ctx.strokeStyle = 'rgba(110,110,160,0.38)';
+    ctx.lineWidth = 0.45;
+    ctx.beginPath();
+    ctx.moveTo(-30, -0.7);
+    ctx.lineTo(-40, -0.4);
+    ctx.stroke();
 
-    // === Flights (two wing shapes at back) ===
+    // === Flights — curved pear / teardrop shape ===
+    const flightGradU = ctx.createLinearGradient(-55, -12, -40, 0);
+    flightGradU.addColorStop(0,   'rgba(35,95,255,0.88)');
+    flightGradU.addColorStop(0.55,'rgba(65,135,255,0.92)');
+    flightGradU.addColorStop(1,   'rgba(90,165,255,0.72)');
+
     // Upper flight
     ctx.beginPath();
     ctx.moveTo(-40, 0);
-    ctx.lineTo(-52, -8);
-    ctx.lineTo(-48, -1);
+    ctx.quadraticCurveTo(-49, -5, -55, -12);
+    ctx.quadraticCurveTo(-50, -4, -44, -1);
     ctx.closePath();
-    ctx.fillStyle = 'rgba(80,140,255,0.9)';
+    ctx.fillStyle = flightGradU;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(140,180,255,0.8)';
+    // Upper vein
+    ctx.strokeStyle = 'rgba(190,225,255,0.65)';
     ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(-40, 0);
+    ctx.quadraticCurveTo(-47.5, -3, -55, -12);
     ctx.stroke();
+
+    const flightGradL = ctx.createLinearGradient(-55, 12, -40, 0);
+    flightGradL.addColorStop(0,   'rgba(35,95,255,0.88)');
+    flightGradL.addColorStop(0.55,'rgba(65,135,255,0.92)');
+    flightGradL.addColorStop(1,   'rgba(90,165,255,0.72)');
 
     // Lower flight
     ctx.beginPath();
     ctx.moveTo(-40, 0);
-    ctx.lineTo(-52, 8);
-    ctx.lineTo(-48, 1);
+    ctx.quadraticCurveTo(-49,  5, -55,  12);
+    ctx.quadraticCurveTo(-50,  4, -44,   1);
     ctx.closePath();
-    ctx.fillStyle = 'rgba(80,140,255,0.9)';
+    ctx.fillStyle = flightGradL;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(140,180,255,0.8)';
+    // Lower vein
+    ctx.strokeStyle = 'rgba(190,225,255,0.65)';
     ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(-40, 0);
+    ctx.quadraticCurveTo(-47.5, 3, -55, 12);
     ctx.stroke();
 
     ctx.restore();
@@ -473,8 +586,14 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     for (const d of darts) {
       if (d.score === 0 && d.segment === 0) continue; // miss — skip visual on board
 
-      // Darts stick in the board pointing slightly upward (225° = tip at top-left)
+      // Drop shadow — gives the illusion the dart is embedded in the board
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.55)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 3;
       drawDartShape(ctx, d.x, d.y, -42);
+      ctx.restore();
 
       // Score label
       if (d.score > 0) {
