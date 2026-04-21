@@ -8,6 +8,7 @@ const H = 550;
 const BOARD_CX = 450;
 const BOARD_CY = 275;
 
+
 const R_BULLSEYE  = 8;
 const R_BULL      = 16;
 const R_TREBLE_IN = 96;
@@ -105,18 +106,13 @@ export function applyDeviation(crossX: number, crossY: number): { x: number; y: 
 }
 
 // ── Canvas component ──────────────────────────────────────────────────────────
-// Oscillation periods (seconds for one full cycle)
-// X: 8s, Y: 6.2s — incommensurate so it never exactly repeats
-const OSC_PERIOD_X = 8.0;
-const OSC_PERIOD_Y = 6.2;
-const OSC_AMP_X    = 68; // px, stays inside double ring
-const OSC_AMP_Y    = 50;
-
 export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'Player A', displayNameB = 'Player B' }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const crossRef = useRef({ x: BOARD_CX, y: BOARD_CY });
   const rafRef = useRef<number>(0);
   const startTimeRef = useRef<number | null>(null);
+
+  // Swipe/drag state
+  const dragRef = useRef<{ startX: number; startY: number; curX: number; curY: number; startMs: number } | null>(null);
 
   // Flight animation state
   const flightRef = useRef<{ fromX: number; fromY: number; toX: number; toY: number; progress: number; active: boolean } | null>(null);
@@ -378,61 +374,6 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     }
   }, []);
 
-  // ── Draw crosshair ──────────────────────────────────────────────────────────
-  const drawCrosshair = useCallback((ctx: CanvasRenderingContext2D, isMyTurn: boolean, phase: string, pulse: number) => {
-    if (phase === 'finished') return;
-    const { x, y } = crossRef.current;
-
-    const alpha = isMyTurn ? 1 : 0.35;
-    const outerR = 22 + pulse * 4;
-
-    // Shadow/glow for visibility
-    ctx.shadowColor = isMyTurn ? 'rgba(255,60,60,0.8)' : 'rgba(255,60,60,0.3)';
-    ctx.shadowBlur = isMyTurn ? 10 : 4;
-
-    // Outer pulsing ring
-    ctx.strokeStyle = `rgba(255, 60, 60, ${alpha})`;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(x, y, outerR, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Inner ring (tight)
-    ctx.strokeStyle = `rgba(255, 200, 200, ${alpha * 0.6})`;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(x, y, 6, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Center dot
-    ctx.beginPath();
-    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255, 60, 60, ${alpha})`;
-    ctx.fill();
-
-    // Crosshair lines (4 segments with gap at center)
-    const lineLen = 20;
-    const gap = 8;
-    ctx.strokeStyle = `rgba(255, 60, 60, ${alpha})`;
-    ctx.lineWidth = 1.8;
-    ctx.setLineDash([]);
-    ctx.beginPath();
-    // horizontal
-    ctx.moveTo(x - outerR - lineLen, y);
-    ctx.lineTo(x - gap, y);
-    ctx.moveTo(x + gap, y);
-    ctx.lineTo(x + outerR + lineLen, y);
-    // vertical
-    ctx.moveTo(x, y - outerR - lineLen);
-    ctx.lineTo(x, y - gap);
-    ctx.moveTo(x, y + gap);
-    ctx.lineTo(x, y + outerR + lineLen);
-    ctx.stroke();
-
-    ctx.shadowBlur = 0;
-    ctx.shadowColor = 'transparent';
-  }, []);
-
   // ── Draw a realistic dart at a given position/angle (reused for landed + in-flight) ──
   const drawDartShape = useCallback((ctx: CanvasRenderingContext2D, tipX: number, tipY: number, angleDeg: number, scale = 1) => {
     ctx.save();
@@ -579,6 +520,72 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     drawDartShape(ctx, x, y, travelAngle, scale);
   }, [drawDartShape]);
 
+  // ── Draw aim guide (shown while dragging) ───────────────────────────────────
+  // The cursor position IS the aim point. Dart sits at the press point, a dashed
+  // line connects press → cursor, pulsing circle marks where it'll land.
+  const drawAimGuide = useCallback((
+    ctx: CanvasRenderingContext2D,
+    drag: { startX: number; startY: number; curX: number; curY: number },
+    elapsed: number,
+  ) => {
+    const { startX, startY, curX, curY } = drag;
+
+    // Is the aim point on the board?
+    const dxB = curX - BOARD_CX;
+    const dyB = curY - BOARD_CY;
+    const onBoard = Math.sqrt(dxB * dxB + dyB * dyB) <= R_DOUBLE_OUT;
+
+    // Dart at press point, angled toward cursor
+    const angleDeg = Math.atan2(curY - startY, curX - startX) * 180 / Math.PI;
+    drawDartShape(ctx, startX, startY, angleDeg, 1.15);
+
+    // Dashed line from press point to cursor
+    ctx.save();
+    ctx.setLineDash([10, 6]);
+    ctx.strokeStyle = onBoard ? 'rgba(255,200,200,0.55)' : 'rgba(200,200,200,0.3)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(curX, curY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // Pulsing aim circle at cursor
+    const pulse = 0.5 + 0.5 * Math.sin(elapsed * Math.PI * 2);
+    const aimR = 13 + pulse * 3;
+    ctx.save();
+    ctx.shadowColor = onBoard ? 'rgba(255,60,60,0.6)' : 'rgba(180,180,180,0.3)';
+    ctx.shadowBlur = onBoard ? 10 : 4;
+    ctx.strokeStyle = onBoard ? 'rgba(255,80,80,0.9)' : 'rgba(200,200,200,0.4)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(curX, curY, aimR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(curX, curY, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = onBoard ? 'rgba(255,80,80,0.9)' : 'rgba(200,200,200,0.5)';
+    ctx.fill();
+    ctx.restore();
+
+    if (!onBoard) {
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillStyle = 'rgba(200,200,200,0.55)';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('MISS', curX, curY - 20);
+    }
+  }, [drawDartShape]);
+
+  // ── Draw throw hint (idle, your turn) ────────────────────────────────────────
+  const drawThrowHint = useCallback((ctx: CanvasRenderingContext2D) => {
+    ctx.font = '13px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Press & drag to aim — release to throw', W / 2, H - 18);
+  }, []);
+
   // ── Animation loop ──────────────────────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -587,20 +594,9 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     if (!ctx) return;
 
     const render = (now: DOMHighResTimeStamp) => {
-      // Initialise start time on first frame
+      // Time for pulse animations (frame-rate independent)
       if (startTimeRef.current === null) startTimeRef.current = now;
       const elapsed = (now - startTimeRef.current) / 1000; // seconds
-
-      // Pulse for crosshair ring (time-based, frame-rate independent)
-      const pulse = 0.5 + 0.5 * Math.sin(elapsed * Math.PI * 1.2); // ~0.6 Hz
-
-      // Update crosshair — pure time-based Lissajous, same speed on any monitor
-      if (gs.phase !== 'finished') {
-        crossRef.current = {
-          x: BOARD_CX + Math.sin((elapsed / OSC_PERIOD_X) * 2 * Math.PI) * OSC_AMP_X,
-          y: BOARD_CY + Math.cos((elapsed / OSC_PERIOD_Y) * 2 * Math.PI) * OSC_AMP_Y,
-        };
-      }
 
       // Advance flight animation
       const f = flightRef.current;
@@ -614,19 +610,22 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
       drawScoreboard(ctx, gs, displayNameA, displayNameB);
       drawDarts(ctx, gs.currentDarts);
       if (f && f.active) drawFlight(ctx);
-      if (gs.phase !== 'showing' && gs.phase !== 'bust') {
-        drawCrosshair(ctx, isMyTurn, gs.phase, pulse);
+
+      // Aim guide / throw hint (only when it's your turn and not in bust/showing)
+      if (gs.phase !== 'showing' && gs.phase !== 'bust' && gs.phase !== 'finished') {
+        if (dragRef.current) {
+          drawAimGuide(ctx, dragRef.current, elapsed);
+        } else if (isMyTurn) {
+          drawThrowHint(ctx);
+        }
       }
 
       rafRef.current = requestAnimationFrame(render);
     };
 
     rafRef.current = requestAnimationFrame(render);
-    // Reset start time when game state changes so elapsed time stays meaningful
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, [gs, isMyTurn, displayNameA, displayNameB, drawBackground, drawBoard, drawScoreboard, drawDarts, drawFlight, drawCrosshair]);
+    return () => { cancelAnimationFrame(rafRef.current); };
+  }, [gs, isMyTurn, displayNameA, displayNameB, drawBackground, drawBoard, drawScoreboard, drawDarts, drawFlight, drawAimGuide, drawThrowHint]);
 
   // ── Detect new opponent darts for flight animation ──────────────────────────
   useEffect(() => {
@@ -647,48 +646,92 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     prevDartCountRef.current = newCount;
   }, [gs.currentDarts, isMyTurn]);
 
-  // ── Click handler ────────────────────────────────────────────────────────────
-  const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isMyTurn || gs.phase === 'finished' || gs.phase === 'showing' || gs.phase === 'bust') return;
-
+  // ── Pointer helpers ───────────────────────────────────────────────────────────
+  const toCanvasCoords = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = W / rect.width;
-    const scaleY = H / rect.height;
-    const clickX = (e.clientX - rect.left) * scaleX;
-    const clickY = (e.clientY - rect.top) * scaleY;
+    return {
+      x: (e.clientX - rect.left) * (W / rect.width),
+      y: (e.clientY - rect.top)  * (H / rect.height),
+    };
+  }, []);
 
-    // Ignore clicks far outside the board area
-    const dx = clickX - BOARD_CX;
-    const dy = clickY - BOARD_CY;
-    if (Math.sqrt(dx * dx + dy * dy) > R_DOUBLE_OUT + 60) return;
+  // ── Pointer down — start aiming ───────────────────────────────────────────────
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isMyTurn || gs.phase === 'finished' || gs.phase === 'showing' || gs.phase === 'bust') return;
+    const pos = toCanvasCoords(e);
+    if (!pos) return;
+    (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
+    dragRef.current = { startX: pos.x, startY: pos.y, curX: pos.x, curY: pos.y, startMs: Date.now() };
+  }, [isMyTurn, gs.phase, toCanvasCoords]);
 
-    // Animate throw from crosshair position toward clicked landing
-    const { x: cx, y: cy } = crossRef.current;
-    const { x: landX, y: landY } = applyDeviation(cx, cy);
+  // ── Pointer move — update aim direction ──────────────────────────────────────
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!dragRef.current) return;
+    const pos = toCanvasCoords(e);
+    if (!pos) return;
+    dragRef.current.curX = pos.x;
+    dragRef.current.curY = pos.y;
+  }, [toCanvasCoords]);
 
+  // ── Pointer up / leave — execute throw ───────────────────────────────────────
+  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    dragRef.current = null;
+
+    // Update final position
+    const pos = toCanvasCoords(e);
+    if (pos) { drag.curX = pos.x; drag.curY = pos.y; }
+
+    const dx = drag.curX - drag.startX;
+    const dy = drag.curY - drag.startY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // Require minimum drag — short tap cancels
+    if (dist < 15) return;
+
+    // Aim point = where the cursor ended up
+    const aimX = drag.curX;
+    const aimY = drag.curY;
+
+    // Deviation based on distance from board centre (harder to nail far shots)
+    const dxB = aimX - BOARD_CX;
+    const dyB = aimY - BOARD_CY;
+    const distFromCenter = Math.sqrt(dxB * dxB + dyB * dyB);
+    const sigma = 8 + (distFromCenter / R_DOUBLE_OUT) * 10;
+    const landX = aimX + gaussianRand() * sigma;
+    const landY = aimY + gaussianRand() * sigma;
+
+    // Flight animation from press point to landing
     flightRef.current = {
-      fromX: cx,
-      fromY: cy + 120, // from below (perspective)
+      fromX: drag.startX,
+      fromY: drag.startY,
       toX: landX,
       toY: landY,
       progress: 0,
       active: true,
     };
 
-    // Delay actual throw registration to match animation (~400ms)
     setTimeout(() => onThrow(landX, landY), 380);
-  }, [isMyTurn, gs.phase, onThrow]);
+  }, [toCanvasCoords, onThrow]);
 
   return (
     <canvas
       ref={canvasRef}
       width={W}
       height={H}
-      onClick={handleClick}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
       className="w-full rounded-lg"
-      style={{ cursor: isMyTurn && gs.phase === 'aiming' ? 'crosshair' : 'default', aspectRatio: `${W}/${H}` }}
+      style={{
+        cursor: isMyTurn && gs.phase === 'aiming' ? 'crosshair' : 'default',
+        aspectRatio: `${W}/${H}`,
+        touchAction: 'none', // prevent scroll interference on mobile
+      }}
     />
   );
 }
