@@ -44,6 +44,7 @@ export default function DartsDemoPage() {
 
   const [gs, setGs] = useState<DartsState>(INITIAL);
   const gsRef = useRef(gs); gsRef.current = gs;
+  const [playerNames, setPlayerNames] = useState<{ A: string; B: string }>({ A: '', B: '' });
 
   const audio = useMemo(() => new DartsAudio(), []);
 
@@ -65,6 +66,7 @@ export default function DartsDemoPage() {
     log(`Match locked in — bet ${match.betId.slice(0, 8)}...`, 'bet');
     betIdRef.current = match.betId;
     setBetAmountCents(match.stakeCents);
+    setPlayerNames({ A: match.playerAName, B: match.playerBName });
     await joinFromLobby({ betId: match.betId, myRole: match.myRole, playerId: authState.playerId, playerAId: match.playerAUserId, gameType: 'darts' });
   }, [authState, joinFromLobby, log]);
 
@@ -271,8 +273,8 @@ export default function DartsDemoPage() {
   const isInGame = phase === 'playing' || phase === 'finished';
   const isMyTurn = gs.currentTurn === role && gs.phase !== 'finished' && gs.phase !== 'showing' && gs.phase !== 'bust';
 
-  const displayNameA = gameState?.playerAId === authState?.playerId ? (authState?.displayName ?? 'Home') : 'Home';
-  const displayNameB = gameState?.playerBId === authState?.playerId ? (authState?.displayName ?? 'Away') : 'Away';
+  const displayNameA = playerNames.A || (gameState?.playerAId === authState?.playerId ? authState?.displayName : null) || 'Player A';
+  const displayNameB = playerNames.B || (gameState?.playerBId === authState?.playerId ? authState?.displayName : null) || 'Player B';
 
   let statusText = '';
   let statusColor = 'text-text-secondary';
@@ -380,7 +382,7 @@ export default function DartsDemoPage() {
                 <div className="flex flex-wrap gap-1.5">
                   {gs.turnHistory.slice(-12).map((t, i) => (
                     <div key={i} className={`px-2 py-0.5 rounded text-[10px] font-mono ${t.wasBust ? 'bg-danger-400/10 text-danger-400' : 'bg-brand-400/10 text-brand-400'}`}>
-                      {t.player === 'A' ? displayNameA.slice(0, 1) : displayNameB.slice(0, 1)}: {t.wasBust ? 'BUST' : `-${t.total}`}
+                      {t.player === 'A' ? displayNameA.slice(0, 6) : displayNameB.slice(0, 6)}: {t.wasBust ? 'BUST' : `-${t.total}`}
                     </div>
                   ))}
                   {gs.turnHistory.length === 0 && <span className="text-text-muted text-xs">No turns yet</span>}
