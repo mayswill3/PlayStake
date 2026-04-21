@@ -142,6 +142,58 @@ export class DartsAudio extends GameAudio {
   }
 
   // ---------------------------------------------------------------------------
+  // Throw — dart-in-flight whoosh (sawtooth sweep 1200→300 Hz, 120 ms)
+  // ---------------------------------------------------------------------------
+  playThrow(): void {
+    if (this.muted) return;
+    const ctx = this.ensureContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(1200, now);
+    osc.frequency.exponentialRampToValueAtTime(300, now + 0.12);
+
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.13);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Round start — boxing-bell style (A4+E5 double-strike; 3 strikes for final)
+  // ---------------------------------------------------------------------------
+  playRoundStart(round: number): void {
+    if (this.muted) return;
+    const ctx = this.ensureContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const strikes = round >= 3 ? 3 : 2;
+
+    for (let i = 0; i < strikes; i++) {
+      for (const freq of [440, 659]) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.20, now + i * 0.22);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.22 + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.22);
+        osc.stop(now + i * 0.22 + 0.42);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Win — extended chime (C5→E5→G5→A5→C6)
   // ---------------------------------------------------------------------------
   playWin(): void {

@@ -33,6 +33,7 @@ const INITIAL: DartsState = {
   phase: 'aiming',
   winner: null,
   message: '',
+  roundFlash: null,
 };
 
 export default function DartsDemoPage() {
@@ -103,6 +104,7 @@ export default function DartsDemoPage() {
     audio.ensureContext();
     const cur = gsRef.current;
     if (!role || cur.currentTurn !== role || cur.phase === 'finished') return;
+    audio.playThrow();
 
     const hit = hitTest(450, 275, landX, landY); // BOARD_CX=450, BOARD_CY=275
 
@@ -171,7 +173,7 @@ export default function DartsDemoPage() {
           const gameWinner: 'A' | 'B' | null = next.scoreA < next.scoreB ? 'A' : next.scoreB < next.scoreA ? 'B' : null;
           const resultMsg = gameWinner === null
             ? "It's a draw! Equal scores 🎯"
-            : `${gameWinner === role ? 'You win' : (gameWinner === 'A' ? playerNamesRef.current.A : playerNamesRef.current.B) + ' wins'} — lowest score wins! 🎯`;
+            : `${(gameWinner === 'A' ? playerNamesRef.current.A || 'Player A' : playerNamesRef.current.B || 'Player B')} wins — lowest score wins! 🎯`;
           audio.playWin();
           const finalState: DartsState = { ...next, phase: 'finished', winner: gameWinner, message: resultMsg };
           setGs(finalState);
@@ -194,6 +196,8 @@ export default function DartsDemoPage() {
 
         const nextTurn = cur.currentTurn === 'A' ? 'B' : 'A';
         const correctedStartScore = nextTurn === 'A' ? next.scoreA : next.scoreB;
+        const bustTurnsEqualAfter = bustTurnsA === bustTurnsB;
+        const bustUpcomingRound = bustTurnsA + 1;
         const nextState: DartsState = {
           ...next,
           currentTurn: nextTurn,
@@ -202,8 +206,15 @@ export default function DartsDemoPage() {
           currentDarts: [],
           phase: 'aiming',
           message: '',
+          roundFlash: bustTurnsEqualAfter
+            ? { label: `ROUND ${bustUpcomingRound}`, timeMs: performance.now() }
+            : next.roundFlash,
         };
-        audio.playTurnChange();
+        if (bustTurnsEqualAfter) {
+          audio.playRoundStart(bustUpcomingRound);
+        } else {
+          audio.playTurnChange();
+        }
         setGs(nextState);
         await setGameData(nextState as unknown as Record<string, unknown>);
       }, 1400);
@@ -281,7 +292,7 @@ export default function DartsDemoPage() {
         const gameWinner: 'A' | 'B' | null = finalScoreA < finalScoreB ? 'A' : finalScoreB < finalScoreA ? 'B' : null;
         const resultMsg = gameWinner === null
           ? "It's a draw! Equal scores 🎯"
-          : `${gameWinner === role ? 'You win' : (gameWinner === 'A' ? playerNamesRef.current.A : playerNamesRef.current.B) + ' wins'} — lowest score wins! 🎯`;
+          : `${(gameWinner === 'A' ? playerNamesRef.current.A || 'Player A' : playerNamesRef.current.B || 'Player B')} wins — lowest score wins! 🎯`;
         audio.playWin();
         const finalState: DartsState = { ...showing, phase: 'finished', winner: gameWinner, message: resultMsg };
         setTimeout(async () => {
@@ -302,8 +313,11 @@ export default function DartsDemoPage() {
           }
         }, 1400);
       } else {
+        // Detect round boundary: both players have equal completed turns → new round starting
+        const isRoundBoundary = newTurnsA === newTurnsB;
+        const upcomingRound = newTurnsA + 1;
+
         setTimeout(async () => {
-          audio.playTurnChange();
           const nextState: DartsState = {
             ...showing,
             currentTurn: nextTurn,
@@ -312,7 +326,15 @@ export default function DartsDemoPage() {
             currentDarts: [],
             phase: 'aiming',
             message: '',
+            roundFlash: isRoundBoundary
+              ? { label: `ROUND ${upcomingRound}`, timeMs: performance.now() }
+              : showing.roundFlash,
           };
+          if (isRoundBoundary) {
+            audio.playRoundStart(upcomingRound);
+          } else {
+            audio.playTurnChange();
+          }
           setGs(nextState);
           await setGameData(nextState as unknown as Record<string, unknown>);
         }, 1400);

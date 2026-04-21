@@ -50,6 +50,7 @@ export interface DartsState {
   phase: 'aiming' | 'throwing' | 'showing' | 'bust' | 'finished';
   winner: 'A' | 'B' | null;
   message: string;
+  roundFlash: { label: string; timeMs: number } | null;
 }
 
 interface Props {
@@ -466,19 +467,29 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
       }
     }
 
-    // Message banner (bust / round result)
-    if (gs.message) {
+    // Message banner (bust / round result / game over)
+    const displayMessage = (() => {
+      if (gs.phase === 'finished') {
+        if (gs.winner === null) return "It's a draw! 🤝";
+        if (gs.winner === role)  return 'You win! 🎯';
+        return 'You lose! 😔';
+      }
+      return gs.message;
+    })();
+
+    if (displayMessage) {
       ctx.font = 'bold 18px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const isBust = gs.phase === 'bust' || gs.message.includes('BUST');
-      ctx.fillStyle = isBust ? 'rgba(200,60,60,0.9)' : 'rgba(80,180,80,0.9)';
-      const msgW = ctx.measureText(gs.message).width + 32;
+      const isBust = gs.phase === 'bust' || displayMessage.includes('BUST');
+      const isLoss = gs.phase === 'finished' && gs.winner !== role && gs.winner !== null;
+      ctx.fillStyle = isBust || isLoss ? 'rgba(200,60,60,0.9)' : 'rgba(80,180,80,0.9)';
+      const msgW = ctx.measureText(displayMessage).width + 32;
       ctx.beginPath();
       ctx.roundRect(BOARD_CX - msgW / 2, H - 52, msgW, 32, 6);
       ctx.fill();
       ctx.fillStyle = '#fff';
-      ctx.fillText(gs.message, BOARD_CX, H - 36);
+      ctx.fillText(displayMessage, BOARD_CX, H - 36);
     }
   }, []);
 
@@ -750,6 +761,50 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     ctx.restore();
   }, []);
 
+  // ── Draw round announcement banner ───────────────────────────────────────────
+  const drawRoundFlash = useCallback((ctx: CanvasRenderingContext2D, gs: DartsState, now: number) => {
+    if (!gs.roundFlash) return;
+    const age = now - gs.roundFlash.timeMs;
+    if (age > 2000) return;
+    const scale = age < 200 ? 0.85 + (age / 200) * 0.15 : 1;
+    const opacity = age > 1600 ? 1 - (age - 1600) / 400 : 1;
+    const isFinal = gs.roundFlash.label.includes('3');
+
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    ctx.translate(BOARD_CX, H / 2);
+    ctx.scale(scale, scale);
+
+    // Dark pill backdrop
+    const pillW = isFinal ? 320 : 260;
+    const pillH = isFinal ? 88 : 70;
+    ctx.fillStyle = 'rgba(0,0,0,0.75)';
+    ctx.beginPath();
+    ctx.roundRect(-pillW / 2, -pillH / 2, pillW, pillH, 12);
+    ctx.fill();
+
+    // Gold border
+    ctx.strokeStyle = `rgba(255,200,80,0.7)`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Main label
+    ctx.font = 'bold 44px monospace';
+    ctx.fillStyle = '#ffc850';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(gs.roundFlash.label, 0, isFinal ? -14 : 0);
+
+    // Sub-label for final round
+    if (isFinal) {
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillStyle = 'rgba(255,200,80,0.75)';
+      ctx.fillText('FINAL ROUND', 0, 22);
+    }
+
+    ctx.restore();
+  }, []);
+
   // ── Draw throw hint (idle, your turn) ────────────────────────────────────────
   const drawThrowHint = useCallback((ctx: CanvasRenderingContext2D) => {
     const text = '🎯  Press & drag to aim — release to throw';
@@ -793,6 +848,7 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
       drawDarts(ctx, gs.currentDarts);
       if (f && f.active) drawFlight(ctx);
       drawScoreFlash(ctx, now);
+      drawRoundFlash(ctx, gs, now);
 
       // Aim guide / throw hint (only when it's your turn and not in bust/showing)
       if (gs.phase !== 'showing' && gs.phase !== 'bust' && gs.phase !== 'finished') {
@@ -808,7 +864,7 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
 
     rafRef.current = requestAnimationFrame(render);
     return () => { cancelAnimationFrame(rafRef.current); };
-  }, [gs, isMyTurn, displayNameA, displayNameB, drawBackground, drawBoard, drawScoreboard, drawDarts, drawFlight, drawScoreFlash, drawAimGuide, drawThrowHint]);
+  }, [gs, isMyTurn, displayNameA, displayNameB, drawBackground, drawBoard, drawScoreboard, drawDarts, drawFlight, drawScoreFlash, drawRoundFlash, drawAimGuide, drawThrowHint]);
 
   // ── Detect new opponent darts for flight animation ──────────────────────────
   useEffect(() => {
