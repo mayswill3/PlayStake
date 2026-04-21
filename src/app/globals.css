@@ -413,7 +413,8 @@ body:has(.game-fullscreen-mobile) [type='password'] {
   .game-fullscreen-mobile .game-ball-rack,
   .game-fullscreen-mobile .game-shot-info,
   .game-fullscreen-mobile .game-players-bar,
-  .game-fullscreen-mobile .game-status-bar {
+  .game-fullscreen-mobile .game-status-bar,
+  .game-fullscreen-mobile .game-history {
     display: none !important;
   }
 

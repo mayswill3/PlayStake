@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlayStake — Architecture Corrections</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 16px;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+  }
+  h1 {
+    font-size: 22px;
+    text-align: center;
+    color: #a78bfa;
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .section {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    border-left: 4px solid #a78bfa;
+  }
+  .section h2 {
+    font-size: 15px;
+    color: #a78bfa;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: stretch;
+  }
+  .change {
+    background: #162032;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  .label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    display: block;
+  }
+  .remove .label { color: #f87171; }
+  .update .label { color: #fbbf24; }
+  .keep .label { color: #34d399; }
+  .add .label { color: #60a5fa; }
+  .remove { border-left: 3px solid #f87171; }
+  .update { border-left: 3px solid #fbbf24; }
+  .keep { border-left: 3px solid #34d399; }
+  .add { border-left: 3px solid #60a5fa; }
+  .old { color: #94a3b8; text-decoration: line-through; font-size: 13px; }
+  .new { color: #f1f5f9; font-size: 13px; }
+  .note { color: #94a3b8; font-size: 12px; margin-top: 4px; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid #334155;
+    margin: 24px 0;
+  }
+
+  /* Corrected architecture diagram */
+  .arch-section {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .arch-section h3 {
+    font-size: 14px;
+    color: #f1f5f9;
+    margin-bottom: 8px;
+  }
+  .arch-boxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+  .arch-box {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #cbd5e1;
+    flex: 1;
+    min-width: 120px;
+    max-width: 200px;
+  }
+  .arch-box strong { color: #f1f5f9; display: block; font-size: 13px; }
+  .arch-box span { font-size: 11px; color: #94a3b8; }
+  .arch-arrow {
+    text-align: center;
+    color: #475569;
+    font-size: 20px;
+    margin: 4px 0;
+  }
+  .layer-clients { border-left: 4px solid #60a5fa; }
+  .layer-api { border-left: 4px solid #a78bfa; }
+  .layer-core { border-left: 4px solid #fbbf24; }
+  .layer-workers { border-left: 4px solid #f97316; }
+  .layer-data { border-left: 4px solid #34d399; }
+  .layer-ext { border-left: 4px solid #94a3b8; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 20px;
+    font-size: 12px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+</style>
+</head>
+<body>
+
+<h1>PlayStake Architecture</h1>
+<p class="subtitle">Corrections to original diagram based on actual codebase</p>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot" style="background:#f87171"></span> Remove</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#fbbf24"></span> Update</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#34d399"></span> Keep</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#60a5fa"></span> Add</div>
+</div>
+
+<!-- ========== CORRECTIONS ========== -->
+
+<div class="section">
+  <h2>1. Client Layer</h2>
+  <div class="change remove">
+    <span class="label">Remove</span>
+    <span class="old">Mobile App (React Native)</span>
+    <div class="note">No mobile app exists in the codebase</div>
+  </div>
+  <div class="change keep">
+    <span class="label">Keep</span>
+    <span class="new">Web App (Next.js)</span>
+  </div>
+  <div class="change add">
+    <span class="label">Add</span>
+    <span class="new">Widget SDK (iframe embed for game integration)</span>
+  </div>
+  <div class="change add">
+    <span class="label">Add</span>
+    <span class="new">Developer Portal (API keys, games, webhooks)</span>
+  </div>
+</div>
+
+<div class="section">
+  <h2>2. API Gateway & Authentication</h2>
+  <div class="change update">
+    <span class="label">Update</span>
+    <span class="old">GraphQL/REST API</span>
+    <span class="new">REST API only (no GraphQL)</span>
+  </div>
+  <div class="change update">
+    <span class="label">Update</span>
+    <span class="old">JWT/OAuth 2.0 Tokens</span>
+    <span class="new">Session cookies + API key auth + Widget tokens</span>
+  </div>
+  <div class="change update">
+    <span class="label">Update</span>
+    <span class="old">Rate Limiting & API Firewall</span>
+    <span class="new">In-memory sliding window rate limiting (no firewall)</span>
+  </div>
+</div>
+
+<div class="section">
+  <h2>3. Core Services</h2>
+  <div class="change remove">
+    <span class="label">Remove</span>
+    <span class="old">Matchmaking Service (Game session mgmt)</span>
+    <div class="note">No matchmaking — bets are peer-to-peer (Player A creates, Player B accepts)</div>
+  </div>
+  <div class="change update">
+    <span class="label">Update</span>
+    <span class="old">Betting Engine (Odds, wagers)</span>
+    <span class="new">Betting Engine (P2P fixed-stake escrow bets, no odds)</span>
+  </div>
+  <div class="change update">
+    <span class="label">Update</span>
+    <span class="old">Wallet Service (Balance, payout)</span>
+    <span class="new">Ledger Service (Double-entry accounting, escrow, balance)</span>
+  </div>
+  <div class="change remove">
+    <span class="label">Remove</span>
+    <span class="old">Notifications</span>
+    <div class="note">No notification system exists</div>
+  </div>
+  <div class="change remove">
+    <span class="label">Remove</span>
+    <span class="old">Admin Dashboard</span>
+    <div class="note">Only a minimal stats endpoint — no admin UI</div>
+  </div>
+  <div class="change add">
+    <span class="label">Add</span>
+    <span class="new">Webhook System (HMAC-signed, retries, delivery logs)</span>
+  </div>
+  <div class="change add">
+    <span class="label">Add</span>
+    <span class="new">Developer Management (API keys, games, rev-share, escrow limits)</span>
+  </div>
+</div>
+
+<div class="section">
+  <h2>4. Compliance & Security</h2>
+  <div class="change update">
+    <span class="label">Update</span>
+    <span class="old">KYC/AML checks (Onfido/Jumio)</span>
+    <span class="new">KYC/AML status tracking (schema only — no provider integrated)</span>
+  </div>
+  <div class="change remove">
+    <span class="label">Remove</span>
+    <span class="old">Age verification (21+)</span>
+    <div class="note">Not implemented</div>
+  </div>
+  <div class="change keep">
+    <span class="label">Keep</span>
+    <span class="new">Audit logging & anomaly detection (workers exist)</span>
+  </div>
+  <div class="change update">
+    <span class="label">Update</span>
+    <span class="old">GDPR: encryption, right-to-be-forgotten</span>
+    <span class="new">Soft-delete support only (no encryption at rest, no GDPR automation)</span>
+  </div>
+</div>
+
+<div class="section">
+  <h2>5. Data & Analytics</h2>
+  <div class="change update">
+    <span class="label">Update</span>
+    <span class="old">PostgreSQL/MySQL (transactions)</span>
+    <span class="new">PostgreSQL only (Prisma ORM)</span>
+  </div>
+  <div class="change update">
+    <span class="label">Update</span>
+    <span class="old">Redis/Cassandra (real-time session)</span>
+    <span class="new">Redis (BullMQ job queues only — not used for sessions)</span>
+  </div>
+  <div class="change remove">
+    <span class="label">Remove</span>
+    <span class="old">Kafka Streams (event logging)</span>
+  </div>
+  <div class="change remove">
+    <span class="label">Remove</span>
+    <span class="old">BI dashboards (Grafana/Metabase)</span>
+  </div>
+</div>
+
+<div class="section">
+  <h2>6. External Integrations</h2>
+  <div class="change update">
+    <span class="label">Update</span>
+    <span class="old">Payment Providers (Stripe/PayPal/Open Banking)</span>
+    <span class="new">Stripe only (deposits, payouts, webhooks)</span>
+  </div>
+  <div class="change remove">
+    <span class="label">Remove</span>
+    <span class="old">Game APIs (EA/FIFA stats, match verification)</span>
+    <div class="note">Developers report results via API — no game integrations</div>
+  </div>
+  <div class="change remove">
+    <span class="label">Remove</span>
+    <span class="old">Identity Providers (KYC, AML)</span>
+    <div class="note">No external identity provider integrated</div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ========== CORRECTED ARCHITECTURE ========== -->
+
+<h1>Corrected Architecture</h1>
+<p class="subtitle">What the diagram should look like</p>
+
+<div class="arch-section layer-clients">
+  <h3>Clients</h3>
+  <div class="arch-boxes">
+    <div class="arch-box"><strong>Web App</strong><span>Next.js / React</span></div>
+    <div class="arch-box"><strong>Widget SDK</strong><span>iframe embed for games</span></div>
+    <div class="arch-box"><strong>Developer Portal</strong><span>API keys, games, webhooks</span></div>
+  </div>
+</div>
+
+<div class="arch-arrow">&#9660;</div>
+
+<div class="arch-section layer-api">
+  <h3>API Layer (REST)</h3>
+  <div class="arch-boxes">
+    <div class="arch-box"><strong>Session Auth</strong><span>HttpOnly cookies</span></div>
+    <div class="arch-box"><strong>API Key Auth</strong><span>Bearer ps_live_...</span></div>
+    <div class="arch-box"><strong>Widget Tokens</strong><span>Short-lived (1hr)</span></div>
+    <div class="arch-box"><strong>Rate Limiting</strong><span>In-memory sliding window</span></div>
+  </div>
+</div>
+
+<div class="arch-arrow">&#9660;</div>
+
+<div class="arch-section layer-core">
+  <h3>Core Services</h3>
+  <div class="arch-boxes">
+    <div class="arch-box"><strong>Betting Engine</strong><span>P2P escrow bets, consent &rarr; match &rarr; result &rarr; settle</span></div>
+    <div class="arch-box"><strong>Ledger</strong><span>Double-entry accounting, escrow hold/release</span></div>
+    <div class="arch-box"><strong>Wallet</strong><span>Stripe deposits &amp; withdrawals</span></div>
+    <div class="arch-box"><strong>Webhooks</strong><span>HMAC-signed, retries, delivery logs</span></div>
+    <div class="arch-box"><strong>Developer Mgmt</strong><span>Games, API keys, rev-share, escrow caps</span></div>
+  </div>
+</div>
+
+<div class="arch-arrow">&#9660;</div>
+
+<div class="arch-section layer-workers">
+  <h3>Background Workers (BullMQ)</h3>
+  <div class="arch-boxes">
+    <div class="arch-box"><strong>Settlement</strong><span>Fee + payout distribution</span></div>
+    <div class="arch-box"><strong>Bet Expiry</strong><span>Auto-cancel + refund</span></div>
+    <div class="arch-box"><strong>Consent Expiry</strong><span>Timeout pending bets</span></div>
+    <div class="arch-box"><strong>Webhook Delivery</strong><span>Retry w/ backoff</span></div>
+    <div class="arch-box"><strong>Anomaly Detection</strong><span>Win-rate, volume spikes</span></div>
+    <div class="arch-box"><strong>Dispute Escalation</strong><span>SLA enforcement</span></div>
+    <div class="arch-box"><strong>Ledger Audit</strong><span>Daily invariant checks</span></div>
+    <div class="arch-box"><strong>Unverified Results</strong><span>Hash mismatch flags</span></div>
+  </div>
+</div>
+
+<div class="arch-arrow">&#9660;</div>
+
+<div class="arch-section layer-data">
+  <h3>Data Layer</h3>
+  <div class="arch-boxes">
+    <div class="arch-box"><strong>PostgreSQL</strong><span>Prisma ORM, advisory locks, double-entry ledger</span></div>
+    <div class="arch-box"><strong>Redis</strong><span>BullMQ job queues (8 queues)</span></div>
+  </div>
+</div>
+
+<div class="arch-arrow">&#9660;</div>
+
+<div class="arch-section layer-ext">
+  <h3>External Integrations</h3>
+  <div class="arch-boxes">
+    <div class="arch-box"><strong>Stripe</strong><span>Payments, payouts, webhook events</span></div>
+  </div>
+</div>
+
+<div style="text-align:center; color:#475569; font-size:11px; margin-top:24px; padding-bottom:16px;">
+  Generated from PlayStake codebase analysis &mdash; March 2026
+</div>
+
+</body>
+</html>

@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlayStake Architecture Corrections</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f4f7; font-family:-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; -webkit-text-size-adjust:100%;">
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7;">
+<tr><td align="center" style="padding:24px 12px;">
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; background-color:#ffffff; border-radius:8px; overflow:hidden;">
+
+<!-- Header -->
+<tr>
+<td style="background-color:#1e293b; padding:28px 24px; text-align:center;">
+  <h1 style="margin:0; font-size:22px; color:#a78bfa; font-weight:700;">PlayStake Architecture</h1>
+  <p style="margin:6px 0 0; font-size:13px; color:#94a3b8;">Corrections to diagram based on actual codebase</p>
+</td>
+</tr>
+
+<!-- Legend -->
+<tr>
+<td style="padding:16px 24px 8px; font-size:13px; color:#64748b;">
+  <span style="display:inline-block; width:10px; height:10px; background:#dc2626; border-radius:2px; vertical-align:middle;"></span> Remove &nbsp;&nbsp;
+  <span style="display:inline-block; width:10px; height:10px; background:#d97706; border-radius:2px; vertical-align:middle;"></span> Update &nbsp;&nbsp;
+  <span style="display:inline-block; width:10px; height:10px; background:#059669; border-radius:2px; vertical-align:middle;"></span> Keep &nbsp;&nbsp;
+  <span style="display:inline-block; width:10px; height:10px; background:#2563eb; border-radius:2px; vertical-align:middle;"></span> Add
+</td>
+</tr>
+
+<!-- ============ 1. CLIENT LAYER ============ -->
+<tr>
+<td style="padding:20px 24px 4px;">
+  <h2 style="margin:0; font-size:15px; color:#1e293b; border-bottom:2px solid #a78bfa; padding-bottom:6px;">1. Client Layer</h2>
+</td>
+</tr>
+<tr>
+<td style="padding:8px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#dc2626; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fef2f2; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#dc2626; text-transform:uppercase; letter-spacing:0.5px;">REMOVE</span><br>
+        <span style="font-size:14px; color:#9ca3af; text-decoration:line-through;">Mobile App (React Native)</span><br>
+        <span style="font-size:12px; color:#6b7280;">No mobile app exists in the codebase</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#059669; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#f0fdf4; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#059669; text-transform:uppercase; letter-spacing:0.5px;">KEEP</span><br>
+        <span style="font-size:14px; color:#1e293b;">Web App (Next.js / React)</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#2563eb; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#eff6ff; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px;">ADD</span><br>
+        <span style="font-size:14px; color:#1e293b;">Widget SDK (iframe embed for game integration)</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#2563eb; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#eff6ff; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px;">ADD</span><br>
+        <span style="font-size:14px; color:#1e293b;">Developer Portal (API keys, games, webhooks)</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+
+<!-- ============ 2. API LAYER ============ -->
+<tr>
+<td style="padding:20px 24px 4px;">
+  <h2 style="margin:0; font-size:15px; color:#1e293b; border-bottom:2px solid #a78bfa; padding-bottom:6px;">2. API Gateway & Authentication</h2>
+</td>
+</tr>
+<tr>
+<td style="padding:8px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#d97706; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fffbeb; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">UPDATE</span><br>
+        <span style="font-size:13px; color:#9ca3af; text-decoration:line-through;">GraphQL/REST API</span><br>
+        <span style="font-size:14px; color:#1e293b;">REST API only &mdash; no GraphQL</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#d97706; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fffbeb; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">UPDATE</span><br>
+        <span style="font-size:13px; color:#9ca3af; text-decoration:line-through;">JWT/OAuth 2.0 Tokens</span><br>
+        <span style="font-size:14px; color:#1e293b;">Session cookies + API key auth + Widget tokens</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#d97706; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fffbeb; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">UPDATE</span><br>
+        <span style="font-size:13px; color:#9ca3af; text-decoration:line-through;">Rate Limiting & API Firewall</span><br>
+        <span style="font-size:14px; color:#1e293b;">In-memory sliding window rate limiting (no firewall)</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+
+<!-- ============ 3. CORE SERVICES ============ -->
+<tr>
+<td style="padding:20px 24px 4px;">
+  <h2 style="margin:0; font-size:15px; color:#1e293b; border-bottom:2px solid #a78bfa; padding-bottom:6px;">3. Core Services</h2>
+</td>
+</tr>
+<tr>
+<td style="padding:8px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#dc2626; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fef2f2; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#dc2626; text-transform:uppercase; letter-spacing:0.5px;">REMOVE</span><br>
+        <span style="font-size:14px; color:#9ca3af; text-decoration:line-through;">Matchmaking Service (Game session mgmt)</span><br>
+        <span style="font-size:12px; color:#6b7280;">No matchmaking &mdash; bets are peer-to-peer</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#d97706; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fffbeb; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">UPDATE</span><br>
+        <span style="font-size:13px; color:#9ca3af; text-decoration:line-through;">Betting Engine (Odds, wagers)</span><br>
+        <span style="font-size:14px; color:#1e293b;">Betting Engine (P2P fixed-stake escrow bets, no odds)</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#d97706; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fffbeb; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">UPDATE</span><br>
+        <span style="font-size:13px; color:#9ca3af; text-decoration:line-through;">Wallet Service (Balance, payout)</span><br>
+        <span style="font-size:14px; color:#1e293b;">Ledger Service (Double-entry accounting, escrow, balance)</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#dc2626; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fef2f2; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#dc2626; text-transform:uppercase; letter-spacing:0.5px;">REMOVE</span><br>
+        <span style="font-size:14px; color:#9ca3af; text-decoration:line-through;">Notifications</span><br>
+        <span style="font-size:12px; color:#6b7280;">No notification system exists</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#dc2626; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fef2f2; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#dc2626; text-transform:uppercase; letter-spacing:0.5px;">REMOVE</span><br>
+        <span style="font-size:14px; color:#9ca3af; text-decoration:line-through;">Admin Dashboard</span><br>
+        <span style="font-size:12px; color:#6b7280;">Only a minimal stats endpoint &mdash; no admin UI</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#2563eb; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#eff6ff; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px;">ADD</span><br>
+        <span style="font-size:14px; color:#1e293b;">Webhook System (HMAC-signed, retries, delivery logs)</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#2563eb; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#eff6ff; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px;">ADD</span><br>
+        <span style="font-size:14px; color:#1e293b;">Developer Management (API keys, games, rev-share, escrow limits)</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+
+<!-- ============ 4. COMPLIANCE ============ -->
+<tr>
+<td style="padding:20px 24px 4px;">
+  <h2 style="margin:0; font-size:15px; color:#1e293b; border-bottom:2px solid #a78bfa; padding-bottom:6px;">4. Compliance & Security</h2>
+</td>
+</tr>
+<tr>
+<td style="padding:8px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#d97706; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fffbeb; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">UPDATE</span><br>
+        <span style="font-size:13px; color:#9ca3af; text-decoration:line-through;">KYC/AML checks (Onfido/Jumio)</span><br>
+        <span style="font-size:14px; color:#1e293b;">KYC/AML status tracking (schema only &mdash; no provider integrated)</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#dc2626; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fef2f2; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#dc2626; text-transform:uppercase; letter-spacing:0.5px;">REMOVE</span><br>
+        <span style="font-size:14px; color:#9ca3af; text-decoration:line-through;">Age verification (21+)</span><br>
+        <span style="font-size:12px; color:#6b7280;">Not implemented</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#059669; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#f0fdf4; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#059669; text-transform:uppercase; letter-spacing:0.5px;">KEEP</span><br>
+        <span style="font-size:14px; color:#1e293b;">Audit logging & anomaly detection (workers exist)</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#d97706; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fffbeb; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">UPDATE</span><br>
+        <span style="font-size:13px; color:#9ca3af; text-decoration:line-through;">GDPR: encryption, right-to-be-forgotten</span><br>
+        <span style="font-size:14px; color:#1e293b;">Soft-delete support only (no encryption at rest, no GDPR automation)</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+
+<!-- ============ 5. DATA LAYER ============ -->
+<tr>
+<td style="padding:20px 24px 4px;">
+  <h2 style="margin:0; font-size:15px; color:#1e293b; border-bottom:2px solid #a78bfa; padding-bottom:6px;">5. Data & Analytics</h2>
+</td>
+</tr>
+<tr>
+<td style="padding:8px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#d97706; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fffbeb; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">UPDATE</span><br>
+        <span style="font-size:13px; color:#9ca3af; text-decoration:line-through;">PostgreSQL/MySQL (transactions)</span><br>
+        <span style="font-size:14px; color:#1e293b;">PostgreSQL only (Prisma ORM)</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#d97706; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fffbeb; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">UPDATE</span><br>
+        <span style="font-size:13px; color:#9ca3af; text-decoration:line-through;">Redis/Cassandra (real-time session)</span><br>
+        <span style="font-size:14px; color:#1e293b;">Redis (BullMQ job queues only &mdash; not for sessions)</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#dc2626; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fef2f2; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#dc2626; text-transform:uppercase; letter-spacing:0.5px;">REMOVE</span><br>
+        <span style="font-size:14px; color:#9ca3af; text-decoration:line-through;">Kafka Streams (event logging)</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#dc2626; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fef2f2; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#dc2626; text-transform:uppercase; letter-spacing:0.5px;">REMOVE</span><br>
+        <span style="font-size:14px; color:#9ca3af; text-decoration:line-through;">BI dashboards (Grafana/Metabase)</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+
+<!-- ============ 6. EXTERNAL ============ -->
+<tr>
+<td style="padding:20px 24px 4px;">
+  <h2 style="margin:0; font-size:15px; color:#1e293b; border-bottom:2px solid #a78bfa; padding-bottom:6px;">6. External Integrations</h2>
+</td>
+</tr>
+<tr>
+<td style="padding:8px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#d97706; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fffbeb; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">UPDATE</span><br>
+        <span style="font-size:13px; color:#9ca3af; text-decoration:line-through;">Stripe/PayPal/Open Banking</span><br>
+        <span style="font-size:14px; color:#1e293b;">Stripe only (deposits, payouts, webhooks)</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#dc2626; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fef2f2; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#dc2626; text-transform:uppercase; letter-spacing:0.5px;">REMOVE</span><br>
+        <span style="font-size:14px; color:#9ca3af; text-decoration:line-through;">Game APIs (EA/FIFA stats, match verification)</span><br>
+        <span style="font-size:12px; color:#6b7280;">Developers report results via API &mdash; no game integrations</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td style="padding:4px 24px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="4" style="background:#dc2626; border-radius:2px;"></td>
+      <td style="padding:8px 12px; background:#fef2f2; border-radius:0 6px 6px 0;">
+        <span style="font-size:10px; font-weight:700; color:#dc2626; text-transform:uppercase; letter-spacing:0.5px;">REMOVE</span><br>
+        <span style="font-size:14px; color:#9ca3af; text-decoration:line-through;">Identity Providers (KYC, AML)</span><br>
+        <span style="font-size:12px; color:#6b7280;">No external identity provider integrated</span>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+
+<!-- ============ DIVIDER ============ -->
+<tr>
+<td style="padding:0 24px;">
+  <hr style="border:none; border-top:2px solid #e2e8f0; margin:0;">
+</td>
+</tr>
+
+<!-- ============ CORRECTED ARCHITECTURE ============ -->
+<tr>
+<td style="padding:24px 24px 8px; text-align:center;">
+  <h2 style="margin:0; font-size:18px; color:#1e293b;">Corrected Architecture</h2>
+  <p style="margin:4px 0 0; font-size:13px; color:#94a3b8;">What the diagram should look like</p>
+</td>
+</tr>
+
+<!-- Clients -->
+<tr>
+<td style="padding:12px 24px 0;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:2px solid #3b82f6; border-radius:8px; overflow:hidden;">
+    <tr><td style="background:#3b82f6; padding:6px 12px; font-size:12px; font-weight:700; color:#ffffff; text-transform:uppercase; letter-spacing:0.5px;">Clients</td></tr>
+    <tr><td style="padding:12px; background:#eff6ff;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="4">
+        <tr>
+          <td style="background:#ffffff; border:1px solid #bfdbfe; border-radius:6px; padding:8px; text-align:center; width:33%; font-size:13px;"><strong>Web App</strong><br><span style="font-size:11px; color:#6b7280;">Next.js / React</span></td>
+          <td style="background:#ffffff; border:1px solid #bfdbfe; border-radius:6px; padding:8px; text-align:center; width:33%; font-size:13px;"><strong>Widget SDK</strong><br><span style="font-size:11px; color:#6b7280;">iframe embed</span></td>
+          <td style="background:#ffffff; border:1px solid #bfdbfe; border-radius:6px; padding:8px; text-align:center; width:33%; font-size:13px;"><strong>Dev Portal</strong><br><span style="font-size:11px; color:#6b7280;">Keys, games, hooks</span></td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</td>
+</tr>
+<tr><td style="text-align:center; font-size:18px; color:#94a3b8; padding:4px 0;">&#9660;</td></tr>
+
+<!-- API Layer -->
+<tr>
+<td style="padding:0 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:2px solid #8b5cf6; border-radius:8px; overflow:hidden;">
+    <tr><td style="background:#8b5cf6; padding:6px 12px; font-size:12px; font-weight:700; color:#ffffff; text-transform:uppercase; letter-spacing:0.5px;">API Layer (REST)</td></tr>
+    <tr><td style="padding:12px; background:#f5f3ff;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="4">
+        <tr>
+          <td style="background:#ffffff; border:1px solid #c4b5fd; border-radius:6px; padding:8px; text-align:center; width:25%; font-size:12px;"><strong>Sessions</strong><br><span style="font-size:10px; color:#6b7280;">HttpOnly cookies</span></td>
+          <td style="background:#ffffff; border:1px solid #c4b5fd; border-radius:6px; padding:8px; text-align:center; width:25%; font-size:12px;"><strong>API Keys</strong><br><span style="font-size:10px; color:#6b7280;">Bearer ps_live_</span></td>
+          <td style="background:#ffffff; border:1px solid #c4b5fd; border-radius:6px; padding:8px; text-align:center; width:25%; font-size:12px;"><strong>Widget Tokens</strong><br><span style="font-size:10px; color:#6b7280;">1hr TTL</span></td>
+          <td style="background:#ffffff; border:1px solid #c4b5fd; border-radius:6px; padding:8px; text-align:center; width:25%; font-size:12px;"><strong>Rate Limit</strong><br><span style="font-size:10px; color:#6b7280;">Sliding window</span></td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</td>
+</tr>
+<tr><td style="text-align:center; font-size:18px; color:#94a3b8; padding:4px 0;">&#9660;</td></tr>
+
+<!-- Core Services -->
+<tr>
+<td style="padding:0 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:2px solid #d97706; border-radius:8px; overflow:hidden;">
+    <tr><td style="background:#d97706; padding:6px 12px; font-size:12px; font-weight:700; color:#ffffff; text-transform:uppercase; letter-spacing:0.5px;">Core Services</td></tr>
+    <tr><td style="padding:12px; background:#fffbeb;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="4">
+        <tr>
+          <td style="background:#ffffff; border:1px solid #fcd34d; border-radius:6px; padding:8px; text-align:center; font-size:12px;"><strong>Betting Engine</strong><br><span style="font-size:10px; color:#6b7280;">P2P escrow bets</span></td>
+          <td style="background:#ffffff; border:1px solid #fcd34d; border-radius:6px; padding:8px; text-align:center; font-size:12px;"><strong>Ledger</strong><br><span style="font-size:10px; color:#6b7280;">Double-entry</span></td>
+          <td style="background:#ffffff; border:1px solid #fcd34d; border-radius:6px; padding:8px; text-align:center; font-size:12px;"><strong>Wallet</strong><br><span style="font-size:10px; color:#6b7280;">Stripe deposits</span></td>
+        </tr>
+        <tr>
+          <td style="background:#ffffff; border:1px solid #fcd34d; border-radius:6px; padding:8px; text-align:center; font-size:12px;" colspan="1"><strong>Webhooks</strong><br><span style="font-size:10px; color:#6b7280;">HMAC, retries</span></td>
+          <td style="background:#ffffff; border:1px solid #fcd34d; border-radius:6px; padding:8px; text-align:center; font-size:12px;" colspan="2"><strong>Developer Management</strong><br><span style="font-size:10px; color:#6b7280;">API keys, games, rev-share, escrow caps</span></td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</td>
+</tr>
+<tr><td style="text-align:center; font-size:18px; color:#94a3b8; padding:4px 0;">&#9660;</td></tr>
+
+<!-- Workers -->
+<tr>
+<td style="padding:0 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:2px solid #ea580c; border-radius:8px; overflow:hidden;">
+    <tr><td style="background:#ea580c; padding:6px 12px; font-size:12px; font-weight:700; color:#ffffff; text-transform:uppercase; letter-spacing:0.5px;">Background Workers (BullMQ &times; 8)</td></tr>
+    <tr><td style="padding:12px; background:#fff7ed;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="4">
+        <tr>
+          <td style="background:#ffffff; border:1px solid #fed7aa; border-radius:6px; padding:6px; text-align:center; font-size:11px; width:25%;"><strong>Settlement</strong></td>
+          <td style="background:#ffffff; border:1px solid #fed7aa; border-radius:6px; padding:6px; text-align:center; font-size:11px; width:25%;"><strong>Bet Expiry</strong></td>
+          <td style="background:#ffffff; border:1px solid #fed7aa; border-radius:6px; padding:6px; text-align:center; font-size:11px; width:25%;"><strong>Consent Expiry</strong></td>
+          <td style="background:#ffffff; border:1px solid #fed7aa; border-radius:6px; padding:6px; text-align:center; font-size:11px; width:25%;"><strong>Webhooks</strong></td>
+        </tr>
+        <tr>
+          <td style="background:#ffffff; border:1px solid #fed7aa; border-radius:6px; padding:6px; text-align:center; font-size:11px;"><strong>Anomaly</strong></td>
+          <td style="background:#ffffff; border:1px solid #fed7aa; border-radius:6px; padding:6px; text-align:center; font-size:11px;"><strong>Disputes</strong></td>
+          <td style="background:#ffffff; border:1px solid #fed7aa; border-radius:6px; padding:6px; text-align:center; font-size:11px;"><strong>Ledger Audit</strong></td>
+          <td style="background:#ffffff; border:1px solid #fed7aa; border-radius:6px; padding:6px; text-align:center; font-size:11px;"><strong>Unverified</strong></td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</td>
+</tr>
+<tr><td style="text-align:center; font-size:18px; color:#94a3b8; padding:4px 0;">&#9660;</td></tr>
+
+<!-- Data Layer -->
+<tr>
+<td style="padding:0 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:2px solid #059669; border-radius:8px; overflow:hidden;">
+    <tr><td style="background:#059669; padding:6px 12px; font-size:12px; font-weight:700; color:#ffffff; text-transform:uppercase; letter-spacing:0.5px;">Data Layer</td></tr>
+    <tr><td style="padding:12px; background:#f0fdf4;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="4">
+        <tr>
+          <td style="background:#ffffff; border:1px solid #86efac; border-radius:6px; padding:8px; text-align:center; width:50%; font-size:13px;"><strong>PostgreSQL</strong><br><span style="font-size:10px; color:#6b7280;">Prisma ORM, advisory locks</span></td>
+          <td style="background:#ffffff; border:1px solid #86efac; border-radius:6px; padding:8px; text-align:center; width:50%; font-size:13px;"><strong>Redis</strong><br><span style="font-size:10px; color:#6b7280;">BullMQ job queues</span></td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</td>
+</tr>
+<tr><td style="text-align:center; font-size:18px; color:#94a3b8; padding:4px 0;">&#9660;</td></tr>
+
+<!-- External -->
+<tr>
+<td style="padding:0 24px 24px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:2px solid #6b7280; border-radius:8px; overflow:hidden;">
+    <tr><td style="background:#6b7280; padding:6px 12px; font-size:12px; font-weight:700; color:#ffffff; text-transform:uppercase; letter-spacing:0.5px;">External Integrations</td></tr>
+    <tr><td style="padding:12px; background:#f9fafb;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="background:#ffffff; border:1px solid #d1d5db; border-radius:6px; padding:10px; text-align:center; font-size:13px;"><strong>Stripe</strong><br><span style="font-size:11px; color:#6b7280;">Payments, payouts, webhook events</span></td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</td>
+</tr>
+
+<!-- Footer -->
+<tr>
+<td style="background:#f8fafc; padding:16px 24px; text-align:center; border-top:1px solid #e2e8f0;">
+  <p style="margin:0; font-size:11px; color:#94a3b8;">Generated from PlayStake codebase analysis &mdash; March 2026</p>
+</td>
+</tr>
+
+</table>
+</td></tr>
+</table>
+
+</body>
+</html>

@@ -377,16 +377,35 @@ export default function DartsDemoPage() {
               />
 
               {/* Turn history */}
-              <Card padding="sm">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-2">Turn History</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {gs.turnHistory.slice(-12).map((t, i) => (
-                    <div key={i} className={`px-2 py-0.5 rounded text-[10px] font-mono ${t.wasBust ? 'bg-danger-400/10 text-danger-400' : 'bg-brand-400/10 text-brand-400'}`}>
-                      {t.player === 'A' ? displayNameA.slice(0, 6) : displayNameB.slice(0, 6)}: {t.wasBust ? 'BUST' : `-${t.total}`}
-                    </div>
-                  ))}
-                  {gs.turnHistory.length === 0 && <span className="text-text-muted text-xs">No turns yet</span>}
-                </div>
+              <Card padding="sm" className="game-history">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-3">Turn History</p>
+
+                {gs.turnHistory.length === 0 ? (
+                  <p className="text-text-muted text-xs text-center py-2">No turns yet</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {gs.turnHistory.slice(-8).reverse().map((t, i) => {
+                      const name = t.player === 'A' ? displayNameA : displayNameB;
+                      const isYou = t.player === role;
+                      return (
+                        <div key={i} className={`flex items-center gap-3 rounded-lg px-3 py-2 ${t.wasBust ? 'bg-danger-400/8 border border-danger-400/20' : 'bg-white/4 border border-white/8'}`}>
+                          {/* Fixed-width player badge */}
+                          <span className={`w-14 flex-shrink-0 text-center text-[10px] font-bold rounded px-1.5 py-0.5 truncate ${t.player === 'A' ? 'bg-yellow-500/15 text-yellow-400' : 'bg-cyan-500/15 text-cyan-400'}`}>
+                            {isYou ? 'You' : name.slice(0, 6)}
+                          </span>
+                          {/* Score */}
+                          <span className={`w-12 flex-shrink-0 text-center text-xs font-bold font-mono ${t.wasBust ? 'text-danger-400' : 'text-brand-400'}`}>
+                            {t.wasBust ? 'BUST' : `−${t.total}`}
+                          </span>
+                          {/* Remaining */}
+                          <span className="flex-1 text-right text-[10px] text-text-muted font-mono tabular-nums">
+                            → {t.scoreAfter}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </Card>
 
               {/* Result overlay */}

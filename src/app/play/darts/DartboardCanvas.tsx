@@ -120,6 +120,9 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
   // Track previously animated dart count for opponent's darts
   const prevDartCountRef = useRef(0);
 
+  // Last thrown dart — for the big score flash
+  const lastScoreRef = useRef<{ score: number; segment: number; multiplier: number; timeMs: number } | null>(null);
+
   // ── Draw background (pub atmosphere) ───────────────────────────────────────
   const drawBackground = useCallback((ctx: CanvasRenderingContext2D) => {
     // Deep dark pub background
@@ -360,7 +363,7 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
   }, []);
 
   // ── Draw scoreboards ─────────────────────────────────────────────────────────
-  const drawScoreboard = useCallback((ctx: CanvasRenderingContext2D, gs: DartsState, nameA: string, nameB: string) => {
+  const drawScoreboard = useCallback((ctx: CanvasRenderingContext2D, gs: DartsState, nameA: string, nameB: string, role: 'A' | 'B' | null) => {
     const drawPanel = (x: number, y: number, w: number, h: number, player: 'A' | 'B') => {
       const isActive = gs.currentTurn === player && gs.phase !== 'finished';
       const score = player === 'A' ? gs.scoreA : gs.scoreB;
@@ -424,13 +427,31 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     drawPanel(12, 160, 130, 140, 'A');
     drawPanel(W - 142, 160, 130, 140, 'B');
 
-    // Current turn indicator
+    // Current turn indicator — brighter when it's your turn, different label for opponent
     if (gs.phase !== 'finished') {
-      ctx.font = 'bold 11px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#4a8a4a';
-      const labelX = gs.currentTurn === 'A' ? 77 : W - 77;
-      ctx.fillText('▶ YOUR TURN', labelX, 158);
+      const activeX   = gs.currentTurn === 'A' ? 77 : W - 77;
+      const isMyTurnNow = gs.currentTurn === role;
+
+      if (isMyTurnNow) {
+        // Bright green pill: "YOUR TURN"
+        const label = '▶  YOUR TURN';
+        ctx.font = 'bold 11px sans-serif';
+        const tw = ctx.measureText(label).width + 16;
+        ctx.fillStyle = 'rgba(80,200,80,0.18)';
+        ctx.beginPath();
+        ctx.roundRect(activeX - tw / 2, 133, tw, 18, 4);
+        ctx.fill();
+        ctx.fillStyle = '#88ff88';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, activeX, 144);
+      } else {
+        // Muted amber label above opponent's panel
+        const label = '● THROWING...';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.fillStyle = 'rgba(255,180,60,0.75)';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, activeX, 144);
+      }
     }
 
     // Message banner (bust / round result)
@@ -653,6 +674,70 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     drawDartShape(ctx, startX, startY, angleDeg, 1.15);
   }, [drawDartShape]);
 
+  // ── Draw big score flash when a dart lands ───────────────────────────────────
+  const drawScoreFlash = useCallback((ctx: CanvasRenderingContext2D, now: number) => {
+    const ls = lastScoreRef.current;
+    if (!ls) return;
+
+    const age = (now - ls.timeMs) / 1000; // seconds
+    if (age > 1.8) return;
+
+    // Fade: full opacity for first 0.9s, then fade out
+    const alpha = age < 0.9 ? 1 : 1 - (age - 0.9) / 0.9;
+    // Pop-in scale: zoom from 0.4 → 1.05 → 1.0 in first 200ms
+    const scale = age < 0.1 ? 0.4 + (age / 0.1) * 0.7
+                : age < 0.2 ? 1.1 - (age - 0.1) / 0.1 * 0.1
+                : 1.0;
+
+    // Build label strings
+    const isMiss     = ls.score === 0;
+    const isBullseye = ls.segment === 0 && ls.multiplier === 2;
+    const isBull     = ls.segment === 0 && ls.multiplier === 1;
+    const typeLabel  = isMiss      ? ''
+                     : isBullseye  ? 'BULLSEYE'
+                     : isBull      ? 'BULL'
+                     : ls.multiplier === 3 ? `TREBLE ${ls.segment}`
+                     : ls.multiplier === 2 ? `DOUBLE ${ls.segment}`
+                     : '';
+    const scoreLabel = isMiss ? 'MISS' : String(ls.score);
+
+    const scoreColor = isMiss      ? '#ff5555'
+                     : isBullseye  ? '#ffcc00'
+                     : isBull      ? '#66dd66'
+                     : ls.multiplier > 1 ? '#66ccff'
+                     : '#ffffff';
+
+    const flashY = 62; // top of canvas above the board
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.translate(BOARD_CX, flashY);
+    ctx.scale(scale, scale);
+    ctx.translate(-BOARD_CX, -flashY);
+
+    // Glow backdrop
+    ctx.shadowColor = scoreColor;
+    ctx.shadowBlur  = 28;
+
+    // Big score number
+    ctx.font        = 'bold 68px sans-serif';
+    ctx.fillStyle   = scoreColor;
+    ctx.fillText(scoreLabel, BOARD_CX, flashY);
+
+    // Smaller throw-type label above the number
+    if (typeLabel) {
+      ctx.shadowBlur  = 10;
+      ctx.font        = 'bold 15px sans-serif';
+      ctx.fillStyle   = 'rgba(255,255,255,0.75)';
+      ctx.letterSpacing = '2px';
+      ctx.fillText(typeLabel, BOARD_CX, flashY - 40);
+    }
+
+    ctx.restore();
+  }, []);
+
   // ── Draw throw hint (idle, your turn) ────────────────────────────────────────
   const drawThrowHint = useCallback((ctx: CanvasRenderingContext2D) => {
     ctx.font = '13px sans-serif';
@@ -683,9 +768,10 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
 
       drawBackground(ctx);
       drawBoard(ctx);
-      drawScoreboard(ctx, gs, displayNameA, displayNameB);
+      drawScoreboard(ctx, gs, displayNameA, displayNameB, role);
       drawDarts(ctx, gs.currentDarts);
       if (f && f.active) drawFlight(ctx);
+      drawScoreFlash(ctx, now);
 
       // Aim guide / throw hint (only when it's your turn and not in bust/showing)
       if (gs.phase !== 'showing' && gs.phase !== 'bust' && gs.phase !== 'finished') {
@@ -701,7 +787,7 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
 
     rafRef.current = requestAnimationFrame(render);
     return () => { cancelAnimationFrame(rafRef.current); };
-  }, [gs, isMyTurn, displayNameA, displayNameB, drawBackground, drawBoard, drawScoreboard, drawDarts, drawFlight, drawAimGuide, drawThrowHint]);
+  }, [gs, isMyTurn, displayNameA, displayNameB, drawBackground, drawBoard, drawScoreboard, drawDarts, drawFlight, drawScoreFlash, drawAimGuide, drawThrowHint]);
 
   // ── Detect new opponent darts for flight animation ──────────────────────────
   useEffect(() => {
@@ -721,6 +807,18 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     }
     prevDartCountRef.current = newCount;
   }, [gs.currentDarts, isMyTurn]);
+
+  // ── Capture each new dart for the score flash ────────────────────────────────
+  useEffect(() => {
+    if (gs.currentDarts.length === 0) return;
+    const dart = gs.currentDarts[gs.currentDarts.length - 1];
+    lastScoreRef.current = {
+      score: dart.score,
+      segment: dart.segment,
+      multiplier: dart.multiplier,
+      timeMs: performance.now(),
+    };
+  }, [gs.currentDarts.length]);
 
   // ── Pointer helpers ───────────────────────────────────────────────────────────
   const toCanvasCoords = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
