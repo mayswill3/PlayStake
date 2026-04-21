@@ -526,55 +526,12 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
   const drawAimGuide = useCallback((
     ctx: CanvasRenderingContext2D,
     drag: { startX: number; startY: number; curX: number; curY: number },
-    elapsed: number,
   ) => {
     const { startX, startY, curX, curY } = drag;
 
-    // Is the aim point on the board?
-    const dxB = curX - BOARD_CX;
-    const dyB = curY - BOARD_CY;
-    const onBoard = Math.sqrt(dxB * dxB + dyB * dyB) <= R_DOUBLE_OUT;
-
-    // Dart at press point, angled toward cursor
+    // Dart stays at press point, angled toward where you're dragging
     const angleDeg = Math.atan2(curY - startY, curX - startX) * 180 / Math.PI;
     drawDartShape(ctx, startX, startY, angleDeg, 1.15);
-
-    // Dashed line from press point to cursor
-    ctx.save();
-    ctx.setLineDash([10, 6]);
-    ctx.strokeStyle = onBoard ? 'rgba(255,200,200,0.55)' : 'rgba(200,200,200,0.3)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(startX, startY);
-    ctx.lineTo(curX, curY);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
-
-    // Pulsing aim circle at cursor
-    const pulse = 0.5 + 0.5 * Math.sin(elapsed * Math.PI * 2);
-    const aimR = 13 + pulse * 3;
-    ctx.save();
-    ctx.shadowColor = onBoard ? 'rgba(255,60,60,0.6)' : 'rgba(180,180,180,0.3)';
-    ctx.shadowBlur = onBoard ? 10 : 4;
-    ctx.strokeStyle = onBoard ? 'rgba(255,80,80,0.9)' : 'rgba(200,200,200,0.4)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(curX, curY, aimR, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(curX, curY, 2.5, 0, Math.PI * 2);
-    ctx.fillStyle = onBoard ? 'rgba(255,80,80,0.9)' : 'rgba(200,200,200,0.5)';
-    ctx.fill();
-    ctx.restore();
-
-    if (!onBoard) {
-      ctx.font = 'bold 11px sans-serif';
-      ctx.fillStyle = 'rgba(200,200,200,0.55)';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('MISS', curX, curY - 20);
-    }
   }, [drawDartShape]);
 
   // ── Draw throw hint (idle, your turn) ────────────────────────────────────────
@@ -614,7 +571,7 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
       // Aim guide / throw hint (only when it's your turn and not in bust/showing)
       if (gs.phase !== 'showing' && gs.phase !== 'bust' && gs.phase !== 'finished') {
         if (dragRef.current) {
-          drawAimGuide(ctx, dragRef.current, elapsed);
+          drawAimGuide(ctx, dragRef.current);
         } else if (isMyTurn) {
           drawThrowHint(ctx);
         }
