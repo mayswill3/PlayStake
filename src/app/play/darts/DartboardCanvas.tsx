@@ -6,28 +6,29 @@ import { useRef, useEffect, useCallback } from 'react';
 const W = 900;
 const H = 550;
 const BOARD_CX = 450;
-const BOARD_CY = 275;
+const BOARD_CY = 272;
 
-
-const R_BULLSEYE  = 8;
-const R_BULL      = 16;
-const R_TREBLE_IN = 96;
-const R_TREBLE_OUT = 108;
-const R_DOUBLE_IN  = 158;
-const R_DOUBLE_OUT = 170;
-const R_NUMBERS    = 190;
-const R_WIRE       = 175; // outer wire circle
+// All radii scaled up ~1.2× for a larger, more imposing board
+const R_BULLSEYE  = 10;
+const R_BULL      = 20;
+const R_TREBLE_IN = 115;
+const R_TREBLE_OUT = 130;
+const R_DOUBLE_IN  = 190;
+const R_DOUBLE_OUT = 204;
+const R_WIRE       = 210; // outer wire / scoring boundary
+const R_NUMBERS    = 228; // number labels sit in the dark surround
+const R_SURROUND   = 242; // outer edge of the dark number surround
 
 // Clockwise from top: standard dartboard segment order
 const SEGMENTS = [20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5];
 
-// Colour pairs [single, double/treble]
+// Realistic sisal colours: warm cream / dark black
 const SEG_COLORS: [string, string][] = [
-  ['#1a1a1a', '#e8e0c8'], // black, cream  (0, 2, 4… even indices)
-  ['#c8c8c8', '#1a1a1a'], // cream, black  (1, 3, 5… odd indices)
+  ['#171717', '#ddd4b8'], // dark black, warm cream  (even segments)
+  ['#ddd4b8', '#171717'], // warm cream, dark black  (odd segments)
 ];
-const RED   = '#cc2222';
-const GREEN = '#226622';
+const RED   = '#b81a1a';
+const GREEN = '#1a6622';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 export interface DartThrow {
@@ -112,6 +113,14 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
   const rafRef = useRef<number>(0);
   const startTimeRef = useRef<number | null>(null);
 
+  // Load display font for score flash — falls back to Impact if unavailable
+  useEffect(() => {
+    try {
+      new FontFace('DartsDisplay', 'url(https://fonts.gstatic.com/s/bebasneuepro/v3/Block-body.woff2)')
+        .load().then(f => document.fonts.add(f)).catch(() => {});
+    } catch { /* ignore in SSR or restricted contexts */ }
+  }, []);
+
   // Swipe/drag state
   const dragRef = useRef<{ startX: number; startY: number; curX: number; curY: number; startMs: number } | null>(null);
 
@@ -124,74 +133,63 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
   // Last thrown dart — for the big score flash
   const lastScoreRef = useRef<{ score: number; segment: number; multiplier: number; timeMs: number } | null>(null);
 
-  // ── Draw background (pub atmosphere) ───────────────────────────────────────
+  // Near-miss flag — set in handlePointerUp, read in drawScoreFlash
+  const nearMissRef = useRef(false);
+
+  // ── Draw background (cork wall with spotlight) ──────────────────────────────
   const drawBackground = useCallback((ctx: CanvasRenderingContext2D) => {
-    // Deep dark pub background
-    ctx.fillStyle = '#0a0a0e';
+    // Base cork/wall colour — warm tan
+    ctx.fillStyle = '#9e7e58';
     ctx.fillRect(0, 0, W, H);
 
-    // Warm overhead lamp glow at top-center
-    const lampGrad = ctx.createRadialGradient(BOARD_CX, 0, 0, BOARD_CX, 0, 420);
-    lampGrad.addColorStop(0, 'rgba(255, 200, 80, 0.13)');
-    lampGrad.addColorStop(0.5, 'rgba(200, 140, 40, 0.06)');
-    lampGrad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = lampGrad;
-    ctx.fillRect(0, 0, W, H);
-
-    // Wood panelling — horizontal planks on left and right of board area
-    for (let side = 0; side < 2; side++) {
-      const x = side === 0 ? 0 : 660;
-      const panelW = side === 0 ? 170 : 240;
-      // Base wood colour
-      ctx.fillStyle = '#1c1108';
-      ctx.fillRect(x, 0, panelW, H);
-      // Plank lines
-      for (let y = 0; y < H; y += 22) {
-        ctx.strokeStyle = `rgba(${side === 0 ? '80,50,20' : '60,38,14'},0.35)`;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + panelW, y + (Math.sin(y * 0.3) * 2));
-        ctx.stroke();
-      }
-      // Wood grain knot hints
-      for (let k = 0; k < 3; k++) {
-        const kx = x + panelW * (0.3 + k * 0.2);
-        const ky = 80 + k * 150;
-        const kg = ctx.createRadialGradient(kx, ky, 2, kx, ky, 18);
-        kg.addColorStop(0, 'rgba(40,20,5,0.4)');
-        kg.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = kg;
-        ctx.beginPath();
-        ctx.ellipse(kx, ky, 18, 10, 0.3, 0, Math.PI * 2);
-        ctx.fill();
-      }
+    // Cork texture — subtle overlapping ellipses for a natural grain feel
+    for (let i = 0; i < 320; i++) {
+      const s = Math.sin(i * 127.1 + 3.1) * 0.5 + 0.5;
+      const t = Math.sin(i * 311.7 + 1.9) * 0.5 + 0.5;
+      const cx2 = s * W;
+      const cy2 = t * H;
+      const rx = 6 + s * 18;
+      const ry = 3 + t * 8;
+      const angle = s * Math.PI;
+      const alpha = 0.03 + s * 0.04;
+      const lighter = s > 0.6;
+      ctx.fillStyle = lighter ? `rgba(200,170,120,${alpha})` : `rgba(60,35,10,${alpha})`;
+      ctx.beginPath();
+      ctx.ellipse(cx2, cy2, rx, ry, angle, 0, Math.PI * 2);
+      ctx.fill();
     }
 
-    // Subtle smoke/haze layer across middle
-    const hazeGrad = ctx.createLinearGradient(0, H * 0.3, 0, H * 0.7);
-    hazeGrad.addColorStop(0, 'rgba(180,170,160,0)');
-    hazeGrad.addColorStop(0.5, 'rgba(180,170,160,0.025)');
-    hazeGrad.addColorStop(1, 'rgba(180,170,160,0)');
-    ctx.fillStyle = hazeGrad;
+    // Overhead spotlight — bright central circle fading to dark edges
+    const spotlight = ctx.createRadialGradient(
+      BOARD_CX, BOARD_CY - 30, 20,
+      BOARD_CX, BOARD_CY, 480
+    );
+    spotlight.addColorStop(0,    'rgba(255,240,200,0.38)');
+    spotlight.addColorStop(0.35, 'rgba(220,180,100,0.12)');
+    spotlight.addColorStop(0.65, 'rgba(0,0,0,0.28)');
+    spotlight.addColorStop(1,    'rgba(0,0,0,0.72)');
+    ctx.fillStyle = spotlight;
     ctx.fillRect(0, 0, W, H);
 
-    // Throw-line on floor
-    ctx.strokeStyle = 'rgba(255,220,100,0.18)';
-    ctx.setLineDash([12, 8]);
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(160, H - 20);
-    ctx.lineTo(740, H - 20);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    // Thin wooden frame/ledge at top
+    const woodGrad = ctx.createLinearGradient(0, 0, 0, 28);
+    woodGrad.addColorStop(0, '#3d2208');
+    woodGrad.addColorStop(1, '#5c3510');
+    ctx.fillStyle = woodGrad;
+    ctx.fillRect(0, 0, W, 22);
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(0, 22, W, 3);
 
-    // Pub spotlight halo around the board
-    const haloGrad = ctx.createRadialGradient(BOARD_CX, BOARD_CY, R_DOUBLE_OUT, BOARD_CX, BOARD_CY, R_DOUBLE_OUT + 130);
-    haloGrad.addColorStop(0, 'rgba(255,220,140,0.09)');
-    haloGrad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = haloGrad;
-    ctx.fillRect(0, 0, W, H);
+    // Subtle wall texture vertical lines
+    for (let x = 0; x < W; x += 60) {
+      const v = (Math.sin(x * 0.31) * 0.5 + 0.5);
+      ctx.strokeStyle = `rgba(${v > 0.5 ? '200,160,100' : '50,28,8'},${0.04 + v * 0.03})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H);
+      ctx.stroke();
+    }
   }, []);
 
   // ── Draw dartboard ──────────────────────────────────────────────────────────
@@ -200,18 +198,69 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     const cy = BOARD_CY;
     const SEG_ANG = (2 * Math.PI) / 20;
 
-    // ── 3D raised surround with drop shadow ────────────────────────────────
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.9)';
-    ctx.shadowBlur = 28;
+    // ── Ambient occlusion — soft shadow halo on wall around the mounted board ─
+    // Offset slightly lower-right (light from upper-left), fades out over ~65px
+    const aoGrad = ctx.createRadialGradient(cx + 8, cy + 14, R_SURROUND - 6, cx + 8, cy + 14, R_SURROUND + 68);
+    aoGrad.addColorStop(0,    'rgba(0,0,0,0.82)');
+    aoGrad.addColorStop(0.28, 'rgba(0,0,0,0.50)');
+    aoGrad.addColorStop(0.58, 'rgba(0,0,0,0.18)');
+    aoGrad.addColorStop(1,    'rgba(0,0,0,0)');
+    ctx.fillStyle = aoGrad;
     ctx.beginPath();
-    ctx.arc(cx, cy, R_WIRE + 22, 0, Math.PI * 2);
-    const surroundGrad = ctx.createRadialGradient(cx - 35, cy - 35, 8, cx, cy, R_WIRE + 22);
-    surroundGrad.addColorStop(0,   '#2e2418');
-    surroundGrad.addColorStop(0.5, '#141008');
-    surroundGrad.addColorStop(1,   '#060403');
-    ctx.fillStyle = surroundGrad;
+    ctx.arc(cx + 8, cy + 14, R_SURROUND + 68, 0, Math.PI * 2);
     ctx.fill();
+
+    // ── Deep drop shadow behind the whole board ───────────────────────────
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.90)';
+    ctx.shadowBlur = 28;
+    ctx.shadowOffsetX = 6;
+    ctx.shadowOffsetY = 10;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R_SURROUND, 0, Math.PI * 2);
+    ctx.fillStyle = '#000';
+    ctx.fill();
+    ctx.restore();
+
+    // ── Outer cabinet / dark surround (R_WIRE → R_SURROUND) ───────────────
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, R_SURROUND, 0, Math.PI * 2);
+    const cabinetGrad = ctx.createRadialGradient(cx - 40, cy - 40, 20, cx, cy, R_SURROUND);
+    cabinetGrad.addColorStop(0,   '#201610');
+    cabinetGrad.addColorStop(0.6, '#0c0906');
+    cabinetGrad.addColorStop(1,   '#020201');
+    ctx.fillStyle = cabinetGrad;
+    ctx.fill();
+    ctx.restore();
+
+    // ── 3D rim bevel — disc mounted on wall, lit from upper-left ─────────
+    ctx.save();
+    ctx.lineCap = 'round';
+    // Shadow side (lower-right arc ~55% of circumference)
+    ctx.strokeStyle = 'rgba(0,0,0,0.82)';
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R_SURROUND - 4, -Math.PI * 0.1, Math.PI * 1.1);
+    ctx.stroke();
+    // Highlight side (upper-left arc ~45% of circumference)
+    ctx.strokeStyle = 'rgba(90,65,32,0.52)';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R_SURROUND - 4, Math.PI * 1.1, Math.PI * 1.9);
+    ctx.stroke();
+    // Bright specular at top (~12 o'clock)
+    ctx.strokeStyle = 'rgba(145,110,55,0.42)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R_SURROUND - 4, -Math.PI * 0.38, -Math.PI * 0.08);
+    ctx.stroke();
+    // Inner wire-edge catch-light (thin bright ring just inside the playing area)
+    ctx.strokeStyle = 'rgba(180,160,100,0.14)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R_WIRE + 3, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
 
     // ── Segment fills ──────────────────────────────────────────────────────
@@ -254,12 +303,28 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
       ctx.fill();
     }
 
-    // ── Sisal fibre texture (deterministic stipple on scoring areas) ───────
+    // ── Concave board surface shading ─────────────────────────────────────
+    // Brighter top-left, darker outer edge — simulates a shallow dish shape
+    const concaveGrad = ctx.createRadialGradient(
+      cx + 22, cy - 22, 10,
+      cx, cy, R_DOUBLE_OUT
+    );
+    concaveGrad.addColorStop(0,   'rgba(255,255,255,0.055)');
+    concaveGrad.addColorStop(0.5, 'rgba(0,0,0,0)');
+    concaveGrad.addColorStop(1,   'rgba(0,0,0,0.17)');
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, R_DOUBLE_OUT, 0, Math.PI * 2);
+    ctx.fillStyle = concaveGrad;
+    ctx.fill();
+    ctx.restore();
+
+    // ── Sisal fibre texture (directional strokes on scoring areas) ────────
     ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, R_DOUBLE_OUT, 0, Math.PI * 2);
     ctx.clip();
-    const step = 5;
+    const step = 7;
     for (let tx = cx - R_DOUBLE_OUT; tx <= cx + R_DOUBLE_OUT; tx += step) {
       for (let ty = cy - R_DOUBLE_OUT; ty <= cy + R_DOUBLE_OUT; ty += step) {
         const r2 = (tx - cx) ** 2 + (ty - cy) ** 2;
@@ -269,11 +334,21 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
         // Skip metallic scoring rings
         if (r >= R_TREBLE_IN  && r <= R_TREBLE_OUT) continue;
         if (r >= R_DOUBLE_IN  && r <= R_DOUBLE_OUT) continue;
-        // Deterministic dot using sin hash of position
+        // Deterministic hash — same pattern every frame
         const s = Math.sin(tx * 0.71 + ty * 1.33) * 0.5 + 0.5;
         if (s > 0.58) {
-          ctx.fillStyle = 'rgba(0,0,0,0.1)';
-          ctx.fillRect(tx, ty, 1, 1);
+          // Short angled stroke — reads as compressed sisal fibre
+          const fAngle = Math.atan2(ty - cy, tx - cx) + (s - 0.5) * 0.6;
+          ctx.save();
+          ctx.translate(tx, ty);
+          ctx.rotate(fAngle);
+          ctx.strokeStyle = 'rgba(0,0,0,0.11)';
+          ctx.lineWidth = 0.5;
+          ctx.beginPath();
+          ctx.moveTo(-1.5, 0);
+          ctx.lineTo(1.5, 0);
+          ctx.stroke();
+          ctx.restore();
         }
       }
     }
@@ -346,16 +421,16 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
       ctx.stroke();
     }
 
-    // ── Number labels with depth shadow ───────────────────────────────────
+    // ── Number labels — white, bold, in the dark surround ─────────────────
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.85)';
-    ctx.shadowBlur = 4;
-    ctx.font = 'bold 13px sans-serif';
+    ctx.shadowColor = 'rgba(0,0,0,0.95)';
+    ctx.shadowBlur = 5;
+    ctx.font = 'bold 17px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (let i = 0; i < 20; i++) {
       const ang = -Math.PI / 2 + i * SEG_ANG;
-      ctx.fillStyle = '#f0e8d0';
+      ctx.fillStyle = '#ffffff';
       ctx.fillText(String(SEGMENTS[i]),
         cx + Math.cos(ang) * R_NUMBERS,
         cy + Math.sin(ang) * R_NUMBERS);
@@ -364,7 +439,7 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
   }, []);
 
   // ── Draw scoreboards ─────────────────────────────────────────────────────────
-  const drawScoreboard = useCallback((ctx: CanvasRenderingContext2D, gs: DartsState, nameA: string, nameB: string, role: 'A' | 'B' | null) => {
+  const drawScoreboard = useCallback((ctx: CanvasRenderingContext2D, gs: DartsState, nameA: string, nameB: string, role: 'A' | 'B' | null, elapsed: number) => {
     const drawPanel = (x: number, y: number, w: number, h: number, player: 'A' | 'B') => {
       const isActive = gs.currentTurn === player && gs.phase !== 'finished';
       const score = player === 'A' ? gs.scoreA : gs.scoreB;
@@ -440,6 +515,18 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     ctx.fillStyle = gs.phase === 'finished' ? 'rgba(255,200,80,0.8)' : 'rgba(180,180,180,0.5)';
     ctx.fillText(roundLabel, W / 2, 230);
 
+    // Gap indicator — who's leading and by how much
+    const gap = Math.abs(gs.scoreA - gs.scoreB);
+    if (gap > 0 && (turnsA > 0 || turnsB > 0) && gs.phase !== 'finished') {
+      const leader = gs.scoreA < gs.scoreB ? nameA : nameB;
+      const isLastRound = currentRound === 3;
+      const gapAlpha = isLastRound ? 0.7 + Math.sin(elapsed * 3) * 0.3 : 0.55;
+      ctx.font = 'bold 9px monospace';
+      ctx.fillStyle = `rgba(251,191,36,${gapAlpha})`;
+      ctx.textAlign = 'center';
+      ctx.fillText(`${leader.length > 8 ? leader.slice(0, 7) + '…' : leader} \u2212${gap}`, W / 2, 247);
+    }
+
     // Current turn indicator — brighter when it's your turn, different label for opponent
     if (gs.phase !== 'finished') {
       const activeX   = gs.currentTurn === 'A' ? 77 : W - 77;
@@ -494,133 +581,219 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
   }, []);
 
   // ── Draw a realistic dart at a given position/angle (reused for landed + in-flight) ──
+  // Anatomy (tip at origin, dart extends in -X direction):
+  //   Tip   : 0 → -16   (hardened steel needle, shallow taper)
+  //   Barrel: -16 → -58  (tungsten cylinder, cross-hatch knurls, 3D shading)
+  //   Shaft : -58 → -76  (red nylon, thin cylinder)
+  //   Flights: -76 → -92 (standard teardrop, ±15px spread + edge-on third flight)
   const drawDartShape = useCallback((ctx: CanvasRenderingContext2D, tipX: number, tipY: number, angleDeg: number, scale = 1) => {
     ctx.save();
     ctx.translate(tipX, tipY);
     ctx.rotate((angleDeg * Math.PI) / 180);
     ctx.scale(scale, scale);
 
-    // === Tip — tapered metallic cone ===
-    const tipGrad = ctx.createLinearGradient(0, 0, -10, 0);
-    tipGrad.addColorStop(0, '#f8f8f8');
-    tipGrad.addColorStop(0.6, '#b8b8b8');
-    tipGrad.addColorStop(1,   '#888');
+    // ── TIP — hardened steel needle ──
+    // Gradient runs PERPENDICULAR to dart axis (Y direction) = 3D cylinder illusion
+    const tipCyl = ctx.createLinearGradient(0, -2, 0, 2);
+    tipCyl.addColorStop(0,    '#777');
+    tipCyl.addColorStop(0.3,  '#d8d8d8');
+    tipCyl.addColorStop(0.5,  '#f8f8f8');
+    tipCyl.addColorStop(0.72, '#c0c0c0');
+    tipCyl.addColorStop(1,    '#666');
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.lineTo(-1.2, -0.7);
-    ctx.lineTo(-10, 0);
-    ctx.lineTo(-1.2,  0.7);
+    ctx.lineTo(-3, -0.5);
+    ctx.lineTo(-16, -1.0);
+    ctx.lineTo(-16,  1.0);
+    ctx.lineTo(-3,  0.5);
     ctx.closePath();
-    ctx.fillStyle = tipGrad;
+    ctx.fillStyle = tipCyl;
     ctx.fill();
-
-    // === Barrel — brass / tungsten cylindrical look ===
-    const barrelGrad = ctx.createLinearGradient(0, -3.5, 0, 3.5);
-    barrelGrad.addColorStop(0,    '#f0ead8');  // top specular
-    barrelGrad.addColorStop(0.18, '#d4a84b');  // brass highlight
-    barrelGrad.addColorStop(0.5,  '#7a5420');  // mid shadow
-    barrelGrad.addColorStop(0.78, '#c89040');  // reflected light
-    barrelGrad.addColorStop(1,    '#a07030');  // bottom
-
+    // Specular glint along top edge of needle
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 0.35;
     ctx.beginPath();
-    ctx.moveTo(-10, -2);
-    ctx.lineTo(-10,  2);
-    ctx.lineTo(-30,  2.4);
-    ctx.lineTo(-30, -2.4);
+    ctx.moveTo(-1, -0.2);
+    ctx.lineTo(-15, -0.55);
+    ctx.stroke();
+    // Tip–barrel shoulder ring
+    ctx.strokeStyle = 'rgba(80,80,80,0.7)';
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    ctx.moveTo(-16, -1.0);
+    ctx.lineTo(-16,  1.0);
+    ctx.stroke();
+
+    // ── BARREL — tungsten 80% (dark silver-gray cylinder) ──
+    // Slightly wider toward the back (ergonomic taper), radius 2.0 → 3.4
+    const bFront = -16, bBack = -58;
+    const bRF = 2.0, bRB = 3.4;
+    // Perpendicular gradient = lit from above → strong 3D cylinder look
+    const barrelCyl = ctx.createLinearGradient(0, -bRB, 0, bRB);
+    barrelCyl.addColorStop(0,    '#181820');  // far edge shadow
+    barrelCyl.addColorStop(0.18, '#50505e');  // mid shadow
+    barrelCyl.addColorStop(0.38, '#90909e');  // lit zone
+    barrelCyl.addColorStop(0.5,  '#c8c8d8');  // top specular
+    barrelCyl.addColorStop(0.62, '#88889a');  // past highlight
+    barrelCyl.addColorStop(0.8,  '#3a3a48');  // lower shadow
+    barrelCyl.addColorStop(1,    '#141420');  // far edge shadow
+    ctx.beginPath();
+    ctx.moveTo(bFront, -bRF);
+    ctx.lineTo(bBack,  -bRB);
+    ctx.lineTo(bBack,   bRB);
+    ctx.lineTo(bFront,  bRF);
     ctx.closePath();
-    ctx.fillStyle = barrelGrad;
+    ctx.fillStyle = barrelCyl;
     ctx.fill();
 
-    // Specular highlight stripe along top
+    // Cross-hatch knurl texture clipped to barrel
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(-10, -1.3);
-    ctx.lineTo(-30, -1.6);
-    ctx.strokeStyle = 'rgba(255,245,200,0.55)';
-    ctx.lineWidth = 0.9;
-    ctx.stroke();
+    ctx.moveTo(bFront, -bRB - 0.5);
+    ctx.lineTo(bBack,  -bRB - 0.5);
+    ctx.lineTo(bBack,   bRB + 0.5);
+    ctx.lineTo(bFront,  bRB + 0.5);
+    ctx.closePath();
+    ctx.clip();
+    const kStep = 3.2;
+    // Forward diagonals (\)
+    ctx.strokeStyle = 'rgba(0,0,0,0.38)';
+    ctx.lineWidth = 0.55;
+    for (let kx = bFront + 1; kx >= bBack - 8; kx -= kStep) {
+      ctx.beginPath();
+      ctx.moveTo(kx,      -bRB - 1);
+      ctx.lineTo(kx - 5,   bRB + 1);
+      ctx.stroke();
+    }
+    // Back diagonals (/)
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)';
+    for (let kx = bFront + 1; kx >= bBack - 8; kx -= kStep) {
+      ctx.beginPath();
+      ctx.moveTo(kx,       bRB + 1);
+      ctx.lineTo(kx - 5,  -bRB - 1);
+      ctx.stroke();
+    }
+    // Glint highlights on ridge intersections
+    ctx.strokeStyle = 'rgba(200,210,255,0.22)';
+    ctx.lineWidth = 0.4;
+    for (let kx = bFront - 0.5; kx >= bBack; kx -= kStep) {
+      ctx.beginPath();
+      ctx.moveTo(kx,       -bRB * 0.4);
+      ctx.lineTo(kx - 1.5, -bRB * 0.2);
+      ctx.stroke();
+    }
     ctx.restore();
 
-    // Knurls — angled notches for grip texture
-    for (let kx = -11.5; kx >= -28.5; kx -= 2.5) {
-      ctx.strokeStyle = 'rgba(30,18,5,0.65)';
-      ctx.lineWidth = 0.8;
+    // Smooth grip bands at each end of barrel (ring grooves)
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = 0.9;
+    for (const rx of [bFront + 5, bBack + 4]) {
       ctx.beginPath();
-      ctx.moveTo(kx,       -2.2);
-      ctx.lineTo(kx + 0.6,  2.2);
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(255,225,140,0.28)';
-      ctx.lineWidth = 0.5;
-      ctx.beginPath();
-      ctx.moveTo(kx + 0.8, -2.2);
-      ctx.lineTo(kx + 1.3,  2.2);
+      const rr = rx === bFront + 5 ? bRF + (bRB - bRF) * 0.12 : bRB - 0.3;
+      ctx.moveTo(rx, -rr);
+      ctx.lineTo(rx,  rr);
       ctx.stroke();
     }
 
-    // === Shaft — dark carbon fibre ===
-    const shaftGrad = ctx.createLinearGradient(0, -1.5, 0, 1.5);
-    shaftGrad.addColorStop(0,    '#3a3a4a');
-    shaftGrad.addColorStop(0.45, '#1a1a28');
-    shaftGrad.addColorStop(0.7,  '#0e0e18');
-    shaftGrad.addColorStop(1,    '#2a2a3a');
+    // ── SHAFT — red nylon (thin cylinder) ──
+    const sStart = bBack, sEnd = -76;
+    const sRB = bRB, sRE = 1.5;
+    const shaftCyl = ctx.createLinearGradient(0, -sRB, 0, sRB);
+    shaftCyl.addColorStop(0,    '#5a0000');
+    shaftCyl.addColorStop(0.3,  '#bb1111');
+    shaftCyl.addColorStop(0.5,  '#ee3333');
+    shaftCyl.addColorStop(0.68, '#bb1111');
+    shaftCyl.addColorStop(1,    '#440000');
     ctx.beginPath();
-    ctx.moveTo(-30, -1.5);
-    ctx.lineTo(-30,  1.5);
-    ctx.lineTo(-40,  1.1);
-    ctx.lineTo(-40, -1.1);
+    ctx.moveTo(sStart, -sRB);
+    ctx.lineTo(sStart,  sRB);
+    ctx.lineTo(sEnd,    sRE);
+    ctx.lineTo(sEnd,   -sRE);
     ctx.closePath();
-    ctx.fillStyle = shaftGrad;
+    ctx.fillStyle = shaftCyl;
     ctx.fill();
-    // Carbon sheen
-    ctx.strokeStyle = 'rgba(110,110,160,0.38)';
-    ctx.lineWidth = 0.45;
-    ctx.beginPath();
-    ctx.moveTo(-30, -0.7);
-    ctx.lineTo(-40, -0.4);
-    ctx.stroke();
-
-    // === Flights — curved pear / teardrop shape ===
-    const flightGradU = ctx.createLinearGradient(-55, -12, -40, 0);
-    flightGradU.addColorStop(0,   'rgba(35,95,255,0.88)');
-    flightGradU.addColorStop(0.55,'rgba(65,135,255,0.92)');
-    flightGradU.addColorStop(1,   'rgba(90,165,255,0.72)');
-
-    // Upper flight
-    ctx.beginPath();
-    ctx.moveTo(-40, 0);
-    ctx.quadraticCurveTo(-49, -5, -55, -12);
-    ctx.quadraticCurveTo(-50, -4, -44, -1);
-    ctx.closePath();
-    ctx.fillStyle = flightGradU;
-    ctx.fill();
-    // Upper vein
-    ctx.strokeStyle = 'rgba(190,225,255,0.65)';
+    // Specular stripe on shaft
+    ctx.strokeStyle = 'rgba(255,160,160,0.32)';
     ctx.lineWidth = 0.5;
     ctx.beginPath();
-    ctx.moveTo(-40, 0);
-    ctx.quadraticCurveTo(-47.5, -3, -55, -12);
+    ctx.moveTo(sStart - 1, -sRB * 0.45);
+    ctx.lineTo(sEnd   + 1, -sRE * 0.3);
     ctx.stroke();
 
-    const flightGradL = ctx.createLinearGradient(-55, 12, -40, 0);
-    flightGradL.addColorStop(0,   'rgba(35,95,255,0.88)');
-    flightGradL.addColorStop(0.55,'rgba(65,135,255,0.92)');
-    flightGradL.addColorStop(1,   'rgba(90,165,255,0.72)');
+    // ── FLIGHTS — standard teardrop/pear (two visible + one edge-on) ──
+    const fBase = sEnd; // -76
+    const fLen  = 18;   // how far back flights extend
+    const fW    = 15;   // max lateral spread
 
-    // Lower flight
+    // Helper: draw one teardrop flight petal
+    const drawFlightPetal = (sign: number) => {
+      // sign = -1 (upper) or +1 (lower)
+      ctx.beginPath();
+      ctx.moveTo(fBase, 0);
+      // Narrow at base, widens out, then rounds into teardrop bulge
+      ctx.bezierCurveTo(
+        fBase - fLen * 0.18, sign *  2,
+        fBase - fLen * 0.45, sign * (fW * 0.95),
+        fBase - fLen * 0.62, sign * fW
+      );
+      ctx.bezierCurveTo(
+        fBase - fLen * 0.82, sign * (fW * 0.88),
+        fBase - fLen * 0.96, sign * (fW * 0.48),
+        fBase - fLen,        sign *  sRE * 0.8
+      );
+      ctx.lineTo(fBase - fLen, 0);
+      ctx.closePath();
+
+      const fg = ctx.createLinearGradient(fBase - fLen * 0.5, sign * fW, fBase, 0);
+      fg.addColorStop(0,   sign < 0 ? 'rgba(30,80,220,0.95)' : 'rgba(25,70,200,0.92)');
+      fg.addColorStop(0.45,'rgba(60,120,255,0.92)');
+      fg.addColorStop(0.78,'rgba(80,150,255,0.85)');
+      fg.addColorStop(1,   'rgba(50,100,220,0.6)');
+      ctx.fillStyle = fg;
+      ctx.fill();
+
+      // Outline
+      ctx.strokeStyle = 'rgba(10,30,130,0.55)';
+      ctx.lineWidth = 0.4;
+      ctx.stroke();
+
+      // Central vein
+      ctx.strokeStyle = 'rgba(180,210,255,0.6)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(fBase - 1, sign * sRE * 0.3);
+      ctx.quadraticCurveTo(
+        fBase - fLen * 0.5, sign * fW * 0.62,
+        fBase - fLen + 1,   sign * sRE * 0.5
+      );
+      ctx.stroke();
+
+      // Surface sheen on petal
+      ctx.strokeStyle = sign < 0 ? 'rgba(140,190,255,0.28)' : 'rgba(100,160,255,0.22)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(fBase - fLen * 0.28, sign * fW * 0.42);
+      ctx.quadraticCurveTo(
+        fBase - fLen * 0.5,  sign * fW * 0.76,
+        fBase - fLen * 0.75, sign * fW * 0.65
+      );
+      ctx.stroke();
+    };
+
+    drawFlightPetal(-1); // upper
+    drawFlightPetal(1);  // lower
+
+    // Third flight edge-on (perpendicular) — thin ellipse with gradient
+    ctx.save();
+    const edgeGrad = ctx.createLinearGradient(fBase - fLen, 0, fBase, 0);
+    edgeGrad.addColorStop(0,   'rgba(25,70,200,0.8)');
+    edgeGrad.addColorStop(0.5, 'rgba(80,150,255,0.9)');
+    edgeGrad.addColorStop(1,   'rgba(40,90,210,0.5)');
     ctx.beginPath();
-    ctx.moveTo(-40, 0);
-    ctx.quadraticCurveTo(-49,  5, -55,  12);
-    ctx.quadraticCurveTo(-50,  4, -44,   1);
-    ctx.closePath();
-    ctx.fillStyle = flightGradL;
+    ctx.ellipse(fBase - fLen * 0.5, 0, fLen * 0.5, 1.6, 0, 0, Math.PI * 2);
+    ctx.fillStyle = edgeGrad;
     ctx.fill();
-    // Lower vein
-    ctx.strokeStyle = 'rgba(190,225,255,0.65)';
-    ctx.lineWidth = 0.5;
-    ctx.beginPath();
-    ctx.moveTo(-40, 0);
-    ctx.quadraticCurveTo(-47.5, 3, -55, 12);
-    ctx.stroke();
+    ctx.restore();
 
     ctx.restore();
   }, []);
@@ -630,17 +803,59 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     for (const d of darts) {
       if (d.score === 0 && d.segment === 0) continue; // miss — skip visual on board
 
-      // Drop shadow — gives the illusion the dart is embedded in the board
+      // Pre-pass: elongated barrel contact shadow drawn manually on the board surface.
+      // The dart is at -42°; the barrel extends ~42px in direction (cos(138°), sin(138°)).
+      // Shallow angle like a real throw (~20°), with small deterministic variation per dart
+      // so multiple darts in the same turn don't look identical.
+      const dartDeg = -20 + ((Math.abs(d.x * 7 + d.y * 13) % 12) - 6); // ±6° variation
+      const dartAngleRad = (dartDeg * Math.PI) / 180;
+
+      // Contact shadow — elongated ellipse along the barrel axis
+      const barrelDirX = Math.cos(dartAngleRad + Math.PI);
+      const barrelDirY = Math.sin(dartAngleRad + Math.PI);
+      // Contact shadow scaled to match dart scale (0.38 × 26px barrel midpoint ≈ 10px)
+      const shadowMidX = d.x + barrelDirX * 10 + 3;
+      const shadowMidY = d.y + barrelDirY * 10 + 5;
       ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.55)';
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 3;
-      drawDartShape(ctx, d.x, d.y, -42);
+      ctx.translate(shadowMidX, shadowMidY);
+      ctx.rotate(dartAngleRad);
+      ctx.scale(1.8, 0.45);
+      const contactGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 10);
+      contactGrad.addColorStop(0,   'rgba(0,0,0,0.55)');
+      contactGrad.addColorStop(0.5, 'rgba(0,0,0,0.25)');
+      contactGrad.addColorStop(1,   'rgba(0,0,0,0)');
+      ctx.fillStyle = contactGrad;
+      ctx.beginPath();
+      ctx.arc(0, 0, 10, 0, Math.PI * 2);
+      ctx.fill();
       ctx.restore();
 
-      // Score label
+      // Pass 1: directional canvas shadow (light from upper-left → lower-right)
+      ctx.save();
+      ctx.shadowColor   = 'rgba(0,0,0,0.78)';
+      ctx.shadowBlur    = 10;
+      ctx.shadowOffsetX = 4;
+      ctx.shadowOffsetY = 6;
+      drawDartShape(ctx, d.x, d.y, dartDeg, 0.38);
+      ctx.restore();
+
+      // Pass 2: crisp dart on top
+      drawDartShape(ctx, d.x, d.y, dartDeg, 0.38);
+
+      // Entry hole — dark radial gradient where tip punctures the sisal
+      const holeGrad = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, 5);
+      holeGrad.addColorStop(0,   'rgba(0,0,0,0.80)');
+      holeGrad.addColorStop(0.45,'rgba(0,0,0,0.42)');
+      holeGrad.addColorStop(1,   'rgba(0,0,0,0)');
+      ctx.fillStyle = holeGrad;
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Score label — offset perpendicular to dart (above the barrel)
       if (d.score > 0) {
+        const perpX = -Math.sin(dartAngleRad) * 14;
+        const perpY =  Math.cos(dartAngleRad) * 14;
         ctx.font = 'bold 9px monospace';
         ctx.fillStyle = d.multiplier === 2 ? '#6cf' : d.multiplier === 3 ? '#fc6' : '#fff';
         ctx.textAlign = 'center';
@@ -648,7 +863,7 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
         ctx.shadowColor = 'rgba(0,0,0,0.8)';
         ctx.shadowBlur = 4;
         const label = d.multiplier > 1 ? `${d.multiplier}×${d.segment}` : String(d.score);
-        ctx.fillText(label, d.x + 20, d.y - 16);
+        ctx.fillText(label, d.x + barrelDirX * 8 + perpX, d.y + barrelDirY * 8 + perpY);
         ctx.shadowBlur = 0;
       }
     }
@@ -684,17 +899,60 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
   }, [drawDartShape]);
 
   // ── Draw aim guide (shown while dragging) ───────────────────────────────────
-  // The cursor position IS the aim point. Dart sits at the press point, a dashed
-  // line connects press → cursor, pulsing circle marks where it'll land.
+  // Hold longer → steadiness ring shrinks → wobble amplitude decreases → tighter scatter
   const drawAimGuide = useCallback((
     ctx: CanvasRenderingContext2D,
-    drag: { startX: number; startY: number; curX: number; curY: number },
+    drag: { startX: number; startY: number; curX: number; curY: number; startMs: number },
+    elapsed: number,
   ) => {
-    const { startX, startY, curX, curY } = drag;
+    const { startX, startY, curX, curY, startMs } = drag;
 
-    // Dart stays at press point, angled toward where you're dragging
+    // Steadiness: 0 = just pressed, 1 = fully steady (800ms hold)
+    const holdMs = Math.min(Date.now() - startMs, 800);
+    const steadiness = holdMs / 800;
+
+    // Wobble — two overlapping sine waves at different frequencies
+    const wobbleAmp = 18 * (1 - steadiness);
+    const wobbleX = Math.sin(elapsed * 3.1 + 0.4) * wobbleAmp;
+    const wobbleY = Math.cos(elapsed * 2.3 + 1.1) * wobbleAmp;
+    const aimX = curX + wobbleX;
+    const aimY = curY + wobbleY;
+
+    // Dart at press point angled toward cursor (unchanged visual)
     const angleDeg = Math.atan2(curY - startY, curX - startX) * 180 / Math.PI;
     drawDartShape(ctx, startX, startY, angleDeg, 1.15);
+
+    ctx.save();
+
+    // Steadiness ring: dashed circle that shrinks as you hold (28px → 6px)
+    const ringR = 6 + (1 - steadiness) * 22;
+    const ringAlpha = 0.3 + steadiness * 0.35;
+    ctx.strokeStyle = `rgba(255,255,255,${ringAlpha})`;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.arc(aimX, aimY, ringR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Projected landing dot: pulsing crosshair at the wobbled aim point
+    const pulse = 0.6 + Math.sin(elapsed * 8) * 0.4;
+    ctx.globalAlpha = pulse * 0.85;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(aimX, aimY, 5, 0, Math.PI * 2);
+    ctx.stroke();
+    // Corner ticks
+    ctx.lineWidth = 0.8;
+    for (const [tdx, tdy] of [[-12,-12],[12,12],[-12,12],[12,-12]] as const) {
+      ctx.beginPath();
+      ctx.moveTo(aimX + tdx * 0.3, aimY + tdy * 0.3);
+      ctx.lineTo(aimX + tdx, aimY + tdy);
+      ctx.stroke();
+    }
+
+    ctx.restore();
   }, [drawDartShape]);
 
   // ── Draw big score flash when a dart lands ───────────────────────────────────
@@ -745,7 +1003,7 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     ctx.shadowBlur  = 28;
 
     // Big score number
-    ctx.font        = 'bold 68px sans-serif';
+    ctx.font        = 'bold 68px DartsDisplay, Impact, sans-serif';
     ctx.fillStyle   = scoreColor;
     ctx.fillText(scoreLabel, BOARD_CX, flashY);
 
@@ -756,6 +1014,16 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
       ctx.fillStyle   = 'rgba(255,255,255,0.75)';
       ctx.letterSpacing = '2px';
       ctx.fillText(typeLabel, BOARD_CX, flashY - 40);
+    }
+
+    // Near-miss: landed just outside a double or treble ring
+    if (nearMissRef.current && ls.multiplier === 1 && !isMiss) {
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = 'rgba(255,200,80,0.6)';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillStyle = 'rgba(255,200,80,0.9)';
+      ctx.letterSpacing = '1px';
+      ctx.fillText('SO CLOSE', BOARD_CX, flashY + 34);
     }
 
     ctx.restore();
@@ -845,7 +1113,7 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
 
       drawBackground(ctx);
       drawBoard(ctx);
-      drawScoreboard(ctx, gs, displayNameA, displayNameB, role);
+      drawScoreboard(ctx, gs, displayNameA, displayNameB, role, elapsed);
       drawDarts(ctx, gs.currentDarts);
       if (f && f.active) drawFlight(ctx);
       drawScoreFlash(ctx, now);
@@ -854,7 +1122,7 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
       // Aim guide / throw hint (only when it's your turn and not in bust/showing)
       if (gs.phase !== 'showing' && gs.phase !== 'bust' && gs.phase !== 'finished') {
         if (dragRef.current) {
-          drawAimGuide(ctx, dragRef.current);
+          drawAimGuide(ctx, dragRef.current, elapsed);
         } else if (isMyTurn) {
           drawThrowHint(ctx);
         }
@@ -944,17 +1212,31 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     // Require minimum drag — short tap cancels
     if (dist < 15) return;
 
-    // Aim point = where the cursor ended up
-    const aimX = drag.curX;
-    const aimY = drag.curY;
+    // Steadiness: how long the player held before releasing (capped at 800ms)
+    const holdMs = Math.min(Date.now() - drag.startMs, 800);
+    const steadiness = holdMs / 800; // 0 = instant tap, 1 = fully steady
 
-    // Deviation based on distance from board centre (harder to nail far shots)
-    const dxB = aimX - BOARD_CX;
-    const dyB = aimY - BOARD_CY;
+    // Wobble offset at the moment of release — matches what was shown on screen
+    const t = startTimeRef.current !== null ? (performance.now() - startTimeRef.current) / 1000 : 0;
+    const wobbleAmp = 18 * (1 - steadiness);
+    const curX = drag.curX + Math.sin(t * 3.1 + 0.4) * wobbleAmp;
+    const curY = drag.curY + Math.cos(t * 2.3 + 1.1) * wobbleAmp;
+
+    // Deviation: reduced by up to 70% at full steadiness
+    const dxB = curX - BOARD_CX;
+    const dyB = curY - BOARD_CY;
     const distFromCenter = Math.sqrt(dxB * dxB + dyB * dyB);
-    const sigma = 8 + (distFromCenter / R_DOUBLE_OUT) * 10;
-    const landX = aimX + gaussianRand() * sigma;
-    const landY = aimY + gaussianRand() * sigma;
+    const baseSigma = 8 + (distFromCenter / R_DOUBLE_OUT) * 10;
+    const sigma = baseSigma * (1 - steadiness * 0.7);
+    const landX = curX + gaussianRand() * sigma;
+    const landY = curY + gaussianRand() * sigma;
+
+    // Near-miss: landed just outside a double or treble ring boundary
+    const rLand = Math.sqrt((landX - BOARD_CX) ** 2 + (landY - BOARD_CY) ** 2);
+    const nearestRingDist = Math.min(
+      ...[R_TREBLE_IN, R_TREBLE_OUT, R_DOUBLE_IN, R_DOUBLE_OUT].map(rb => Math.abs(rLand - rb))
+    );
+    nearMissRef.current = nearestRingDist < 5;
 
     // Flight animation from press point to landing
     flightRef.current = {
