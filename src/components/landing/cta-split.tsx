@@ -5,7 +5,7 @@ export function CtaSplit() {
   return (
     <section className="py-20 lg:py-28 bg-elevated">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
+        <div className="max-w-2xl mx-auto">
           {/* Player CTA — brand green */}
           <div
             className="rounded-2xl text-white p-8 lg:p-10 flex flex-col"
@@ -25,29 +25,6 @@ export function CtaSplit() {
               className="mt-auto inline-flex items-center justify-center gap-2 h-12 px-6 mt-8 rounded-lg bg-white text-[#047857] font-semibold hover:bg-white/95 active:scale-[0.98] transition-all w-fit"
             >
               Get Started
-              <ArrowRight size={16} />
-            </Link>
-          </div>
-
-          {/* Developer CTA — teal cyan */}
-          <div
-            className="rounded-2xl p-8 lg:p-10 flex flex-col text-white"
-            style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)' }}
-          >
-            <div className="text-xs font-semibold uppercase tracking-widest text-white/80 mb-3">
-              I&apos;m a developer
-            </div>
-            <h3 className="font-display text-3xl lg:text-4xl font-bold leading-tight">
-              Integrate today and earn revenue share on every bet.
-            </h3>
-            <p className="mt-4 text-white/85 text-base lg:text-lg">
-              Drop in the widget, pass your game ID, and start earning a share of every wager placed in your game.
-            </p>
-            <Link
-              href="/developer"
-              className="mt-auto inline-flex items-center justify-center gap-2 h-12 px-6 mt-8 rounded-lg bg-white text-[#0e7490] font-semibold hover:bg-white/95 active:scale-[0.98] transition-all w-fit"
-            >
-              Developer Portal
               <ArrowRight size={16} />
             </Link>
           </div>

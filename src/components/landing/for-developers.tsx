@@ -1,9 +1,5 @@
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
-import { Bot, User, CheckCircle2, Zap, Shield, Clock, Eye, Banknote, ArrowRight, Gavel, Users, Brain, AlertTriangle, FileCheck } from 'lucide-react';
-import { Dialog } from '@/components/ui/Dialog';
+import { Bot, User, CheckCircle2, ArrowRight, Gavel, Users } from 'lucide-react';
 
 const AI_FEATURES = [
   'Watches game state in real-time',
@@ -27,9 +23,6 @@ const STEPS = [
 ];
 
 export function ForDevelopers() {
-  const [showAiModal, setShowAiModal] = useState(false);
-  const [showHumanModal, setShowHumanModal] = useState(false);
-
   return (
     <section id="for-referees" className="py-20 lg:py-28 bg-elevated">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -76,13 +69,13 @@ export function ForDevelopers() {
                 ))}
               </ul>
 
-              <button
-                onClick={() => setShowAiModal(true)}
+              <Link
+                href="/referees/ai"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-[#0891b2] dark:text-[#22d3ee] hover:opacity-80 transition-opacity"
               >
                 How AI refereeing works
                 <ArrowRight size={14} />
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -113,13 +106,13 @@ export function ForDevelopers() {
                 ))}
               </ul>
 
-              <button
-                onClick={() => setShowHumanModal(true)}
+              <Link
+                href="/referees/human"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 dark:text-brand-400 hover:opacity-80 transition-opacity"
               >
                 How human refereeing works
                 <ArrowRight size={14} />
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -141,100 +134,7 @@ export function ForDevelopers() {
         </div>
       </div>
 
-      {/* AI Referee Modal */}
-      <Dialog open={showAiModal} onClose={() => setShowAiModal(false)} title="How AI Refereeing Works">
-        <div className="space-y-5 mt-1">
-          <ModalSection
-            icon={<Brain size={16} />}
-            color="cyan"
-            heading="What it is"
-            body="A rules engine connected directly to the game session. It reads game state events in real-time (scores, turns, outcomes) and verifies the reported result matches the actual game data before any settlement is triggered."
-          />
-          <ModalSection
-            icon={<Shield size={16} />}
-            color="cyan"
-            heading="Why it's reliable"
-            body="No human error, no bias, no subjectivity. The AI applies the same rules to every match, every time. Every decision is logged to an immutable audit trail cryptographically tied to the bet ID."
-          />
-          <ModalSection
-            icon={<Zap size={16} />}
-            color="cyan"
-            heading="How it's triggered"
-            body="When a match ends, the AI referee runs automatically within seconds. If the result is clean, settlement proceeds immediately. If an anomaly is detected, the match is flagged for human review before any funds move."
-          />
-          <ModalSection
-            icon={<FileCheck size={16} />}
-            color="cyan"
-            heading="Trust & transparency"
-            body="Every AI decision produces a signed verification record. Players can view the full audit log for their match at any time: exactly what was checked, what was found, and what decision was made."
-          />
-        </div>
-      </Dialog>
-
-      {/* Human Referee Modal */}
-      <Dialog open={showHumanModal} onClose={() => setShowHumanModal(false)} title="How Human Refereeing Works">
-        <div className="space-y-5 mt-1">
-          <ModalSection
-            icon={<Users size={16} />}
-            color="green"
-            heading="What it is"
-            body="Verified PlayStake community members who sign up to watch live matches and confirm the outcome is legitimate. Human referees bring real judgement to edge cases that automated systems can't always resolve."
-          />
-          <ModalSection
-            icon={<Gavel size={16} />}
-            color="green"
-            heading="How you get assigned"
-            body="When a match starts that needs a human referee, all opted-in referees receive a notification. The first to accept gets the match. You can accept as many or as few as you like, with no minimum commitment."
-          />
-          <ModalSection
-            icon={<Eye size={16} />}
-            color="green"
-            heading="What you do"
-            body="Watch the match live via the spectator view. When it ends, confirm the winner. If something looks wrong (a disconnect, a rule dispute, suspicious behaviour), flag it and a full dispute review is triggered."
-          />
-          <ModalSection
-            icon={<Banknote size={16} />}
-            color="green"
-            heading="How you earn"
-            body="A referee fee is automatically credited to your wallet after settlement. The fee comes from the platform, not from the players. More matches refereed = more earnings. Payouts follow the standard withdrawal process."
-          />
-          <ModalSection
-            icon={<AlertTriangle size={16} />}
-            color="green"
-            heading="Who can do it"
-            body="Any verified PlayStake user can apply to become a referee. No special equipment or skills required — just a stable internet connection and a working knowledge of the game you're officiating."
-          />
-        </div>
-      </Dialog>
     </section>
-  );
-}
-
-function ModalSection({
-  icon,
-  color,
-  heading,
-  body,
-}: {
-  icon: React.ReactNode;
-  color: 'cyan' | 'green';
-  heading: string;
-  body: string;
-}) {
-  const iconClass = color === 'cyan'
-    ? 'text-[#22d3ee] bg-[#06b6d4]/15'
-    : 'text-brand-400 bg-brand-400/15';
-
-  return (
-    <div>
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className={`flex h-6 w-6 items-center justify-center rounded-md ${iconClass}`}>
-          {icon}
-        </span>
-        <h3 className="text-sm font-semibold text-text-primary font-sans">{heading}</h3>
-      </div>
-      <p className="text-sm text-text-secondary font-sans leading-relaxed pl-8">{body}</p>
-    </div>
   );
 }
 
