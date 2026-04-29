@@ -9,15 +9,11 @@ import {
   Wallet,
   Swords,
   Settings,
-  Play,
   Gamepad2,
-  Key,
-  Webhook,
   Star,
   Users,
   Scale,
   AlertTriangle,
-  Code2,
   Menu,
   X,
 } from 'lucide-react';
@@ -41,14 +37,6 @@ const playerNav: NavItem[] = [
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
-const developerNav: NavItem[] = [
-  { label: 'Overview', href: '/developer', icon: Play },
-  { label: 'Games', href: '/developer/games', icon: Gamepad2 },
-  { label: 'API Keys', href: '/developer/api-keys', icon: Key },
-  { label: 'Webhooks', href: '/developer/webhooks', icon: Webhook },
-  { label: 'SDK Demo', href: '/developer/sdk-demo', icon: Code2 },
-];
-
 const adminNav: NavItem[] = [
   { label: 'Overview', href: '/admin', icon: Star },
   { label: 'Users', href: '/admin/users', icon: Users },
@@ -59,8 +47,6 @@ const adminNav: NavItem[] = [
 export function Sidebar({ userRole }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const isDeveloper = userRole === 'DEVELOPER' || userRole === 'ADMIN';
 
   return (
     <>
@@ -112,22 +98,6 @@ export function Sidebar({ userRole }: SidebarProps) {
               onClick={() => setMobileOpen(false)}
             />
           ))}
-
-          {isDeveloper && (
-            <>
-              <div className="mt-6 mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-fg-muted">
-                Developer
-              </div>
-              {developerNav.map((item) => (
-                <NavLink
-                  key={item.href}
-                  item={item}
-                  active={isActive(pathname, item.href)}
-                  onClick={() => setMobileOpen(false)}
-                />
-              ))}
-            </>
-          )}
 
           {userRole === 'ADMIN' && (
             <>
@@ -188,7 +158,6 @@ function NavLink({
 
 function isActive(pathname: string, href: string): boolean {
   if (href === '/dashboard') return pathname === '/dashboard';
-  if (href === '/developer') return pathname === '/developer';
   if (href === '/admin') return pathname === '/admin';
   if (href === '/play') return pathname.startsWith('/play');
   return pathname.startsWith(href);

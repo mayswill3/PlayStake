@@ -97,11 +97,6 @@ export function Footer() {
                   Support
                 </a>
               </li>
-              <li>
-                <Link href="/developer" className="text-sm text-fg-secondary hover:text-brand-600 transition-colors">
-                  Developers
-                </Link>
-              </li>
             </ul>
           </div>
         </div>

@@ -120,23 +120,6 @@ export function Header({ user, balance }: HeaderProps) {
                   >
                     Settings
                   </Link>
-                  {(user.role === 'DEVELOPER' || user.role === 'ADMIN') ? (
-                    <Link
-                      href="/developer"
-                      className="block px-4 py-2 text-sm text-fg-secondary hover:text-fg hover:bg-elevated transition-colors"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      Developer Portal
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/developer"
-                      className="block px-4 py-2 text-sm text-fg-secondary hover:text-fg hover:bg-elevated transition-colors"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      Become a Developer
-                    </Link>
-                  )}
                   <button
                     onClick={handleLogout}
                     className="w-full text-left px-4 py-2 text-sm text-danger-500 hover:bg-elevated transition-colors"
