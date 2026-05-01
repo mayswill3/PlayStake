@@ -2,6 +2,7 @@ import { LandingNav } from '@/components/landing/nav';
 import { Hero } from '@/components/landing/hero';
 import { HowItWorks } from '@/components/landing/how-it-works';
 import { ForPlayers } from '@/components/landing/for-players';
+import { ForReferees } from '@/components/landing/for-referees';
 import { StatsSection } from '@/components/landing/stats-section';
 import { CtaSplit } from '@/components/landing/cta-split';
 import { Footer } from '@/components/layout/Footer';
@@ -13,7 +14,8 @@ export default function LandingPage() {
       <Hero />
       <HowItWorks />
       <ForPlayers />
-<StatsSection />
+      <ForReferees />
+      <StatsSection />
       <CtaSplit />
       <Footer />
     </main>
