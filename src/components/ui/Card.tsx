@@ -1,8 +1,4 @@
-import { type ComponentProps } from 'react';
-
-interface CardProps extends ComponentProps<'div'> {
-  padding?: 'none' | 'sm' | 'md' | 'lg';
-}
+import { type ComponentProps, type CSSProperties } from 'react';
 
 const paddingStyles = {
   none: '',
@@ -11,14 +7,51 @@ const paddingStyles = {
   lg: 'p-8',
 } as const;
 
-export function Card({ padding = 'md', className = '', children, ...props }: CardProps) {
+interface CardProps extends ComponentProps<'div'> {
+  padding?: keyof typeof paddingStyles;
+  /**
+   * glass: glassmorphism variant for always-dark esports surfaces.
+   * Uses --glass-* tokens. Optional `neon` prop activates the neon border.
+   */
+  variant?: 'default' | 'glass';
+  neon?: 'green' | 'cyan' | false;
+}
+
+export function Card({
+  padding = 'md',
+  variant = 'default',
+  neon = false,
+  className = '',
+  children,
+  style,
+  ...props
+}: CardProps) {
+  const glassStyle: CSSProperties =
+    variant === 'glass'
+      ? {
+          background: 'var(--glass-bg)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: `1px solid ${
+            neon === 'green'
+              ? 'var(--glass-border-neon)'
+              : neon === 'cyan'
+              ? 'var(--glass-border-cyan)'
+              : 'var(--glass-border)'
+          }`,
+          boxShadow: 'var(--glass-shadow)',
+        }
+      : {};
+
   return (
     <div
       className={`
-        rounded-xl border border-themed bg-card
+        rounded-xl
+        ${variant === 'default' ? 'border border-themed bg-card' : ''}
         ${paddingStyles[padding]}
         ${className}
       `}
+      style={{ ...glassStyle, ...style }}
       {...props}
     >
       {children}

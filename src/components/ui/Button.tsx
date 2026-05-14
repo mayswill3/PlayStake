@@ -12,12 +12,25 @@ const variantStyles = {
     'bg-danger-500 text-white hover:bg-danger-600 focus-visible:ring-danger-500',
   ghost:
     'bg-transparent text-surface-300 hover:text-surface-100 hover:bg-surface-800 focus-visible:ring-surface-500',
+  /**
+   * landing-primary: for use on the always-dark landing surface.
+   * Bright neon green fill with glow on hover; meets 4.5:1 contrast
+   * against surface-950 (#0a0a0f) background.
+   */
+  'landing-primary':
+    'bg-brand-500 text-surface-950 hover:bg-brand-400 btn-glow-hover focus-visible:ring-brand-400',
+  /**
+   * landing-ghost: neon green outline button for secondary landing CTAs.
+   */
+  'landing-ghost':
+    'border border-brand-500/30 text-brand-400 hover:border-brand-500/60 hover:text-brand-300 focus-visible:ring-brand-400',
 } as const;
 
+/** Minimum 44px touch target on all sizes (WCAG 2.5.5 AA). */
 const sizeStyles = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-sm',
-  lg: 'px-6 py-3 text-base',
+  sm: 'px-3 min-h-[36px] text-sm',
+  md: 'px-4 min-h-[44px] text-sm',
+  lg: 'px-6 min-h-[44px] text-base',
 } as const;
 
 interface ButtonProps extends ComponentProps<'button'> {
@@ -27,7 +40,18 @@ interface ButtonProps extends ComponentProps<'button'> {
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = 'primary', size = 'md', loading = false, disabled, className = '', children, ...props }, ref) => {
+  (
+    {
+      variant = 'primary',
+      size = 'md',
+      loading = false,
+      disabled,
+      className = '',
+      children,
+      ...props
+    },
+    ref,
+  ) => {
     return (
       <button
         ref={ref}
@@ -49,7 +73,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {children}
       </button>
     );
-  }
+  },
 );
 
 Button.displayName = 'Button';
