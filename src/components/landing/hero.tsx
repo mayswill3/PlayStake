@@ -1,158 +1,126 @@
-import Link from 'next/link';
-import { Play, TrendingUp, CheckCircle2, Star } from 'lucide-react';
+import { PhoneMockup } from '@/components/ui/PhoneMockup';
+import { TrustStrip } from '@/components/ui/TrustStrip';
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-20 lg:pt-24 lg:pb-32">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* Text content */}
-          <div className="text-center lg:text-left">
-            {/* Badge pill */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-brand-600/20 bg-brand-600/10 px-3 py-1 text-sm font-medium text-brand-700 dark:text-brand-400 animate-fade-up">
-              <span>🎮</span>
-              <span>Real money. Real stakes.</span>
-            </div>
+    <>
+      <section
+        id="hero"
+        className="relative overflow-hidden pt-10 pb-12 sm:pb-16 lg:pt-16 lg:pb-24"
+      >
+        {/* Ambient glow blobs — decorative */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div
+            className="absolute -top-48 -left-48 h-[600px] w-[600px] rounded-full"
+            style={{ background: 'rgba(34,197,94,0.07)', filter: 'blur(100px)' }}
+          />
+          <div
+            className="absolute top-1/2 -right-40 h-96 w-96 rounded-full"
+            style={{ background: 'rgba(6,182,212,0.05)', filter: 'blur(80px)' }}
+          />
+        </div>
 
-            {/* Headline — action verbs in brand gradient */}
-            <h1 className="mt-6 font-display text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight text-fg">
-              <span className="block animate-fade-up animate-fade-up-delay-100">
-                <span
-                  className="bg-clip-text text-transparent"
-                  style={{ backgroundImage: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' }}
-                >
-                  Play
-                </span>
-                {' your game.'}
-              </span>
-              <span className="block animate-fade-up animate-fade-up-delay-200">
-                <span
-                  className="bg-clip-text text-transparent"
-                  style={{ backgroundImage: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
-                >
-                  Stake
-                </span>
-                {' your skill.'}
-              </span>
-              <span className="block animate-fade-up animate-fade-up-delay-300">
-                <span
-                  className="bg-clip-text text-transparent"
-                  style={{ backgroundImage: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)' }}
-                >
-                  Earn
-                </span>
-                {' your winnings.'}
-              </span>
-            </h1>
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
-            {/* Subheadline */}
-            <p className="mt-6 text-lg text-fg-secondary max-w-xl mx-auto lg:mx-0 animate-fade-up animate-fade-up-delay-400">
-              PlayStake is the peer-to-peer wagering platform that lets competitive gamers bet real money against each other — directly, fairly, instantly.
-            </p>
+            {/* ── Text column ── */}
+            <div className="text-center lg:text-left order-2 lg:order-1">
 
-            {/* CTAs */}
-            <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start animate-fade-up animate-fade-up-delay-500">
-              <Link
-                href="/register"
-                className="inline-flex items-center justify-center h-12 px-7 rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-700 active:scale-[0.98] transition-all shadow-sm"
+              {/* Pill badge */}
+              <div
+                className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-brand-400 animate-fade-up"
+                style={{
+                  background: 'rgba(34,197,94,0.09)',
+                  border: '1px solid rgba(34,197,94,0.22)',
+                }}
               >
-                Get Started
-              </Link>
-              <Link
-                href="#how-it-works"
-                className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-lg border border-themed text-fg font-semibold hover:bg-elevated active:scale-[0.98] transition-all"
-              >
-                <Play size={16} fill="currentColor" />
-                Watch how it works
-              </Link>
-            </div>
+                <span className="relative flex h-2 w-2" aria-hidden="true">
+                  <span className="absolute h-full w-full rounded-full bg-brand-400 opacity-75 animate-opponent-pulse" />
+                  <span className="relative h-2 w-2 rounded-full bg-brand-400" />
+                </span>
+                P2P · Not the house
+              </div>
 
-            {/* Social proof bar */}
-            <div className="mt-10 pt-6 border-t border-themed animate-fade-up animate-fade-up-delay-500">
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 justify-center lg:justify-start text-sm text-fg-muted">
-                <div className="flex items-center gap-2">
-                  <TrendingUp size={16} className="text-brand-600" />
-                  <span className="tabular-nums font-semibold text-fg">$200K+</span>
-                  <span>paid out</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 size={16} className="text-brand-600" />
-                  <span className="tabular-nums font-semibold text-fg">12,000+</span>
-                  <span>bets settled</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Star size={16} className="text-amber-500" fill="currentColor" />
-                  <span className="tabular-nums font-semibold text-fg">4.9</span>
-                  <span>player rating</span>
+              {/* H1 */}
+              <h1
+                className="mt-5 font-display leading-[1.05] tracking-tight text-fg animate-fade-up animate-fade-up-delay-100"
+                style={{ fontSize: 'clamp(2.4rem, 5vw, 3.5rem)', fontWeight: 800 }}
+              >
+                Play for Stakes.
+                <span
+                  className="block bg-clip-text text-transparent animate-fade-up animate-fade-up-delay-200"
+                  style={{
+                    backgroundImage: 'linear-gradient(100deg, #22c55e 0%, #06b6d4 100%)',
+                  }}
+                >
+                  Beat Real Players.
+                </span>
+              </h1>
+
+              {/* Sub-headline */}
+              <p className="mt-5 text-base sm:text-[1.0625rem] leading-relaxed text-fg-secondary max-w-lg mx-auto lg:mx-0 animate-fade-up animate-fade-up-delay-200">
+                Challenge opponents in competitive games, stake on your own match, and
+                let skill decide the winner.
+              </p>
+
+              {/* CTA row */}
+              <div
+                className="mt-8 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start animate-fade-up animate-fade-up-delay-300"
+                role="group"
+                aria-label="Primary actions"
+              >
+                <a
+                  href="#beta-signup"
+                  className="inline-flex items-center justify-center h-12 min-w-[160px] px-7 rounded-lg bg-brand-500 text-surface-950 font-bold text-sm tracking-wide transition-all btn-glow-hover hover:bg-brand-400 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-950"
+                  aria-label="Join the PlayStake beta"
+                >
+                  Join the Beta
+                </a>
+                <a
+                  href="/how-it-works"
+                  className="inline-flex items-center justify-center gap-2 h-12 min-w-[160px] px-7 rounded-lg font-semibold text-sm text-brand-400 transition-all hover:text-brand-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-950"
+                  style={{ border: '1px solid rgba(34,197,94,0.30)' }}
+                  aria-label="See how PlayStake works"
+                >
+                  See How It Works
+                </a>
+              </div>
+
+              {/* Proof tags */}
+              <div className="mt-8 pt-6 border-t border-themed animate-fade-up animate-fade-up-delay-400">
+                <div className="flex flex-wrap gap-x-6 gap-y-2 justify-center lg:justify-start text-sm text-fg-muted">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-brand-400 font-bold">Skill</span>
+                    {' '}not luck
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-brand-400 font-bold">P2P</span>
+                    {' '}not the house
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-brand-400 font-bold">Instant</span>
+                    {' '}settlement
+                  </span>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Geometric illustration (desktop only) */}
-          <div className="hidden lg:block relative">
-            <HeroGraphic />
+            {/* ── Phone mockup column ── */}
+            <div className="flex justify-center lg:justify-end order-1 lg:order-2 animate-fade-up animate-fade-up-delay-200">
+              <PhoneMockup />
+            </div>
           </div>
         </div>
-      </div>
-    </section>
-  );
-}
+      </section>
 
-function HeroGraphic() {
-  return (
-    <div className="relative aspect-square max-w-lg mx-auto">
-      <svg viewBox="0 0 500 500" className="w-full h-full" aria-hidden="true">
-        <defs>
-          <linearGradient id="brandGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#22c55e" />
-            <stop offset="50%" stopColor="#10b981" />
-            <stop offset="100%" stopColor="#06b6d4" />
-          </linearGradient>
-        </defs>
-        {/* Large brand gradient circle */}
-        <circle cx="280" cy="220" r="160" fill="url(#brandGradient)" opacity="0.18" />
-        {/* Teal hex */}
-        <polygon
-          points="150,120 220,120 255,180 220,240 150,240 115,180"
-          fill="#06b6d4"
-          opacity="0.22"
-        />
-        {/* Green circle */}
-        <circle cx="150" cy="340" r="90" fill="#22c55e" opacity="0.15" />
-        {/* Brand gradient ring */}
-        <circle cx="280" cy="220" r="160" fill="none" stroke="url(#brandGradient)" strokeWidth="2" opacity="0.5" />
-        {/* Small accent circles */}
-        <circle cx="400" cy="100" r="20" fill="#22c55e" opacity="0.6" />
-        <circle cx="80" cy="220" r="12" fill="#06b6d4" opacity="0.7" />
-        <circle cx="380" cy="380" r="16" fill="#10b981" opacity="0.5" />
-        {/* Dashed connector lines */}
-        <line
-          x1="150"
-          y1="180"
-          x2="280"
-          y2="220"
-          stroke="#22c55e"
-          strokeWidth="1.5"
-          strokeDasharray="6 6"
-          opacity="0.45"
-        />
-        <line
-          x1="280"
-          y1="220"
-          x2="150"
-          y2="340"
-          stroke="#06b6d4"
-          strokeWidth="1.5"
-          strokeDasharray="6 6"
-          opacity="0.45"
-        />
-        {/* Center pulse */}
-        <circle cx="280" cy="220" r="8" fill="url(#brandGradient)">
-          <animate attributeName="r" values="8;14;8" dur="2s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite" />
-        </circle>
-      </svg>
-    </div>
+      {/* TrustStrip — directly below hero, full-width bar */}
+      <div
+        className="border-y border-themed py-4 px-4 sm:px-6 lg:px-8"
+        role="complementary"
+        aria-label="Trust and safety indicators"
+      >
+        <TrustStrip />
+      </div>
+    </>
   );
 }

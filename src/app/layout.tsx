@@ -5,7 +5,7 @@ import './globals.css';
 
 const sora = Sora({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '600', '700', '800'],
   display: 'swap',
   variable: '--font-sora',
 });
@@ -19,10 +19,11 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'PlayStake — Play. Stake. Earn.',
+    default: 'PlayStake — Play for Stakes. Beat Real Players.',
     template: '%s | PlayStake',
   },
-  description: 'PlayStake is the peer-to-peer wagering platform that lets competitive gamers bet real money against each other — directly, fairly, instantly.',
+  description:
+    'PlayStake is the peer-to-peer skill wagering platform where competitive gamers challenge real opponents, stake on their own match, and let skill decide the winner.',
 };
 
 export const viewport: Viewport = {
@@ -30,7 +31,7 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-// Theme init script — runs before paint to prevent FOUC
+// Theme init — runs before paint to prevent FOUC
 const themeInitScript = `(function() {
   try {
     var stored = localStorage.getItem('theme');
