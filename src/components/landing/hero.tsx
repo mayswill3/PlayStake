@@ -38,7 +38,7 @@ export function Hero() {
                   <span className="absolute h-full w-full rounded-full bg-brand-400 opacity-75 animate-opponent-pulse" />
                   <span className="relative h-2 w-2 rounded-full bg-brand-400" />
                 </span>
-                P2P · Not the house
+                Esports Wagering · Skill vs Skill
               </div>
 
               {/* H1 */}
@@ -59,8 +59,8 @@ export function Hero() {
 
               {/* Sub-headline */}
               <p className="mt-5 text-base sm:text-[1.0625rem] leading-relaxed text-fg-secondary max-w-lg mx-auto lg:mx-0 animate-fade-up animate-fade-up-delay-200">
-                Challenge opponents in competitive games, stake on your own match, and
-                let skill decide the winner.
+                Challenge opponents in competitive gaming matches, stake on your own
+                result, and let skill decide the winner.
               </p>
 
               {/* CTA row */}
