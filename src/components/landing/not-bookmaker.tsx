@@ -19,8 +19,9 @@ export function NotBookmaker() {
             </span>
           </h2>
           <p className="mt-4 text-fg-secondary max-w-xl mx-auto">
-            PlayStake is a peer-to-peer platform. You play against a real person. The
-            result — and only the result — determines who wins.
+            Traditional bookmakers let you bet <em>on</em> esports. PlayStake lets you
+            bet <em>in</em> it — staking on your own match, against a real opponent,
+            with the result determining everything.
           </p>
         </div>
 
