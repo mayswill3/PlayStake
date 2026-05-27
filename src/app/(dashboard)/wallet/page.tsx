@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { StatusBadge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonCard, SkeletonTableRow } from '@/components/ui/Skeleton';
 import { FadeIn } from '@/components/ui/FadeIn';
+import { DarkGlowCard } from '@/components/ui/playstake/DarkGlowCard';
+import { StatusPill } from '@/components/ui/playstake/StatusPill';
+import { PSButton } from '@/components/ui/playstake/PSButton';
 import { Lock, ArrowLeftRight, ArrowDown, ArrowUp, Unlock, Minus, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { formatCents, formatDate } from '@/lib/utils/format';
 
@@ -35,6 +36,24 @@ const txTypeIcons: Record<string, typeof ArrowDown> = {
   BET_ESCROW_REFUND: Unlock,
   PLATFORM_FEE: Minus,
 };
+
+type PillStatus = 'live' | 'waiting' | 'completed' | 'disputed' | 'settled' | 'expired';
+
+function mapTxStatusToPill(status: string): PillStatus {
+  switch (status) {
+    case 'COMPLETED':
+      return 'completed';
+    case 'PENDING':
+    case 'PROCESSING':
+      return 'waiting';
+    case 'FAILED':
+      return 'disputed';
+    case 'CANCELLED':
+      return 'expired';
+    default:
+      return 'waiting';
+  }
+}
 
 /** Cache-busted fetch to bypass browser and Next.js caching */
 function freshFetch(url: string) {
@@ -143,7 +162,7 @@ export default function WalletPage() {
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="h-8 w-32 bg-white/5 rounded-sm animate-pulse" />
+        <div className="h-8 w-32 bg-ps-ink-2 rounded-[var(--ps-radius-md)] animate-pulse" />
         <SkeletonCard />
         <Card padding="none">
           <div className="p-6">
@@ -157,66 +176,66 @@ export default function WalletPage() {
   return (
     <FadeIn>
       <div className="max-w-4xl mx-auto space-y-6">
-        <h1 className="text-2xl font-display font-bold text-text-primary">Wallet</h1>
+        <h1 className="text-2xl font-display font-bold text-ps-text dark:text-ps-text-on-dark">Wallet</h1>
 
         {/* Deposit status banners */}
         {depositPending && (
-          <div className="flex items-center gap-3 p-4 rounded-sm bg-brand-500/10 border border-brand-500/25 animate-pulse">
-            <Loader2 className="h-5 w-5 text-brand-400 animate-spin" />
-            <p className="text-sm font-mono text-brand-400">Processing your deposit...</p>
+          <div className="flex items-center gap-3 p-4 rounded-[var(--ps-radius-md)] bg-ps-lime/10 border border-ps-lime/25 animate-pulse">
+            <Loader2 className="h-5 w-5 text-ps-lime animate-spin" />
+            <p className="text-sm font-mono text-ps-lime">Processing your deposit...</p>
           </div>
         )}
         {depositSuccess && (
-          <div className="flex items-center gap-3 p-4 rounded-sm bg-brand-500/10 border border-brand-500/25 animate-in fade-in slide-in-from-top-2 duration-300">
-            <CheckCircle className="h-5 w-5 text-brand-400" />
-            <p className="text-sm font-mono text-brand-400">Deposit successful! Your balance has been updated.</p>
+          <div className="flex items-center gap-3 p-4 rounded-[var(--ps-radius-md)] bg-ps-success/10 border border-ps-success/25 animate-in fade-in slide-in-from-top-2 duration-300">
+            <CheckCircle className="h-5 w-5 text-ps-success" />
+            <p className="text-sm font-mono text-ps-success">Deposit successful! Your balance has been updated.</p>
           </div>
         )}
         {depositFailed && (
-          <div className="flex items-center gap-3 p-4 rounded-sm bg-danger-500/10 border border-danger-500/25">
-            <AlertCircle className="h-5 w-5 text-danger-400" />
-            <p className="text-sm font-mono text-danger-400">Deposit failed. Please try again or contact support.</p>
+          <div className="flex items-center gap-3 p-4 rounded-[var(--ps-radius-md)] bg-ps-error/10 border border-ps-error/25">
+            <AlertCircle className="h-5 w-5 text-ps-error" />
+            <p className="text-sm font-mono text-ps-error">Deposit failed. Please try again or contact support.</p>
           </div>
         )}
 
         {/* Balance card */}
-        <Card className="bg-gradient-to-br from-surface-900 to-surface-850">
+        <DarkGlowCard glow="strong" padding="lg">
           <div className="flex flex-col sm:flex-row sm:items-end gap-6">
             <div className="flex-1">
-              <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted mb-1">Available Balance</p>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark mb-1">Available Balance</p>
               <p
-                className={`text-3xl font-display font-bold tabular-nums text-brand-400 transition-all duration-500 ${
-                  balanceFlash ? 'scale-110 text-brand-300 drop-shadow-[0_0_20px_rgba(74,222,128,0.5)]' : ''
+                className={`text-3xl font-display font-bold tabular-nums text-ps-lime transition-all duration-500 ${
+                  balanceFlash ? 'scale-110 drop-shadow-[0_0_20px_var(--ps-lime)]' : ''
                 }`}
               >
                 {formatCents(balance?.available ?? 0)}
               </p>
             </div>
             <div className="flex-1">
-              <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted mb-1 flex items-center gap-1.5">
+              <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark mb-1 flex items-center gap-1.5">
                 <Lock className="h-3 w-3" /> In Escrow
               </p>
-              <p className="text-3xl font-display font-bold tabular-nums text-text-secondary">
+              <p className="text-3xl font-display font-bold tabular-nums text-ps-muted-on-dark">
                 {formatCents(balance?.escrowed ?? 0)}
               </p>
-              <p className="text-xs font-mono text-text-muted mt-1">Locked in active bets</p>
+              <p className="text-xs font-mono text-ps-muted-on-dark mt-1">Locked in active bets</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-3 mt-6">
             <Link href="/wallet/deposit">
-              <Button variant="primary">Deposit</Button>
+              <PSButton variant="primary">Deposit</PSButton>
             </Link>
             <Link href="/wallet/withdraw">
-              <Button variant="secondary">Withdraw</Button>
+              <PSButton variant="secondary">Withdraw</PSButton>
             </Link>
           </div>
-        </Card>
+        </DarkGlowCard>
 
         {/* Recent transactions */}
         <Card>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-display font-semibold text-text-primary">Recent Transactions</h2>
-            <Link href="/wallet/transactions" className="text-sm font-mono text-brand-400 hover:text-brand-500 transition-colors">
+            <h2 className="text-lg font-display font-semibold text-ps-text dark:text-ps-text-on-dark">Recent Transactions</h2>
+            <Link href="/wallet/transactions" className="text-sm font-mono text-ps-lime hover:brightness-110 transition-all">
               View all
             </Link>
           </div>
@@ -228,7 +247,7 @@ export default function WalletPage() {
               description="Make your first deposit to get started."
               action={
                 <Link href="/wallet/deposit">
-                  <Button variant="primary" size="sm">Deposit Now</Button>
+                  <PSButton variant="primary" size="sm">Deposit Now</PSButton>
                 </Link>
               }
             />
@@ -240,21 +259,21 @@ export default function WalletPage() {
                 return (
                   <div
                     key={tx.id}
-                    className="flex items-center justify-between p-3 rounded-sm hover:bg-white/[0.02] transition-colors"
+                    className="flex items-center justify-between p-3 rounded-[var(--ps-radius-md)] hover:bg-ps-paper-elevated dark:hover:bg-ps-ink-2 transition-colors"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="p-2 rounded-sm bg-surface-800">
-                        <Icon className="h-4 w-4 text-text-secondary" />
+                      <div className="p-2 rounded-[var(--ps-radius-md)] bg-ps-paper-elevated dark:bg-ps-ink-2">
+                        <Icon className="h-4 w-4 text-ps-muted dark:text-ps-muted-on-dark" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-mono font-medium text-surface-200">{tx.description}</p>
-                        <p className="text-xs font-mono text-text-muted">{formatDate(tx.createdAt)}</p>
+                        <p className="text-sm font-mono font-medium text-ps-text dark:text-ps-text-on-dark">{tx.description}</p>
+                        <p className="text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">{formatDate(tx.createdAt)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <StatusBadge status={tx.status} />
+                      <StatusPill status={mapTxStatusToPill(tx.status)} label={tx.status} />
                       <span className={`text-sm font-mono tabular-nums font-semibold ${
-                        credit ? 'text-brand-400' : 'text-text-secondary'
+                        credit ? 'text-ps-lime' : 'text-ps-text dark:text-ps-text-on-dark'
                       }`}>
                         {credit ? '+' : '-'}{formatCents(Math.abs(tx.amount))}
                       </span>

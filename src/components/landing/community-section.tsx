@@ -1,29 +1,29 @@
 import { Lock, Users, Trophy, Eye, MessageCircle } from 'lucide-react';
-import { GlassCard } from '@/components/ui/GlassCard';
+import { EyebrowPill, GlowCard, IconTile } from '@/components/ui/playstake';
 
 const FEATURES = [
   {
-    icon: Lock,
+    icon: <Lock size={24} strokeWidth={1.5} />,
     title: 'Private Challenges',
     description: 'Challenge a friend directly. Set the stake, send a link.',
   },
   {
-    icon: Users,
+    icon: <Users size={24} strokeWidth={1.5} />,
     title: 'Friends & Rivals',
     description: 'Add players, track their form, rematch whenever.',
   },
   {
-    icon: Trophy,
+    icon: <Trophy size={24} strokeWidth={1.5} />,
     title: 'Leaderboards',
     description: 'Global, game-specific, and friends-only rankings.',
   },
   {
-    icon: Eye,
+    icon: <Eye size={24} strokeWidth={1.5} />,
     title: 'Watch Rooms',
     description: 'Spectate live matches. Stake on the outcome if you want.',
   },
   {
-    icon: MessageCircle,
+    icon: <MessageCircle size={24} strokeWidth={1.5} />,
     title: 'Live Chat',
     description: 'In-match banter, post-match debrief, community threads.',
   },
@@ -31,34 +31,28 @@ const FEATURES = [
 
 export function CommunitySection() {
   return (
-    <section id="community" className="py-20 lg:py-28 bg-elevated">
+    <section id="community" className="py-16 lg:py-24 bg-ps-paper dark:bg-ps-ink">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="text-xs font-semibold uppercase tracking-widest text-accent-400 mb-3">
-            Community
-          </div>
-          <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-fg">
-            More Than Matches
+          <EyebrowPill label="COMMUNITY" className="mb-3" />
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-ps-text dark:text-ps-text-on-dark">
+            Built for Players,{' '}
+            <span className="block ps-gradient-text">By Players.</span>
           </h2>
-          <p className="mt-3 text-fg-secondary max-w-lg mx-auto">
+          <p className="mt-3 text-ps-muted dark:text-ps-muted-on-dark max-w-lg mx-auto">
             Build rivalries. Grow your rep. Watch your friends lose their money.
           </p>
         </div>
 
-        {/* Feature cards */}
+        {/* Feature cards — 5-column on lg, 2-column + 3 on sm */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {FEATURES.map(({ icon: Icon, title, description }) => (
-            <GlassCard key={title} padding="md" className="flex flex-col items-center text-center">
-              <div
-                className="flex h-10 w-10 items-center justify-center rounded-xl mb-3"
-                style={{ background: 'rgba(6,182,212,0.10)' }}
-              >
-                <Icon size={20} className="text-accent-400" aria-hidden="true" />
-              </div>
-              <h3 className="font-display text-sm font-bold text-fg mb-1.5">{title}</h3>
-              <p className="text-xs text-fg-secondary leading-relaxed">{description}</p>
-            </GlassCard>
+          {FEATURES.map(({ icon, title, description }) => (
+            <GlowCard key={title} padding="md" glow="subtle" className="flex flex-col items-center text-center">
+              <IconTile icon={icon} size="sm" className="mb-3" />
+              <h3 className="font-display text-sm font-bold text-ps-text dark:text-ps-text-on-dark mb-1.5">{title}</h3>
+              <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark leading-relaxed">{description}</p>
+            </GlowCard>
           ))}
         </div>
       </div>

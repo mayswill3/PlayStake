@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../../design/tokens.css";
 @plugin "@tailwindcss/forms";
 
 /* Enable class-based dark mode (Tailwind v4 requires this explicitly) */
@@ -79,6 +80,92 @@
   --font-display: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-inter), ui-monospace, monospace;
+
+  /* PlayStake rebrand tokens — Tailwind utility bridge */
+  --color-ps-lime: var(--ps-lime);
+  --color-ps-lime-strong: var(--ps-lime-strong);
+  --color-ps-lime-dim: var(--ps-lime-dim);
+  --color-ps-cyan: var(--ps-cyan);
+  --color-ps-cyan-dim: var(--ps-cyan-dim);
+  --color-ps-blue: var(--ps-blue);
+  --color-ps-ink: var(--ps-ink);
+  --color-ps-ink-2: var(--ps-ink-2);
+  --color-ps-ink-3: var(--ps-ink-3);
+  --color-ps-paper: var(--ps-paper);
+  --color-ps-paper-elevated: var(--ps-paper-elevated);
+  --color-ps-success: var(--ps-success);
+  --color-ps-warning: var(--ps-warning);
+  --color-ps-error: var(--ps-error);
+  --color-ps-text: var(--ps-text);
+  --color-ps-text-on-dark: var(--ps-text-on-dark);
+  --color-ps-muted: var(--ps-muted);
+  --color-ps-muted-on-dark: var(--ps-muted-on-dark);
+
+  /* Shadows */
+  --shadow-ps-glow: var(--ps-glow);
+  --shadow-ps-glow-sm: var(--ps-glow-sm);
+  --shadow-ps-glow-lg: var(--ps-glow-lg);
+  --shadow-ps-glow-lime: var(--ps-glow-lime);
+  --shadow-ps-shadow-sm: var(--ps-shadow-sm);
+  --shadow-ps-shadow-md: var(--ps-shadow-md);
+  --shadow-ps-shadow-lg: var(--ps-shadow-lg);
+
+  /* Background images (gradients) */
+  --background-image-brand-gradient: var(--ps-gradient-brand);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   PlayStake Component Layer — reusable card / glow patterns
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer components {
+  /* GlowCard — white surface with gradient border mask + glow-sm shadow */
+  .ps-glow-card {
+    position: relative;
+    border: 1px solid transparent;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    background-image:
+      linear-gradient(var(--ps-paper-elevated), var(--ps-paper-elevated)),
+      var(--ps-gradient-brand);
+    border-radius: var(--ps-radius-lg);
+    box-shadow: var(--ps-glow-sm);
+    transition: box-shadow var(--ps-transition-normal),
+                transform var(--ps-transition-normal);
+  }
+  .ps-glow-card:hover {
+    box-shadow: var(--ps-glow);
+    transform: translateY(-2px);
+  }
+
+  /* DarkGlowCard — ink surface with gradient border mask + glow shadow */
+  .ps-dark-glow-card {
+    position: relative;
+    border: 1px solid transparent;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    background-image:
+      linear-gradient(var(--ps-ink-2), var(--ps-ink-2)),
+      var(--ps-gradient-brand);
+    border-radius: var(--ps-radius-lg);
+    box-shadow: var(--ps-glow);
+    transition: box-shadow var(--ps-transition-normal),
+                transform var(--ps-transition-normal);
+  }
+  .ps-dark-glow-card:hover {
+    box-shadow: var(--ps-glow-lg);
+    transform: translateY(-2px);
+  }
+
+  /* Gradient border wrapper technique */
+  .ps-gradient-border {
+    position: relative;
+    background: var(--ps-gradient-brand);
+    border-radius: var(--ps-radius-lg);
+    padding: 1px;
+  }
+  .ps-gradient-border > * {
+    border-radius: calc(var(--ps-radius-lg) - 1px);
+  }
 }
 
 /* Light mode (default) — themable tokens for landing/auth/dashboard */

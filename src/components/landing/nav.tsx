@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { MobileMenu } from '@/components/ui/mobile-menu';
+import { PSButton } from '@/components/ui/playstake';
 
 const NAV_LINKS = [
   { href: '/how-it-works', label: 'How It Works' },
@@ -26,7 +27,7 @@ export function LandingNav() {
   return (
     <header
       className={`sticky top-0 z-50 transition-all ${
-        scrolled ? 'backdrop-blur-md border-b border-themed' : 'border-b border-transparent'
+        scrolled ? 'backdrop-blur-md border-b border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]' : 'border-b border-transparent'
       }`}
       style={{
         backgroundColor: scrolled
@@ -38,7 +39,7 @@ export function LandingNav() {
         <div className="flex h-16 items-center justify-between">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 rounded-lg">
+          <Link href="/" className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ps-lime)] rounded-lg">
             <Image
               src="/logo.png"
               alt="PlayStake"
@@ -47,7 +48,7 @@ export function LandingNav() {
               priority
               className="h-10 w-10"
             />
-            <span className="font-display text-xl font-bold text-fg">PlayStake</span>
+            <span className="font-display text-xl font-bold text-ps-text dark:text-ps-text-on-dark">PlayStake</span>
           </Link>
 
           {/* Desktop nav */}
@@ -56,7 +57,7 @@ export function LandingNav() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-fg-secondary hover:text-fg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 rounded"
+                className="text-sm font-medium text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-text dark:hover:text-ps-text-on-dark transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ps-blue)] dark:focus-visible:ring-[var(--ps-lime)] rounded"
               >
                 {link.label}
               </Link>
@@ -68,16 +69,12 @@ export function LandingNav() {
             <ThemeToggle />
             <Link
               href="/login"
-              className="hidden lg:flex h-10 px-4 items-center text-sm font-medium text-fg-secondary hover:text-fg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 rounded"
+              className="hidden lg:flex h-10 px-4 items-center text-sm font-medium text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-text dark:hover:text-ps-text-on-dark transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ps-blue)] dark:focus-visible:ring-[var(--ps-lime)] rounded"
             >
               Log in
             </Link>
-            <a
-              href="#beta-signup"
-              className="hidden lg:flex h-10 min-w-[44px] px-5 items-center rounded-lg bg-brand-500 text-surface-950 text-sm font-bold transition-all btn-glow-hover hover:bg-brand-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-950"
-              aria-label="Join the PlayStake beta"
-            >
-              Join Beta
+            <a href="#beta-signup" className="hidden lg:block">
+              <PSButton size="sm">Join Beta</PSButton>
             </a>
             <MobileMenu links={NAV_LINKS} />
           </div>

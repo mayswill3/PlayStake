@@ -10,66 +10,53 @@
  *  - $1.8B revenue: Newzoo Global Esports Market Report 2024
  */
 
+import { EyebrowPill, StatStrip } from '@/components/ui/playstake';
+
 const STATS = [
   {
     value: '540M+',
     label: 'Esports viewers globally',
-    sub: 'Newzoo 2023',
+    caption: 'Newzoo 2023',
   },
   {
     value: '3.2B+',
     label: 'Active gamers worldwide',
-    sub: 'Newzoo 2023',
+    caption: 'Newzoo 2023',
   },
   {
     value: '$1.8B',
     label: 'Esports industry revenue',
-    sub: 'Newzoo 2024',
+    caption: 'Newzoo 2024',
   },
-] as const;
+];
 
 export function MarketStats() {
   return (
     <section
       aria-label="Esports market opportunity"
-      className="bg-elevated border-b border-themed py-10 lg:py-14"
+      className="bg-ps-paper dark:bg-ps-ink-2 py-16 lg:py-20"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Eyebrow */}
-        <p className="text-center text-xs font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-400 mb-8">
-          The market we're built for
-        </p>
-
-        {/* Stats row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-4">
-          {STATS.map(({ value, label, sub }, i) => (
-            <div key={label} className="relative text-center">
-              {/* Divider between cols on sm+ */}
-              {i > 0 && (
-                <div className="hidden sm:block absolute left-0 top-1/2 -translate-y-1/2 h-10 w-px bg-themed opacity-50" />
-              )}
-
-              <div
-                className="font-display font-extrabold leading-none tracking-tight bg-clip-text text-transparent"
-                style={{
-                  fontSize: 'clamp(2.25rem, 4vw, 3rem)',
-                  backgroundImage: 'linear-gradient(100deg, #22c55e 0%, #06b6d4 100%)',
-                }}
-              >
-                {value}
-              </div>
-
-              <p className="mt-2 text-sm font-semibold text-fg">{label}</p>
-              <p className="mt-0.5 text-xs text-fg-muted">{sub}</p>
-            </div>
-          ))}
+        <div className="text-center mb-3">
+          <EyebrowPill label="THE OPPORTUNITY" />
         </div>
 
-        {/* Context line */}
-        <p className="mt-8 text-center text-sm text-fg-secondary max-w-2xl mx-auto">
+        {/* Headline */}
+        <h2
+          className="text-center font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-ps-text dark:text-ps-text-on-dark mb-4"
+        >
+          A $1.8 Billion Market.{' '}
+          <span className="block ps-gradient-text">Still Wide Open.</span>
+        </h2>
+
+        <p className="text-center text-ps-muted dark:text-ps-muted-on-dark max-w-xl mx-auto mb-10">
           Competitive gaming is a global sport. PlayStake is building the wagering
-          layer that lets players stake on their own matches — not on someone else's.
+          layer that lets players stake on their own matches — not on someone else&apos;s.
         </p>
+
+        {/* Stats */}
+        <StatStrip stats={STATS} className="max-w-4xl mx-auto" />
       </div>
     </section>
   );

@@ -53,7 +53,7 @@ export function Sidebar({ userRole }: SidebarProps) {
       {/* Mobile hamburger */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-elevated border border-themed text-fg-secondary hover:text-fg"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-[var(--ps-radius-md)] bg-ps-paper-elevated dark:bg-ps-ink-2 border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-text dark:hover:text-ps-text-on-dark"
         aria-label="Toggle navigation"
       >
         {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -70,7 +70,7 @@ export function Sidebar({ userRole }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 z-40 h-full w-[75vw] max-w-64 bg-page border-r border-themed
+          fixed top-0 left-0 z-40 h-full w-[75vw] max-w-64 bg-ps-paper dark:bg-ps-ink border-r border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]
           flex flex-col
           transition-transform duration-200 ease-in-out
           lg:translate-x-0 lg:static lg:z-auto
@@ -78,16 +78,16 @@ export function Sidebar({ userRole }: SidebarProps) {
         `}
       >
         {/* Logo */}
-        <div className="px-6 py-5 border-b border-themed">
+        <div className="px-6 py-5 border-b border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">
           <Link href="/dashboard" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
             <Image src="/logo.png" alt="PlayStake" width={32} height={32} className="h-8 w-8" />
-            <span className="text-lg font-display font-semibold text-fg">PlayStake</span>
+            <span className="text-lg font-display font-semibold text-ps-text dark:text-ps-text-on-dark">PlayStake</span>
           </Link>
         </div>
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-fg-muted">
+          <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-ps-muted dark:text-ps-muted-on-dark">
             Player
           </div>
           {playerNav.map((item) => (
@@ -101,7 +101,7 @@ export function Sidebar({ userRole }: SidebarProps) {
 
           {userRole === 'ADMIN' && (
             <>
-              <div className="mt-6 mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-fg-muted">
+              <div className="mt-6 mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-ps-muted dark:text-ps-muted-on-dark">
                 Admin
               </div>
               {adminNav.map((item) => (
@@ -117,8 +117,8 @@ export function Sidebar({ userRole }: SidebarProps) {
         </nav>
 
         {/* Bottom */}
-        <div className="px-4 py-4 border-t border-themed">
-          <p className="text-[10px] text-fg-muted text-center uppercase tracking-widest">PlayStake v1.0</p>
+        <div className="px-4 py-4 border-t border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">
+          <p className="text-[10px] text-ps-muted dark:text-ps-muted-on-dark text-center uppercase tracking-widest">PlayStake v1.0</p>
         </div>
       </aside>
     </>
@@ -140,12 +140,12 @@ function NavLink({
       href={item.href}
       onClick={onClick}
       className={`
-        flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+        flex items-center gap-3 px-3 py-2.5 rounded-[var(--ps-radius-md)] text-sm font-medium
         transition-colors duration-150 mb-0.5
         ${
           active
-            ? 'bg-brand-600/10 text-brand-600 dark:text-brand-400 border-l-2 border-brand-600 dark:border-brand-400'
-            : 'text-fg-secondary hover:text-fg hover:bg-elevated'
+            ? 'bg-ps-lime/10 text-ps-lime border-l-2 border-ps-lime'
+            : 'text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-text dark:hover:text-ps-text-on-dark hover:bg-ps-paper-elevated dark:hover:bg-ps-ink-2'
         }
       `}
       aria-current={active ? 'page' : undefined}

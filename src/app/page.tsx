@@ -27,7 +27,7 @@ import { StickyMobileCTA } from '@/components/ui/StickyMobileCTA';
  */
 export default function LandingPage() {
   return (
-    <div className="bg-page text-fg min-h-screen">
+    <div className="min-h-screen bg-ps-paper dark:bg-ps-ink text-ps-text dark:text-ps-text-on-dark">
       <LandingNav />
 
       <main id="main-content">

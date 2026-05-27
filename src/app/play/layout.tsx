@@ -14,17 +14,17 @@ export const metadata: Metadata = {
 
 export default function PlayLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-page text-fg">
+    <div className="min-h-screen bg-ps-paper dark:bg-ps-ink text-ps-text dark:text-ps-text-on-dark">
       <nav
         id="demo-nav"
-        className="border-b border-themed backdrop-blur-sm sticky top-0 z-50"
-        style={{ backgroundColor: 'color-mix(in srgb, var(--bg) 85%, transparent)' }}
+        className="border-b border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] backdrop-blur-sm sticky top-0 z-50"
+        style={{ backgroundColor: 'color-mix(in srgb, var(--ps-paper) 85%, transparent)' }}
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center justify-between">
             <Link
               href="/play"
-              className="font-display text-lg font-bold tracking-wider text-fg"
+              className="font-display text-lg font-bold tracking-wider text-ps-text dark:text-ps-text-on-dark"
             >
               <span className="inline-flex items-center gap-2">
                 <Image src="/logo.png" alt="PlayStake" width={32} height={32} className="h-8 w-8" />
@@ -35,7 +35,7 @@ export default function PlayLayout({ children }: { children: React.ReactNode }) 
               <ThemeToggle />
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-1.5 text-sm text-fg-secondary hover:text-fg transition-colors"
+                className="inline-flex items-center gap-1.5 text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-text dark:hover:text-ps-text-on-dark transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back to Dashboard

@@ -19,6 +19,10 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { SkeletonCard, SkeletonTableRow } from '@/components/ui/Skeleton';
+import { StatusPill } from '@/components/ui/playstake/StatusPill';
+import { PSButton } from '@/components/ui/playstake/PSButton';
+import { GlowCard } from '@/components/ui/playstake/GlowCard';
+import { IconTile } from '@/components/ui/playstake/IconTile';
 import { useAuthLayout } from '@/hooks/useAuthLayout';
 import { formatCents, formatPercent, formatDate } from '@/lib/utils/format';
 
@@ -45,6 +49,30 @@ interface RecentBet {
   myRole: string;
   netResult: number | null;
   createdAt: string;
+}
+
+type PillStatus = 'live' | 'waiting' | 'completed' | 'disputed' | 'settled' | 'expired';
+
+function mapBetStatusToPill(status: string): PillStatus {
+  switch (status) {
+    case 'OPEN':
+    case 'PENDING':
+    case 'PENDING_CONSENT':
+      return 'waiting';
+    case 'MATCHED':
+    case 'RESULT_REPORTED':
+      return 'live';
+    case 'SETTLED':
+      return 'settled';
+    case 'DISPUTED':
+      return 'disputed';
+    case 'CANCELLED':
+    case 'VOIDED':
+    case 'EXPIRED':
+      return 'expired';
+    default:
+      return 'waiting';
+  }
 }
 
 const QUICK_PLAY_GAMES = [
@@ -84,15 +112,15 @@ export default function DashboardPage() {
     return (
       <div className="max-w-6xl mx-auto space-y-6">
         <div>
-          <div className="h-8 w-64 bg-elevated rounded animate-pulse" />
-          <div className="h-4 w-72 bg-elevated rounded animate-pulse mt-2" />
+          <div className="h-8 w-64 bg-ps-paper-elevated dark:bg-ps-ink-2 rounded-[var(--ps-radius-md)] animate-pulse" />
+          <div className="h-4 w-72 bg-ps-paper-elevated dark:bg-ps-ink-2 rounded-[var(--ps-radius-md)] animate-pulse mt-2" />
         </div>
-        <div className="h-48 bg-elevated rounded-2xl animate-pulse" />
+        <div className="h-48 bg-ps-paper-elevated dark:bg-ps-ink-2 rounded-[var(--ps-radius-lg)] animate-pulse" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }, (_, i) => <SkeletonCard key={i} />)}
         </div>
-        <div className="rounded-2xl border border-themed bg-card p-6">
-          <div className="h-6 w-32 bg-elevated rounded animate-pulse mb-4" />
+        <div className="rounded-[var(--ps-radius-lg)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-ps-paper-elevated dark:bg-ps-ink-2 p-6">
+          <div className="h-6 w-32 bg-ps-paper dark:bg-ps-ink-3 rounded-[var(--ps-radius-md)] animate-pulse mb-4" />
           {Array.from({ length: 5 }, (_, i) => <SkeletonTableRow key={i} cols={4} />)}
         </div>
       </div>
@@ -101,7 +129,7 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="p-4 rounded-lg bg-danger-500/10 border border-danger-500/25 text-danger-500 text-sm">
+      <div className="p-4 rounded-[var(--ps-radius-md)] bg-ps-error/10 border border-ps-error/25 text-ps-error text-sm">
         {error}
       </div>
     );
@@ -115,10 +143,10 @@ export default function DashboardPage() {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Greeting header */}
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-fg">
-            Good {timeOfDay()}, {user?.displayName || 'Player'} 👋
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-ps-text dark:text-ps-text-on-dark">
+            Good {timeOfDay()}, {user?.displayName || 'Player'}
           </h1>
-          <p className="text-sm text-fg-secondary mt-1">
+          <p className="text-sm text-ps-muted dark:text-ps-muted-on-dark mt-1">
             Your betting overview and quick actions
           </p>
         </div>
@@ -160,19 +188,15 @@ export default function DashboardPage() {
 
         {/* Action buttons */}
         <div className="flex flex-wrap gap-3">
-          <Link
-            href="/wallet/deposit"
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors"
-          >
-            <Plus size={16} />
-            Deposit Funds
+          <Link href="/wallet/deposit">
+            <PSButton variant="primary" icon={<Plus size={16} />}>
+              Deposit Funds
+            </PSButton>
           </Link>
-          <Link
-            href="/bets"
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-themed bg-card text-fg text-sm font-medium hover:bg-elevated transition-colors"
-          >
-            <List size={16} />
-            View All Bets
+          <Link href="/bets">
+            <PSButton variant="secondary" icon={<List size={16} />}>
+              View All Bets
+            </PSButton>
           </Link>
         </div>
 
@@ -190,22 +214,22 @@ export default function DashboardPage() {
 function PlayNowSection() {
   return (
     <section
-      className="rounded-2xl border border-themed bg-card p-5 lg:p-6"
-      style={{ borderTopWidth: '2px', borderTopColor: '#16a34a' }}
+      className="rounded-[var(--ps-radius-lg)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-ps-paper-elevated dark:bg-ps-ink-2 p-5 lg:p-6"
+      style={{ borderTopWidth: '2px', borderTopColor: 'var(--ps-lime)' }}
     >
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-lg font-display font-semibold text-fg flex items-center gap-2">
-            <Gamepad2 size={20} className="text-brand-600 dark:text-brand-400" />
+          <h2 className="text-lg font-display font-semibold text-ps-text dark:text-ps-text-on-dark flex items-center gap-2">
+            <Gamepad2 size={20} className="text-ps-lime" />
             Ready to play?
           </h2>
-          <p className="text-sm text-fg-secondary mt-0.5">
+          <p className="text-sm text-ps-muted dark:text-ps-muted-on-dark mt-0.5">
             Choose a game and challenge an opponent
           </p>
         </div>
         <Link
           href="/play"
-          className="hidden sm:inline-flex items-center gap-1 text-sm text-brand-600 dark:text-brand-400 font-semibold hover:gap-2 transition-all"
+          className="hidden sm:inline-flex items-center gap-1 text-sm text-ps-lime font-semibold hover:gap-2 transition-all"
         >
           Browse all games
           <ChevronRight size={14} />
@@ -221,7 +245,7 @@ function PlayNowSection() {
 
       <Link
         href="/play"
-        className="sm:hidden mt-4 inline-flex items-center gap-1 text-sm text-brand-600 dark:text-brand-400 font-semibold"
+        className="sm:hidden mt-4 inline-flex items-center gap-1 text-sm text-ps-lime font-semibold"
       >
         Browse all games
         <ChevronRight size={14} />
@@ -241,17 +265,15 @@ function QuickPlayCard({ name, description, href, icon: Icon }: QuickPlayCardPro
   return (
     <Link
       href={href}
-      className="group snap-start min-w-[200px] lg:min-w-0 flex flex-col gap-3 p-4 rounded-xl border border-themed bg-page hover:border-brand-600/40 hover:-translate-y-0.5 transition-all"
+      className="group snap-start min-w-[200px] lg:min-w-0 flex flex-col gap-3 p-4 rounded-[var(--ps-radius-lg)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-ps-paper dark:bg-ps-ink hover:border-ps-lime/40 hover:-translate-y-0.5 transition-all"
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-600/10 text-brand-600 dark:text-brand-400">
-        <Icon size={20} strokeWidth={2} />
-      </div>
+      <IconTile icon={<Icon className="h-full w-full" />} size="sm" />
       <div className="flex-1">
-        <p className="font-semibold text-fg text-sm">{name}</p>
-        <p className="text-xs text-fg-muted mt-0.5">{description}</p>
+        <p className="font-semibold text-ps-text dark:text-ps-text-on-dark text-sm">{name}</p>
+        <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark mt-0.5">{description}</p>
       </div>
-      <div className="border-t border-themed pt-3">
-        <span className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 dark:text-brand-400 group-hover:gap-2 transition-all">
+      <div className="border-t border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] pt-3">
+        <span className="inline-flex items-center gap-1 text-sm font-semibold text-ps-lime group-hover:gap-2 transition-all">
           Play Now
           <ArrowRight size={14} />
         </span>
@@ -275,32 +297,32 @@ interface StatCardProps {
 function StatCard({ label, value, subtext, icon: Icon, accent }: StatCardProps) {
   const accentStyles = {
     neutral: {
-      border: 'border-themed',
-      iconBg: 'bg-elevated',
-      iconColor: 'text-fg-secondary',
-      valueColor: 'text-fg',
+      border: 'border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]',
+      iconBg: 'bg-ps-paper-elevated dark:bg-ps-ink-2',
+      iconColor: 'text-ps-muted dark:text-ps-muted-on-dark',
+      valueColor: 'text-ps-text dark:text-ps-text-on-dark',
     },
     positive: {
-      border: 'border-brand-600/30 dark:border-brand-400/30',
-      iconBg: 'bg-brand-600/10',
-      iconColor: 'text-brand-600 dark:text-brand-400',
-      valueColor: 'text-brand-600 dark:text-brand-400',
+      border: 'border-ps-lime/30',
+      iconBg: 'bg-ps-lime/10',
+      iconColor: 'text-ps-lime',
+      valueColor: 'text-ps-lime',
     },
     negative: {
-      border: 'border-danger-500/30',
-      iconBg: 'bg-danger-500/10',
-      iconColor: 'text-danger-500',
-      valueColor: 'text-danger-500',
+      border: 'border-ps-error/30',
+      iconBg: 'bg-ps-error/10',
+      iconColor: 'text-ps-error',
+      valueColor: 'text-ps-error',
     },
   }[accent];
 
   return (
-    <div className={`rounded-xl border ${accentStyles.border} bg-card p-5 transition-colors hover:border-brand-600/20`}>
+    <div className={`rounded-[var(--ps-radius-lg)] border ${accentStyles.border} bg-ps-paper-elevated dark:bg-ps-ink-2 p-5 transition-colors hover:border-ps-lime/20`}>
       <div className="flex items-start justify-between mb-3">
-        <p className="text-xs font-semibold text-fg-muted uppercase tracking-wider">
+        <p className="text-xs font-semibold text-ps-muted dark:text-ps-muted-on-dark uppercase tracking-wider">
           {label}
         </p>
-        <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${accentStyles.iconBg} ${accentStyles.iconColor}`}>
+        <div className={`h-8 w-8 rounded-[var(--ps-radius-md)] flex items-center justify-center ${accentStyles.iconBg} ${accentStyles.iconColor}`}>
           <Icon size={15} strokeWidth={2.5} />
         </div>
       </div>
@@ -308,7 +330,7 @@ function StatCard({ label, value, subtext, icon: Icon, accent }: StatCardProps) 
         {value}
       </p>
       {subtext && (
-        <p className="text-xs text-fg-muted mt-1">{subtext}</p>
+        <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark mt-1">{subtext}</p>
       )}
     </div>
   );
@@ -321,24 +343,22 @@ function StatCard({ label, value, subtext, icon: Icon, accent }: StatCardProps) 
 function RecentBetsSection({ bets }: { bets: RecentBet[] }) {
   if (bets.length === 0) {
     return (
-      <div className="rounded-2xl border border-themed bg-card p-6">
+      <div className="rounded-[var(--ps-radius-lg)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-ps-paper-elevated dark:bg-ps-ink-2 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-display font-semibold text-fg">Recent Bets</h2>
+          <h2 className="text-base font-display font-semibold text-ps-text dark:text-ps-text-on-dark">Recent Bets</h2>
         </div>
         <div className="py-12 text-center">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-elevated text-fg-muted mb-3">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-[var(--ps-radius-lg)] bg-ps-paper dark:bg-ps-ink-3 text-ps-muted dark:text-ps-muted-on-dark mb-3">
             <Gamepad2 size={24} />
           </div>
-          <p className="text-sm font-medium text-fg">No bets yet</p>
-          <p className="text-xs text-fg-muted mt-1">
+          <p className="text-sm font-medium text-ps-text dark:text-ps-text-on-dark">No bets yet</p>
+          <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark mt-1">
             Play a game and place your first bet
           </p>
-          <Link
-            href="/play"
-            className="inline-flex items-center gap-2 mt-4 h-10 px-4 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors"
-          >
-            <Gamepad2 size={15} />
-            Find a game
+          <Link href="/play" className="inline-block mt-4">
+            <PSButton variant="primary" icon={<Gamepad2 size={15} />}>
+              Find a game
+            </PSButton>
           </Link>
         </div>
       </div>
@@ -346,12 +366,12 @@ function RecentBetsSection({ bets }: { bets: RecentBet[] }) {
   }
 
   return (
-    <div className="rounded-2xl border border-themed bg-card p-6">
+    <div className="rounded-[var(--ps-radius-lg)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-ps-paper-elevated dark:bg-ps-ink-2 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-base font-display font-semibold text-fg">Recent Bets</h2>
+        <h2 className="text-base font-display font-semibold text-ps-text dark:text-ps-text-on-dark">Recent Bets</h2>
         <Link
           href="/bets"
-          className="text-sm text-brand-600 dark:text-brand-400 font-semibold hover:underline"
+          className="text-sm text-ps-lime font-semibold hover:underline"
         >
           View all
         </Link>
@@ -367,57 +387,42 @@ function RecentBetsSection({ bets }: { bets: RecentBet[] }) {
 }
 
 function BetRow({ bet }: { bet: RecentBet }) {
-  // Determine left border color based on status/outcome
-  const isVoided = bet.status === 'VOIDED' || bet.status === 'CANCELLED';
   const isWin = bet.netResult !== null && bet.netResult > 0;
   const isLoss = bet.netResult !== null && bet.netResult < 0;
+  const isVoided = bet.status === 'VOIDED' || bet.status === 'CANCELLED';
 
-  let borderClass = 'border-l-themed';
-  if (isVoided) borderClass = 'border-l-slate-400 dark:border-l-slate-600';
-  else if (isWin) borderClass = 'border-l-brand-500';
-  else if (isLoss) borderClass = 'border-l-danger-500';
-
-  // Status badge classes
-  let statusClass = 'bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-400';
-  if (isVoided) {
-    statusClass = 'bg-slate-100 text-slate-500 dark:bg-slate-800/50 dark:text-slate-400';
-  } else if (bet.status === 'SETTLED') {
-    statusClass = isWin
-      ? 'bg-brand-100 text-brand-700 dark:bg-brand-950/40 dark:text-brand-400'
-      : isLoss
-      ? 'bg-danger-50 text-danger-600 dark:bg-danger-950/30 dark:text-danger-400'
-      : 'bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-400';
-  }
+  let borderClass = 'border-l-[var(--ps-border-light)] dark:border-l-[var(--ps-border-dark)]';
+  if (isVoided) borderClass = 'border-l-ps-muted dark:border-l-ps-muted-on-dark';
+  else if (isWin) borderClass = 'border-l-ps-lime';
+  else if (isLoss) borderClass = 'border-l-ps-error';
 
   return (
     <Link
       href={`/bets/${bet.id}`}
-      className={`flex items-center justify-between p-3 pl-4 rounded-lg border-l-2 ${borderClass} hover:bg-elevated transition-colors`}
+      className={`flex items-center justify-between p-3 pl-4 rounded-[var(--ps-radius-md)] border-l-2 ${borderClass} hover:bg-ps-paper dark:hover:bg-ps-ink-3 transition-colors`}
     >
       <div className="flex items-center gap-3 min-w-0">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-fg truncate">{bet.gameName}</p>
-          <p className="text-xs text-fg-muted mt-0.5">
+          <p className="text-sm font-semibold text-ps-text dark:text-ps-text-on-dark truncate">{bet.gameName}</p>
+          <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark mt-0.5">
             vs {bet.opponent?.displayName ?? 'Awaiting opponent'} · {formatDate(bet.createdAt)}
           </p>
         </div>
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${statusClass}`}>
-          {bet.status}
-        </span>
+        <StatusPill status={mapBetStatusToPill(bet.status)} label={bet.status.replace(/_/g, ' ')} />
         <div className="text-right">
-          <p className="text-sm font-semibold tabular-nums text-fg">
+          <p className="text-sm font-semibold tabular-nums text-ps-text dark:text-ps-text-on-dark">
             {formatCents(bet.amount)}
           </p>
           {bet.netResult !== null && (
             <p
               className={`text-xs font-semibold tabular-nums ${
                 bet.netResult > 0
-                  ? 'text-brand-600 dark:text-brand-400'
+                  ? 'text-ps-lime'
                   : bet.netResult < 0
-                  ? 'text-danger-500'
-                  : 'text-fg-muted'
+                  ? 'text-ps-error'
+                  : 'text-ps-muted dark:text-ps-muted-on-dark'
               }`}
             >
               {bet.netResult > 0 ? '+' : ''}{formatCents(bet.netResult)}

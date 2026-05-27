@@ -1,12 +1,17 @@
 import Link from 'next/link';
 import { Grid3x3, Layers, Target } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { GlowCard } from '@/components/ui/playstake/GlowCard';
+import { IconTile } from '@/components/ui/playstake/IconTile';
+import { StatusPill } from '@/components/ui/playstake/StatusPill';
+import { PSButton } from '@/components/ui/playstake/PSButton';
 
 interface DemoCardProps {
   href: string;
   icon: LucideIcon;
   title: string;
   description: string;
+  status: 'live' | 'expired';
 }
 
 const DEMOS: DemoCardProps[] = [
@@ -15,18 +20,21 @@ const DEMOS: DemoCardProps[] = [
     icon: Layers,
     title: 'Higher / Lower',
     description: 'Classic card game with turn-based wagering and score tracking.',
+    status: 'live',
   },
   {
     href: '/play/tictactoe',
     icon: Grid3x3,
     title: 'Tic-Tac-Toe',
     description: 'Classic strategy game with two-player wagering and win detection.',
+    status: 'live',
   },
   {
     href: '/play/darts',
     icon: Target,
     title: 'Darts 301',
     description: 'Start at 301, aim the moving crosshair, and click to throw.',
+    status: 'live',
   },
 ];
 
@@ -34,11 +42,11 @@ export default function DemoIndex() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
       <div className="mb-10">
-        <h1 className="font-display text-3xl sm:text-4xl font-bold text-fg mb-2">
-          Game Demos
+        <h1 className="font-display text-3xl sm:text-4xl font-bold text-ps-text dark:text-ps-text-on-dark mb-2">
+          Game Lobby
         </h1>
-        <p className="text-base text-fg-secondary">
-          See how PlayStake integrates with different game types.
+        <p className="text-base text-ps-muted dark:text-ps-muted-on-dark">
+          Choose a game and stake your claim.
         </p>
       </div>
 
@@ -51,22 +59,32 @@ export default function DemoIndex() {
   );
 }
 
-function DemoCard({ href, icon: Icon, title, description }: DemoCardProps) {
+function DemoCard({ href, icon: Icon, title, description, status }: DemoCardProps) {
+  const isLive = status === 'live';
+
   return (
     <Link href={href} className="group">
-      <div className="h-full rounded-xl border border-themed bg-card p-6 transition-all group-hover:-translate-y-0.5 group-hover:shadow-lg group-hover:border-brand-600/30">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-600/10 text-brand-600 dark:text-brand-400">
-            <Icon className="h-5 w-5" />
-          </div>
-          <h2 className="font-display text-lg font-semibold text-fg">
-            {title}
-          </h2>
+      <GlowCard
+        glow={isLive ? 'subtle' : 'none'}
+        padding="md"
+        className={!isLive ? 'opacity-60 pointer-events-none' : ''}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <IconTile icon={<Icon className="h-full w-full" />} size="sm" />
+          <StatusPill status={isLive ? 'live' : 'expired'} label={isLive ? 'LIVE' : 'COMING SOON'} />
         </div>
-        <p className="text-sm leading-relaxed text-fg-secondary">
+        <h2 className="font-display text-lg font-semibold text-ps-text dark:text-ps-text-on-dark mb-1">
+          {title}
+        </h2>
+        <p className="text-sm leading-relaxed text-ps-muted dark:text-ps-muted-on-dark mb-4">
           {description}
         </p>
-      </div>
+        {isLive && (
+          <PSButton variant="primary" size="sm" className="w-full">
+            Play Now
+          </PSButton>
+        )}
+      </GlowCard>
     </Link>
   );
 }

@@ -1,0 +1,337 @@
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PLAYSTAKE DESIGN TOKENS — v2.0 (Investor Deck Alignment)
+   ═══════════════════════════════════════════════════════════════════════════════
+   Authoritative token file. Every color, shadow, gradient, radius, and spacing
+   value used in the product MUST reference a variable defined here.
+
+   Integration: import into globals.css via @import or copy into the @theme block.
+   Tailwind v4 will auto-generate utilities from --color-*, --font-*, --spacing-* vars.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   1. COLOR TOKENS
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── Brand: Lime ── */
+  --ps-lime:            #C6F432;
+  --ps-lime-strong:     #B6E635;
+  --ps-lime-dim:        #8FAF1E;   /* for use where lime needs more weight   */
+  --ps-lime-10:         rgba(198, 244, 50, 0.10);
+  --ps-lime-20:         rgba(198, 244, 50, 0.20);
+  --ps-lime-35:         rgba(198, 244, 50, 0.35);
+
+  /* ── Secondary: Cyan ── */
+  --ps-cyan:            #00C8FF;
+  --ps-cyan-dim:        #0099CC;
+  --ps-cyan-10:         rgba(0, 200, 255, 0.10);
+  --ps-cyan-20:         rgba(0, 200, 255, 0.20);
+  --ps-cyan-35:         rgba(0, 200, 255, 0.35);
+
+  /* ── Accent: Blue ── */
+  --ps-blue:            #1E6BFF;
+  --ps-blue-10:         rgba(30, 107, 255, 0.10);
+
+  /* ── Ink (dark surfaces) ── */
+  --ps-ink:             #0A0F1C;
+  --ps-ink-2:           #111827;
+  --ps-ink-3:           #1A2233;   /* elevated surface on dark               */
+
+  /* ── Paper (light surfaces) ── */
+  --ps-paper:           #FAFBFC;
+  --ps-paper-elevated:  #FFFFFF;
+
+  /* ── Semantic ── */
+  --ps-success:         #22C55E;
+  --ps-success-10:      rgba(34, 197, 94, 0.10);
+  --ps-warning:         #F59E0B;
+  --ps-warning-10:      rgba(245, 158, 11, 0.10);
+  --ps-error:           #EF4444;
+  --ps-error-10:        rgba(239, 68, 68, 0.10);
+
+  /* ── Text ── */
+  --ps-text:            #0A0F1C;   /* primary text on light surfaces         */
+  --ps-text-on-dark:    #F0F2F5;   /* primary text on dark surfaces          */
+  --ps-muted:           #5B6473;   /* secondary / caption text               */
+  --ps-muted-on-dark:   #8892A2;
+  --ps-disabled:        #A0A8B4;
+
+  /* ── Borders ── */
+  --ps-border-light:    rgba(0, 0, 0, 0.08);
+  --ps-border-dark:     rgba(255, 255, 255, 0.08);
+  --ps-border-strong-light: rgba(0, 0, 0, 0.14);
+  --ps-border-strong-dark:  rgba(255, 255, 255, 0.14);
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   2. GRADIENT TOKENS
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Brand gradient — lime to cyan, 135deg (deck-canonical) */
+  --ps-gradient-brand:       linear-gradient(135deg, #C6F432 0%, #00C8FF 100%);
+
+  /* Horizontal variant for progress bars, dividers */
+  --ps-gradient-brand-h:     linear-gradient(90deg, #C6F432 0%, #00C8FF 100%);
+
+  /* Subtle background wash (for section tinting) */
+  --ps-gradient-brand-subtle: linear-gradient(135deg, rgba(198,244,50,0.06) 0%, rgba(0,200,255,0.06) 100%);
+
+  /* Text gradient — clip to text */
+  --ps-gradient-text:        linear-gradient(100deg, #C6F432 0%, #00C8FF 100%);
+
+  /* Radial lime — for IconTile background */
+  --ps-gradient-icon-tile:   radial-gradient(circle, rgba(198,244,50,0.18) 0%, rgba(198,244,50,0.04) 70%);
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   3. SHADOW TOKENS
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Glow shadow — canonical from deck */
+  --ps-glow:           0 0 0 1px rgba(198,244,50,0.35),
+                       0 12px 40px -8px rgba(0,200,255,0.35);
+
+  /* Glow variants */
+  --ps-glow-sm:        0 0 0 1px rgba(198,244,50,0.20),
+                       0 4px 16px -4px rgba(0,200,255,0.20);
+
+  --ps-glow-lg:        0 0 0 1px rgba(198,244,50,0.35),
+                       0 20px 60px -12px rgba(0,200,255,0.40);
+
+  /* Lime-only glow (for buttons on hover) */
+  --ps-glow-lime:      0 0 20px rgba(198,244,50,0.30),
+                       0 0 60px rgba(198,244,50,0.10);
+
+  /* Cyan-only glow */
+  --ps-glow-cyan:      0 0 20px rgba(0,200,255,0.30),
+                       0 0 60px rgba(0,200,255,0.10);
+
+  /* Elevation — non-glowing, for general cards */
+  --ps-shadow-sm:      0 1px 3px rgba(0, 0, 0, 0.06),
+                       0 1px 2px rgba(0, 0, 0, 0.04);
+  --ps-shadow-md:      0 4px 12px rgba(0, 0, 0, 0.08),
+                       0 1px 3px rgba(0, 0, 0, 0.04);
+  --ps-shadow-lg:      0 12px 40px rgba(0, 0, 0, 0.12),
+                       0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   4. TYPOGRAPHY TOKENS
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Font families (loaded via next/font in layout.tsx) */
+  --ps-font-display:   var(--font-sora), 'Sora', ui-sans-serif, system-ui, sans-serif;
+  --ps-font-body:      var(--font-inter), 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --ps-font-mono:      'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+
+  /* Type scale — modular, base 16px, ratio ~1.25 (Major Third) */
+  --ps-text-xs:        0.75rem;     /* 12px — captions, fine print           */
+  --ps-text-sm:        0.875rem;    /* 14px — body small, labels             */
+  --ps-text-base:      1rem;        /* 16px — body default                   */
+  --ps-text-lg:        1.125rem;    /* 18px — lead paragraphs                */
+  --ps-text-xl:        1.25rem;     /* 20px — section subtitles              */
+  --ps-text-2xl:       1.5rem;      /* 24px — card headings                  */
+  --ps-text-3xl:       1.875rem;    /* 30px — section headings               */
+  --ps-text-4xl:       2.25rem;     /* 36px — page headings                  */
+  --ps-text-5xl:       3rem;        /* 48px — hero display (mobile)          */
+  --ps-text-6xl:       3.75rem;     /* 60px — hero display (desktop)         */
+
+  /* Font weights */
+  --ps-weight-regular:   400;
+  --ps-weight-medium:    500;
+  --ps-weight-semibold:  600;
+  --ps-weight-bold:      700;
+  --ps-weight-extrabold: 800;
+
+  /* Line heights */
+  --ps-leading-none:     1;
+  --ps-leading-tight:    1.1;       /* display headings                      */
+  --ps-leading-snug:     1.25;      /* card titles                           */
+  --ps-leading-normal:   1.5;       /* body text                             */
+  --ps-leading-relaxed:  1.625;     /* long-form reading                     */
+
+  /* Tracking (letter-spacing) */
+  --ps-tracking-tight:    -0.02em;  /* display headings                      */
+  --ps-tracking-normal:    0em;
+  --ps-tracking-wide:      0.04em;  /* eyebrow labels                        */
+  --ps-tracking-widest:    0.08em;  /* ALL CAPS labels                       */
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   5. SPACING TOKENS
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --ps-space-1:    0.25rem;   /*  4px */
+  --ps-space-2:    0.5rem;    /*  8px */
+  --ps-space-3:    0.75rem;   /* 12px */
+  --ps-space-4:    1rem;      /* 16px */
+  --ps-space-5:    1.25rem;   /* 20px */
+  --ps-space-6:    1.5rem;    /* 24px */
+  --ps-space-8:    2rem;      /* 32px */
+  --ps-space-10:   2.5rem;    /* 40px */
+  --ps-space-12:   3rem;      /* 48px */
+  --ps-space-16:   4rem;      /* 64px */
+  --ps-space-20:   5rem;      /* 80px */
+  --ps-space-24:   6rem;      /* 96px */
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   6. RADIUS TOKENS
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --ps-radius-sm:    0.375rem;  /*  6px — pills, small badges              */
+  --ps-radius-md:    0.5rem;    /*  8px — inputs, buttons                  */
+  --ps-radius-lg:    0.75rem;   /* 12px — cards                            */
+  --ps-radius-xl:    1rem;      /* 16px — modals, large cards              */
+  --ps-radius-2xl:   1.5rem;    /* 24px — phone mockup inner               */
+  --ps-radius-full:  9999px;    /* pills, avatars, dots                    */
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   7. TRANSITION TOKENS
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --ps-ease-out:       cubic-bezier(0.16, 1, 0.3, 1);
+  --ps-ease-in-out:    cubic-bezier(0.45, 0, 0.55, 1);
+
+  --ps-duration-fast:  120ms;
+  --ps-duration-normal: 200ms;
+  --ps-duration-slow:  350ms;
+
+  --ps-transition-fast:    120ms cubic-bezier(0.16, 1, 0.3, 1);
+  --ps-transition-normal:  200ms cubic-bezier(0.16, 1, 0.3, 1);
+  --ps-transition-slow:    350ms cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   8. UTILITY CLASSES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Brand gradient background ── */
+.ps-gradient-brand {
+  background: var(--ps-gradient-brand);
+}
+
+/* ── Brand gradient text ── */
+.ps-gradient-text {
+  background: var(--ps-gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Glow shadow ── */
+.ps-glow {
+  box-shadow: var(--ps-glow);
+}
+.ps-glow-sm {
+  box-shadow: var(--ps-glow-sm);
+}
+.ps-glow-lg {
+  box-shadow: var(--ps-glow-lg);
+}
+.ps-glow-lime {
+  box-shadow: var(--ps-glow-lime);
+}
+
+/* ── Gradient border (1px) using mask technique ──
+   Apply to an element with padding: 1px. The child content sits inside.
+   The gradient shows through the 1px gap as a border. */
+.ps-gradient-border {
+  position: relative;
+  background: var(--ps-gradient-brand);
+  border-radius: var(--ps-radius-lg);
+  padding: 1px;
+}
+.ps-gradient-border > * {
+  border-radius: calc(var(--ps-radius-lg) - 1px);
+}
+
+/* Alternative: gradient border via mask-composite (no wrapper needed).
+   Apply directly to the card element. */
+.ps-gradient-border-mask {
+  position: relative;
+  border: 1px solid transparent;
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  background-image:
+    linear-gradient(var(--ps-ink), var(--ps-ink)),
+    var(--ps-gradient-brand);
+}
+
+/* Light-surface variant for GlowCard */
+.ps-gradient-border-mask-light {
+  position: relative;
+  border: 1px solid transparent;
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  background-image:
+    linear-gradient(var(--ps-paper-elevated), var(--ps-paper-elevated)),
+    var(--ps-gradient-brand);
+}
+:where(.dark) .ps-gradient-border-mask-light {
+  background-image:
+    linear-gradient(var(--ps-ink-2), var(--ps-ink-2)),
+    var(--ps-gradient-brand);
+}
+
+/* ── Glow hover for CTA buttons ── */
+.ps-btn-glow-hover {
+  transition: box-shadow var(--ps-transition-fast),
+              background-color var(--ps-transition-fast),
+              transform 80ms ease;
+}
+.ps-btn-glow-hover:hover {
+  box-shadow: var(--ps-glow-lime);
+}
+.ps-btn-glow-hover:active {
+  transform: scale(0.98);
+}
+
+/* ── Tabular figures for numerics / money ── */
+.ps-tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ── Eyebrow label style ── */
+.ps-eyebrow {
+  font-family: var(--ps-font-body);
+  font-size: var(--ps-text-xs);
+  font-weight: var(--ps-weight-semibold);
+  letter-spacing: var(--ps-tracking-widest);
+  text-transform: uppercase;
+  line-height: var(--ps-leading-none);
+}
+
+/* ── Status dot pulsing animation ── */
+@keyframes ps-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.85); }
+}
+.ps-pulse-dot {
+  animation: ps-pulse-dot 1.8s ease-in-out infinite;
+}
+
+/* ── Reduced motion: collapse all PlayStake animations ── */
+@media (prefers-reduced-motion: reduce) {
+  .ps-pulse-dot,
+  .ps-btn-glow-hover {
+    animation: none;
+    transition: none;
+  }
+}
