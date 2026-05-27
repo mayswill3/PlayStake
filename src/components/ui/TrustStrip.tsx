@@ -23,10 +23,10 @@ export function TrustStrip({ className = '' }: TrustStripProps) {
         <div
           key={label}
           role="listitem"
-          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-elevated border border-themed"
+          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-ps-paper dark:bg-ps-ink-3 border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]"
         >
-          <Icon size={13} className="text-brand-600 dark:text-brand-400 flex-shrink-0" aria-hidden="true" />
-          <span className="text-xs font-medium text-fg-secondary whitespace-nowrap">{label}</span>
+          <Icon size={13} className="text-ps-lime flex-shrink-0" aria-hidden="true" />
+          <span className="text-xs font-medium text-ps-muted dark:text-ps-muted-on-dark whitespace-nowrap">{label}</span>
         </div>
       ))}
     </div>

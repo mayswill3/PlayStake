@@ -23,7 +23,7 @@ export function MobileBottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-page border-t border-themed pb-safe">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-ps-paper dark:bg-ps-ink border-t border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] pb-safe">
       <div className="flex items-center justify-around h-16">
         {items.map((item) => {
           const active = item.href === '/dashboard'
@@ -38,7 +38,7 @@ export function MobileBottomNav() {
               className={`
                 flex flex-col items-center justify-center gap-1 flex-1 h-full
                 transition-colors
-                ${active ? 'text-brand-600 dark:text-brand-400' : 'text-fg-muted'}
+                ${active ? 'text-ps-lime' : 'text-ps-muted dark:text-ps-muted-on-dark'}
               `}
             >
               <Icon className="h-5 w-5" />

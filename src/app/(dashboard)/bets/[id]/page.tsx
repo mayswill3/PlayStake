@@ -4,12 +4,15 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { StatusBadge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { Dialog } from '@/components/ui/Dialog';
 import { CodeBlock } from '@/components/ui/CodeBlock';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { useToast } from '@/components/ui/Toast';
+import { DarkGlowCard } from '@/components/ui/playstake/DarkGlowCard';
+import { StatusPill } from '@/components/ui/playstake/StatusPill';
+import { StepIndicator } from '@/components/ui/playstake/StepIndicator';
+import { PSButton } from '@/components/ui/playstake/PSButton';
 import { formatCents, formatDate } from '@/lib/utils/format';
 
 interface BetDetail {
@@ -29,6 +32,37 @@ interface BetDetail {
   matchedAt: string | null;
   resultReportedAt: string | null;
   settledAt: string | null;
+}
+
+type PillStatus = 'live' | 'waiting' | 'completed' | 'disputed' | 'settled' | 'expired';
+
+function mapBetStatusToPill(status: string): PillStatus {
+  switch (status) {
+    case 'OPEN':
+    case 'PENDING':
+    case 'PENDING_CONSENT':
+      return 'waiting';
+    case 'MATCHED':
+    case 'RESULT_REPORTED':
+      return 'live';
+    case 'SETTLED':
+      return 'settled';
+    case 'DISPUTED':
+      return 'disputed';
+    case 'CANCELLED':
+    case 'VOIDED':
+    case 'EXPIRED':
+      return 'expired';
+    default:
+      return 'waiting';
+  }
+}
+
+function getTimelineStep(bet: BetDetail): number {
+  if (bet.settledAt) return 5; // past last step = all complete
+  if (bet.resultReportedAt) return 4;
+  if (bet.matchedAt) return 3;
+  return 2; // created = step 1 complete, step 2 active
 }
 
 export default function BetDetailPage() {
@@ -98,10 +132,10 @@ export default function BetDetailPage() {
     return (
       <div className="max-w-3xl mx-auto">
         <Card>
-          <p className="text-danger-400 font-mono">{error || 'Bet not found.'}</p>
-          <Button variant="ghost" onClick={() => router.back()} className="mt-4">
+          <p className="text-ps-error font-mono">{error || 'Bet not found.'}</p>
+          <PSButton variant="ghost" onClick={() => router.back()} className="mt-4">
             Go Back
-          </Button>
+          </PSButton>
         </Card>
       </div>
     );
@@ -116,64 +150,74 @@ export default function BetDetailPage() {
           <div>
             <button
               onClick={() => router.back()}
-              className="text-sm font-mono text-text-secondary hover:text-text-primary transition-colors mb-2"
+              className="text-sm font-mono text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-text dark:hover:text-ps-text-on-dark transition-colors mb-2"
             >
               &larr; Back to bets
             </button>
-            <h1 className="text-2xl font-display font-bold text-text-primary">Bet Detail</h1>
+            <h1 className="text-2xl font-display font-bold text-ps-text dark:text-ps-text-on-dark">Bet Detail</h1>
           </div>
-          <StatusBadge status={bet.status} />
+          <StatusPill status={mapBetStatusToPill(bet.status)} label={bet.status.replace(/_/g, ' ')} />
         </div>
 
         {/* Main info */}
-        <Card>
+        <DarkGlowCard>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Game</p>
-              <p className="text-text-primary font-display font-medium">{bet.game.name}</p>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Game</p>
+              <p className="text-ps-text-on-dark font-display font-medium">{bet.game.name}</p>
             </div>
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Stake</p>
-              <p className="text-text-primary font-display font-semibold text-lg tabular-nums">{formatCents(bet.amount)}</p>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Stake</p>
+              <p className="text-ps-lime font-display font-semibold text-lg tabular-nums">{formatCents(bet.amount)}</p>
             </div>
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Player A</p>
-              <p className="font-mono text-surface-200">{bet.playerA.displayName}</p>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Player A</p>
+              <p className="font-mono text-ps-text-on-dark">{bet.playerA.displayName}</p>
             </div>
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Player B</p>
-              <p className="font-mono text-surface-200">{bet.playerB?.displayName ?? 'Awaiting opponent'}</p>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Player B</p>
+              <p className="font-mono text-ps-text-on-dark">{bet.playerB?.displayName ?? 'Awaiting opponent'}</p>
             </div>
             {bet.outcome && (
               <div>
-                <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Outcome</p>
+                <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Outcome</p>
                 <p className={`font-display font-semibold ${outcomeDisplay.color}`}>{outcomeDisplay.label}</p>
               </div>
             )}
             {bet.platformFeeAmount !== null && (
               <div>
-                <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Platform Fee</p>
-                <p className="font-mono tabular-nums text-text-secondary">{formatCents(bet.platformFeeAmount)}</p>
+                <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Platform Fee</p>
+                <p className="font-mono tabular-nums text-ps-muted-on-dark">{formatCents(bet.platformFeeAmount)}</p>
               </div>
             )}
           </div>
 
           {bet.externalId && (
-            <div className="mt-4 pt-4 border-t border-white/8">
-              <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">External Match ID</p>
-              <p className="text-text-secondary text-sm font-mono">{bet.externalId}</p>
+            <div className="mt-4 pt-4 border-t border-[var(--ps-border-dark)]">
+              <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">External Match ID</p>
+              <p className="text-ps-muted-on-dark text-sm font-mono">{bet.externalId}</p>
             </div>
           )}
-        </Card>
+        </DarkGlowCard>
 
         {/* Timeline */}
         <Card>
-          <CardTitle className="mb-4">Timeline</CardTitle>
-          <div className="space-y-4">
-            <TimelineEntry label="Created" date={bet.createdAt} active />
-            <TimelineEntry label="Matched" date={bet.matchedAt} active={!!bet.matchedAt} />
-            <TimelineEntry label="Result Reported" date={bet.resultReportedAt} active={!!bet.resultReportedAt} />
-            <TimelineEntry label="Settled" date={bet.settledAt} active={!!bet.settledAt} />
+          <CardTitle className="mb-4">Match Timeline</CardTitle>
+          <StepIndicator
+            steps={[
+              { label: 'Created' },
+              { label: 'Matched' },
+              { label: 'Result Reported' },
+              { label: 'Settled' },
+            ]}
+            currentStep={getTimelineStep(bet)}
+            orientation="auto"
+          />
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">
+            <span>{bet.createdAt ? formatDate(bet.createdAt) : '-'}</span>
+            <span>{bet.matchedAt ? formatDate(bet.matchedAt) : '-'}</span>
+            <span>{bet.resultReportedAt ? formatDate(bet.resultReportedAt) : '-'}</span>
+            <span>{bet.settledAt ? formatDate(bet.settledAt) : '-'}</span>
           </div>
         </Card>
 
@@ -184,8 +228,8 @@ export default function BetDetailPage() {
             <div className="grid grid-cols-2 gap-3">
               {Object.entries(bet.gameMetadata).map(([key, value]) => (
                 <div key={key}>
-                  <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">{key}</p>
-                  <p className="text-sm font-mono text-surface-200">{String(value)}</p>
+                  <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted dark:text-ps-muted-on-dark">{key}</p>
+                  <p className="text-sm font-mono text-ps-text dark:text-ps-text-on-dark">{String(value)}</p>
                 </div>
               ))}
             </div>
@@ -205,12 +249,12 @@ export default function BetDetailPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-display font-medium text-surface-200">Dispute this bet</p>
-                <p className="text-xs font-mono text-text-muted">If you believe the result is incorrect, you can file a dispute.</p>
+                <p className="text-sm font-display font-medium text-ps-text dark:text-ps-text-on-dark">Dispute this bet</p>
+                <p className="text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">If you believe the result is incorrect, you can file a dispute.</p>
               </div>
-              <Button variant="danger" size="sm" onClick={() => setDisputeOpen(true)}>
+              <PSButton variant="danger" size="sm" onClick={() => setDisputeOpen(true)}>
                 File Dispute
-              </Button>
+              </PSButton>
             </div>
           </Card>
         )}
@@ -237,7 +281,7 @@ export default function BetDetailPage() {
               onChange={(e) => setDisputeReason(e.target.value)}
               placeholder="Describe the issue..."
               rows={4}
-              className="w-full rounded-sm border border-surface-700 bg-surface-800 text-surface-200 font-mono text-sm px-3 py-2 resize-none focus:border-brand-400 focus:ring-0 focus:outline-none"
+              className="w-full rounded-[var(--ps-radius-md)] border border-[var(--ps-border-dark)] bg-ps-ink-2 text-ps-text-on-dark font-mono text-sm px-3 py-2 resize-none focus:border-ps-lime focus:ring-0 focus:outline-none"
               required
             />
           </div>
@@ -247,33 +291,15 @@ export default function BetDetailPage() {
   );
 }
 
-function TimelineEntry({ label, date, active }: { label: string; date: string | null; active: boolean }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${
-        active
-          ? 'bg-brand-400 shadow-[0_0_8px_rgba(0,255,135,0.4)]'
-          : 'bg-surface-700'
-      }`} />
-      <div>
-        <p className={`text-sm font-mono ${active ? 'text-surface-200' : 'text-text-muted'}`}>{label}</p>
-        {date && (
-          <p className="text-xs font-mono text-text-secondary">{formatDate(date)}</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function getOutcomeDisplay(outcome: string | null): { label: string; color: string } {
   switch (outcome) {
     case 'PLAYER_A_WIN':
-      return { label: 'Player A Won', color: 'text-brand-400' };
+      return { label: 'Player A Won', color: 'text-ps-lime' };
     case 'PLAYER_B_WIN':
-      return { label: 'Player B Won', color: 'text-brand-400' };
+      return { label: 'Player B Won', color: 'text-ps-lime' };
     case 'DRAW':
-      return { label: 'Draw', color: 'text-surface-300' };
+      return { label: 'Draw', color: 'text-ps-muted-on-dark' };
     default:
-      return { label: 'Pending', color: 'text-text-muted' };
+      return { label: 'Pending', color: 'text-ps-muted-on-dark' };
   }
 }

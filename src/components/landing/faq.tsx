@@ -1,3 +1,5 @@
+import { EyebrowPill } from '@/components/ui/playstake';
+
 const FAQS = [
   {
     q: 'How does staking work?',
@@ -27,15 +29,14 @@ const FAQS = [
 
 export function FAQ() {
   return (
-    <section id="faq" className="py-20 lg:py-28 bg-elevated">
+    <section id="faq" className="py-16 lg:py-24 bg-ps-paper dark:bg-ps-ink">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="text-xs font-semibold uppercase tracking-widest text-brand-400 mb-3">
-            FAQ
-          </div>
-          <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-fg">
-            Questions? Answered.
+          <EyebrowPill label="FAQ" className="mb-3" />
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-ps-text dark:text-ps-text-on-dark">
+            Questions?{' '}
+            <span className="ps-gradient-text">Answered.</span>
           </h2>
         </div>
 
@@ -44,28 +45,22 @@ export function FAQ() {
           {FAQS.map(({ q, a }) => (
             <details
               key={q}
-              className="group rounded-2xl overflow-hidden"
-              style={{
-                background: 'var(--glass-bg)',
-                backdropFilter: 'blur(var(--glass-blur, 0px))',
-                WebkitBackdropFilter: 'blur(var(--glass-blur, 0px))',
-                border: '1px solid var(--glass-border)',
-              }}
+              className="group rounded-[var(--ps-radius-lg)] overflow-hidden ps-gradient-border-mask-light shadow-ps-shadow-sm"
             >
               <summary
-                className="flex cursor-pointer select-none items-center justify-between gap-4 px-5 py-5 text-fg font-semibold text-sm sm:text-base list-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-inset"
+                className="flex cursor-pointer select-none items-center justify-between gap-4 px-5 py-5 text-ps-text dark:text-ps-text-on-dark font-semibold text-sm sm:text-base list-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ps-blue)] dark:focus-visible:ring-[var(--ps-lime)] focus-visible:ring-inset"
                 style={{ WebkitAppearance: 'none' }}
               >
                 <dt>{q}</dt>
-                {/* Rotates from + to × when open */}
+                {/* Rotates from + to x when open */}
                 <span
                   aria-hidden="true"
-                  className="flex-shrink-0 text-brand-400 text-xl font-light transition-transform duration-200 group-open:rotate-45"
+                  className="flex-shrink-0 text-ps-lime text-xl font-light transition-transform duration-200 group-open:rotate-45"
                 >
                   +
                 </span>
               </summary>
-              <dd className="px-5 pb-5 text-fg-secondary text-sm leading-relaxed">
+              <dd className="px-5 pb-5 text-ps-muted dark:text-ps-muted-on-dark text-sm leading-relaxed">
                 {a}
               </dd>
             </details>

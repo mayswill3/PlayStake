@@ -11,14 +11,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-ps-paper dark:bg-ps-ink">
         <Spinner size="lg" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-ps-paper dark:bg-ps-ink">
       <Sidebar userRole={user?.role} />
       <div className="flex-1 flex flex-col min-w-0">
         <Header user={user} balance={balance} />

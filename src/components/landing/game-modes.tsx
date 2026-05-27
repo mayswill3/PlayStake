@@ -1,36 +1,36 @@
-import { Circle, Clock } from 'lucide-react';
-import { GlassCard } from '@/components/ui/GlassCard';
+import { CircleDot, Target, Goal, Trophy, Eye } from 'lucide-react';
+import { EyebrowPill, GlowCard, IconTile, StatusPill } from '@/components/ui/playstake';
 
 const GAMES = [
   {
-    emoji: '🎱',
+    icon: <CircleDot size={24} strokeWidth={1.5} />,
     name: 'Pool / 8-Ball',
     description:
       'One-on-one 8-ball pool. Set your stake, match with an opponent, play live.',
     status: 'live' as const,
   },
   {
-    emoji: '🎯',
+    icon: <Target size={24} strokeWidth={1.5} />,
     name: 'Darts',
     description: '501 head-to-head. Real targets, real stakes, real pressure.',
     status: 'coming-soon' as const,
   },
   {
-    emoji: '⚽',
+    icon: <Goal size={24} strokeWidth={1.5} />,
     name: 'Penalty Shootout',
     description:
       'Take penalties against a live keeper. Best of five — winner takes the pot.',
     status: 'coming-soon' as const,
   },
   {
-    emoji: '🏆',
+    icon: <Trophy size={24} strokeWidth={1.5} />,
     name: 'Tournaments',
     description:
       'Bracket-style competitions with combined prize pools. Squad up or go solo.',
     status: 'coming-soon' as const,
   },
   {
-    emoji: '👁️',
+    icon: <Eye size={24} strokeWidth={1.5} />,
     name: 'Watch-Along Rooms',
     description:
       "Spectate live matches, predict outcomes, stake on friends' games.",
@@ -40,17 +40,16 @@ const GAMES = [
 
 export function GameModes() {
   return (
-    <section id="games" className="py-20 lg:py-28 bg-elevated">
+    <section id="games" className="py-16 lg:py-24 bg-ps-paper dark:bg-ps-ink">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="text-xs font-semibold uppercase tracking-widest text-brand-400 mb-3">
-            Games
-          </div>
-          <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-fg">
-            Choose Your Arena
+          <EyebrowPill label="GAMES" className="mb-3" />
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-ps-text dark:text-ps-text-on-dark">
+            Choose Your Arena.{' '}
+            <span className="block ps-gradient-text">Prove Your Skill.</span>
           </h2>
-          <p className="mt-3 text-fg-secondary max-w-lg mx-auto">
+          <p className="mt-3 text-ps-muted dark:text-ps-muted-on-dark max-w-lg mx-auto">
             Pool is live now. More arenas are coming — beta players choose what ships
             next.
           </p>
@@ -59,49 +58,29 @@ export function GameModes() {
         {/* Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {GAMES.map((game) => (
-            <GlassCard
+            <GlowCard
               key={game.name}
               padding="md"
-              neon={game.status === 'live' ? 'green' : false}
-              className="flex flex-col"
+              glow={game.status === 'live' ? 'medium' : 'none'}
+              className={`flex flex-col ${game.status === 'coming-soon' ? 'opacity-70' : ''}`}
             >
               <div className="flex items-start justify-between mb-4">
-                <span className="text-3xl" role="img" aria-label={game.name}>
-                  {game.emoji}
-                </span>
-
+                <IconTile
+                  icon={game.icon}
+                  size="sm"
+                />
                 {game.status === 'live' ? (
-                  <div
-                    className="flex items-center gap-1.5 rounded-full px-2.5 py-1"
-                    style={{
-                      background: 'rgba(34,197,94,0.12)',
-                      border: '1px solid rgba(34,197,94,0.30)',
-                    }}
-                  >
-                    <Circle
-                      size={6}
-                      className="fill-brand-400 text-brand-400 animate-pulse"
-                      aria-hidden="true"
-                    />
-                    <span className="text-[10px] font-bold text-brand-400 uppercase tracking-widest">
-                      Live
-                    </span>
-                  </div>
+                  <StatusPill status="live" />
                 ) : (
-                  <div className="flex items-center gap-1.5 rounded-full px-2.5 py-1 bg-elevated border border-themed">
-                    <Clock size={10} className="text-fg-muted" aria-hidden="true" />
-                    <span className="text-[10px] font-medium text-fg-muted uppercase tracking-widest">
-                      Soon
-                    </span>
-                  </div>
+                  <StatusPill status="waiting" label="SOON" />
                 )}
               </div>
 
-              <h3 className="font-display text-base font-bold text-fg">{game.name}</h3>
-              <p className="mt-2 text-sm text-fg-secondary leading-relaxed">
+              <h3 className="font-display text-base font-bold text-ps-text dark:text-ps-text-on-dark">{game.name}</h3>
+              <p className="mt-2 text-sm text-ps-muted dark:text-ps-muted-on-dark leading-relaxed">
                 {game.description}
               </p>
-            </GlassCard>
+            </GlowCard>
           ))}
         </div>
       </div>

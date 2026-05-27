@@ -3,12 +3,13 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { Card, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Spinner } from '@/components/ui/Spinner';
 import { Badge } from '@/components/ui/Badge';
+import { Spinner } from '@/components/ui/Spinner';
 import { Dialog } from '@/components/ui/Dialog';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { useToast } from '@/components/ui/Toast';
+import { Button } from '@/components/ui/Button';
+import { PSButton } from '@/components/ui/playstake/PSButton';
 
 interface UserProfile {
   id: string;
@@ -155,9 +156,9 @@ export default function SettingsPage() {
   return (
     <FadeIn>
       <div className="max-w-2xl mx-auto space-y-6">
-        <h1 className="text-2xl font-display font-bold text-text-primary">Settings</h1>
+        <h1 className="text-2xl font-display font-bold text-ps-text dark:text-ps-text-on-dark">Settings</h1>
 
-        <Card>
+        <Card className="bg-ps-paper-elevated dark:bg-ps-ink-2 border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">
           <CardTitle>Profile</CardTitle>
           <CardDescription>Update your display name and avatar.</CardDescription>
           <form onSubmit={handleProfileSave} className="space-y-4 mt-4">
@@ -189,12 +190,12 @@ export default function SettingsPage() {
               placeholder="https://example.com/avatar.jpg"
             />
             <div className="flex justify-end">
-              <Button type="submit" loading={profileSaving}>Save Profile</Button>
+              <PSButton type="submit" loading={profileSaving}>Save Profile</PSButton>
             </div>
           </form>
         </Card>
 
-        <Card>
+        <Card className="bg-ps-paper-elevated dark:bg-ps-ink-2 border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">
           <CardTitle>Security</CardTitle>
           <CardDescription>Manage your password and two-factor authentication.</CardDescription>
           <form onSubmit={handlePasswordChange} className="space-y-4 mt-4">
@@ -202,15 +203,15 @@ export default function SettingsPage() {
             <Input label="New Password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} autoComplete="new-password" />
             <Input label="Confirm New Password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} autoComplete="new-password" />
             <div className="flex justify-end">
-              <Button type="submit" loading={passwordSaving}>Change Password</Button>
+              <PSButton type="submit" loading={passwordSaving}>Change Password</PSButton>
             </div>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-white/8">
+          <div className="mt-6 pt-6 border-t border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-display font-medium text-surface-200">Two-Factor Authentication</p>
-                <p className="text-xs font-mono text-text-muted mt-0.5">
+                <p className="text-sm font-display font-medium text-ps-text dark:text-ps-text-on-dark">Two-Factor Authentication</p>
+                <p className="text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark mt-0.5">
                   {profile?.twoFactorEnabled
                     ? 'Two-factor authentication is enabled.'
                     : 'Add an extra layer of security to your account.'}
@@ -219,17 +220,17 @@ export default function SettingsPage() {
               {profile?.twoFactorEnabled ? (
                 <Badge variant="success">Enabled</Badge>
               ) : (
-                <Button variant="secondary" size="sm" onClick={handleEnable2FA}>Enable 2FA</Button>
+                <PSButton variant="secondary" size="sm" onClick={handleEnable2FA}>Enable 2FA</PSButton>
               )}
             </div>
           </div>
         </Card>
 
-        <Card>
+        <Card className="bg-ps-paper-elevated dark:bg-ps-ink-2 border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">
           <CardTitle>Notifications</CardTitle>
           <CardDescription>Notification preferences coming soon.</CardDescription>
-          <div className="mt-4 p-4 rounded-sm bg-surface-800 text-center">
-            <p className="text-sm font-mono text-text-muted">
+          <div className="mt-4 p-4 rounded-[var(--ps-radius-md)] bg-ps-paper dark:bg-ps-ink-3 text-center">
+            <p className="text-sm font-mono text-ps-muted dark:text-ps-muted-on-dark">
               Email and push notification settings will be available in a future update.
             </p>
           </div>
@@ -248,8 +249,8 @@ export default function SettingsPage() {
         >
           <div className="space-y-4">
             <p className="text-sm">Enter this secret key in your authenticator app:</p>
-            <div className="p-3 rounded-sm bg-surface-800 text-center">
-              <code className="text-sm text-brand-400 font-mono break-all">{twoFASecret}</code>
+            <div className="p-3 rounded-[var(--ps-radius-md)] bg-ps-ink-2 text-center">
+              <code className="text-sm text-ps-lime font-mono break-all">{twoFASecret}</code>
             </div>
             <p className="text-sm">Then enter the 6-digit code from your app:</p>
             <Input
@@ -270,21 +271,21 @@ export default function SettingsPage() {
           title="Save Your Backup Codes"
         >
           <div className="space-y-4">
-            <p className="text-sm text-danger-400">
+            <p className="text-sm text-ps-error">
               Save these backup codes in a secure location. Each code can only be used once.
             </p>
-            <div className="grid grid-cols-2 gap-2 p-4 rounded-sm bg-surface-800">
+            <div className="grid grid-cols-2 gap-2 p-4 rounded-[var(--ps-radius-md)] bg-ps-ink-2">
               {backupCodes.map((code, i) => (
-                <code key={i} className="text-sm text-surface-200 font-mono">{code}</code>
+                <code key={i} className="text-sm text-ps-text-on-dark font-mono">{code}</code>
               ))}
             </div>
-            <Button
+            <PSButton
               variant="primary"
-              className="w-full"
+              fullWidth
               onClick={() => { setBackupCodes([]); setTwoFAOpen(false); setTwoFACode(''); setTwoFASecret(''); }}
             >
               I have saved my backup codes
-            </Button>
+            </PSButton>
           </div>
         </Dialog>
       </div>
