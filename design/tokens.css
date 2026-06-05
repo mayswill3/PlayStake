@@ -14,13 +14,15 @@
    ───────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* ── Brand: Lime ── */
-  --ps-lime:            #C6F432;
-  --ps-lime-strong:     #B6E635;
-  --ps-lime-dim:        #8FAF1E;   /* for use where lime needs more weight   */
-  --ps-lime-10:         rgba(198, 244, 50, 0.10);
-  --ps-lime-20:         rgba(198, 244, 50, 0.20);
-  --ps-lime-35:         rgba(198, 244, 50, 0.35);
+  /* ── Brand: Lime → repointed to mint/seafoam for solid usages.
+        Gradient tokens still use the literal lime hex below so
+        gradient-text headlines retain the lime→cyan transition. ── */
+  --ps-lime:            #5FDCB2;
+  --ps-lime-strong:     #3DCFA0;
+  --ps-lime-dim:        #2EA988;
+  --ps-lime-10:         rgba(95, 220, 178, 0.10);
+  --ps-lime-20:         rgba(95, 220, 178, 0.20);
+  --ps-lime-35:         rgba(95, 220, 178, 0.35);
 
   /* ── Secondary: Cyan ── */
   --ps-cyan:            #00C8FF;
@@ -103,9 +105,9 @@
   --ps-glow-lg:        0 0 0 1px rgba(198,244,50,0.35),
                        0 20px 60px -12px rgba(0,200,255,0.40);
 
-  /* Lime-only glow (for buttons on hover) */
-  --ps-glow-lime:      0 0 20px rgba(198,244,50,0.30),
-                       0 0 60px rgba(198,244,50,0.10);
+  /* Lime-only glow (now mint — for buttons on hover) */
+  --ps-glow-lime:      0 0 20px rgba(95,220,178,0.30),
+                       0 0 60px rgba(95,220,178,0.10);
 
   /* Cyan-only glow */
   --ps-glow-cyan:      0 0 20px rgba(0,200,255,0.30),
