@@ -107,3 +107,73 @@ export async function fetchKickChannel(
   );
   return body.data?.[0] ?? null;
 }
+
+// Webhook event subscriptions we register when a channel is linked. Each entry
+// is sent to Kick as {name, version}; the receiver lives at /api/webhooks/kick.
+// Docs: https://docs.kick.com/events/subscribe-to-events
+export const KICK_SUBSCRIBED_EVENTS = [
+  { name: "livestream.status.updated", version: 1 },
+  { name: "channel.followed", version: 1 },
+  { name: "channel.subscription.new", version: 1 },
+  { name: "channel.subscription.renewal", version: 1 },
+  { name: "channel.subscription.gifts", version: 1 },
+] as const;
+
+export interface KickSubscription {
+  id: string;
+  event: string;
+  version: number;
+  method: string;
+  broadcaster_user_id: number;
+}
+
+/**
+ * Subscribe the authenticated channel to our webhook events.
+ *
+ * Best-effort: returns the created subscription records. Kick de-duplicates
+ * repeat subscriptions, so this is safe to call again on re-link.
+ */
+export async function subscribeToWebhookEvents(
+  accessToken: string,
+): Promise<KickSubscription[]> {
+  const body = await kickFetch<{ data: KickSubscription[] }>(
+    "/events/subscriptions",
+    accessToken,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        method: "webhook",
+        events: KICK_SUBSCRIBED_EVENTS,
+      }),
+    },
+  );
+  return body.data ?? [];
+}
+
+/**
+ * List the authenticated channel's webhook subscriptions.
+ */
+export async function listWebhookSubscriptions(
+  accessToken: string,
+): Promise<KickSubscription[]> {
+  const body = await kickFetch<{ data: KickSubscription[] }>(
+    "/events/subscriptions",
+    accessToken,
+  );
+  return body.data ?? [];
+}
+
+/**
+ * Delete webhook subscriptions by id. No-op when given an empty list.
+ */
+export async function deleteWebhookSubscriptions(
+  accessToken: string,
+  ids: string[],
+): Promise<void> {
+  if (ids.length === 0) return;
+  const query = ids.map((id) => `id=${encodeURIComponent(id)}`).join("&");
+  await kickFetch(`/events/subscriptions?${query}`, accessToken, {
+    method: "DELETE",
+  });
+}
