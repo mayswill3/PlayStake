@@ -4,17 +4,13 @@ import { generateRandomToken } from "../utils/crypto";
 const KICK_AUTH_URL = "https://id.kick.com/oauth/authorize";
 const KICK_TOKEN_URL = "https://id.kick.com/oauth/token";
 
-// Scopes requested for the streamer link flow. Adjust per integration surface:
+// Scopes requested for the streamer link flow. Must be a subset of what the
+// Kick app is granted, or authorize fails with invalid_scope.
 //   - user:read        — basic profile (sub, email, slug)
 //   - channel:read     — broadcaster channel info
-//   - chat:read        — subscribe to chat events
-//   - events:subscribe — webhook event subscriptions (follows, subs, etc.)
-const DEFAULT_SCOPES = [
-  "user:read",
-  "channel:read",
-  "chat:read",
-  "events:subscribe",
-];
+//   - events:subscribe — webhook subscriptions (live status, follows, subs,
+//                        gifts; also covers reading the chat feed)
+const DEFAULT_SCOPES = ["user:read", "channel:read", "events:subscribe"];
 
 function getConfig() {
   const clientId = process.env.KICK_CLIENT_ID;
