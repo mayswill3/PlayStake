@@ -20,9 +20,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${appUrl}/login?next=/api/auth/kick`);
   }
 
-  const state = generateOAuthState();
-  const codeVerifier = generatePkceVerifier();
-  const authUrl = getKickAuthUrl(state, codeVerifier);
+  let authUrl: string;
+  let state: string;
+  let codeVerifier: string;
+  try {
+    state = generateOAuthState();
+    codeVerifier = generatePkceVerifier();
+    authUrl = getKickAuthUrl(state, codeVerifier);
+  } catch (err) {
+    // Most likely a missing KICK_CLIENT_ID/SECRET. Don't dump a raw 500 — send
+    // the user back to the dashboard with a friendly failure toast.
+    console.error("Kick OAuth initiation failed:", err);
+    return NextResponse.redirect(`${appUrl}/dashboard?kick=failed`);
+  }
 
   const response = NextResponse.redirect(authUrl);
 
