@@ -78,7 +78,14 @@ async function kickFetch<T>(
     throw new Error(`Kick API ${path} failed (${res.status}): ${body}`);
   }
 
-  return res.json() as Promise<T>;
+  // Some endpoints (e.g. DELETE /events/subscriptions) return 204 / an empty
+  // body. Parsing that as JSON throws "Unexpected end of JSON input", so guard
+  // against it and return undefined for empty responses.
+  if (res.status === 204) {
+    return undefined as T;
+  }
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 /**
