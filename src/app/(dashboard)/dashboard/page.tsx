@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Hash,
   TrendingUp,
@@ -15,6 +16,7 @@ import {
   Layers,
   Grid3x3,
   Target,
+  Radio,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { FadeIn } from '@/components/ui/FadeIn';
@@ -23,6 +25,8 @@ import { StatusPill } from '@/components/ui/playstake/StatusPill';
 import { PSButton } from '@/components/ui/playstake/PSButton';
 import { GlowCard } from '@/components/ui/playstake/GlowCard';
 import { IconTile } from '@/components/ui/playstake/IconTile';
+import { Badge } from '@/components/ui/Badge';
+import { useToast } from '@/components/ui/Toast';
 import { useAuthLayout } from '@/hooks/useAuthLayout';
 import { formatCents, formatPercent, formatDate } from '@/lib/utils/format';
 
@@ -88,12 +92,33 @@ function timeOfDay(): string {
   return 'evening';
 }
 
+const KICK_STATUS_MESSAGES: Record<string, { type: 'success' | 'error' | 'info'; message: string }> = {
+  linked: { type: 'success', message: 'Kick channel connected.' },
+  denied: { type: 'info', message: 'Kick connection was cancelled.' },
+  invalid: { type: 'error', message: 'Kick connection failed: invalid request. Please try again.' },
+  already_linked: { type: 'error', message: 'That Kick channel is already linked to another account.' },
+  failed: { type: 'error', message: 'Could not connect your Kick channel. Please try again.' },
+};
+
 export default function DashboardPage() {
   const { user } = useAuthLayout();
+  const { toast } = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentBets, setRecentBets] = useState<RecentBet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Surface feedback from the Kick OAuth callback redirect (/dashboard?kick=...)
+  // then strip the param so it doesn't re-fire on refresh.
+  useEffect(() => {
+    const kick = searchParams.get('kick');
+    if (!kick) return;
+    const feedback = KICK_STATUS_MESSAGES[kick];
+    if (feedback) toast(feedback.type, feedback.message);
+    router.replace('/dashboard');
+  }, [searchParams, toast, router]);
 
   useEffect(() => {
     Promise.all([
@@ -202,8 +227,101 @@ export default function DashboardPage() {
 
         {/* Recent bets */}
         <RecentBetsSection bets={recentBets} />
+
+        {/* Connections */}
+        <KickConnectionCard />
       </div>
     </FadeIn>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Kick Connection
+// ---------------------------------------------------------------------------
+
+interface KickStatus {
+  connected: boolean;
+  channelSlug?: string | null;
+  displayName?: string | null;
+  profilePicture?: string | null;
+}
+
+function KickConnectionCard() {
+  const { toast } = useToast();
+  const [status, setStatus] = useState<KickStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/user/kick')
+      .then((r) => (r.ok ? r.json() : { connected: false }))
+      .then((data) => setStatus(data))
+      .catch(() => setStatus({ connected: false }))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleDisconnect() {
+    setDisconnecting(true);
+    try {
+      const res = await fetch('/api/user/kick', { method: 'DELETE' });
+      if (!res.ok) {
+        toast('error', 'Failed to disconnect Kick.');
+        return;
+      }
+      setStatus({ connected: false });
+      toast('success', 'Kick channel disconnected.');
+    } catch {
+      toast('error', 'Something went wrong.');
+    } finally {
+      setDisconnecting(false);
+    }
+  }
+
+  const connected = status?.connected;
+
+  return (
+    <div className="rounded-[var(--ps-radius-lg)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-ps-paper-elevated dark:bg-ps-ink-2 p-6">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="h-10 w-10 shrink-0 rounded-[var(--ps-radius-md)] bg-ps-lime/10 text-ps-lime flex items-center justify-center">
+            <Radio size={18} strokeWidth={2.5} />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-display font-semibold text-ps-text dark:text-ps-text-on-dark">Kick</p>
+              {!loading && connected && <Badge variant="success">Connected</Badge>}
+            </div>
+            <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark mt-0.5 truncate">
+              {loading
+                ? 'Checking connection…'
+                : connected
+                ? status?.channelSlug
+                  ? `Linked to kick.com/${status.channelSlug}`
+                  : `Linked as ${status?.displayName ?? 'your channel'}`
+                : 'Connect your Kick channel to enable streaming features.'}
+            </p>
+          </div>
+        </div>
+        {!loading && (
+          connected ? (
+            <PSButton
+              variant="secondary"
+              size="sm"
+              loading={disconnecting}
+              onClick={handleDisconnect}
+            >
+              Disconnect
+            </PSButton>
+          ) : (
+            <a href="/api/auth/kick">
+              <PSButton variant="primary" size="sm" icon={<Radio size={15} />}>
+                Connect Kick
+              </PSButton>
+            </a>
+          )
+        )}
+      </div>
+    </div>
   );
 }
 
