@@ -3,6 +3,11 @@ import { prisma } from "../../../../lib/db/client";
 import { validateSession } from "../../../../lib/auth/session";
 import { getSessionToken } from "../../../../lib/auth/helpers";
 import { errorResponse, AuthenticationError } from "../../../../lib/errors/index";
+import {
+  getValidAccessToken,
+  listWebhookSubscriptions,
+  deleteWebhookSubscriptions,
+} from "../../../../lib/kick/api";
 
 /**
  * Return the current user's Kick connection status.
@@ -54,6 +59,26 @@ export async function DELETE(request: NextRequest) {
 
     const session = await validateSession(token);
     if (!session) throw new AuthenticationError("Invalid or expired session");
+
+    const account = await prisma.kickAccount.findUnique({
+      where: { userId: session.userId },
+      select: { id: true },
+    });
+    if (!account) {
+      return NextResponse.json({ connected: false });
+    }
+
+    // Best-effort: revoke our webhook subscriptions before dropping the tokens.
+    try {
+      const accessToken = await getValidAccessToken(account.id);
+      const subs = await listWebhookSubscriptions(accessToken);
+      await deleteWebhookSubscriptions(
+        accessToken,
+        subs.map((s) => s.id),
+      );
+    } catch (subErr) {
+      console.error("Kick webhook unsubscribe failed:", subErr);
+    }
 
     await prisma.kickAccount
       .delete({ where: { userId: session.userId } })

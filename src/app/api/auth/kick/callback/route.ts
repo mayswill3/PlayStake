@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/db/client";
 import { exchangeCodeForTokens } from "../../../../../lib/auth/kick";
-import { fetchKickChannel, fetchKickUser } from "../../../../../lib/kick/api";
+import {
+  fetchKickChannel,
+  fetchKickUser,
+  subscribeToWebhookEvents,
+} from "../../../../../lib/kick/api";
 import { validateSession } from "../../../../../lib/auth/session";
 import { encrypt } from "../../../../../lib/utils/encryption";
 
@@ -96,6 +100,15 @@ export async function GET(request: NextRequest) {
         scope: tokens.scope,
       },
     });
+
+    // Best-effort: register webhook subscriptions so we receive live/follow/sub
+    // events. Non-fatal — the link still succeeds if this fails (e.g. the app
+    // isn't yet verified for an event), and it can be retried on re-link.
+    try {
+      await subscribeToWebhookEvents(tokens.access_token);
+    } catch (subErr) {
+      console.error("Kick webhook subscription failed:", subErr);
+    }
 
     const response = NextResponse.redirect(`${appUrl}/dashboard?kick=linked`);
     clearOAuthCookies(response);
