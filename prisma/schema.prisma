@@ -154,6 +154,7 @@ model User {
   widgetSessions    WidgetSession[]
   sessions          Session[]
   oauthAccounts     OAuthAccount[]
+  kickAccount       KickAccount?
   lobbyEntries      LobbyEntry[]     @relation("LobbyUser")
   lobbyInvitesSent  LobbyEntry[]     @relation("LobbyInviter")
 
@@ -193,6 +194,27 @@ model OAuthAccount {
   @@unique([provider, providerUserId], map: "uq_oauth_provider_user")
   @@index([userId], map: "idx_oauth_user")
   @@map("oauth_accounts")
+}
+
+model KickAccount {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @map("user_id") @db.Uuid
+  kickUserId      String   @unique @map("kick_user_id") @db.VarChar(255)
+  channelSlug     String?  @map("channel_slug") @db.VarChar(255)
+  email           String?  @db.VarChar(255)
+  displayName     String?  @map("display_name") @db.VarChar(255)
+  profilePicture  String?  @map("profile_picture") @db.VarChar(500)
+  accessTokenEnc  String   @map("access_token_enc") @db.Text
+  refreshTokenEnc String   @map("refresh_token_enc") @db.Text
+  tokenExpiresAt  DateTime @map("token_expires_at")
+  scope           String   @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([kickUserId], map: "idx_kick_account_kick_user")
+  @@map("kick_accounts")
 }
 
 // =============================================================================
