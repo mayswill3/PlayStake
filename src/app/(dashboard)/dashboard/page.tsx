@@ -244,6 +244,8 @@ interface KickStatus {
   channelSlug?: string | null;
   displayName?: string | null;
   profilePicture?: string | null;
+  isLive?: boolean;
+  lastLiveAt?: string | null;
 }
 
 function KickConnectionCard() {
@@ -278,6 +280,8 @@ function KickConnectionCard() {
   }
 
   const connected = status?.connected;
+  const slug = status?.channelSlug;
+  const isLive = connected && status?.isLive;
 
   return (
     <div className="rounded-[var(--ps-radius-lg)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-ps-paper-elevated dark:bg-ps-ink-2 p-6">
@@ -290,15 +294,21 @@ function KickConnectionCard() {
             <div className="flex items-center gap-2">
               <p className="text-sm font-display font-semibold text-ps-text dark:text-ps-text-on-dark">Kick</p>
               {!loading && connected && <Badge variant="success">Connected</Badge>}
+              {!loading && isLive && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-ps-error/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ps-error">
+                  <span className="h-1.5 w-1.5 rounded-full bg-ps-error animate-pulse" />
+                  Live
+                </span>
+              )}
             </div>
             <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark mt-0.5 truncate">
               {loading
                 ? 'Checking connection…'
                 : connected
-                ? status?.channelSlug
-                  ? `Linked to kick.com/${status.channelSlug}`
+                ? slug
+                  ? `Linked to kick.com/${slug}`
                   : `Linked as ${status?.displayName ?? 'your channel'}`
-                : 'Connect your Kick channel to enable streaming features.'}
+                : 'Connect your Kick channel to watch your stream here.'}
             </p>
           </div>
         </div>
@@ -321,6 +331,20 @@ function KickConnectionCard() {
           )
         )}
       </div>
+
+      {/* Embedded Kick player — shows the channel's live stream (or its offline
+          screen) directly on PlayStake. Free; no streaming infra required. */}
+      {!loading && connected && slug && (
+        <div className="mt-4 overflow-hidden rounded-[var(--ps-radius-md)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-black">
+          <iframe
+            src={`https://player.kick.com/${slug}`}
+            title={`${slug} on Kick`}
+            className="w-full aspect-video"
+            allowFullScreen
+            allow="autoplay; fullscreen; picture-in-picture"
+          />
+        </div>
+      )}
     </div>
   );
 }

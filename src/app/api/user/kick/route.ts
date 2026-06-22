@@ -29,6 +29,8 @@ export async function GET(request: NextRequest) {
         channelSlug: true,
         displayName: true,
         profilePicture: true,
+        isLive: true,
+        lastLiveAt: true,
         createdAt: true,
       },
     });
@@ -42,6 +44,8 @@ export async function GET(request: NextRequest) {
       channelSlug: account.channelSlug,
       displayName: account.displayName,
       profilePicture: account.profilePicture,
+      isLive: account.isLive,
+      lastLiveAt: account.lastLiveAt?.toISOString() ?? null,
       connectedAt: account.createdAt.toISOString(),
     });
   } catch (error) {
