@@ -27,8 +27,20 @@ export async function GET(
       where: { id },
       include: {
         game: { select: { id: true, name: true, logoUrl: true } },
-        playerA: { select: { id: true, displayName: true } },
-        playerB: { select: { id: true, displayName: true } },
+        playerA: {
+          select: {
+            id: true,
+            displayName: true,
+            kickAccount: { select: { channelSlug: true, isLive: true } },
+          },
+        },
+        playerB: {
+          select: {
+            id: true,
+            displayName: true,
+            kickAccount: { select: { channelSlug: true, isLive: true } },
+          },
+        },
       },
     });
 
@@ -55,11 +67,23 @@ export async function GET(
       playerA: {
         id: bet.playerA.id,
         displayName: bet.playerA.displayName,
+        kick: bet.playerA.kickAccount?.channelSlug
+          ? {
+              channelSlug: bet.playerA.kickAccount.channelSlug,
+              isLive: bet.playerA.kickAccount.isLive,
+            }
+          : null,
       },
       playerB: bet.playerB
         ? {
             id: bet.playerB.id,
             displayName: bet.playerB.displayName,
+            kick: bet.playerB.kickAccount?.channelSlug
+              ? {
+                  channelSlug: bet.playerB.kickAccount.channelSlug,
+                  isLive: bet.playerB.kickAccount.isLive,
+                }
+              : null,
           }
         : null,
       amount: dollarsToCents(bet.amount),
