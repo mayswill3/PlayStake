@@ -15,12 +15,17 @@ import { StepIndicator } from '@/components/ui/playstake/StepIndicator';
 import { PSButton } from '@/components/ui/playstake/PSButton';
 import { formatCents, formatDate } from '@/lib/utils/format';
 
+interface KickInfo {
+  channelSlug: string;
+  isLive: boolean;
+}
+
 interface BetDetail {
   id: string;
   externalId: string | null;
   game: { id: string; name: string; logoUrl: string | null };
-  playerA: { id: string; displayName: string };
-  playerB: { id: string; displayName: string } | null;
+  playerA: { id: string; displayName: string; kick: KickInfo | null };
+  playerB: { id: string; displayName: string; kick: KickInfo | null } | null;
   amount: number;
   currency: string;
   status: string;
@@ -200,6 +205,16 @@ export default function BetDetailPage() {
           )}
         </DarkGlowCard>
 
+        {/* Kick streams — watch participants' live streams during the bet */}
+        <KickStreamsSection
+          players={[
+            { name: bet.playerA.displayName, kick: bet.playerA.kick },
+            ...(bet.playerB
+              ? [{ name: bet.playerB.displayName, kick: bet.playerB.kick }]
+              : []),
+          ]}
+        />
+
         {/* Timeline */}
         <Card>
           <CardTitle className="mb-4">Match Timeline</CardTitle>
@@ -288,6 +303,53 @@ export default function BetDetailPage() {
         </Dialog>
       </div>
     </FadeIn>
+  );
+}
+
+function KickStreamsSection({
+  players,
+}: {
+  players: { name: string; kick: KickInfo | null }[];
+}) {
+  const streamers = players.filter(
+    (p): p is { name: string; kick: KickInfo } => p.kick !== null,
+  );
+  if (streamers.length === 0) return null;
+
+  return (
+    <Card>
+      <CardTitle className="mb-4">Watch on Kick</CardTitle>
+      <div className={`grid grid-cols-1 gap-4 ${streamers.length > 1 ? 'sm:grid-cols-2' : ''}`}>
+        {streamers.map((p) => (
+          <div key={p.kick.channelSlug}>
+            <div className="flex items-center gap-2 mb-2">
+              <p className="text-sm font-display font-medium text-ps-text dark:text-ps-text-on-dark truncate">
+                {p.name}
+              </p>
+              {p.kick.isLive ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-ps-error/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ps-error">
+                  <span className="h-1.5 w-1.5 rounded-full bg-ps-error animate-pulse" />
+                  Live
+                </span>
+              ) : (
+                <span className="text-[10px] font-mono uppercase tracking-wider text-ps-muted dark:text-ps-muted-on-dark">
+                  Offline
+                </span>
+              )}
+            </div>
+            <div className="overflow-hidden rounded-[var(--ps-radius-md)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-black">
+              <iframe
+                src={`https://player.kick.com/${p.kick.channelSlug}`}
+                title={`${p.kick.channelSlug} on Kick`}
+                className="w-full aspect-video"
+                allowFullScreen
+                allow="autoplay; fullscreen; picture-in-picture"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 
