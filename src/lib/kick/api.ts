@@ -3,6 +3,7 @@ import { refreshAccessToken } from "../auth/kick";
 import { decrypt, encrypt } from "../utils/encryption";
 
 const KICK_API_BASE = "https://api.kick.com/public/v1";
+const KICK_TOKEN_URL = "https://id.kick.com/oauth/token";
 
 // Refresh tokens that expire within this window to avoid mid-request expiry.
 const TOKEN_REFRESH_LEEWAY_MS = 60 * 1000;
@@ -183,4 +184,76 @@ export async function deleteWebhookSubscriptions(
   await kickFetch(`/events/subscriptions?${query}`, accessToken, {
     method: "DELETE",
   });
+}
+
+// ---------------------------------------------------------------------------
+// App (client-credentials) token + public channel data
+// ---------------------------------------------------------------------------
+
+// Module-level cache for the app access token. Railway runs a long-lived Node
+// process, so this persists across requests.
+let appTokenCache: { token: string; expiresAt: number } | null = null;
+
+/**
+ * Get a server-to-server App Access Token (client credentials grant).
+ *
+ * Used to read publicly available data (e.g. live channel thumbnails) without
+ * any individual user's token. Cached until shortly before expiry.
+ */
+export async function getAppAccessToken(): Promise<string> {
+  if (appTokenCache && appTokenCache.expiresAt - Date.now() > TOKEN_REFRESH_LEEWAY_MS) {
+    return appTokenCache.token;
+  }
+
+  const clientId = process.env.KICK_CLIENT_ID;
+  const clientSecret = process.env.KICK_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    throw new Error("Missing KICK_CLIENT_ID or KICK_CLIENT_SECRET");
+  }
+
+  const res = await fetch(KICK_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Kick app token request failed (${res.status})`);
+  }
+
+  const data = (await res.json()) as { access_token: string; expires_in: number };
+  appTokenCache = {
+    token: data.access_token,
+    expiresAt: Date.now() + data.expires_in * 1000,
+  };
+  return data.access_token;
+}
+
+export interface KickPublicChannel {
+  slug: string;
+  stream_title?: string;
+  stream?: { is_live: boolean; viewer_count?: number; thumbnail?: string };
+}
+
+/**
+ * Fetch public channel data (incl. live thumbnail + viewer count) for up to 50
+ * slugs in one call, using an app access token.
+ */
+export async function fetchPublicChannels(
+  slugs: string[],
+): Promise<KickPublicChannel[]> {
+  if (slugs.length === 0) return [];
+  const token = await getAppAccessToken();
+  const query = slugs
+    .slice(0, 50)
+    .map((s) => `slug=${encodeURIComponent(s)}`)
+    .join("&");
+  const body = await kickFetch<{ data: KickPublicChannel[] }>(
+    `/channels?${query}`,
+    token,
+  );
+  return body.data ?? [];
 }
