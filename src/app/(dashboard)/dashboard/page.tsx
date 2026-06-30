@@ -165,7 +165,7 @@ export default function DashboardPage() {
 
   return (
     <FadeIn>
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Greeting header */}
         <div>
           <h1 className="font-display text-2xl sm:text-3xl font-bold text-ps-text dark:text-ps-text-on-dark">
@@ -176,60 +176,70 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Play Now section */}
-        <PlayNowSection />
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6">
+          {/* Main column */}
+          <div className="space-y-6 min-w-0">
+            {/* Play Now section */}
+            <PlayNowSection />
 
-        {/* Stat cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            label="Total Bets"
-            value={String(stats?.totalBets ?? 0)}
-            subtext="All time"
-            icon={Hash}
-            accent="neutral"
-          />
-          <StatCard
-            label="Win Rate"
-            value={stats ? formatPercent(stats.winRate) : '0%'}
-            subtext={stats ? `${stats.wins}W / ${stats.losses}L / ${stats.draws}D` : undefined}
-            icon={TrendingUp}
-            accent="neutral"
-          />
-          <StatCard
-            label="Net Profit"
-            value={formatCents(stats?.netProfit ?? 0)}
-            subtext={stats?.totalWagered ? `of ${formatCents(stats.totalWagered)} wagered` : undefined}
-            icon={DollarSign}
-            accent={isProfitPositive ? 'positive' : isProfitNegative ? 'negative' : 'neutral'}
-          />
-          <StatCard
-            label="Active Bets"
-            value={String(stats?.activeBets ?? 0)}
-            subtext={stats?.activeBets ? 'In progress' : 'None active'}
-            icon={Activity}
-            accent="neutral"
-          />
+            {/* Stat cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard
+                label="Total Bets"
+                value={String(stats?.totalBets ?? 0)}
+                subtext="All time"
+                icon={Hash}
+                accent="neutral"
+              />
+              <StatCard
+                label="Win Rate"
+                value={stats ? formatPercent(stats.winRate) : '0%'}
+                subtext={stats ? `${stats.wins}W / ${stats.losses}L / ${stats.draws}D` : undefined}
+                icon={TrendingUp}
+                accent="neutral"
+              />
+              <StatCard
+                label="Net Profit"
+                value={formatCents(stats?.netProfit ?? 0)}
+                subtext={stats?.totalWagered ? `of ${formatCents(stats.totalWagered)} wagered` : undefined}
+                icon={DollarSign}
+                accent={isProfitPositive ? 'positive' : isProfitNegative ? 'negative' : 'neutral'}
+              />
+              <StatCard
+                label="Active Bets"
+                value={String(stats?.activeBets ?? 0)}
+                subtext={stats?.activeBets ? 'In progress' : 'None active'}
+                icon={Activity}
+                accent="neutral"
+              />
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-3">
+              <Link href="/wallet/deposit">
+                <PSButton variant="primary" icon={<Plus size={16} />}>
+                  Deposit Funds
+                </PSButton>
+              </Link>
+              <Link href="/bets">
+                <PSButton variant="secondary" icon={<List size={16} />}>
+                  View All Bets
+                </PSButton>
+              </Link>
+            </div>
+
+            {/* Recent bets */}
+            <RecentBetsSection bets={recentBets} />
+
+            {/* Connections */}
+            <KickConnectionCard />
+          </div>
+
+          {/* Right rail */}
+          <aside className="space-y-6">
+            <LiveNowRail />
+          </aside>
         </div>
-
-        {/* Action buttons */}
-        <div className="flex flex-wrap gap-3">
-          <Link href="/wallet/deposit">
-            <PSButton variant="primary" icon={<Plus size={16} />}>
-              Deposit Funds
-            </PSButton>
-          </Link>
-          <Link href="/bets">
-            <PSButton variant="secondary" icon={<List size={16} />}>
-              View All Bets
-            </PSButton>
-          </Link>
-        </div>
-
-        {/* Recent bets */}
-        <RecentBetsSection bets={recentBets} />
-
-        {/* Connections */}
-        <KickConnectionCard />
       </div>
     </FadeIn>
   );
@@ -346,6 +356,130 @@ function KickConnectionCard() {
         </div>
       )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Live Now rail
+// ---------------------------------------------------------------------------
+
+interface LiveStreamer {
+  displayName: string | null;
+  channelSlug: string | null;
+  profilePicture: string | null;
+  thumbnail: string | null;
+  viewerCount: number | null;
+  title: string | null;
+}
+
+function LiveNowRail() {
+  const [live, setLive] = useState<LiveStreamer[] | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const load = () =>
+      fetch('/api/kick/live')
+        .then((r) => (r.ok ? r.json() : { live: [] }))
+        .then((data) => active && setLive(data.live ?? []))
+        .catch(() => active && setLive([]));
+    load();
+    const id = setInterval(load, 45000); // refresh live status periodically
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
+  }, []);
+
+  return (
+    <div className="rounded-[var(--ps-radius-lg)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-ps-paper-elevated dark:bg-ps-ink-2 p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="h-2 w-2 rounded-full bg-ps-error animate-pulse" />
+        <h2 className="text-base font-display font-semibold text-ps-text dark:text-ps-text-on-dark">
+          Live Now
+        </h2>
+        {live && live.length > 0 && (
+          <span className="text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">
+            {live.length}
+          </span>
+        )}
+      </div>
+
+      {live === null ? (
+        <div className="space-y-3">
+          {Array.from({ length: 2 }, (_, i) => (
+            <div key={i} className="aspect-video rounded-[var(--ps-radius-md)] bg-ps-paper dark:bg-ps-ink-3 animate-pulse" />
+          ))}
+        </div>
+      ) : live.length === 0 ? (
+        <div className="py-8 text-center">
+          <div className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--ps-radius-lg)] bg-ps-paper dark:bg-ps-ink-3 text-ps-muted dark:text-ps-muted-on-dark mb-2">
+            <Radio size={18} />
+          </div>
+          <p className="text-sm text-ps-muted dark:text-ps-muted-on-dark">No one is live right now</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {live.map((s) => (
+            <LiveStreamerCard key={s.channelSlug} streamer={s} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LiveStreamerCard({ streamer }: { streamer: LiveStreamer }) {
+  const { displayName, channelSlug, profilePicture, thumbnail, viewerCount, title } = streamer;
+  if (!channelSlug) return null;
+
+  return (
+    <a
+      href={`https://kick.com/${channelSlug}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group block"
+    >
+      <div className="relative overflow-hidden rounded-[var(--ps-radius-md)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-black aspect-video">
+        {thumbnail ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={thumbnail}
+            alt={`${channelSlug} live`}
+            className="h-full w-full object-cover transition-transform group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-ps-muted-on-dark">
+            <Radio size={22} />
+          </div>
+        )}
+        <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded bg-ps-error px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+          Live
+        </span>
+        {viewerCount !== null && (
+          <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white tabular-nums">
+            {viewerCount.toLocaleString()} watching
+          </span>
+        )}
+      </div>
+      <div className="mt-2 flex items-center gap-2">
+        {profilePicture ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={profilePicture} alt="" className="h-6 w-6 rounded-full object-cover shrink-0" />
+        ) : (
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ps-lime/15 text-ps-lime text-[10px] font-bold">
+            {(displayName || channelSlug).slice(0, 1).toUpperCase()}
+          </span>
+        )}
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-ps-text dark:text-ps-text-on-dark truncate">
+            {displayName || channelSlug}
+          </p>
+          {title && (
+            <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark truncate">{title}</p>
+          )}
+        </div>
+      </div>
+    </a>
   );
 }
 
