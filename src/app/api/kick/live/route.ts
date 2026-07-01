@@ -49,7 +49,8 @@ export async function GET(request: NextRequest) {
         enrich[ch.slug] = {
           isLive: ch.stream?.is_live ?? false,
           viewerCount: ch.stream?.viewer_count ?? null,
-          thumbnail: ch.stream?.thumbnail ?? null,
+          // Kick returns "" until the live thumbnail is generated; treat as none.
+          thumbnail: ch.stream?.thumbnail || null,
           title: ch.stream_title ?? null,
         };
       }
