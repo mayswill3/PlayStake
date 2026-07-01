@@ -374,6 +374,9 @@ interface LiveStreamer {
 
 function LiveNowRail() {
   const [live, setLive] = useState<LiveStreamer[] | null>(null);
+  // Bumped on each poll; passed to cards so they retry a not-yet-ready
+  // thumbnail (see LiveStreamerCard) instead of caching Kick's initial 404.
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -383,7 +386,11 @@ function LiveNowRail() {
         .then((data) => active && setLive(data.live ?? []))
         .catch(() => active && setLive([]));
     load();
-    const id = setInterval(load, 45000); // refresh live status periodically
+    const id = setInterval(() => {
+      if (!active) return;
+      setRefreshKey((k) => k + 1);
+      load();
+    }, 45000); // refresh live status periodically
     return () => {
       active = false;
       clearInterval(id);
@@ -420,7 +427,7 @@ function LiveNowRail() {
       ) : (
         <div className="space-y-4">
           {live.map((s) => (
-            <LiveStreamerCard key={s.channelSlug} streamer={s} />
+            <LiveStreamerCard key={s.channelSlug} streamer={s} refreshKey={refreshKey} />
           ))}
         </div>
       )}
@@ -428,9 +435,23 @@ function LiveNowRail() {
   );
 }
 
-function LiveStreamerCard({ streamer }: { streamer: LiveStreamer }) {
+function LiveStreamerCard({ streamer, refreshKey }: { streamer: LiveStreamer; refreshKey: number }) {
   const { displayName, channelSlug, profilePicture, thumbnail, viewerCount, title } = streamer;
+  // Kick doesn't generate a live thumbnail until a stream has been up for a
+  // minute or two, so the URL 404s early on and older browsers cache that
+  // failure. Retry on each poll and swap to a clean placeholder if it fails,
+  // rather than showing the browser's broken-image glyph.
+  const [thumbFailed, setThumbFailed] = useState(false);
+  useEffect(() => {
+    setThumbFailed(false);
+  }, [thumbnail, refreshKey]);
+
   if (!channelSlug) return null;
+
+  const thumbSrc =
+    thumbnail && !thumbFailed
+      ? `${thumbnail}${thumbnail.includes('?') ? '&' : '?'}_=${refreshKey}`
+      : null;
 
   return (
     <a
@@ -440,11 +461,12 @@ function LiveStreamerCard({ streamer }: { streamer: LiveStreamer }) {
       className="group block"
     >
       <div className="relative overflow-hidden rounded-[var(--ps-radius-md)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-black aspect-video">
-        {thumbnail ? (
+        {thumbSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={thumbnail}
+            src={thumbSrc}
             alt={`${channelSlug} live`}
+            onError={() => setThumbFailed(true)}
             className="h-full w-full object-cover transition-transform group-hover:scale-[1.03]"
           />
         ) : (
