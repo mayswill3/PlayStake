@@ -22,6 +22,7 @@ import type { LucideIcon } from 'lucide-react';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { SkeletonCard, SkeletonTableRow } from '@/components/ui/Skeleton';
 import { StatusPill } from '@/components/ui/playstake/StatusPill';
+import { KickPlayer } from '@/components/ui/playstake/KickPlayer';
 import { PSButton } from '@/components/ui/playstake/PSButton';
 import { GlowCard } from '@/components/ui/playstake/GlowCard';
 import { IconTile } from '@/components/ui/playstake/IconTile';
@@ -345,14 +346,8 @@ function KickConnectionCard() {
       {/* Embedded Kick player — shows the channel's live stream (or its offline
           screen) directly on PlayStake. Free; no streaming infra required. */}
       {!loading && connected && slug && (
-        <div className="mt-4 overflow-hidden rounded-[var(--ps-radius-md)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-black">
-          <iframe
-            src={`https://player.kick.com/${slug}`}
-            title={`${slug} on Kick`}
-            className="w-full aspect-video"
-            allowFullScreen
-            allow="autoplay; fullscreen; picture-in-picture"
-          />
+        <div className="mt-4">
+          <KickPlayer slug={slug} />
         </div>
       )}
     </div>
@@ -454,12 +449,7 @@ function LiveStreamerCard({ streamer, refreshKey }: { streamer: LiveStreamer; re
       : null;
 
   return (
-    <a
-      href={`https://kick.com/${channelSlug}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group block"
-    >
+    <Link href={`/streams/${channelSlug}`} className="group block">
       <div className="relative overflow-hidden rounded-[var(--ps-radius-md)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-black aspect-video">
         {thumbSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -501,7 +491,7 @@ function LiveStreamerCard({ streamer, refreshKey }: { streamer: LiveStreamer; re
           )}
         </div>
       </div>
-    </a>
+    </Link>
   );
 }
 
