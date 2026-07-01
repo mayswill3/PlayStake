@@ -11,6 +11,7 @@ import { FadeIn } from '@/components/ui/FadeIn';
 import { useToast } from '@/components/ui/Toast';
 import { DarkGlowCard } from '@/components/ui/playstake/DarkGlowCard';
 import { StatusPill } from '@/components/ui/playstake/StatusPill';
+import { KickPlayer } from '@/components/ui/playstake/KickPlayer';
 import { StepIndicator } from '@/components/ui/playstake/StepIndicator';
 import { PSButton } from '@/components/ui/playstake/PSButton';
 import { formatCents, formatDate } from '@/lib/utils/format';
@@ -337,15 +338,7 @@ function KickStreamsSection({
                 </span>
               )}
             </div>
-            <div className="overflow-hidden rounded-[var(--ps-radius-md)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-black">
-              <iframe
-                src={`https://player.kick.com/${p.kick.channelSlug}`}
-                title={`${p.kick.channelSlug} on Kick`}
-                className="w-full aspect-video"
-                allowFullScreen
-                allow="autoplay; fullscreen; picture-in-picture"
-              />
-            </div>
+            <KickPlayer slug={p.kick.channelSlug} />
           </div>
         ))}
       </div>
