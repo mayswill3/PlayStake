@@ -5,12 +5,19 @@
 // handlers so the expiry worker and (future) tests can reuse it.
 // =============================================================================
 
+import { Decimal } from "@prisma/client/runtime/client";
 import { prisma } from "@/lib/db/client";
-import { LobbyRole, LobbyStatus, BetStatus } from "../../../generated/prisma/client";
+import {
+  LobbyRole,
+  LobbyStatus,
+  BetStatus,
+  LedgerAccountType,
+} from "../../../generated/prisma/client";
 import {
   AppError,
   AuthorizationError,
   ConflictError,
+  InsufficientFundsError,
   NotFoundError,
   ValidationError,
 } from "@/lib/errors/index";
@@ -19,6 +26,7 @@ import { holdEscrow } from "@/lib/ledger/escrow";
 import {
   isLobbyGameType,
   getDemoGameId,
+  lobbyGameTypeForSlug,
   type LobbyGameType,
 } from "./games";
 import { LobbyChannels, publishLobbyEvent } from "./pubsub";
@@ -330,6 +338,218 @@ export async function inviteLobbyPlayer(input: InviteInput): Promise<InviteResul
     inviteId: result.target.id,
     status: "SENT",
     expiresAt: inviteExpiresAt,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// challenge (viewer -> streamer)
+// ---------------------------------------------------------------------------
+
+export interface CreateChallengeInput {
+  /** The authenticated viewer issuing the challenge (becomes Player A). */
+  challengerUserId: string;
+  /** The streamer's Kick channel slug (from the stream page URL). */
+  streamerChannelSlug: string;
+  /** Stake the viewer is putting up, in cents. Both sides lock this amount. */
+  stakeAmount: number;
+}
+
+export interface CreateChallengeResult {
+  /** The viewer's own (Player A) lobby entry. */
+  challengerLobbyEntryId: string;
+  /** The streamer's (Player B) invited entry — what they accept via /respond. */
+  streamerLobbyEntryId: string;
+  streamerUserId: string;
+  gameType: LobbyGameType;
+  stakeAmount: number;
+  inviteExpiresAt: Date;
+}
+
+/**
+ * A viewer challenges a live streamer to a wager for the game the streamer has
+ * declared. This is a targeted lobby invite: the viewer becomes a WAITING
+ * Player A holding the stake and the streamer becomes an INVITED Player B. The
+ * streamer accepts through the existing `/api/lobby/respond` (respondToInvite),
+ * which is where escrow actually happens.
+ *
+ * IMPORTANT: this creates NO bet and touches the ledger in NO way. Funds are
+ * only locked when the challenged streamer consents via the accept path.
+ *
+ * The game is resolved server-side from the streamer's declared game — the
+ * caller supplies only the stake amount.
+ */
+export async function createChallenge(
+  input: CreateChallengeInput
+): Promise<CreateChallengeResult> {
+  // Validate the stake up front (pure, no DB) so bad input fails fast.
+  if (!Number.isInteger(input.stakeAmount) || input.stakeAmount <= 0) {
+    throw new ValidationError("stakeAmount must be a positive integer (cents)");
+  }
+
+  // Resolve the streamer from their Kick channel. Live status + declared game
+  // both live on the KickAccount, so this is a single lookup.
+  const account = await prisma.kickAccount.findFirst({
+    where: { channelSlug: input.streamerChannelSlug },
+    select: {
+      userId: true,
+      isLive: true,
+      declaredGame: { select: { slug: true } },
+    },
+  });
+  if (!account) {
+    throw new NotFoundError("Streamer not found");
+  }
+  if (account.userId === input.challengerUserId) {
+    throw new ValidationError("You can't challenge yourself");
+  }
+  if (!account.isLive) {
+    throw new ConflictError("This streamer is not live right now");
+  }
+  if (!account.declaredGame) {
+    throw new ValidationError("This streamer hasn't declared a game to challenge");
+  }
+  const gameType = lobbyGameTypeForSlug(account.declaredGame.slug);
+  if (!gameType) {
+    // Declared game isn't one of the challengeable lobby games.
+    throw new ValidationError("This streamer's game can't be challenged");
+  }
+
+  const streamerUserId = account.userId;
+
+  // Soft, non-authoritative balance check: don't publish a challenge the viewer
+  // can't fund, so the shortfall surfaces on the challenger here rather than on
+  // the streamer when they accept. Read the balance exactly the way
+  // wallet/balance does — the materialized PLAYER_BALANCE row, in dollars.
+  // This is NOT a lock and creates no account: holdEscrow at accept remains the
+  // sole authoritative gate (and a concurrent spend can still make accept fail).
+  const challengerAccount = await prisma.ledgerAccount.findUnique({
+    where: {
+      userId_accountType: {
+        userId: input.challengerUserId,
+        accountType: LedgerAccountType.PLAYER_BALANCE,
+      },
+    },
+    select: { balance: true },
+  });
+  const availableDollars = challengerAccount
+    ? new Decimal(challengerAccount.balance.toString())
+    : new Decimal(0);
+  if (availableDollars.lt(centsToDollars(input.stakeAmount))) {
+    throw new InsufficientFundsError(
+      "You don't have enough balance to stake this challenge",
+    );
+  }
+
+  const now = new Date();
+  const inviteExpiresAt = new Date(now.getTime() + LOBBY_INVITE_TTL_MS);
+  const expiresAt = new Date(now.getTime() + LOBBY_ENTRY_TTL_MS);
+
+  // Idempotent reuse: if this viewer already has a pending challenge out to this
+  // streamer for this game, return it instead of stacking duplicates. Mirrors
+  // joinLobby's reuse-an-active-entry behaviour.
+  const existingStreamerEntry = await prisma.lobbyEntry.findFirst({
+    where: {
+      userId: streamerUserId,
+      gameType,
+      role: LobbyRole.PLAYER_B,
+      status: LobbyStatus.INVITED,
+      invitedById: input.challengerUserId,
+      inviteExpiresAt: { gt: now },
+    },
+  });
+  if (existingStreamerEntry) {
+    const challengerEntry = await prisma.lobbyEntry.findFirst({
+      where: {
+        userId: input.challengerUserId,
+        gameType,
+        role: LobbyRole.PLAYER_A,
+        status: LobbyStatus.WAITING,
+        expiresAt: { gt: now },
+      },
+    });
+    if (challengerEntry) {
+      return {
+        challengerLobbyEntryId: challengerEntry.id,
+        streamerLobbyEntryId: existingStreamerEntry.id,
+        streamerUserId,
+        gameType,
+        stakeAmount: challengerEntry.stakeAmount,
+        inviteExpiresAt: existingStreamerEntry.inviteExpiresAt ?? inviteExpiresAt,
+      };
+    }
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    // One active lobby entry per user: clear the viewer's other entries first
+    // (same invariant joinLobby enforces).
+    await tx.lobbyEntry.updateMany({
+      where: {
+        userId: input.challengerUserId,
+        status: { in: [LobbyStatus.WAITING, LobbyStatus.INVITED] },
+      },
+      data: { status: LobbyStatus.CANCELLED },
+    });
+
+    // Viewer = Player A, holds the stake, WAITING.
+    const challengerEntry = await tx.lobbyEntry.create({
+      data: {
+        gameType,
+        userId: input.challengerUserId,
+        role: LobbyRole.PLAYER_A,
+        stakeAmount: input.stakeAmount,
+        status: LobbyStatus.WAITING,
+        expiresAt,
+      },
+    });
+
+    // Streamer = Player B, INVITED. No bet, no escrow — respondToInvite does
+    // that when the streamer accepts.
+    const streamerEntry = await tx.lobbyEntry.create({
+      data: {
+        gameType,
+        userId: streamerUserId,
+        role: LobbyRole.PLAYER_B,
+        stakeAmount: input.stakeAmount,
+        status: LobbyStatus.INVITED,
+        invitedById: input.challengerUserId,
+        inviteExpiresAt,
+        expiresAt,
+      },
+    });
+
+    const challenger = await tx.user.findUnique({
+      where: { id: input.challengerUserId },
+      select: { displayName: true },
+    });
+
+    return {
+      challengerEntry,
+      streamerEntry,
+      challengerName: challenger?.displayName ?? "Player",
+    };
+  });
+
+  // Deliver the invite live to the streamer. Same channel + payload shape as
+  // inviteLobbyPlayer so the existing invite UI and /api/lobby/respond flow
+  // handle it unchanged.
+  await publishLobbyEvent(LobbyChannels.invite(streamerUserId), {
+    event: "INVITE_RECEIVED",
+    fromDisplayName: result.challengerName,
+    fromUserId: input.challengerUserId,
+    fromLobbyEntryId: result.challengerEntry.id,
+    stakeAmount: input.stakeAmount,
+    gameType,
+    lobbyEntryId: result.streamerEntry.id,
+    inviteExpiresAt: inviteExpiresAt.toISOString(),
+  });
+
+  return {
+    challengerLobbyEntryId: result.challengerEntry.id,
+    streamerLobbyEntryId: result.streamerEntry.id,
+    streamerUserId,
+    gameType,
+    stakeAmount: input.stakeAmount,
+    inviteExpiresAt,
   };
 }
 

@@ -1,6 +1,14 @@
 import { defineConfig } from "vitest/config";
+import { fileURLToPath } from "node:url";
 
 export default defineConfig({
+  // Mirror tsconfig's "@/*" -> "./src/*" so modules that use the alias
+  // (e.g. the lobby service) resolve under Vitest just as they do in Next.
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
   test: {
     // Use tests/ directory
     include: ["tests/**/*.test.ts"],

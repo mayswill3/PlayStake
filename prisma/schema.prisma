@@ -210,12 +210,18 @@ model KickAccount {
   scope           String   @db.Text
   isLive          Boolean  @default(false) @map("is_live")
   lastLiveAt      DateTime? @map("last_live_at")
+  // Game the streamer has declared they're currently playing. Set before going
+  // live; a viewer's challenge takes its game from this rather than free text.
+  // Nullable so it can be cleared/changed while offline. FK to a real Game row.
+  declaredGameId  String?  @map("declared_game_id") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user         User  @relation(fields: [userId], references: [id])
+  declaredGame Game? @relation("DeclaredGame", fields: [declaredGameId], references: [id])
 
   @@index([kickUserId], map: "idx_kick_account_kick_user")
+  @@index([declaredGameId], map: "idx_kick_account_declared_game")
   @@map("kick_accounts")
 }
 
@@ -261,6 +267,7 @@ model Game {
   developerProfile DeveloperProfile @relation(fields: [developerProfileId], references: [id])
   bets             Bet[]
   webhookConfigs   WebhookConfig[]
+  declaredByKick   KickAccount[]    @relation("DeclaredGame")
 
   @@index([developerProfileId], map: "idx_game_developer")
   @@index([slug], map: "idx_game_slug")

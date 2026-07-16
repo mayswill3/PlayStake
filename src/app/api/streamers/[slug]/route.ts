@@ -4,6 +4,7 @@ import { validateSession } from "../../../../lib/auth/session";
 import { getSessionToken } from "../../../../lib/auth/helpers";
 import { fetchPublicChannels } from "../../../../lib/kick/api";
 import { dollarsToCents } from "../../../../lib/utils/money";
+import { lobbyGameTypeForSlug } from "../../../../lib/lobby/games";
 import {
   errorResponse,
   AuthenticationError,
@@ -49,11 +50,26 @@ export async function GET(
         displayName: true,
         profilePicture: true,
         isLive: true,
+        declaredGame: { select: { slug: true, name: true } },
       },
     });
     if (!account || !account.channelSlug) {
       throw new NotFoundError("Streamer not found");
     }
+
+    // The declared game, mapped back into the challengeable gameType vocabulary.
+    // null when nothing is declared or it isn't a challengeable lobby game.
+    const declaredGameType = account.declaredGame
+      ? lobbyGameTypeForSlug(account.declaredGame.slug)
+      : null;
+    const declaredGame =
+      account.declaredGame && declaredGameType
+        ? { gameType: declaredGameType, name: account.declaredGame.name }
+        : null;
+
+    // Whether the viewer is looking at their own channel (used to hide the
+    // Challenge button — you can't challenge yourself).
+    const isSelf = session.userId === account.userId;
 
     // Best-effort live enrichment. If it fails, fall back to our DB flag.
     let isLive = account.isLive;
@@ -106,6 +122,8 @@ export async function GET(
         viewerCount,
         thumbnail,
         title,
+        declaredGame,
+        isSelf,
       },
       bets: activeBets,
     });

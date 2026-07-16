@@ -27,6 +27,18 @@ export function isLobbyGameType(value: unknown): value is LobbyGameType {
 }
 
 /**
+ * Reverse of LOBBY_GAME_META: resolve a Game.slug back to its LobbyGameType.
+ * Returns null when the slug is not one of the challengeable lobby games — the
+ * caller then knows a declared Game can't be turned into a lobby challenge.
+ */
+export function lobbyGameTypeForSlug(slug: string): LobbyGameType | null {
+  for (const gameType of LOBBY_GAME_TYPES) {
+    if (LOBBY_GAME_META[gameType].slug === slug) return gameType;
+  }
+  return null;
+}
+
+/**
  * Resolve the Game.id for a given lobby gameType. The demo Game row is lazily
  * created by /api/demo/setup when a user first plays; by the time they reach
  * the lobby they'll have run setup, so this lookup should always hit.

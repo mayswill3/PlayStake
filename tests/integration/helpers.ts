@@ -563,6 +563,15 @@ async function resolveRouteHandler(
     return { handler: mod.GET };
   }
 
+  // Streamer challenge: /api/streamers/{slug}/challenge
+  const challengeMatch = path.match(/^\/api\/streamers\/([^/]+)\/challenge$/);
+  if (challengeMatch) {
+    const mod = await import(
+      "../../src/app/api/streamers/[slug]/challenge/route.js"
+    );
+    return { handler: mod.POST, params: { slug: decodeURIComponent(challengeMatch[1]) } };
+  }
+
 
   throw new Error(`No route handler found for ${method} ${path}`);
 }

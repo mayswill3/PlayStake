@@ -180,6 +180,14 @@ async function main() {
       maxBetAmount: 500.0,
       platformFeePercent: 0,
     },
+    {
+      name: "Darts 301",
+      slug: "darts-301",
+      description: "Two-player 301 — subtract your score each turn, first to zero wins.",
+      minBetAmount: 1.0,
+      maxBetAmount: 500.0,
+      platformFeePercent: 0,
+    },
   ];
 
   const games = [];

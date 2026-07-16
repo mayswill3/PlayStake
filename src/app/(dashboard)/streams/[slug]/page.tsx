@@ -3,15 +3,20 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Radio, Users, ExternalLink } from 'lucide-react';
+import { Radio, Users, ExternalLink, Swords, Gamepad2 } from 'lucide-react';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Dialog } from '@/components/ui/Dialog';
+import { Button } from '@/components/ui/Button';
+import { useToast } from '@/components/ui/Toast';
 import { PSButton } from '@/components/ui/playstake/PSButton';
 import { StatusPill } from '@/components/ui/playstake/StatusPill';
 import { KickPlayer } from '@/components/ui/playstake/KickPlayer';
 import { formatCents } from '@/lib/utils/format';
+
+const STAKE_OPTIONS_CENTS = [100, 500, 1000, 2500];
 
 type PillStatus = 'live' | 'waiting' | 'completed' | 'disputed' | 'settled' | 'expired';
 
@@ -45,6 +50,8 @@ interface Streamer {
   viewerCount: number | null;
   thumbnail: string | null;
   title: string | null;
+  declaredGame: { gameType: string; name: string } | null;
+  isSelf: boolean;
 }
 
 interface ActiveBet {
@@ -65,10 +72,49 @@ interface StreamData {
 export default function StreamDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
+  const { toast } = useToast();
 
   const [data, setData] = useState<StreamData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Challenge dialog state.
+  const [challengeOpen, setChallengeOpen] = useState(false);
+  const [stakeCents, setStakeCents] = useState(STAKE_OPTIONS_CENTS[1]);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function sendChallenge() {
+    setSending(true);
+    try {
+      const res = await fetch(`/api/streamers/${slug}/challenge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: stakeCents }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const msg =
+          res.status === 429
+            ? 'Slow down — too many challenges. Try again shortly.'
+            : body.error || 'Could not send the challenge.';
+        toast('error', msg);
+        return;
+      }
+      setSent(true);
+      toast('success', 'Challenge sent! Waiting for them to accept.');
+    } catch {
+      toast('error', 'Something went wrong.');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function openChallenge() {
+    setSent(false);
+    setStakeCents(STAKE_OPTIONS_CENTS[1]);
+    setChallengeOpen(true);
+  }
 
   useEffect(() => {
     if (!slug) return;
@@ -169,6 +215,39 @@ export default function StreamDetailPage() {
           </a>
         </div>
 
+        {/* Declared game + challenge */}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--ps-radius-md)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-ps-paper-elevated dark:bg-ps-ink-2 px-4 py-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <Gamepad2 size={16} className="shrink-0 text-ps-muted dark:text-ps-muted-on-dark" />
+            {streamer.declaredGame ? (
+              <p className="text-sm font-mono text-ps-text dark:text-ps-text-on-dark truncate">
+                Playing <span className="font-semibold text-ps-lime">{streamer.declaredGame.name}</span>
+              </p>
+            ) : (
+              <p className="text-sm font-mono text-ps-muted dark:text-ps-muted-on-dark truncate">
+                No game declared
+              </p>
+            )}
+          </div>
+          {!streamer.isSelf && (
+            <PSButton
+              size="sm"
+              icon={<Swords size={16} />}
+              onClick={openChallenge}
+              disabled={!streamer.isLive || !streamer.declaredGame}
+            >
+              Challenge
+            </PSButton>
+          )}
+        </div>
+        {!streamer.isSelf && !(streamer.isLive && streamer.declaredGame) && (
+          <p className="-mt-4 text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">
+            {!streamer.isLive
+              ? 'Challenges open when this streamer is live.'
+              : 'This streamer hasn’t declared a game to challenge yet.'}
+          </p>
+        )}
+
         {/* Player */}
         <KickPlayer slug={streamer.channelSlug} />
 
@@ -208,6 +287,64 @@ export default function StreamDetailPage() {
             </div>
           )}
         </Card>
+
+        <Dialog
+          open={challengeOpen}
+          onClose={() => setChallengeOpen(false)}
+          title={sent ? 'Challenge sent' : `Challenge ${name}`}
+          actions={
+            sent ? (
+              <Button onClick={() => setChallengeOpen(false)}>Done</Button>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => setChallengeOpen(false)}>
+                  Cancel
+                </Button>
+                <Button loading={sending} onClick={sendChallenge}>
+                  Send Challenge
+                </Button>
+              </>
+            )
+          }
+        >
+          {sent ? (
+            <p className="text-sm">
+              Your challenge for{' '}
+              <span className="font-semibold text-ps-lime">{formatCents(stakeCents)}</span> is on its
+              way. If {name} accepts, both of you lock the stake and the match begins.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm">
+                Playing{' '}
+                <span className="font-semibold text-ps-lime">
+                  {streamer.declaredGame?.name}
+                </span>
+                . Pick your stake — both players lock the same amount and the winner takes the pot.
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                {STAKE_OPTIONS_CENTS.map((cents) => {
+                  const selected = stakeCents === cents;
+                  return (
+                    <button
+                      key={cents}
+                      type="button"
+                      onClick={() => setStakeCents(cents)}
+                      aria-pressed={selected}
+                      className={`rounded-lg border py-2 text-sm font-semibold tabular-nums transition-colors ${
+                        selected
+                          ? 'border-ps-lime bg-ps-lime/10 text-ps-lime'
+                          : 'border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] text-ps-muted dark:text-ps-muted-on-dark hover:border-ps-lime/40'
+                      }`}
+                    >
+                      {formatCents(cents)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </Dialog>
       </div>
     </FadeIn>
   );

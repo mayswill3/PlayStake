@@ -173,3 +173,13 @@ export const depositRateLimit = rateLimit({
   maxRequests: 5,
   keyFn: (req) => `deposit:${getClientIp(req)}`,
 });
+
+/**
+ * Challenge rate limiter: 10 challenges per minute per viewer IP. Keeps a
+ * viewer from spamming a streamer with wager invites.
+ */
+export const challengeRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  maxRequests: 10,
+  keyFn: (req) => `challenge:${getClientIp(req)}`,
+});

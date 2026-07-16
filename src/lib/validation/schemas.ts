@@ -155,6 +155,32 @@ export const betListQuerySchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Streamer schemas — declared game + viewer challenge
+// ---------------------------------------------------------------------------
+
+/**
+ * Set (or clear) the streamer's currently-declared game. `gameType` is one of
+ * the challengeable lobby games; `null` clears the declaration. The API speaks
+ * gameType; the route resolves it to a real Game row (FK) server-side.
+ */
+export const setDeclaredGameSchema = z.object({
+  gameType: z.enum(["cards", "tictactoe", "darts"]).nullable(),
+});
+
+/**
+ * A viewer's challenge payload carries ONLY the stake amount (integer cents).
+ * The game is taken from the streamer's declared game server-side — never trust
+ * a game sent by the client.
+ */
+export const challengeSchema = z.object({
+  amount: z
+    .number()
+    .int("Amount must be an integer (cents)")
+    .min(100, "Minimum stake is $1.00 (100 cents)")
+    .max(50_000, "Maximum stake is $500.00 (50000 cents)"),
+});
+
+// ---------------------------------------------------------------------------
 // Dispute schema (A4)
 // ---------------------------------------------------------------------------
 
@@ -491,6 +517,8 @@ export type WithdrawInput = z.infer<typeof withdrawSchema>;
 export type TransactionListQuery = z.infer<typeof transactionListQuerySchema>;
 export type BetListQuery = z.infer<typeof betListQuerySchema>;
 export type DisputeInput = z.infer<typeof disputeSchema>;
+export type SetDeclaredGameInput = z.infer<typeof setDeclaredGameSchema>;
+export type ChallengeInput = z.infer<typeof challengeSchema>;
 export type DeveloperRegisterInput = z.infer<typeof developerRegisterSchema>;
 export type CreateGameInput = z.infer<typeof createGameSchema>;
 export type UpdateGameInput = z.infer<typeof updateGameSchema>;
