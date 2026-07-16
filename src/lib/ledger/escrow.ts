@@ -1,6 +1,7 @@
 import { Decimal } from "@prisma/client/runtime/client";
 import {
   TransactionType,
+  TransactionStatus,
   LedgerAccountType,
   BetStatus,
 } from "../../../generated/prisma/client";
@@ -322,6 +323,19 @@ export async function collectFee(
     throw new EscrowError(
       `Cannot collect fee for bet ${input.betId}: bet is in ${bet.status} status`
     );
+  }
+
+  // Idempotency short-circuit (mirrors transfer()): a replay with the same key
+  // returns the original fee transaction without re-touching escrow. This MUST
+  // run before the balance guard below — otherwise a settlement replay after the
+  // escrow has been drained to zero would hit the guard and throw EscrowError
+  // instead of returning the original transaction.
+  const existingFee = await tx.transaction.findUnique({
+    where: { idempotencyKey: input.idempotencyKey },
+    include: { entries: true },
+  });
+  if (existingFee && existingFee.status === TransactionStatus.COMPLETED) {
+    return { transaction: existingFee, entries: existingFee.entries };
   }
 
   const escrowAccount = await getEscrowAccountForBet(tx, input.betId);

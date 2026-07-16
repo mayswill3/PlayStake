@@ -270,7 +270,7 @@ describe("Settlement: Double-settlement prevention", () => {
       const fee = pot.mul(0.05).toDecimalPlaces(2);
 
       // First settlement
-      await collectFee(tx, {
+      const firstFee = await collectFee(tx, {
         betId: bet.id,
         feeAmount: fee,
         idempotencyKey: `double_${bet.id}_fee`,
@@ -296,17 +296,20 @@ describe("Settlement: Double-settlement prevention", () => {
       });
       expect(settledBet.status).toBe(BetStatus.SETTLED);
 
-      // collectFee would throw because bet is SETTLED (allowed for idempotency),
-      // but a new fee collection with a different key should fail or be idempotent
-      // The idempotency key returns the same result without re-executing
+      // Replay with the SAME key AFTER escrow has been drained to $0 by the
+      // release above. The idempotency short-circuit must return the original fee
+      // transaction rather than tripping the "insufficient escrow" balance guard.
+      const escrowBalance = await getEscrowBalance(tx, bet.id);
+      expect(escrowBalance.eq("0.00")).toBe(true);
+
       const result = await collectFee(tx, {
         betId: bet.id,
         feeAmount: fee,
         idempotencyKey: `double_${bet.id}_fee`, // Same key
       });
 
-      // Should return the original transaction (idempotent)
-      expect(result.transaction).toBeDefined();
+      // Same transaction returned — not a re-execution (no double fee).
+      expect(result.transaction.id).toBe(firstFee.transaction.id);
     });
   });
 });
