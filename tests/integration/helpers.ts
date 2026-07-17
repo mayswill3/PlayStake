@@ -572,6 +572,16 @@ async function resolveRouteHandler(
     return { handler: mod.POST, params: { slug: decodeURIComponent(challengeMatch[1]) } };
   }
 
+  // Lobby invite inbox + respond
+  if (path === "/api/lobby/invites") {
+    const mod = await import("../../src/app/api/lobby/invites/route.js");
+    return { handler: mod.GET };
+  }
+  if (path === "/api/lobby/respond") {
+    const mod = await import("../../src/app/api/lobby/respond/route.js");
+    return { handler: mod.POST };
+  }
+
 
   throw new Error(`No route handler found for ${method} ${path}`);
 }

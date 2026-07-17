@@ -14,10 +14,12 @@ import {
   Users,
   Scale,
   AlertTriangle,
+  Bell,
   Menu,
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { usePendingChallengeCount } from '@/components/lobby/ChallengesProvider';
 
 interface SidebarProps {
   userRole?: string;
@@ -33,6 +35,7 @@ const playerNav: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Wallet', href: '/wallet', icon: Wallet },
   { label: 'Bets', href: '/bets', icon: Swords },
+  { label: 'Challenges', href: '/challenges', icon: Bell },
   { label: 'Play', href: '/play', icon: Gamepad2 },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
@@ -47,6 +50,7 @@ const adminNav: NavItem[] = [
 export function Sidebar({ userRole }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pendingCount = usePendingChallengeCount();
 
   return (
     <>
@@ -95,6 +99,7 @@ export function Sidebar({ userRole }: SidebarProps) {
               key={item.href}
               item={item}
               active={isActive(pathname, item.href)}
+              badge={item.href === '/challenges' ? pendingCount : undefined}
               onClick={() => setMobileOpen(false)}
             />
           ))}
@@ -128,10 +133,12 @@ export function Sidebar({ userRole }: SidebarProps) {
 function NavLink({
   item,
   active,
+  badge,
   onClick,
 }: {
   item: NavItem;
   active: boolean;
+  badge?: number;
   onClick: () => void;
 }) {
   const Icon = item.icon;
@@ -152,6 +159,14 @@ function NavLink({
     >
       <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
       {item.label}
+      {badge !== undefined && badge > 0 && (
+        <span
+          className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-ps-lime px-1.5 text-[11px] font-bold leading-5 text-ps-text tabular-nums"
+          aria-label={`${badge} pending`}
+        >
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
     </Link>
   );
 }

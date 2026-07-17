@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { ChallengesProvider } from '@/components/lobby/ChallengesProvider';
 
 export const metadata: Metadata = {
   title: {
@@ -14,9 +15,14 @@ export const metadata: Metadata = {
 
 export default function PlayLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-ps-paper dark:bg-ps-ink text-ps-text dark:text-ps-text-on-dark">
-      <nav
-        id="demo-nav"
+    // ChallengesProvider is mounted here too (not only in the dashboard layout)
+    // so a streamer sitting on /play/<their game> while live still receives
+    // challenges. LobbyContainer on these pages only tracks the streamer's own
+    // join-based entry, so it never surfaces a server-created challenge entry.
+    <ChallengesProvider>
+      <div className="min-h-screen bg-ps-paper dark:bg-ps-ink text-ps-text dark:text-ps-text-on-dark">
+        <nav
+          id="demo-nav"
         className="border-b border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] backdrop-blur-sm sticky top-0 z-50"
         style={{ backgroundColor: 'color-mix(in srgb, var(--ps-paper) 85%, transparent)' }}
       >
@@ -45,6 +51,7 @@ export default function PlayLayout({ children }: { children: React.ReactNode }) 
         </div>
       </nav>
       <main>{children}</main>
-    </div>
+      </div>
+    </ChallengesProvider>
   );
 }

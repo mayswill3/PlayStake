@@ -27,6 +27,7 @@ import {
   isLobbyGameType,
   getDemoGameId,
   lobbyGameTypeForSlug,
+  LOBBY_GAME_META,
   type LobbyGameType,
 } from "./games";
 import { LobbyChannels, publishLobbyEvent } from "./pubsub";
@@ -853,6 +854,77 @@ export async function getLobbyStatus(
     inviteExpiresAt: entry.inviteExpiresAt?.toISOString() ?? null,
     invitedBy,
   };
+}
+
+// ---------------------------------------------------------------------------
+// list my invites (scoped read for the challenge inbox / notifications)
+// ---------------------------------------------------------------------------
+
+export interface MyInviteDTO {
+  /** The caller's own (Player B) lobby entry — what Accept/Decline acts on. */
+  lobbyEntryId: string;
+  gameType: LobbyGameType;
+  gameName: string;
+  /** Stake, in cents. */
+  stakeAmount: number;
+  from: { userId: string; displayName: string };
+  inviteExpiresAt: string;
+  expiresAt: string;
+}
+
+/**
+ * List the caller's currently-pending incoming invites — the LobbyEntry rows
+ * where they are an INVITED Player B whose invite window is still open. Backs
+ * the challenge inbox and the ambient notification listener, neither of which
+ * knows the entry ids up front (a challenge creates the entry server-side).
+ *
+ * Read-only: no ledger, no state change. Accept/Decline still go through
+ * respondToInvite (the sole escrow handoff).
+ */
+export async function listMyInvites(callerUserId: string): Promise<MyInviteDTO[]> {
+  const now = new Date();
+  const rows = await prisma.lobbyEntry.findMany({
+    where: {
+      userId: callerUserId,
+      role: LobbyRole.PLAYER_B,
+      status: LobbyStatus.INVITED,
+      inviteExpiresAt: { gt: now },
+      expiresAt: { gt: now },
+    },
+    orderBy: { inviteExpiresAt: "asc" },
+    take: 20,
+  });
+  if (rows.length === 0) return [];
+
+  // Resolve challenger display names in a single query.
+  const inviterIds = [
+    ...new Set(rows.map((r) => r.invitedById).filter((id): id is string => Boolean(id))),
+  ];
+  const inviters = inviterIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: inviterIds } },
+        select: { id: true, displayName: true },
+      })
+    : [];
+  const nameById = new Map(inviters.map((u) => [u.id, u.displayName ?? "Player"]));
+
+  return rows
+    .filter((r) => r.invitedById && r.inviteExpiresAt && isLobbyGameType(r.gameType))
+    .map((r) => {
+      const gameType = r.gameType as LobbyGameType;
+      return {
+        lobbyEntryId: r.id,
+        gameType,
+        gameName: LOBBY_GAME_META[gameType].name,
+        stakeAmount: r.stakeAmount,
+        from: {
+          userId: r.invitedById as string,
+          displayName: nameById.get(r.invitedById as string) ?? "Player",
+        },
+        inviteExpiresAt: (r.inviteExpiresAt as Date).toISOString(),
+        expiresAt: r.expiresAt.toISOString(),
+      };
+    });
 }
 
 // ---------------------------------------------------------------------------

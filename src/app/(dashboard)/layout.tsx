@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { Spinner } from '@/components/ui/Spinner';
+import { ChallengesProvider } from '@/components/lobby/ChallengesProvider';
 import { useAuthLayout } from '@/hooks/useAuthLayout';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -18,15 +19,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="min-h-screen flex bg-ps-paper dark:bg-ps-ink">
-      <Sidebar userRole={user?.role} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header user={user} balance={balance} />
-        <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6">
-          {children}
-        </main>
+    <ChallengesProvider>
+      <div className="min-h-screen flex bg-ps-paper dark:bg-ps-ink">
+        <Sidebar userRole={user?.role} />
+        <div className="flex-1 flex flex-col min-w-0">
+          <Header user={user} balance={balance} />
+          <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6">
+            {children}
+          </main>
+        </div>
+        <MobileBottomNav />
       </div>
-      <MobileBottomNav />
-    </div>
+    </ChallengesProvider>
   );
 }
