@@ -12,6 +12,7 @@ import { getRedisConnection } from "../lib/jobs/queue";
 import { QUEUE_NAMES, type BetExpiryScanPayload } from "../lib/jobs/types";
 import { prisma, withTransaction, type TxClient } from "../lib/db/client";
 import { refundEscrow } from "../lib/ledger/escrow";
+import { voidNoShowMatch, NO_SHOW_TTL_MS } from "../lib/lobby/match-lifecycle";
 import { dispatchWebhook } from "../lib/webhooks/dispatch";
 
 // ---------------------------------------------------------------------------
@@ -115,6 +116,26 @@ async function expireBet(betId: string): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// No-show void: a MATCHED bet that was never played (both stakes still locked)
+// ---------------------------------------------------------------------------
+
+async function voidStaleMatch(betId: string): Promise<void> {
+  await withTransaction(async (tx: TxClient) => {
+    const lockResult: { locked: boolean }[] = await tx.$queryRaw`
+      SELECT pg_try_advisory_xact_lock(hashtext(${betId})) as locked
+    `;
+    if (!lockResult[0]?.locked) {
+      log("info", "skip_locked", { betId });
+      return;
+    }
+    // voidNoShowMatch re-reads the bet and no-ops unless it is still MATCHED,
+    // so a play/result landing at the same moment is never double-handled.
+    const { voided } = await voidNoShowMatch(tx, betId);
+    if (voided) log("info", "no_show_voided", { betId });
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Worker processor
 // ---------------------------------------------------------------------------
 
@@ -132,20 +153,44 @@ async function processBetExpiryScan(
     take: 100,
   });
 
-  if (expiredBets.length === 0) {
-    return;
+  if (expiredBets.length > 0) {
+    log("info", "bet_expiry_scan_found", { count: expiredBets.length });
+    for (const bet of expiredBets) {
+      try {
+        await expireBet(bet.id);
+      } catch (error) {
+        log("error", "bet_expiry_failed", {
+          betId: bet.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
   }
 
-  log("info", "bet_expiry_scan_found", { count: expiredBets.length });
+  // No-show sweep: MATCHED bets left unplayed past the orphan window. This is
+  // the server-side guarantee behind the accept->play handoff — without it a
+  // challenger who never returns would leave both stakes locked forever. Voids
+  // the bet and refunds both players (reuses refundEscrow).
+  const staleMatches = await prisma.bet.findMany({
+    where: {
+      status: BetStatus.MATCHED,
+      updatedAt: { lt: new Date(now.getTime() - NO_SHOW_TTL_MS) },
+    },
+    select: { id: true },
+    take: 100,
+  });
 
-  for (const bet of expiredBets) {
-    try {
-      await expireBet(bet.id);
-    } catch (error) {
-      log("error", "bet_expiry_failed", {
-        betId: bet.id,
-        error: error instanceof Error ? error.message : String(error),
-      });
+  if (staleMatches.length > 0) {
+    log("info", "no_show_scan_found", { count: staleMatches.length });
+    for (const bet of staleMatches) {
+      try {
+        await voidStaleMatch(bet.id);
+      } catch (error) {
+        log("error", "no_show_void_failed", {
+          betId: bet.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
   }
 }

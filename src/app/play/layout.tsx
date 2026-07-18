@@ -13,6 +13,12 @@ export const metadata: Metadata = {
   description: 'Play real-money wagered games on PlayStake.',
 };
 
+// The game pages read the ?bet= query param (accept->play handoff) via
+// useSearchParams and are fully client-interactive, so render them on demand
+// rather than statically prerendering (which would need a CSR-bailout Suspense
+// boundary around every game page).
+export const dynamic = 'force-dynamic';
+
 export default function PlayLayout({ children }: { children: React.ReactNode }) {
   return (
     // ChallengesProvider is mounted here too (not only in the dashboard layout)

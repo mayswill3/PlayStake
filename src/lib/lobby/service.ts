@@ -928,6 +928,84 @@ export async function listMyInvites(callerUserId: string): Promise<MyInviteDTO[]
 }
 
 // ---------------------------------------------------------------------------
+// list my joinable matches (accept -> play handoff)
+// ---------------------------------------------------------------------------
+
+export interface MyMatchDTO {
+  betId: string;
+  gameType: LobbyGameType;
+  gameName: string;
+  /** The caller's role in this bet — drives joinFromLobby. */
+  myRole: "A" | "B";
+  /** Session-creator id for joinFromLobby (always the bet's Player A). */
+  playerAId: string;
+  playerBId: string;
+  playerAName: string;
+  playerBName: string;
+  /** Stake in cents. */
+  stakeAmount: number;
+}
+
+/**
+ * The caller's currently-joinable matches — bets that reached MATCHED (via a
+ * challenge accept or normal matchmaking) and haven't been played/voided yet.
+ * Backs the accept->play handoff: both players poll this (via the ambient
+ * listener) to get routed into the same game session for the betId.
+ *
+ * Read-only: no ledger, no state change.
+ */
+export async function listMyMatches(callerUserId: string): Promise<MyMatchDTO[]> {
+  const entries = await prisma.lobbyEntry.findMany({
+    where: {
+      userId: callerUserId,
+      status: LobbyStatus.MATCHED,
+      betId: { not: null },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 10,
+  });
+  const betIds = [
+    ...new Set(entries.map((e) => e.betId).filter((id): id is string => Boolean(id))),
+  ];
+  if (betIds.length === 0) return [];
+
+  // Only bets still in MATCHED are joinable (a played/voided/settled bet is not).
+  const bets = await prisma.bet.findMany({
+    where: { id: { in: betIds }, status: BetStatus.MATCHED },
+    select: {
+      id: true,
+      playerAId: true,
+      playerBId: true,
+      gameMetadata: true,
+      playerA: { select: { displayName: true } },
+      playerB: { select: { displayName: true } },
+    },
+  });
+  const betById = new Map(bets.map((b) => [b.id, b]));
+
+  const out: MyMatchDTO[] = [];
+  for (const entry of entries) {
+    if (!entry.betId) continue;
+    const bet = betById.get(entry.betId);
+    if (!bet || !bet.playerBId) continue;
+    if (!isLobbyGameType(entry.gameType)) continue;
+    const gameType = entry.gameType as LobbyGameType;
+    out.push({
+      betId: bet.id,
+      gameType,
+      gameName: LOBBY_GAME_META[gameType].name,
+      myRole: bet.playerAId === callerUserId ? "A" : "B",
+      playerAId: bet.playerAId,
+      playerBId: bet.playerBId,
+      playerAName: bet.playerA?.displayName ?? "Player A",
+      playerBName: bet.playerB?.displayName ?? "Player B",
+      stakeAmount: entry.stakeAmount,
+    });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
 // expiry scan (worker)
 // ---------------------------------------------------------------------------
 
