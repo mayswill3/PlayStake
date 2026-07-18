@@ -20,6 +20,7 @@ import { GameResultOverlay, deriveOutcome, formatResultAmount, type SettlementRe
 import { EventLog } from '../_shared/EventLog';
 import { GameLobbyLayout } from '@/components/games/game-lobby-layout';
 import type { LobbyMatchResult } from '@/components/lobby/LobbyContainer';
+import { useResumeMatch } from '../_shared/use-resume-match';
 import type { PlayerRole } from '../_shared/types';
 
 const SUITS = ['Spades', 'Hearts', 'Diamonds', 'Clubs'] as const;
@@ -99,6 +100,25 @@ export default function CardsDemoPage() {
       gameType: 'cards',
     });
   }, [authState, joinFromLobby, log]);
+
+  // Accept->play handoff: opened as /play/cards?bet=<betId>. setup() first (the
+  // player skipped role select), using its return value to avoid an authState
+  // race, then hand off exactly like a normal match.
+  const handleResume = useCallback(async (match: LobbyMatchResult) => {
+    setRole(match.myRole);
+    const auth = await setup(match.myRole);
+    if (!auth) return;
+    betIdRef.current = match.betId;
+    setBetAmountCents(match.stakeCents);
+    await joinFromLobby({
+      betId: match.betId,
+      myRole: match.myRole,
+      playerId: auth.playerId,
+      playerAId: match.playerAUserId,
+      gameType: 'cards',
+    });
+  }, [setup, joinFromLobby]);
+  useResumeMatch(handleResume);
 
   const handleGuess = useCallback(async (direction: 'higher' | 'lower') => {
     if (role !== 'A' || !authState) return; // Only Player A guesses

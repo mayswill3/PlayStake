@@ -9,9 +9,23 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/Toast';
 import { Dialog } from '@/components/ui/Dialog';
 import { ChallengeItem, type MyInvite } from './ChallengeItem';
+
+/** A joinable match (bet reached MATCHED, not yet played) — mirrors MyMatchDTO. */
+export interface MyMatch {
+  betId: string;
+  gameType: string;
+  gameName: string;
+  myRole: 'A' | 'B';
+  playerAId: string;
+  playerBId: string;
+  playerAName: string;
+  playerBName: string;
+  stakeAmount: number;
+}
 
 const POLL_MS = 6000;
 // The lobby SSE stream requires a gameType but also subscribes the caller to
@@ -21,11 +35,17 @@ const SSE_GAMETYPE = 'darts';
 
 interface ChallengesContextValue {
   invites: MyInvite[];
+  matches: MyMatch[];
   loading: boolean;
   pendingCount: number;
   busyId: string | null;
   respond: (lobbyEntryId: string, action: 'ACCEPT' | 'DECLINE') => Promise<void>;
   refresh: () => Promise<void>;
+}
+
+/** Route segment for each game type: /play/<segment>. */
+function playPath(gameType: string, betId: string): string {
+  return `/play/${gameType}?bet=${betId}`;
 }
 
 const ChallengesContext = createContext<ChallengesContextValue | null>(null);
@@ -58,7 +78,9 @@ export function usePendingChallengeCount(): number {
  */
 export function ChallengesProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const router = useRouter();
   const [invites, setInvites] = useState<MyInvite[]>([]);
+  const [matches, setMatches] = useState<MyMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [modalInvite, setModalInvite] = useState<MyInvite | null>(null);
@@ -67,6 +89,9 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
   const seenRef = useRef<Set<string>>(new Set());
   const initializedRef = useRef(false);
   const refreshRef = useRef<() => void>(() => {});
+  // betIds this client has already navigated into (imperatively on accept or via
+  // the ambient auto-route) — prevents double-navigation across the two paths.
+  const routedRef = useRef<Set<string>>(new Set());
 
   const refresh = useCallback(async () => {
     try {
@@ -74,7 +99,9 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
       if (!res.ok) return; // unauthenticated / transient — the poll retries
       const data = await res.json();
       const list: MyInvite[] = data.invites ?? [];
+      const matchList: MyMatch[] = data.matches ?? [];
       setInvites(list);
+      setMatches(matchList);
       setSseEnabled(Boolean(data.sseEnabled));
 
       // Surface only genuinely NEW invites — never on the first load.
@@ -87,13 +114,27 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
         }
       }
       seenRef.current = new Set(list.map((i) => i.lobbyEntryId));
+
+      // Accept->play handoff: route the player into any joinable match we
+      // haven't already routed into. This is how an idle challenger gets pulled
+      // into the game once their challenge is accepted — same ambient poll that
+      // delivered the challenge. Only fires post-init so a page load doesn't
+      // yank someone mid-navigation.
+      if (initializedRef.current) {
+        const toEnter = matchList.find((m) => !routedRef.current.has(m.betId));
+        if (toEnter) {
+          routedRef.current.add(toEnter.betId);
+          toast('success', `Challenge on — joining ${toEnter.gameName}…`);
+          router.push(playPath(toEnter.gameType, toEnter.betId));
+        }
+      }
       initializedRef.current = true;
     } catch {
       /* network blip — the next poll retries */
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, router]);
 
   useEffect(() => {
     refreshRef.current = () => void refresh();
@@ -138,7 +179,17 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
             toast('error', body.error || 'Could not respond to the challenge.');
           }
         } else if (action === 'ACCEPT') {
-          toast('success', 'Challenge accepted — your match is set!');
+          // Route the accepter straight into the game for this bet. The response
+          // carries { status: 'MATCHED', betId, gameType }. Mark it routed so the
+          // ambient match-poll doesn't navigate again.
+          const body = await res.json().catch(() => ({}));
+          if (body?.status === 'MATCHED' && body?.betId && body?.gameType) {
+            routedRef.current.add(body.betId);
+            toast('success', 'Challenge accepted — starting the match…');
+            router.push(playPath(body.gameType, body.betId));
+          } else {
+            toast('success', 'Challenge accepted — your match is set!');
+          }
         } else {
           toast('info', 'Challenge declined.');
         }
@@ -150,11 +201,12 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
         void refresh();
       }
     },
-    [refresh, toast],
+    [refresh, toast, router],
   );
 
   const value: ChallengesContextValue = {
     invites,
+    matches,
     loading,
     pendingCount: invites.length,
     busyId,

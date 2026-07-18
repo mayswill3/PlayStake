@@ -14,6 +14,7 @@ import { GameResultOverlay, deriveOutcome, formatResultAmount, type SettlementRe
 import { EventLog } from '../_shared/EventLog';
 import { GameLobbyLayout } from '@/components/games/game-lobby-layout';
 import type { LobbyMatchResult } from '@/components/lobby/LobbyContainer';
+import { useResumeMatch } from '../_shared/use-resume-match';
 import type { PlayerRole } from '../_shared/types';
 import { DartboardCanvas, hitTest, applyDeviation, type DartsState, type DartThrow } from './DartboardCanvas';
 import { DartsAudio } from './darts-audio';
@@ -72,6 +73,20 @@ export default function DartsDemoPage() {
     setPlayerNames({ A: match.playerAName, B: match.playerBName });
     await joinFromLobby({ betId: match.betId, myRole: match.myRole, playerId: authState.playerId, playerAId: match.playerAUserId, gameType: 'darts' });
   }, [authState, joinFromLobby, log]);
+
+  // Accept->play handoff: opened as /play/darts?bet=<betId>. setup() first (role
+  // select was skipped), using its return value to avoid an authState race, then
+  // hand off exactly like a normal match.
+  const handleResume = useCallback(async (match: LobbyMatchResult) => {
+    setRole(match.myRole);
+    const auth = await setup(match.myRole);
+    if (!auth) return;
+    betIdRef.current = match.betId;
+    setBetAmountCents(match.stakeCents);
+    setPlayerNames({ A: match.playerAName, B: match.playerBName });
+    await joinFromLobby({ betId: match.betId, myRole: match.myRole, playerId: auth.playerId, playerAId: match.playerAUserId, gameType: 'darts' });
+  }, [setup, joinFromLobby]);
+  useResumeMatch(handleResume);
 
   const handleBetCreated = useCallback(async (bet: { betId: string; amount: number }) => {
     log(`Bet created: ${bet.betId} ($${(bet.amount / 100).toFixed(2)})`, 'bet');
