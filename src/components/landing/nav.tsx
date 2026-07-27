@@ -39,7 +39,7 @@ export function LandingNav() {
         <div className="flex h-16 items-center justify-between">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ps-lime)] rounded-lg">
+          <Link href="/learn-more" className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ps-lime)] rounded-lg">
             <Image
               src="/logo.png"
               alt="PlayStake"
@@ -68,7 +68,7 @@ export function LandingNav() {
           <div className="flex items-center gap-1 lg:gap-2">
             <ThemeToggle />
             <Link
-              href="/login"
+              href="/"
               className="hidden lg:flex h-10 px-4 items-center text-sm font-medium text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-text dark:hover:text-ps-text-on-dark transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ps-blue)] dark:focus-visible:ring-[var(--ps-lime)] rounded"
             >
               Log in

@@ -50,7 +50,7 @@ export async function GET(
         displayName: true,
         profilePicture: true,
         isLive: true,
-        declaredGame: { select: { slug: true, name: true } },
+        declaredGame: { select: { id: true, slug: true, name: true } },
       },
     });
     if (!account || !account.channelSlug) {
@@ -88,7 +88,8 @@ export async function GET(
       console.error("Kick streamer enrichment failed:", err);
     }
 
-    const bets = await prisma.bet.findMany({
+    const [bets, viewerKick] = await Promise.all([
+      prisma.bet.findMany({
       where: {
         status: { in: [...ACTIVE_BET_STATUSES] },
         OR: [{ playerAId: account.userId }, { playerBId: account.userId }],
@@ -99,8 +100,27 @@ export async function GET(
         game: { select: { id: true, name: true } },
         playerA: { select: { id: true, displayName: true } },
         playerB: { select: { id: true, displayName: true } },
+        refereeAssignment: {
+          include: {
+            refereeProfile: {
+              include: {
+                user: {
+                  select: {
+                    displayName: true,
+                    kickAccount: { select: { channelSlug: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
-    });
+      }),
+      prisma.kickAccount.findUnique({
+        where: { userId: session.userId },
+        select: { isLive: true, declaredGameId: true },
+      }),
+    ]);
 
     // Public-safe projection only.
     const activeBets = bets.map((bet) => ({
@@ -111,6 +131,15 @@ export async function GET(
       amount: dollarsToCents(bet.amount),
       status: bet.status,
       createdAt: bet.createdAt.toISOString(),
+      referee: bet.refereeAssignment?.refereeProfile
+        ? {
+            displayName: bet.refereeAssignment.refereeProfile.user.displayName,
+            kickChannel:
+              bet.refereeAssignment.refereeProfile.user.kickAccount?.channelSlug ??
+              null,
+            status: bet.refereeAssignment.status,
+          }
+        : null,
     }));
 
     return NextResponse.json({
@@ -124,6 +153,16 @@ export async function GET(
         title,
         declaredGame,
         isSelf,
+        canChallenge: !isSelf && Boolean(isLive && account.declaredGame),
+        streamVsStreamEligible:
+          !isSelf &&
+          Boolean(
+            isLive &&
+              account.declaredGame &&
+              viewerKick?.isLive &&
+              viewerKick.declaredGameId &&
+              viewerKick.declaredGameId === account.declaredGame.id,
+          ),
       },
       bets: activeBets,
     });

@@ -10,7 +10,7 @@ export default function AuthNotFound() {
         <p className="text-sm text-surface-400 mb-6">
           This authentication page doesn&apos;t exist.
         </p>
-        <Link href="/login">
+        <Link href="/">
           <Button>Go to Login</Button>
         </Link>
       </div>

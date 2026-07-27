@@ -35,6 +35,7 @@ interface NavItem {
 const playerNav: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Play', href: '/play', icon: Gamepad2 },
+  { label: 'Referee', href: '/referee', icon: Scale },
   { label: 'Wallet', href: '/wallet', icon: Wallet },
   { label: 'Bets', href: '/bets', icon: Swords },
   { label: 'Challenges', href: '/challenges', icon: Bell },
@@ -44,6 +45,7 @@ const playerNav: NavItem[] = [
 const adminNav: NavItem[] = [
   { label: 'Overview', href: '/admin', icon: Star },
   { label: 'Users', href: '/admin/users', icon: Users },
+  { label: 'Referees', href: '/admin/referees', icon: Scale },
   { label: 'Disputes', href: '/admin/disputes', icon: Scale },
   { label: 'Anomalies', href: '/admin/anomalies', icon: AlertTriangle },
 ];

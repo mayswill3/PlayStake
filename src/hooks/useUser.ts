@@ -67,7 +67,7 @@ export function useUser() {
     cachedUser = null;
     cacheTime = 0;
     setUser(null);
-    router.push('/login');
+    router.push('/');
   }, [router]);
 
   const refresh = useCallback(() => {

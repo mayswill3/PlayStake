@@ -41,6 +41,20 @@ export async function GET(
             kickAccount: { select: { channelSlug: true, isLive: true } },
           },
         },
+        refereeAssignment: {
+          include: {
+            refereeProfile: {
+              include: {
+                user: {
+                  select: {
+                    displayName: true,
+                    kickAccount: { select: { channelSlug: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -89,6 +103,7 @@ export async function GET(
       amount: dollarsToCents(bet.amount),
       currency: bet.currency,
       status: bet.status,
+      matchType: bet.matchType,
       outcome: bet.outcome,
       platformFeeAmount: bet.platformFeeAmount
         ? dollarsToCents(bet.platformFeeAmount)
@@ -99,6 +114,25 @@ export async function GET(
       matchedAt: bet.matchedAt?.toISOString() ?? null,
       resultReportedAt: bet.resultReportedAt?.toISOString() ?? null,
       settledAt: bet.settledAt?.toISOString() ?? null,
+      refereeAssignment: bet.refereeAssignment
+        ? {
+            id: bet.refereeAssignment.id,
+            status: bet.refereeAssignment.status,
+            decision: bet.refereeAssignment.decision,
+            disputeDeadline:
+              bet.refereeAssignment.disputeDeadline?.toISOString() ?? null,
+            rewardPolicy: "10% of the platform fee",
+            referee: bet.refereeAssignment.refereeProfile
+              ? {
+                  displayName:
+                    bet.refereeAssignment.refereeProfile.user.displayName,
+                  kickChannel:
+                    bet.refereeAssignment.refereeProfile.user.kickAccount
+                      ?.channelSlug ?? null,
+                }
+              : null,
+          }
+        : null,
     });
   } catch (error) {
     return errorResponse(error);

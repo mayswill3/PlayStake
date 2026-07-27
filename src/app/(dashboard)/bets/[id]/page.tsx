@@ -38,6 +38,15 @@ interface BetDetail {
   matchedAt: string | null;
   resultReportedAt: string | null;
   settledAt: string | null;
+  matchType: string;
+  refereeAssignment: null | {
+    id: string;
+    status: string;
+    decision: string | null;
+    disputeDeadline: string | null;
+    rewardPolicy: string;
+    referee: { displayName: string; kickChannel: string | null } | null;
+  };
 }
 
 type PillStatus = 'live' | 'waiting' | 'completed' | 'disputed' | 'settled' | 'expired';
@@ -94,7 +103,9 @@ export default function BetDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  const canDispute = bet && ['RESULT_REPORTED', 'SETTLED'].includes(bet.status);
+  const refereeDeadlineOpen = !bet?.refereeAssignment?.disputeDeadline ||
+    new Date(bet.refereeAssignment.disputeDeadline).getTime() > Date.now();
+  const canDispute = bet && ['RESULT_REPORTED', 'SETTLED'].includes(bet.status) && refereeDeadlineOpen;
 
   async function handleDispute() {
     if (!disputeReason.trim()) return;
@@ -206,6 +217,42 @@ export default function BetDetailPage() {
           )}
         </DarkGlowCard>
 
+        {bet.refereeAssignment && (
+          <Card>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle>Human referee protection</CardTitle>
+                <p className="mt-2 text-sm text-ps-muted dark:text-ps-muted-on-dark">
+                  {bet.refereeAssignment.referee
+                    ? `${bet.refereeAssignment.referee.displayName} is the independent referee`
+                    : 'Waiting for an approved referee to claim this match'}
+                  {bet.refereeAssignment.referee?.kickChannel
+                    ? ` · Kick: ${bet.refereeAssignment.referee.kickChannel}`
+                    : ''}
+                </p>
+                <p className="mt-1 text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">
+                  Reward: {bet.refereeAssignment.rewardPolicy}
+                  {bet.refereeAssignment.disputeDeadline
+                    ? ` · Dispute deadline ${formatDate(bet.refereeAssignment.disputeDeadline)}`
+                    : ' · Funds remain locked until a reviewed result'}
+                </p>
+              </div>
+              <StatusPill
+                status={bet.refereeAssignment.status === 'DISPUTED' ? 'disputed' : bet.refereeAssignment.referee ? 'live' : 'waiting'}
+                label={bet.refereeAssignment.status.replace(/_/g, ' ')}
+              />
+            </div>
+            <a
+              href={`/api/referees/assignments/${bet.refereeAssignment.id}/audit`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-4 inline-block text-xs font-semibold text-ps-lime hover:underline"
+            >
+              Verify immutable audit trail
+            </a>
+          </Card>
+        )}
+
         {/* Kick streams — watch participants' live streams during the bet */}
         <KickStreamsSection
           players={[
@@ -266,7 +313,9 @@ export default function BetDetailPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-display font-medium text-ps-text dark:text-ps-text-on-dark">Dispute this bet</p>
-                <p className="text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">If you believe the result is incorrect, you can file a dispute.</p>
+                <p className="text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">
+                  If you believe the result is incorrect, file before the displayed deadline. Settlement pauses immediately.
+                </p>
               </div>
               <PSButton variant="danger" size="sm" onClick={() => setDisputeOpen(true)}>
                 File Dispute

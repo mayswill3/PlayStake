@@ -53,6 +53,13 @@ export interface DistributeDevShareInput {
   idempotencyKey: string;
 }
 
+export interface DistributeRefereeFeeInput {
+  refereeUserId: string;
+  betId: string;
+  amount: Decimal | string | number;
+  idempotencyKey: string;
+}
+
 // ---------------------------------------------------------------------------
 // Escrow errors
 // ---------------------------------------------------------------------------
@@ -408,5 +415,35 @@ export async function distributeDevShare(
     transactionType: TransactionType.DEVELOPER_SHARE,
     description: `Developer revenue share`,
     idempotencyKey: input.idempotencyKey,
+  });
+}
+
+/**
+ * Pay an assigned human referee from platform revenue. The fee never comes
+ * directly from the winner's release and remains a normal balanced,
+ * idempotent ledger transaction.
+ */
+export async function distributeRefereeFee(
+  tx: TxClient,
+  input: DistributeRefereeFeeInput,
+): Promise<TransferResult> {
+  const amount = new Decimal(input.amount.toString());
+  if (amount.lte(0)) throw new EscrowError("Referee fee must be positive");
+
+  const platformRevenue = await getSystemAccount(
+    tx,
+    LedgerAccountType.PLATFORM_REVENUE,
+  );
+  const refereeAccount = await getOrCreatePlayerAccount(tx, input.refereeUserId);
+
+  return transfer(tx, {
+    fromAccountId: platformRevenue.id,
+    toAccountId: refereeAccount.id,
+    amount,
+    transactionType: TransactionType.REFEREE_FEE,
+    description: `Human referee fee for bet ${input.betId}`,
+    betId: input.betId,
+    idempotencyKey: input.idempotencyKey,
+    metadata: { refereeUserId: input.refereeUserId },
   });
 }

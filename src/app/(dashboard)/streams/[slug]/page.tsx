@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Radio, Users, ExternalLink, Swords, Gamepad2 } from 'lucide-react';
+import { Radio, Users, ExternalLink, Swords, Gamepad2, Scale } from 'lucide-react';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { FadeIn } from '@/components/ui/FadeIn';
@@ -52,6 +52,8 @@ interface Streamer {
   title: string | null;
   declaredGame: { gameType: string; name: string } | null;
   isSelf: boolean;
+  canChallenge: boolean;
+  streamVsStreamEligible: boolean;
 }
 
 interface ActiveBet {
@@ -62,6 +64,7 @@ interface ActiveBet {
   amount: number;
   status: string;
   createdAt: string;
+  referee: { displayName: string; kickChannel: string | null; status: string } | null;
 }
 
 interface StreamData {
@@ -234,17 +237,19 @@ export default function StreamDetailPage() {
               size="sm"
               icon={<Swords size={16} />}
               onClick={openChallenge}
-              disabled={!streamer.isLive || !streamer.declaredGame}
+              disabled={!streamer.canChallenge}
             >
               Challenge
             </PSButton>
           )}
         </div>
-        {!streamer.isSelf && !(streamer.isLive && streamer.declaredGame) && (
+        {!streamer.isSelf && !streamer.canChallenge && (
           <p className="-mt-4 text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">
             {!streamer.isLive
               ? 'Challenges open when this streamer is live.'
-              : 'This streamer hasn’t declared a game to challenge yet.'}
+              : !streamer.declaredGame
+                ? 'This streamer hasn’t declared a game to challenge yet.'
+                : 'Go live on Kick with the same declared game to challenge this player.'}
           </p>
         )}
 
@@ -275,6 +280,12 @@ export default function StreamDetailPage() {
                     <p className="text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark truncate">
                       {bet.playerAName} vs {bet.playerBName ?? 'Awaiting opponent'}
                     </p>
+                    {bet.referee && (
+                      <p className="mt-1 inline-flex items-center gap-1 text-xs font-mono text-ps-lime">
+                        <Scale size={12} /> Referee {bet.referee.displayName}
+                        {bet.referee.kickChannel ? ` · @${bet.referee.kickChannel}` : ''}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <span className="text-sm font-display font-semibold text-ps-lime tabular-nums">
@@ -309,7 +320,7 @@ export default function StreamDetailPage() {
         >
           {sent ? (
             <p className="text-sm">
-              Your challenge for{' '}
+              Your {streamer.streamVsStreamEligible ? 'same-game live ' : ''}challenge for{' '}
               <span className="font-semibold text-ps-lime">{formatCents(stakeCents)}</span> is on its
               way. If {name} accepts, both of you lock the stake and the match begins.
             </p>
@@ -320,7 +331,9 @@ export default function StreamDetailPage() {
                 <span className="font-semibold text-ps-lime">
                   {streamer.declaredGame?.name}
                 </span>
-                . Pick your stake — both players lock the same amount and the winner takes the pot.
+                . {streamer.streamVsStreamEligible
+                  ? 'Both Kick channels must remain live on this game. Pick your stake; an approved referee is assigned before the result can settle.'
+                  : 'Pick your stake — both players lock the same amount when the challenge is accepted.'}
               </p>
               <div className="grid grid-cols-4 gap-2">
                 {STAKE_OPTIONS_CENTS.map((cents) => {

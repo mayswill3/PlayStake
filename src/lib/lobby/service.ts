@@ -12,6 +12,7 @@ import {
   LobbyStatus,
   StreamChallengeStatus,
   BetStatus,
+  BetMatchType,
   LedgerAccountType,
 } from "../../../generated/prisma/client";
 import {
@@ -32,6 +33,7 @@ import {
   type LobbyGameType,
 } from "./games";
 import { LobbyChannels, publishLobbyEvent } from "./pubsub";
+import { createRefereeAssignmentForBet } from "@/lib/referees/service";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -391,14 +393,21 @@ export async function createChallenge(
 
   // Resolve the streamer from their Kick channel. Live status + declared game
   // both live on the KickAccount, so this is a single lookup.
-  const account = await prisma.kickAccount.findFirst({
+  const [account, challengerKick] = await Promise.all([
+    prisma.kickAccount.findFirst({
     where: { channelSlug: input.streamerChannelSlug },
     select: {
       userId: true,
       isLive: true,
+      declaredGameId: true,
       declaredGame: { select: { slug: true } },
     },
-  });
+    }),
+    prisma.kickAccount.findUnique({
+      where: { userId: input.challengerUserId },
+      select: { isLive: true, declaredGameId: true },
+    }),
+  ]);
   if (!account) {
     throw new NotFoundError("Streamer not found");
   }
@@ -411,6 +420,17 @@ export async function createChallenge(
   if (!account.declaredGame) {
     throw new ValidationError("This streamer hasn't declared a game to challenge");
   }
+  if (
+    challengerKick?.isLive &&
+    (!challengerKick.declaredGameId ||
+      challengerKick.declaredGameId !== account.declaredGameId)
+  ) {
+    throw new ConflictError("Both players must be live and playing the same declared game");
+  }
+  const requiresReferee = Boolean(
+    challengerKick?.isLive &&
+      challengerKick.declaredGameId === account.declaredGameId,
+  );
   const gameType = lobbyGameTypeForSlug(account.declaredGame.slug);
   if (!gameType) {
     // Declared game isn't one of the challengeable lobby games.
@@ -546,6 +566,7 @@ export async function createChallenge(
         streamerUserId,
         gameType,
         stakeAmount: input.stakeAmount,
+        requiresReferee,
         challengerLobbyEntryId: challengerEntry.id,
         streamerLobbyEntryId: streamerEntry.id,
         expiresAt: inviteExpiresAt,
@@ -608,7 +629,12 @@ export interface RespondInput {
 }
 
 export type RespondResult =
-  | { status: "MATCHED"; betId: string; gameType: LobbyGameType }
+  | {
+      status: "MATCHED";
+      betId: string;
+      gameType: LobbyGameType;
+      awaitingReferee: boolean;
+    }
   | { status: "DECLINED" };
 
 export async function respondToInvite(input: RespondInput): Promise<RespondResult> {
@@ -711,6 +737,41 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
     select: { platformFeePercent: true },
   });
 
+  // Stream challenges are accepted only while both connected Kick channels are
+  // still live on the same game. This is repeated inside the consent handoff so
+  // a stale challenge cannot lock funds after either player changes games.
+  const streamChallengePreview = await prisma.streamChallenge.findUnique({
+    where: { streamerLobbyEntryId: entryPreview.id },
+    select: {
+      challengerUserId: true,
+      streamerUserId: true,
+      requiresReferee: true,
+    },
+  });
+  if (streamChallengePreview?.requiresReferee) {
+    const liveAccounts = await prisma.kickAccount.findMany({
+      where: {
+        userId: {
+          in: [
+            streamChallengePreview.challengerUserId,
+            streamChallengePreview.streamerUserId,
+          ],
+        },
+      },
+      select: { userId: true, isLive: true, declaredGameId: true },
+    });
+    if (
+      liveAccounts.length !== 2 ||
+      liveAccounts.some(
+        (account) => !account.isLive || account.declaredGameId !== resolvedGameId,
+      )
+    ) {
+      throw new ConflictError(
+        "Both players must still be live on Kick and playing the same game",
+      );
+    }
+  }
+
   const result = await prisma.$transaction(async (tx) => {
     const playerBEntry = await tx.lobbyEntry.findUnique({
       where: { id: input.lobbyEntryId },
@@ -780,6 +841,9 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
         amount: amountDollars,
         currency: "USD",
         status: BetStatus.PENDING_CONSENT,
+        matchType: streamChallenge?.requiresReferee
+          ? BetMatchType.STREAM_VS_STREAM
+          : BetMatchType.GAME_LOBBY,
         platformFeePercent: game.platformFeePercent,
         gameMetadata: { gameType, source: "lobby" },
         consentExpiresAt,
@@ -855,6 +919,12 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
       if (accepted.count !== 1) {
         throw new ConflictError("This challenge is no longer pending");
       }
+      if (streamChallenge.requiresReferee) {
+        await createRefereeAssignmentForBet(tx, {
+          betId: bet.id,
+          actorUserId: input.callerUserId,
+        });
+      }
     }
 
     // A streamer can accept only one invitation at a time. Close every other
@@ -899,6 +969,7 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
       playerAUserId: playerAEntry.userId,
       playerBUserId: playerBEntry.userId,
       gameType,
+      awaitingReferee: Boolean(streamChallenge?.requiresReferee),
       cancelledChallengerIds: competingChallenges.map(
         (challenge) => challenge.challengerUserId,
       ),
@@ -911,19 +982,28 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
     });
   }
 
-  // Notify both sides so they can navigate into the game.
-  await publishLobbyEvent(LobbyChannels.matched(result.playerAUserId), {
-    event: "MATCH_CONFIRMED",
-    betId: result.betId,
-    gameType: result.gameType,
-  });
-  await publishLobbyEvent(LobbyChannels.matched(result.playerBUserId), {
-    event: "MATCH_CONFIRMED",
-    betId: result.betId,
-    gameType: result.gameType,
-  });
+  // Refereed matches remain in escrow but do not become joinable until the
+  // referee confirms both feeds and starts officiating. The player poll then
+  // picks them up as soon as the assignment reaches IN_PROGRESS.
+  if (!result.awaitingReferee) {
+    await publishLobbyEvent(LobbyChannels.matched(result.playerAUserId), {
+      event: "MATCH_CONFIRMED",
+      betId: result.betId,
+      gameType: result.gameType,
+    });
+    await publishLobbyEvent(LobbyChannels.matched(result.playerBUserId), {
+      event: "MATCH_CONFIRMED",
+      betId: result.betId,
+      gameType: result.gameType,
+    });
+  }
 
-  return { status: "MATCHED", betId: result.betId, gameType: result.gameType };
+  return {
+    status: "MATCHED",
+    betId: result.betId,
+    gameType: result.gameType,
+    awaitingReferee: result.awaitingReferee,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -1036,6 +1116,7 @@ export interface MyInviteDTO {
   from: { userId: string; displayName: string };
   inviteExpiresAt: string;
   expiresAt: string;
+  requiresReferee: boolean;
 }
 
 /**
@@ -1056,6 +1137,9 @@ export async function listMyInvites(callerUserId: string): Promise<MyInviteDTO[]
       status: LobbyStatus.INVITED,
       inviteExpiresAt: { gt: now },
       expiresAt: { gt: now },
+    },
+    include: {
+      challengeAsStreamer: { select: { requiresReferee: true } },
     },
     orderBy: { inviteExpiresAt: "asc" },
     take: 20,
@@ -1089,6 +1173,7 @@ export async function listMyInvites(callerUserId: string): Promise<MyInviteDTO[]
         },
         inviteExpiresAt: (r.inviteExpiresAt as Date).toISOString(),
         expiresAt: r.expiresAt.toISOString(),
+        requiresReferee: r.challengeAsStreamer?.requiresReferee ?? false,
       };
     });
 }
@@ -1107,6 +1192,7 @@ export interface MyOutgoingChallengeDTO {
   expiresAt: string;
   createdAt: string;
   betId: string | null;
+  requiresReferee: boolean;
 }
 
 export async function listMyOutgoingChallenges(
@@ -1142,6 +1228,7 @@ export async function listMyOutgoingChallenges(
         expiresAt: row.expiresAt.toISOString(),
         createdAt: row.createdAt.toISOString(),
         betId: row.betId,
+        requiresReferee: row.requiresReferee,
       };
     });
 }
@@ -1246,6 +1333,8 @@ export async function listMyMatches(callerUserId: string): Promise<MyMatchDTO[]>
       playerAId: true,
       playerBId: true,
       gameMetadata: true,
+      matchType: true,
+      refereeAssignment: { select: { status: true } },
       playerA: { select: { displayName: true } },
       playerB: { select: { displayName: true } },
     },
@@ -1257,6 +1346,12 @@ export async function listMyMatches(callerUserId: string): Promise<MyMatchDTO[]>
     if (!entry.betId) continue;
     const bet = betById.get(entry.betId);
     if (!bet || !bet.playerBId) continue;
+    if (
+      bet.matchType === BetMatchType.STREAM_VS_STREAM &&
+      bet.refereeAssignment?.status !== "IN_PROGRESS"
+    ) {
+      continue;
+    }
     if (!isLobbyGameType(entry.gameType)) continue;
     const gameType = entry.gameType as LobbyGameType;
     out.push({

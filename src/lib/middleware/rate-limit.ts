@@ -183,3 +183,10 @@ export const challengeRateLimit = rateLimit({
   maxRequests: 10,
   keyFn: (req) => `challenge:${getClientIp(req)}`,
 });
+
+/** Protect state-changing referee endpoints from retries and scripted spam. */
+export const refereeActionRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  maxRequests: 30,
+  keyFn: (req) => `referee-action:${getClientIp(req)}`,
+});

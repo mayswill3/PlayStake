@@ -17,12 +17,14 @@ import {
   collectFee,
   releaseEscrow,
   distributeDevShare,
+  distributeRefereeFee,
 } from "../lib/ledger/escrow";
 import {
   getEscrowAccountForBet,
   getAccountBalance,
 } from "../lib/ledger/accounts";
 import { dispatchWebhook } from "../lib/webhooks/dispatch";
+import { appendRefereeAudit } from "../lib/referees/audit";
 
 // ---------------------------------------------------------------------------
 // Logging helper
@@ -125,6 +127,29 @@ async function settleBet(betId: string): Promise<void> {
         });
       }
 
+      // Human referee rewards are 10% of the platform fee, never 10% of the
+      // players' pot. This keeps the advertised player payout deterministic.
+      const refereeAssignment = await tx.refereeAssignment.findUnique({
+        where: { betId },
+        include: {
+          refereeProfile: { select: { userId: true } },
+        },
+      });
+      let refereeFeeAmount = new Decimal(0);
+      if (refereeAssignment?.refereeProfile && feeAmount.gt(0)) {
+        refereeFeeAmount = feeAmount
+          .mul(refereeAssignment.rewardPercent)
+          .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+        if (refereeFeeAmount.gt(0)) {
+          await distributeRefereeFee(tx, {
+            refereeUserId: refereeAssignment.refereeProfile.userId,
+            betId,
+            amount: refereeFeeAmount,
+            idempotencyKey: `settle_${betId}_referee`,
+          });
+        }
+      }
+
       // 6. Developer revenue share (if applicable)
       const game = await tx.game.findUniqueOrThrow({
         where: { id: bet.game_id },
@@ -141,6 +166,7 @@ async function settleBet(betId: string): Promise<void> {
 
       if (revSharePercent.gt(0) && feeAmount.gt(0)) {
         const devShareAmount = feeAmount
+          .sub(refereeFeeAmount)
           .mul(revSharePercent)
           .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
 
@@ -209,6 +235,32 @@ async function settleBet(betId: string): Promise<void> {
           platformFeeAmount: feeAmount,
         },
       });
+
+      if (refereeAssignment) {
+        await tx.refereeAssignment.update({
+          where: { id: refereeAssignment.id },
+          data: {
+            status: "COMPLETED",
+            rewardAmount: refereeFeeAmount,
+            completedAt: new Date(),
+            version: { increment: 1 },
+          },
+        });
+        await tx.refereeProfile.update({
+          where: { id: refereeAssignment.refereeProfileId! },
+          data: { matchesHandled: { increment: 1 } },
+        });
+        await appendRefereeAudit(tx, {
+          assignmentId: refereeAssignment.id,
+          action: "SETTLEMENT_COMPLETED",
+          details: {
+            outcome,
+            pot: pot.toString(),
+            platformFee: feeAmount.toString(),
+            refereeFee: refereeFeeAmount.toString(),
+          },
+        });
+      }
 
       // 10. Decrement DeveloperEscrowLimit.currentEscrow by pot amount
       if (game.developerProfile.escrowLimit) {
@@ -279,8 +331,17 @@ async function processSettlementScan(
       resultVerified: true,
       resultReportedAt: { lt: twoMinutesAgo },
       disputes: {
-        none: { status: "OPEN" },
+        none: { status: { in: ["OPEN", "UNDER_REVIEW"] } },
       },
+      OR: [
+        { refereeAssignment: null },
+        {
+          refereeAssignment: {
+            status: "DECISION_SUBMITTED",
+            disputeDeadline: { lte: now },
+          },
+        },
+      ],
     },
     select: { id: true },
     take: 50, // Process in batches to avoid long-running scans

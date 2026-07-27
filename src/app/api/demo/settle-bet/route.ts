@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Decimal } from "@prisma/client/runtime/client";
-import { BetStatus, BetOutcome } from "../../../../../generated/prisma/client";
+import {
+  BetMatchType,
+  BetStatus,
+  BetOutcome,
+} from "../../../../../generated/prisma/client";
 import { prisma, withTransaction, type TxClient } from "@/lib/db/client";
 import { validateApiKey } from "@/lib/auth/api-key";
 import {
@@ -54,6 +58,19 @@ export async function POST(request: NextRequest) {
 
   if (!bet) {
     return NextResponse.json({ error: "Bet not found" }, { status: 404 });
+  }
+
+  // Stream-vs-stream matches cannot use the demo fast-settlement shortcut.
+  // Only the assigned referee decision plus the dispute hold may release them.
+  if (bet.matchType === BetMatchType.STREAM_VS_STREAM) {
+    return NextResponse.json(
+      {
+        error:
+          "This live match is awaiting its human referee and dispute window",
+        code: "REFEREE_SETTLEMENT_REQUIRED",
+      },
+      { status: 409 },
+    );
   }
 
   // Accept MATCHED (report result inline) or RESULT_REPORTED (already reported)

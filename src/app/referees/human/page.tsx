@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 const STEPS = [
-  { n: '01', label: 'Sign up as a referee', desc: 'Create your PlayStake account, complete identity verification, and opt in to the referee programme from your settings page.' },
+  { n: '01', label: 'Sign up as a referee', desc: 'Create your PlayStake account, connect Kick, complete identity verification, and apply from the Referee Hub.' },
   { n: '02', label: 'Receive a match notification', desc: 'When a staked match starts that needs a human referee, all opted-in referees get a notification. The first to accept takes the match.' },
   { n: '03', label: 'Open the spectator view', desc: 'You are given read-only access to the live game. Watch every move, score, and event as it happens in real time.' },
   { n: '04', label: 'Confirm the result', desc: 'When the match ends, confirm the winner. If something looks wrong — a disconnect, a rule dispute, suspicious behaviour — flag it instead.' },
@@ -18,7 +18,7 @@ const STEPS = [
 const FAQS = [
   {
     q: 'How much do I earn per match?',
-    a: 'The referee fee is a percentage of the platform fee, not taken from the players. The exact amount depends on the stake size and game type. You can see the fee for each match before accepting it.',
+    a: 'The referee receives 10% of the platform fee, not 10% of the players’ pot. The amount depends on the stake and game fee and is shown with the match.',
   },
   {
     q: 'Can I referee any game?',
@@ -40,16 +40,16 @@ export default function HumanRefereePage() {
       {/* Top bar */}
       <header className="sticky top-0 z-50 border-b border-themed backdrop-blur-md" style={{ backgroundColor: 'color-mix(in srgb, var(--bg) 85%, transparent)' }}>
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/#for-referees" className="flex items-center gap-2 text-sm font-medium text-fg-secondary hover:text-fg transition-colors">
+          <Link href="/learn-more#for-referees" className="flex items-center gap-2 text-sm font-medium text-fg-secondary hover:text-fg transition-colors">
             <ArrowLeft size={16} />
             Back
           </Link>
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/learn-more" className="flex items-center gap-2">
             <Image src="/logo.png" alt="PlayStake" width={32} height={32} className="h-8 w-8" />
             <span className="font-display text-lg font-bold text-fg">PlayStake</span>
           </Link>
           <Link
-            href="/register"
+            href="/referee"
             className="h-9 px-4 inline-flex items-center rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors"
           >
             Get Started
@@ -211,14 +211,14 @@ export default function HumanRefereePage() {
             href="/register"
             className="inline-flex items-center gap-2 h-11 px-6 rounded-xl font-semibold text-sm bg-brand-600 text-white hover:bg-brand-700 transition-colors"
           >
-            Sign up to referee
+            Open Referee Hub
             <ArrowRight size={16} />
           </Link>
         </div>
 
         {/* Back link */}
         <div className="text-center pb-4">
-          <Link href="/#for-referees" className="inline-flex items-center gap-2 text-sm text-fg-secondary hover:text-fg transition-colors">
+          <Link href="/learn-more#for-referees" className="inline-flex items-center gap-2 text-sm text-fg-secondary hover:text-fg transition-colors">
             <ArrowLeft size={14} />
             Back to Become a Referee
           </Link>

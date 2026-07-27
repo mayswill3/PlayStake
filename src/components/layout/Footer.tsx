@@ -9,7 +9,7 @@ export function Footer() {
 
           {/* Column 1: Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <Link href="/" className="flex items-center gap-2">
+            <Link href="/learn-more" className="flex items-center gap-2">
               <Image
                 src="/logo.png"
                 alt="PlayStake"

@@ -32,7 +32,7 @@ export function useDemoAuth(gameType: GameType, onLog?: (msg: string, level: 'in
       if (result.error) {
         // If not logged in, redirect to login
         if (result.code === 'UNAUTHORIZED') {
-          window.location.href = '/login?redirect=/play';
+          window.location.href = '/?redirect=/play';
           return null;
         }
         throw new Error(result.error);

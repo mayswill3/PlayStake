@@ -7,6 +7,7 @@ import { StatusPill } from '@/components/ui/playstake/StatusPill';
 import { PSButton } from '@/components/ui/playstake/PSButton';
 import { KickConnectionCard } from '@/components/kick/KickConnectionCard';
 import { LiveNowRail } from '@/components/kick/LiveNowRail';
+import { PlayerRefereePanel } from '@/components/referees/PlayerRefereePanel';
 
 interface DemoCardProps {
   href: string;
@@ -45,6 +46,7 @@ export default function DemoIndex() {
     <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">
+          <PlayerRefereePanel />
           <div className="mb-10">
             <KickConnectionCard variant="featured" />
           </div>

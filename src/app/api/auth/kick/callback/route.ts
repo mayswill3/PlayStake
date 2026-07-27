@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     const sessionToken = request.cookies.get("playstake_session")?.value;
     const session = sessionToken ? await validateSession(sessionToken) : null;
     if (!session) {
-      return NextResponse.redirect(`${appUrl}/login?next=/dashboard`);
+      return NextResponse.redirect(`${appUrl}/?next=/dashboard`);
     }
 
     const tokens = await exchangeCodeForTokens(code, codeVerifier);

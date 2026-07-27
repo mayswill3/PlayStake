@@ -44,7 +44,7 @@ export default function AiRefereePage() {
             <ArrowLeft size={16} />
             Back
           </Link>
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/learn-more" className="flex items-center gap-2">
             <Image src="/logo.png" alt="PlayStake" width={32} height={32} className="h-8 w-8" />
             <span className="font-display text-lg font-bold text-fg">PlayStake</span>
           </Link>

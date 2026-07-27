@@ -38,6 +38,7 @@ export interface MyOutgoingChallenge {
   expiresAt: string;
   createdAt: string;
   betId: string | null;
+  requiresReferee: boolean;
 }
 
 const POLL_MS = 6000;
@@ -206,6 +207,11 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
           // ambient match-poll doesn't navigate again.
           const body = await res.json().catch(() => ({}));
           if (body?.status === 'MATCHED' && body?.betId && body?.gameType) {
+            if (body.awaitingReferee) {
+              toast('success', 'Challenge accepted — funds locked while an independent referee joins.');
+              router.push('/play');
+              return;
+            }
             routedRef.current.add(body.betId);
             toast('success', 'Challenge accepted — starting the match…');
             router.push(playPath(body.gameType, body.betId));

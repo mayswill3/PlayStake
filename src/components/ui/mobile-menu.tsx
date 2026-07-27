@@ -86,7 +86,7 @@ export function MobileMenu({ links }: MobileMenuProps) {
 
             <div className="flex flex-col gap-3 px-6 pb-6 pt-2">
               <Link
-                href="/login"
+                href="/"
                 onClick={() => setOpen(false)}
                 className="flex items-center justify-center h-12 rounded-lg border border-themed text-fg font-medium hover:bg-elevated transition-colors"
               >

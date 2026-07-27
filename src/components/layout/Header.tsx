@@ -40,7 +40,7 @@ export function Header({ user, balance }: HeaderProps) {
     } catch {
       // Ignore errors, redirect anyway
     }
-    router.push('/login');
+    router.push('/');
   };
 
   return (

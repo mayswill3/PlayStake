@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   const sessionToken = request.cookies.get("playstake_session")?.value;
   const session = sessionToken ? await validateSession(sessionToken) : null;
   if (!session) {
-    return NextResponse.redirect(`${appUrl}/login?next=/api/auth/kick`);
+    return NextResponse.redirect(`${appUrl}/?next=/api/auth/kick`);
   }
 
   let authUrl: string;

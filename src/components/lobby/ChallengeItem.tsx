@@ -13,6 +13,7 @@ export interface MyInvite {
   from: { userId: string; displayName: string };
   inviteExpiresAt: string;
   expiresAt: string;
+  requiresReferee: boolean;
 }
 
 /** Seconds remaining until an ISO timestamp, floored at 0, ticking each second. */
@@ -59,6 +60,11 @@ export function ChallengeItem({ invite, busy, onRespond }: ChallengeItemProps) {
             {' · '}
             {expired ? 'expired' : `${secondsLeft}s left`}
           </p>
+          {invite.requiresReferee && (
+            <p className="mt-1 text-[11px] font-semibold text-ps-lime">
+              Live vs live · starts after an independent referee joins
+            </p>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
