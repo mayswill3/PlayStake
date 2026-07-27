@@ -47,7 +47,7 @@ export async function POST(
 
     return NextResponse.json({
       status: "SENT",
-      challengeId: result.streamerLobbyEntryId,
+      challengeId: result.challengeId,
       lobbyEntryId: result.challengerLobbyEntryId,
       gameType: result.gameType,
       stakeAmount: result.stakeAmount,

@@ -9,7 +9,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { Dialog } from '@/components/ui/Dialog';
 import { ChallengeItem, type MyInvite } from './ChallengeItem';
@@ -27,6 +28,18 @@ export interface MyMatch {
   stakeAmount: number;
 }
 
+export interface MyOutgoingChallenge {
+  challengeId: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'CANCELLED';
+  gameType: string;
+  gameName: string;
+  stakeAmount: number;
+  streamer: { userId: string; displayName: string };
+  expiresAt: string;
+  createdAt: string;
+  betId: string | null;
+}
+
 const POLL_MS = 6000;
 // The lobby SSE stream requires a gameType but also subscribes the caller to
 // their per-user lobby:invite:<userId> channel regardless — so any valid game
@@ -36,10 +49,14 @@ const SSE_GAMETYPE = 'darts';
 interface ChallengesContextValue {
   invites: MyInvite[];
   matches: MyMatch[];
+  outgoing: MyOutgoingChallenge[];
   loading: boolean;
   pendingCount: number;
   busyId: string | null;
+  busyOutgoingId: string | null;
   respond: (lobbyEntryId: string, action: 'ACCEPT' | 'DECLINE') => Promise<void>;
+  cancelOutgoing: (challengeId: string) => Promise<void>;
+  resumeMatch: (match: MyMatch) => void;
   refresh: () => Promise<void>;
 }
 
@@ -79,10 +96,13 @@ export function usePendingChallengeCount(): number {
 export function ChallengesProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const router = useRouter();
+  const pathname = usePathname();
   const [invites, setInvites] = useState<MyInvite[]>([]);
   const [matches, setMatches] = useState<MyMatch[]>([]);
+  const [outgoing, setOutgoing] = useState<MyOutgoingChallenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [busyOutgoingId, setBusyOutgoingId] = useState<string | null>(null);
   const [modalInvite, setModalInvite] = useState<MyInvite | null>(null);
   const [sseEnabled, setSseEnabled] = useState(false);
 
@@ -100,8 +120,10 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       const list: MyInvite[] = data.invites ?? [];
       const matchList: MyMatch[] = data.matches ?? [];
+      const outgoingList: MyOutgoingChallenge[] = data.outgoing ?? [];
       setInvites(list);
       setMatches(matchList);
+      setOutgoing(outgoingList);
       setSseEnabled(Boolean(data.sseEnabled));
 
       // Surface only genuinely NEW invites — never on the first load.
@@ -204,19 +226,78 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
     [refresh, toast, router],
   );
 
+  const cancelOutgoing = useCallback(
+    async (challengeId: string) => {
+      setBusyOutgoingId(challengeId);
+      try {
+        const res = await fetch(`/api/lobby/challenges/${challengeId}`, {
+          method: 'DELETE',
+        });
+        if (!res.ok) {
+          if (res.status === 404 || res.status === 409) {
+            toast('info', 'That challenge is no longer pending.');
+          } else {
+            const body = await res.json().catch(() => ({}));
+            toast('error', body.error || 'Could not cancel the challenge.');
+          }
+          return;
+        }
+        toast('info', 'Challenge cancelled.');
+        await refresh();
+      } catch {
+        toast('error', 'Something went wrong.');
+      } finally {
+        setBusyOutgoingId(null);
+      }
+    },
+    [refresh, toast],
+  );
+
+  const resumeMatch = useCallback(
+    (match: MyMatch) => {
+      routedRef.current.add(match.betId);
+      router.push(playPath(match.gameType, match.betId));
+    },
+    [router],
+  );
+
   const value: ChallengesContextValue = {
     invites,
     matches,
+    outgoing,
     loading,
     pendingCount: invites.length,
     busyId,
+    busyOutgoingId,
     respond,
+    cancelOutgoing,
+    resumeMatch,
     refresh,
   };
+
+  const resumableMatch = matches[0];
+  const showResume = Boolean(resumableMatch) && !pathname.startsWith('/play/');
 
   return (
     <ChallengesContext.Provider value={value}>
       {children}
+      {showResume && resumableMatch && (
+        <div className="fixed bottom-20 right-4 z-40 w-[calc(100%-2rem)] max-w-sm rounded-xl border border-brand-400/40 bg-surface-900 p-4 text-surface-100 shadow-2xl lg:bottom-6 lg:right-6">
+          <p className="font-display font-semibold">Your match is ready</p>
+          <p className="mt-1 text-sm text-surface-300">
+            {resumableMatch.gameName} against{' '}
+            {resumableMatch.myRole === 'A'
+              ? resumableMatch.playerBName
+              : resumableMatch.playerAName}
+          </p>
+          <Button
+            className="mt-3 w-full"
+            onClick={() => resumeMatch(resumableMatch)}
+          >
+            Resume match
+          </Button>
+        </div>
+      )}
       <Dialog open={modalInvite !== null} onClose={() => setModalInvite(null)} title="New challenge">
         {modalInvite && (
           <ChallengeItem

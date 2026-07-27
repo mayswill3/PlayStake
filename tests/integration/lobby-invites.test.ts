@@ -12,8 +12,15 @@ import { describe, it, expect, afterEach, afterAll, beforeAll } from "vitest";
 import * as crypto from "crypto";
 import { Decimal } from "@prisma/client/runtime/client";
 import { getTestPrisma, disconnectTestPrisma, createTestSession, callApi } from "./helpers.js";
-import { createChallenge } from "../../src/lib/lobby/service.js";
-import { LedgerAccountType } from "../../generated/prisma/client.js";
+import {
+  createChallenge,
+  runLobbyExpiryScan,
+} from "../../src/lib/lobby/service.js";
+import {
+  LedgerAccountType,
+  LobbyStatus,
+  StreamChallengeStatus,
+} from "../../generated/prisma/client.js";
 import { dollarsToCents } from "../../src/lib/utils/money.js";
 
 const prisma = getTestPrisma();
@@ -177,6 +184,13 @@ describe("Challenge inbox", () => {
     const viewerToken = await sessionFor(viewer.id);
     const viewerRes = await callApi("GET", "/api/lobby/invites", { sessionToken: viewerToken });
     expect(viewerRes.body.invites).toHaveLength(0);
+    expect(viewerRes.body.outgoing).toHaveLength(1);
+    expect(viewerRes.body.outgoing[0]).toMatchObject({
+      challengeId: challenge.challengeId,
+      status: "PENDING",
+      stakeAmount: 500,
+      gameType: "darts",
+    });
   });
 
   it("Accept routes through POST /api/lobby/respond and escrows both players", async () => {
@@ -232,5 +246,138 @@ describe("Challenge inbox", () => {
 
     const inbox = await callApi("GET", "/api/lobby/invites", { sessionToken: streamerToken });
     expect(inbox.body.invites).toHaveLength(0);
+
+    const persisted = await prisma.streamChallenge.findUniqueOrThrow({
+      where: { id: challenge.challengeId },
+    });
+    expect(persisted.status).toBe(StreamChallengeStatus.DECLINED);
+    const entries = await prisma.lobbyEntry.findMany({
+      where: {
+        id: {
+          in: [challenge.challengerLobbyEntryId, challenge.streamerLobbyEntryId],
+        },
+      },
+      select: { status: true },
+    });
+    expect(entries.map((entry) => entry.status)).toEqual([
+      LobbyStatus.CANCELLED,
+      LobbyStatus.CANCELLED,
+    ]);
+  });
+
+  it("lets the challenger cancel a pending outgoing challenge", async () => {
+    const slug = `cancel-${crypto.randomUUID().substring(0, 8)}`;
+    const streamer = await makeLiveStreamer(slug);
+    const viewer = await makeUser("Viewer");
+    await fundUser(viewer.id, 50);
+
+    const challenge = await createChallenge({
+      challengerUserId: viewer.id,
+      streamerChannelSlug: slug,
+      stakeAmount: 500,
+    });
+    const viewerToken = await sessionFor(viewer.id);
+    const cancelled = await callApi(
+      "DELETE",
+      `/api/lobby/challenges/${challenge.challengeId}`,
+      { sessionToken: viewerToken },
+    );
+    expect(cancelled.status).toBe(200);
+    expect(cancelled.body.status).toBe("CANCELLED");
+
+    const persisted = await prisma.streamChallenge.findUniqueOrThrow({
+      where: { id: challenge.challengeId },
+    });
+    expect(persisted.status).toBe(StreamChallengeStatus.CANCELLED);
+
+    const streamerToken = await sessionFor(streamer.id);
+    const inbox = await callApi("GET", "/api/lobby/invites", {
+      sessionToken: streamerToken,
+    });
+    expect(inbox.body.invites).toHaveLength(0);
+  });
+
+  it("accepting one challenge cancels the streamer's other pending invitations", async () => {
+    const slug = `single-accept-${crypto.randomUUID().substring(0, 8)}`;
+    const streamer = await makeLiveStreamer(slug);
+    const firstViewer = await makeUser("First viewer");
+    const secondViewer = await makeUser("Second viewer");
+    await fundUser(streamer.id, 50);
+    await fundUser(firstViewer.id, 50);
+    await fundUser(secondViewer.id, 50);
+
+    const first = await createChallenge({
+      challengerUserId: firstViewer.id,
+      streamerChannelSlug: slug,
+      stakeAmount: 500,
+    });
+    const second = await createChallenge({
+      challengerUserId: secondViewer.id,
+      streamerChannelSlug: slug,
+      stakeAmount: 500,
+    });
+
+    const streamerToken = await sessionFor(streamer.id);
+    const accepted = await callApi("POST", "/api/lobby/respond", {
+      sessionToken: streamerToken,
+      body: {
+        lobbyEntryId: first.streamerLobbyEntryId,
+        response: "ACCEPT",
+      },
+    });
+    expect(accepted.status).toBe(200);
+
+    const persisted = await prisma.streamChallenge.findMany({
+      where: { id: { in: [first.challengeId, second.challengeId] } },
+      select: { id: true, status: true },
+    });
+    const statuses = new Map(persisted.map((item) => [item.id, item.status]));
+    expect(statuses.get(first.challengeId)).toBe(StreamChallengeStatus.ACCEPTED);
+    expect(statuses.get(second.challengeId)).toBe(StreamChallengeStatus.CANCELLED);
+
+    const secondEntries = await prisma.lobbyEntry.findMany({
+      where: {
+        id: {
+          in: [second.challengerLobbyEntryId, second.streamerLobbyEntryId],
+        },
+      },
+      select: { status: true },
+    });
+    expect(secondEntries.every((entry) => entry.status === LobbyStatus.CANCELLED)).toBe(true);
+  });
+
+  it("expires a targeted challenge and both of its lobby entries as one unit", async () => {
+    const slug = `expire-${crypto.randomUUID().substring(0, 8)}`;
+    await makeLiveStreamer(slug);
+    const viewer = await makeUser("Viewer");
+    await fundUser(viewer.id, 50);
+
+    const challenge = await createChallenge({
+      challengerUserId: viewer.id,
+      streamerChannelSlug: slug,
+      stakeAmount: 500,
+    });
+    const past = new Date(Date.now() - 1_000);
+    await prisma.streamChallenge.update({
+      where: { id: challenge.challengeId },
+      data: { expiresAt: past },
+    });
+
+    const result = await runLobbyExpiryScan();
+    expect(result.streamChallengesExpired).toBeGreaterThanOrEqual(1);
+
+    const persisted = await prisma.streamChallenge.findUniqueOrThrow({
+      where: { id: challenge.challengeId },
+    });
+    expect(persisted.status).toBe(StreamChallengeStatus.EXPIRED);
+    const entries = await prisma.lobbyEntry.findMany({
+      where: {
+        id: {
+          in: [challenge.challengerLobbyEntryId, challenge.streamerLobbyEntryId],
+        },
+      },
+      select: { status: true },
+    });
+    expect(entries.every((entry) => entry.status === LobbyStatus.EXPIRED)).toBe(true);
   });
 });

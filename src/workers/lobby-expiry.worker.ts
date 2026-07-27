@@ -22,9 +22,14 @@ function log(level: string, msg: string, data?: Record<string, unknown>): void {
 async function processLobbyExpiryScan(
   _job: Job<LobbyExpiryScanPayload>
 ): Promise<void> {
-  const { expired, inviteTimeouts } = await runLobbyExpiryScan();
-  if (expired > 0 || inviteTimeouts > 0) {
-    log("info", "lobby_expiry_scan_done", { expired, inviteTimeouts });
+  const { expired, inviteTimeouts, streamChallengesExpired } =
+    await runLobbyExpiryScan();
+  if (expired > 0 || inviteTimeouts > 0 || streamChallengesExpired > 0) {
+    log("info", "lobby_expiry_scan_done", {
+      expired,
+      inviteTimeouts,
+      streamChallengesExpired,
+    });
   }
 }
 

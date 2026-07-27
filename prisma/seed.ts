@@ -1,8 +1,15 @@
 import "dotenv/config";
 import { PrismaClient } from "../generated/prisma/client.js";
-import { UserRole, LedgerAccountType, BetStatus, BetOutcome } from "../generated/prisma/enums.js";
+import {
+  UserRole,
+  LedgerAccountType,
+  TransactionType,
+  BetStatus,
+  BetOutcome,
+} from "../generated/prisma/enums.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcrypt";
+import { transfer } from "../src/lib/ledger/transfer.js";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
@@ -20,7 +27,44 @@ async function main() {
   console.log("Seeding PlayStake database...\n");
 
   // ---------------------------------------------------------------------------
-  // 1. Test Player
+  // 1. System Ledger Accounts (singletons, no userId)
+  // ---------------------------------------------------------------------------
+  // Create these before funding demo users so every starting balance can be
+  // represented by a proper double-entry transfer from STRIPE_SOURCE.
+  const systemAccounts: { type: LedgerAccountType; label: string }[] = [
+    { type: LedgerAccountType.PLATFORM_REVENUE, label: "Platform Revenue" },
+    { type: LedgerAccountType.STRIPE_SOURCE, label: "Stripe Source (inbound funds)" },
+    { type: LedgerAccountType.STRIPE_SINK, label: "Stripe Sink (outbound funds)" },
+  ];
+  let stripeSourceId: string | null = null;
+
+  for (const sa of systemAccounts) {
+    let account = await prisma.ledgerAccount.findFirst({
+      where: { accountType: sa.type, userId: null },
+      orderBy: { createdAt: "asc" },
+    });
+    if (!account) {
+      account = await prisma.ledgerAccount.create({
+        data: {
+          accountType: sa.type,
+          balance: 0,
+          currency: "USD",
+        },
+      });
+      console.log(`  System account:   ${account.id} (${sa.label})`);
+    } else {
+      console.log(`  System account:   ${account.id} (${sa.label}) [already exists]`);
+    }
+    if (sa.type === LedgerAccountType.STRIPE_SOURCE) {
+      stripeSourceId = account.id;
+    }
+  }
+  if (!stripeSourceId) {
+    throw new Error("STRIPE_SOURCE account was not created");
+  }
+
+  // ---------------------------------------------------------------------------
+  // 2. Test Player
   // ---------------------------------------------------------------------------
   const player = await prisma.user.upsert({
     where: { email: "player@test.playstake.com" },
@@ -35,26 +79,40 @@ async function main() {
   });
   console.log(`  Player created:   ${player.id} (${player.email})`);
 
-  // Player balance ledger account — seed with $100 for testing
-  const playerBalance = await prisma.ledgerAccount.upsert({
+  // Create new demo balances at zero, then fund through the ledger. Existing
+  // accounts are left untouched so rerunning the seed never rewrites history.
+  let playerBalance = await prisma.ledgerAccount.findUnique({
     where: {
       userId_accountType: {
         userId: player.id,
         accountType: LedgerAccountType.PLAYER_BALANCE,
       },
     },
-    update: { balance: 100.0 },
-    create: {
-      userId: player.id,
-      accountType: LedgerAccountType.PLAYER_BALANCE,
-      balance: 100.0,
-      currency: "USD",
-    },
   });
+  if (!playerBalance) {
+    playerBalance = await prisma.ledgerAccount.create({
+      data: {
+        userId: player.id,
+        accountType: LedgerAccountType.PLAYER_BALANCE,
+        balance: 0,
+        currency: "USD",
+      },
+    });
+    await prisma.$transaction((tx) =>
+      transfer(tx, {
+        fromAccountId: stripeSourceId,
+        toAccountId: playerBalance!.id,
+        amount: 100,
+        transactionType: TransactionType.DEPOSIT,
+        description: "Initial demo player balance",
+        idempotencyKey: `seed:initial-balance:${player.id}`,
+      }),
+    );
+  }
   console.log(`  Player ledger:    ${playerBalance.id} ($100.00)`);
 
   // ---------------------------------------------------------------------------
-  // 1b. Test Player B (second player for testing bets)
+  // 2b. Test Player B (second player for testing bets)
   // ---------------------------------------------------------------------------
   const playerB = await prisma.user.upsert({
     where: { email: "player2@test.playstake.com" },
@@ -69,22 +127,34 @@ async function main() {
   });
   console.log(`  Player B created: ${playerB.id} (${playerB.email})`);
 
-  // Player B balance ledger account — seed with $100 for testing
-  const playerBBalance = await prisma.ledgerAccount.upsert({
+  let playerBBalance = await prisma.ledgerAccount.findUnique({
     where: {
       userId_accountType: {
         userId: playerB.id,
         accountType: LedgerAccountType.PLAYER_BALANCE,
       },
     },
-    update: { balance: 100.0 },
-    create: {
-      userId: playerB.id,
-      accountType: LedgerAccountType.PLAYER_BALANCE,
-      balance: 100.0,
-      currency: "USD",
-    },
   });
+  if (!playerBBalance) {
+    playerBBalance = await prisma.ledgerAccount.create({
+      data: {
+        userId: playerB.id,
+        accountType: LedgerAccountType.PLAYER_BALANCE,
+        balance: 0,
+        currency: "USD",
+      },
+    });
+    await prisma.$transaction((tx) =>
+      transfer(tx, {
+        fromAccountId: stripeSourceId,
+        toAccountId: playerBBalance!.id,
+        amount: 100,
+        transactionType: TransactionType.DEPOSIT,
+        description: "Initial demo player balance",
+        idempotencyKey: `seed:initial-balance:${playerB.id}`,
+      }),
+    );
+  }
   console.log(`  Player B ledger:  ${playerBBalance.id} ($100.00)`);
 
   // ---------------------------------------------------------------------------
@@ -260,37 +330,6 @@ async function main() {
     betCount++;
   }
   console.log(`  Demo bets:        ${betCount} bets across ${games.length} games`);
-
-  // ---------------------------------------------------------------------------
-  // 6. System Ledger Accounts (singletons, no userId)
-  // ---------------------------------------------------------------------------
-  // These use findFirst + create pattern since the unique constraint
-  // is on (userId, accountType) and userId is null for system accounts.
-
-  const systemAccounts: { type: LedgerAccountType; label: string }[] = [
-    { type: LedgerAccountType.PLATFORM_REVENUE, label: "Platform Revenue" },
-    { type: LedgerAccountType.STRIPE_SOURCE, label: "Stripe Source (inbound funds)" },
-    { type: LedgerAccountType.STRIPE_SINK, label: "Stripe Sink (outbound funds)" },
-  ];
-
-  for (const sa of systemAccounts) {
-    const existing = await prisma.ledgerAccount.findFirst({
-      where: { accountType: sa.type, userId: null },
-    });
-
-    if (!existing) {
-      const account = await prisma.ledgerAccount.create({
-        data: {
-          accountType: sa.type,
-          balance: 0,
-          currency: "USD",
-        },
-      });
-      console.log(`  System account:   ${account.id} (${sa.label})`);
-    } else {
-      console.log(`  System account:   ${existing.id} (${sa.label}) [already exists]`);
-    }
-  }
 
   console.log("\nSeed completed successfully.");
 }

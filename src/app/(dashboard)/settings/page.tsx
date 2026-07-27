@@ -41,12 +41,6 @@ export default function SettingsPage() {
   const [twoFASaving, setTwoFASaving] = useState(false);
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
 
-  // Streaming: the game this streamer has declared they're currently playing.
-  const [kickConnected, setKickConnected] = useState(false);
-  const [gameOptions, setGameOptions] = useState<{ gameType: string; name: string }[]>([]);
-  const [declaredGameType, setDeclaredGameType] = useState('');
-  const [declaredSaving, setDeclaredSaving] = useState(false);
-
   useEffect(() => {
     fetch('/api/user/profile')
       .then((r) => r.ok ? r.json() : null)
@@ -59,41 +53,6 @@ export default function SettingsPage() {
       })
       .finally(() => setLoading(false));
   }, []);
-
-  useEffect(() => {
-    fetch('/api/user/declared-game')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (!data) return;
-        setKickConnected(Boolean(data.connected));
-        setGameOptions(data.options ?? []);
-        setDeclaredGameType(data.declaredGame?.gameType ?? '');
-      })
-      .catch(() => {});
-  }, []);
-
-  async function handleDeclaredGameSave() {
-    setDeclaredSaving(true);
-    try {
-      const res = await fetch('/api/user/declared-game', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameType: declaredGameType || null }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast('error', data.error || 'Failed to update your game.');
-      } else {
-        const data = await res.json();
-        setDeclaredGameType(data.declaredGame?.gameType ?? '');
-        toast('success', declaredGameType ? 'Game updated.' : 'Game cleared.');
-      }
-    } catch {
-      toast('error', 'Something went wrong.');
-    } finally {
-      setDeclaredSaving(false);
-    }
-  }
 
   async function handleProfileSave(e: FormEvent) {
     e.preventDefault();
@@ -234,52 +193,6 @@ export default function SettingsPage() {
               <PSButton type="submit" loading={profileSaving}>Save Profile</PSButton>
             </div>
           </form>
-        </Card>
-
-        <Card className="bg-ps-paper-elevated dark:bg-ps-ink-2 border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">
-          <CardTitle>Streaming</CardTitle>
-          <CardDescription>
-            Declare the game you&apos;re playing so viewers can challenge you to a wager while you&apos;re live.
-          </CardDescription>
-          {kickConnected ? (
-            <div className="mt-4 space-y-4">
-              <div>
-                <label
-                  htmlFor="declared-game"
-                  className="block text-xs font-mono uppercase tracking-wider text-ps-muted dark:text-ps-muted-on-dark mb-1.5"
-                >
-                  Current game
-                </label>
-                <select
-                  id="declared-game"
-                  value={declaredGameType}
-                  onChange={(e) => setDeclaredGameType(e.target.value)}
-                  className="w-full rounded-[var(--ps-radius-md)] bg-ps-paper dark:bg-ps-ink-3 border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] px-3 py-2.5 text-sm font-mono text-ps-text dark:text-ps-text-on-dark focus:outline-2 focus:outline-offset-2 focus:outline-[var(--ps-lime)]"
-                >
-                  <option value="">None — don&apos;t accept challenges</option>
-                  {gameOptions.map((opt) => (
-                    <option key={opt.gameType} value={opt.gameType}>
-                      {opt.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1.5 text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">
-                  Set this before you go live. You can change or clear it any time.
-                </p>
-              </div>
-              <div className="flex justify-end">
-                <PSButton onClick={handleDeclaredGameSave} loading={declaredSaving}>
-                  Save Game
-                </PSButton>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-4 p-4 rounded-[var(--ps-radius-md)] bg-ps-paper dark:bg-ps-ink-3 text-center">
-              <p className="text-sm font-mono text-ps-muted dark:text-ps-muted-on-dark">
-                Connect your Kick account to declare a game and accept viewer challenges.
-              </p>
-            </div>
-          )}
         </Card>
 
         <Card className="bg-ps-paper-elevated dark:bg-ps-ink-2 border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">

@@ -1,8 +1,8 @@
 /**
  * KickPlayer — embeds a channel's live Kick player via the public embed URL.
  *
- * Shared by the stream detail page, the bet detail page, and the dashboard's
- * "your channel" card so the iframe markup (URL format + allow attrs) lives in
+ * Shared by the stream detail page, the bet detail page, and the dashboard
+ * sidebar so the iframe markup (URL format + allow attrs) lives in
  * one place.
  *
  * @example

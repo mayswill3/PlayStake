@@ -6,6 +6,7 @@ import {
   LedgerAccountType,
 } from "../../../generated/prisma/client.js";
 import type { TxClient } from "../../../src/lib/db/client.js";
+import { getSystemAccount } from "../../../src/lib/ledger/accounts.js";
 import * as crypto from "crypto";
 
 // ---------------------------------------------------------------------------
@@ -167,29 +168,18 @@ export async function seedTestData(tx: TxClient): Promise<TestSeeds> {
   });
 
   // System accounts
-  const platformRevenue = await tx.ledgerAccount.create({
-    data: {
-      accountType: LedgerAccountType.PLATFORM_REVENUE,
-      balance: 0,
-      currency: "USD",
-    },
-  });
-
-  const stripeSource = await tx.ledgerAccount.create({
-    data: {
-      accountType: LedgerAccountType.STRIPE_SOURCE,
-      balance: 0,
-      currency: "USD",
-    },
-  });
-
-  const stripeSink = await tx.ledgerAccount.create({
-    data: {
-      accountType: LedgerAccountType.STRIPE_SINK,
-      balance: 0,
-      currency: "USD",
-    },
-  });
+  const platformRevenue = await getSystemAccount(
+    tx,
+    LedgerAccountType.PLATFORM_REVENUE,
+  );
+  const stripeSource = await getSystemAccount(
+    tx,
+    LedgerAccountType.STRIPE_SOURCE,
+  );
+  const stripeSink = await getSystemAccount(
+    tx,
+    LedgerAccountType.STRIPE_SINK,
+  );
 
   return {
     playerA: { id: playerA.id, email: playerA.email },

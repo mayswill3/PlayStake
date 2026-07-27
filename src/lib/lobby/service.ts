@@ -10,6 +10,7 @@ import { prisma } from "@/lib/db/client";
 import {
   LobbyRole,
   LobbyStatus,
+  StreamChallengeStatus,
   BetStatus,
   LedgerAccountType,
 } from "../../../generated/prisma/client";
@@ -356,6 +357,7 @@ export interface CreateChallengeInput {
 }
 
 export interface CreateChallengeResult {
+  challengeId: string;
   /** The viewer's own (Player A) lobby entry. */
   challengerLobbyEntryId: string;
   /** The streamer's (Player B) invited entry — what they accept via /respond. */
@@ -445,42 +447,62 @@ export async function createChallenge(
   const inviteExpiresAt = new Date(now.getTime() + LOBBY_INVITE_TTL_MS);
   const expiresAt = new Date(now.getTime() + LOBBY_ENTRY_TTL_MS);
 
-  // Idempotent reuse: if this viewer already has a pending challenge out to this
-  // streamer for this game, return it instead of stacking duplicates. Mirrors
-  // joinLobby's reuse-an-active-entry behaviour.
-  const existingStreamerEntry = await prisma.lobbyEntry.findFirst({
+  // Idempotent reuse: return the exact paired entries for an existing pending
+  // challenge instead of reconstructing the relationship from lobby fields.
+  const existingChallenge = await prisma.streamChallenge.findFirst({
     where: {
-      userId: streamerUserId,
+      challengerUserId: input.challengerUserId,
+      streamerUserId,
       gameType,
-      role: LobbyRole.PLAYER_B,
-      status: LobbyStatus.INVITED,
-      invitedById: input.challengerUserId,
-      inviteExpiresAt: { gt: now },
+      status: StreamChallengeStatus.PENDING,
+      expiresAt: { gt: now },
     },
   });
-  if (existingStreamerEntry) {
-    const challengerEntry = await prisma.lobbyEntry.findFirst({
-      where: {
-        userId: input.challengerUserId,
-        gameType,
-        role: LobbyRole.PLAYER_A,
-        status: LobbyStatus.WAITING,
-        expiresAt: { gt: now },
-      },
-    });
-    if (challengerEntry) {
-      return {
-        challengerLobbyEntryId: challengerEntry.id,
-        streamerLobbyEntryId: existingStreamerEntry.id,
-        streamerUserId,
-        gameType,
-        stakeAmount: challengerEntry.stakeAmount,
-        inviteExpiresAt: existingStreamerEntry.inviteExpiresAt ?? inviteExpiresAt,
-      };
-    }
+  if (existingChallenge) {
+    return {
+      challengeId: existingChallenge.id,
+      challengerLobbyEntryId: existingChallenge.challengerLobbyEntryId,
+      streamerLobbyEntryId: existingChallenge.streamerLobbyEntryId,
+      streamerUserId,
+      gameType,
+      stakeAmount: existingChallenge.stakeAmount,
+      inviteExpiresAt: existingChallenge.expiresAt,
+    };
   }
 
   const result = await prisma.$transaction(async (tx) => {
+    // A viewer can have only one active outgoing stream challenge. Supersede
+    // any older one and cancel its exact paired lobby entries.
+    const superseded = await tx.streamChallenge.findMany({
+      where: {
+        challengerUserId: input.challengerUserId,
+        status: StreamChallengeStatus.PENDING,
+      },
+      select: {
+        id: true,
+        streamerUserId: true,
+        challengerLobbyEntryId: true,
+        streamerLobbyEntryId: true,
+      },
+    });
+    if (superseded.length > 0) {
+      await tx.streamChallenge.updateMany({
+        where: { id: { in: superseded.map((challenge) => challenge.id) } },
+        data: { status: StreamChallengeStatus.CANCELLED, respondedAt: now },
+      });
+      await tx.lobbyEntry.updateMany({
+        where: {
+          id: {
+            in: superseded.flatMap((challenge) => [
+              challenge.challengerLobbyEntryId,
+              challenge.streamerLobbyEntryId,
+            ]),
+          },
+        },
+        data: { status: LobbyStatus.CANCELLED },
+      });
+    }
+
     // One active lobby entry per user: clear the viewer's other entries first
     // (same invariant joinLobby enforces).
     await tx.lobbyEntry.updateMany({
@@ -518,6 +540,18 @@ export async function createChallenge(
       },
     });
 
+    const challenge = await tx.streamChallenge.create({
+      data: {
+        challengerUserId: input.challengerUserId,
+        streamerUserId,
+        gameType,
+        stakeAmount: input.stakeAmount,
+        challengerLobbyEntryId: challengerEntry.id,
+        streamerLobbyEntryId: streamerEntry.id,
+        expiresAt: inviteExpiresAt,
+      },
+    });
+
     const challenger = await tx.user.findUnique({
       where: { id: input.challengerUserId },
       select: { displayName: true },
@@ -526,9 +560,17 @@ export async function createChallenge(
     return {
       challengerEntry,
       streamerEntry,
+      challenge,
       challengerName: challenger?.displayName ?? "Player",
+      supersededStreamerIds: superseded.map((item) => item.streamerUserId),
     };
   });
+
+  for (const previousStreamerId of result.supersededStreamerIds) {
+    await publishLobbyEvent(LobbyChannels.invite(previousStreamerId), {
+      event: "CHALLENGE_CANCELLED",
+    });
+  }
 
   // Deliver the invite live to the streamer. Same channel + payload shape as
   // inviteLobbyPlayer so the existing invite UI and /api/lobby/respond flow
@@ -545,6 +587,7 @@ export async function createChallenge(
   });
 
   return {
+    challengeId: result.challenge.id,
     challengerLobbyEntryId: result.challengerEntry.id,
     streamerLobbyEntryId: result.streamerEntry.id,
     streamerUserId,
@@ -583,16 +626,51 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
       throw new ConflictError(`Entry is ${entry.status}, cannot decline`);
     }
 
+    const streamChallenge = await prisma.streamChallenge.findUnique({
+      where: { streamerLobbyEntryId: entry.id },
+    });
     const previousInviter = entry.invitedById;
 
-    await prisma.lobbyEntry.update({
-      where: { id: entry.id },
-      data: {
-        status: LobbyStatus.WAITING,
-        invitedById: null,
-        inviteExpiresAt: null,
-      },
-    });
+    if (streamChallenge) {
+      await prisma.$transaction(async (tx) => {
+        const updated = await tx.streamChallenge.updateMany({
+          where: {
+            id: streamChallenge.id,
+            streamerUserId: input.callerUserId,
+            status: StreamChallengeStatus.PENDING,
+          },
+          data: {
+            status: StreamChallengeStatus.DECLINED,
+            respondedAt: now,
+          },
+        });
+        if (updated.count !== 1) {
+          throw new ConflictError("This challenge is no longer pending");
+        }
+        await tx.lobbyEntry.updateMany({
+          where: {
+            id: {
+              in: [
+                streamChallenge.challengerLobbyEntryId,
+                streamChallenge.streamerLobbyEntryId,
+              ],
+            },
+            status: { in: [LobbyStatus.WAITING, LobbyStatus.INVITED] },
+          },
+          data: { status: LobbyStatus.CANCELLED },
+        });
+      });
+    } else {
+      // Normal lobby invitations keep Player B in the public lobby.
+      await prisma.lobbyEntry.update({
+        where: { id: entry.id },
+        data: {
+          status: LobbyStatus.WAITING,
+          invitedById: null,
+          inviteExpiresAt: null,
+        },
+      });
+    }
 
     if (previousInviter) {
       await publishLobbyEvent(LobbyChannels.inviteDeclined(previousInviter), {
@@ -600,12 +678,14 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
         lobbyEntryId: entry.id,
       });
     }
-    await publishLobbyEvent(LobbyChannels.game(entry.gameType), {
-      event: "PLAYER_JOINED",
-      role: LobbyRole.PLAYER_B,
-      lobbyEntryId: entry.id,
-      userId: entry.userId,
-    });
+    if (!streamChallenge) {
+      await publishLobbyEvent(LobbyChannels.game(entry.gameType), {
+        event: "PLAYER_JOINED",
+        role: LobbyRole.PLAYER_B,
+        lobbyEntryId: entry.id,
+        userId: entry.userId,
+      });
+    }
 
     return { status: "DECLINED" };
   }
@@ -646,16 +726,39 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
       throw new ConflictError("No pending invite on this entry");
     }
 
-    const playerAEntry = await tx.lobbyEntry.findFirst({
-      where: {
-        userId: playerBEntry.invitedById,
-        gameType: playerBEntry.gameType,
-        role: LobbyRole.PLAYER_A,
-        status: LobbyStatus.WAITING,
-        expiresAt: { gt: now },
-      },
+    const streamChallenge = await tx.streamChallenge.findUnique({
+      where: { streamerLobbyEntryId: playerBEntry.id },
     });
+    if (
+      streamChallenge &&
+      (streamChallenge.status !== StreamChallengeStatus.PENDING ||
+        streamChallenge.expiresAt <= now)
+    ) {
+      throw new ConflictError("This challenge is no longer pending");
+    }
+
+    const playerAEntry = streamChallenge
+      ? await tx.lobbyEntry.findUnique({
+          where: { id: streamChallenge.challengerLobbyEntryId },
+        })
+      : await tx.lobbyEntry.findFirst({
+          where: {
+            userId: playerBEntry.invitedById,
+            gameType: playerBEntry.gameType,
+            role: LobbyRole.PLAYER_A,
+            status: LobbyStatus.WAITING,
+            expiresAt: { gt: now },
+          },
+        });
     if (!playerAEntry) {
+      throw new ConflictError("Player A is no longer waiting");
+    }
+    if (
+      playerAEntry.status !== LobbyStatus.WAITING ||
+      playerAEntry.expiresAt <= now ||
+      playerAEntry.userId !== playerBEntry.invitedById ||
+      playerAEntry.gameType !== playerBEntry.gameType
+    ) {
       throw new ConflictError("Player A is no longer waiting");
     }
 
@@ -737,13 +840,76 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
       },
     });
 
+    if (streamChallenge) {
+      const accepted = await tx.streamChallenge.updateMany({
+        where: {
+          id: streamChallenge.id,
+          status: StreamChallengeStatus.PENDING,
+        },
+        data: {
+          status: StreamChallengeStatus.ACCEPTED,
+          betId: bet.id,
+          respondedAt: now,
+        },
+      });
+      if (accepted.count !== 1) {
+        throw new ConflictError("This challenge is no longer pending");
+      }
+    }
+
+    // A streamer can accept only one invitation at a time. Close every other
+    // pending stream challenge and its exact lobby pair in this transaction.
+    const competingChallenges = await tx.streamChallenge.findMany({
+      where: {
+        streamerUserId: playerBEntry.userId,
+        status: StreamChallengeStatus.PENDING,
+        ...(streamChallenge ? { id: { not: streamChallenge.id } } : {}),
+      },
+      select: {
+        id: true,
+        challengerUserId: true,
+        challengerLobbyEntryId: true,
+        streamerLobbyEntryId: true,
+      },
+    });
+    if (competingChallenges.length > 0) {
+      await tx.streamChallenge.updateMany({
+        where: { id: { in: competingChallenges.map((challenge) => challenge.id) } },
+        data: {
+          status: StreamChallengeStatus.CANCELLED,
+          respondedAt: now,
+        },
+      });
+      await tx.lobbyEntry.updateMany({
+        where: {
+          id: {
+            in: competingChallenges.flatMap((challenge) => [
+              challenge.challengerLobbyEntryId,
+              challenge.streamerLobbyEntryId,
+            ]),
+          },
+          status: { in: [LobbyStatus.WAITING, LobbyStatus.INVITED] },
+        },
+        data: { status: LobbyStatus.CANCELLED },
+      });
+    }
+
     return {
       betId: bet.id,
       playerAUserId: playerAEntry.userId,
       playerBUserId: playerBEntry.userId,
       gameType,
+      cancelledChallengerIds: competingChallenges.map(
+        (challenge) => challenge.challengerUserId,
+      ),
     };
   });
+
+  for (const challengerUserId of result.cancelledChallengerIds) {
+    await publishLobbyEvent(LobbyChannels.inviteDeclined(challengerUserId), {
+      event: "CHALLENGE_CANCELLED",
+    });
+  }
 
   // Notify both sides so they can navigate into the game.
   await publishLobbyEvent(LobbyChannels.matched(result.playerAUserId), {
@@ -928,6 +1094,109 @@ export async function listMyInvites(callerUserId: string): Promise<MyInviteDTO[]
 }
 
 // ---------------------------------------------------------------------------
+// outgoing stream challenges
+// ---------------------------------------------------------------------------
+
+export interface MyOutgoingChallengeDTO {
+  challengeId: string;
+  status: StreamChallengeStatus;
+  gameType: LobbyGameType;
+  gameName: string;
+  stakeAmount: number;
+  streamer: { userId: string; displayName: string };
+  expiresAt: string;
+  createdAt: string;
+  betId: string | null;
+}
+
+export async function listMyOutgoingChallenges(
+  callerUserId: string,
+): Promise<MyOutgoingChallengeDTO[]> {
+  const rows = await prisma.streamChallenge.findMany({
+    where: { challengerUserId: callerUserId },
+    include: {
+      streamer: { select: { id: true, displayName: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+  const now = new Date();
+
+  return rows
+    .filter((row) => isLobbyGameType(row.gameType))
+    .map((row) => {
+      const gameType = row.gameType as LobbyGameType;
+      return {
+        challengeId: row.id,
+        status:
+          row.status === StreamChallengeStatus.PENDING && row.expiresAt <= now
+            ? StreamChallengeStatus.EXPIRED
+            : row.status,
+        gameType,
+        gameName: LOBBY_GAME_META[gameType].name,
+        stakeAmount: row.stakeAmount,
+        streamer: {
+          userId: row.streamer.id,
+          displayName: row.streamer.displayName ?? "Player",
+        },
+        expiresAt: row.expiresAt.toISOString(),
+        createdAt: row.createdAt.toISOString(),
+        betId: row.betId,
+      };
+    });
+}
+
+export async function cancelStreamChallenge(
+  callerUserId: string,
+  challengeId: string,
+): Promise<void> {
+  const challenge = await prisma.streamChallenge.findUnique({
+    where: { id: challengeId },
+  });
+  if (!challenge) throw new NotFoundError("Challenge not found");
+  if (challenge.challengerUserId !== callerUserId) {
+    throw new AuthorizationError("You don't own that challenge");
+  }
+  if (challenge.status !== StreamChallengeStatus.PENDING) {
+    throw new ConflictError(`Challenge is ${challenge.status.toLowerCase()}`);
+  }
+
+  const now = new Date();
+  await prisma.$transaction(async (tx) => {
+    const cancelled = await tx.streamChallenge.updateMany({
+      where: {
+        id: challenge.id,
+        challengerUserId: callerUserId,
+        status: StreamChallengeStatus.PENDING,
+      },
+      data: {
+        status: StreamChallengeStatus.CANCELLED,
+        respondedAt: now,
+      },
+    });
+    if (cancelled.count !== 1) {
+      throw new ConflictError("This challenge is no longer pending");
+    }
+    await tx.lobbyEntry.updateMany({
+      where: {
+        id: {
+          in: [
+            challenge.challengerLobbyEntryId,
+            challenge.streamerLobbyEntryId,
+          ],
+        },
+        status: { in: [LobbyStatus.WAITING, LobbyStatus.INVITED] },
+      },
+      data: { status: LobbyStatus.CANCELLED },
+    });
+  });
+
+  await publishLobbyEvent(LobbyChannels.invite(challenge.streamerUserId), {
+    event: "CHALLENGE_CANCELLED",
+  });
+}
+
+// ---------------------------------------------------------------------------
 // list my joinable matches (accept -> play handoff)
 // ---------------------------------------------------------------------------
 
@@ -1012,12 +1281,74 @@ export async function listMyMatches(callerUserId: string): Promise<MyMatchDTO[]>
 export async function runLobbyExpiryScan(): Promise<{
   expired: number;
   inviteTimeouts: number;
+  streamChallengesExpired: number;
 }> {
   const now = new Date();
   let expired = 0;
   let inviteTimeouts = 0;
+  let streamChallengesExpired = 0;
 
-  // 1) General expiry: WAITING or INVITED past expiresAt
+  // 1) Targeted stream challenges expire as a pair. Doing this before the
+  // general lobby scan prevents their streamer entry reverting to WAITING.
+  const staleStreamChallenges = await prisma.streamChallenge.findMany({
+    where: {
+      status: StreamChallengeStatus.PENDING,
+      expiresAt: { lte: now },
+    },
+    take: 200,
+  });
+
+  for (const challenge of staleStreamChallenges) {
+    try {
+      const changed = await prisma.$transaction(async (tx) => {
+        const updated = await tx.streamChallenge.updateMany({
+          where: {
+            id: challenge.id,
+            status: StreamChallengeStatus.PENDING,
+          },
+          data: {
+            status: StreamChallengeStatus.EXPIRED,
+            respondedAt: now,
+          },
+        });
+        if (updated.count !== 1) return false;
+
+        await tx.lobbyEntry.updateMany({
+          where: {
+            id: {
+              in: [
+                challenge.challengerLobbyEntryId,
+                challenge.streamerLobbyEntryId,
+              ],
+            },
+            status: { in: [LobbyStatus.WAITING, LobbyStatus.INVITED] },
+          },
+          data: { status: LobbyStatus.EXPIRED },
+        });
+        return true;
+      });
+      if (!changed) continue;
+
+      streamChallengesExpired += 1;
+      await publishLobbyEvent(
+        LobbyChannels.inviteExpired(challenge.challengerUserId),
+        {
+          event: "INVITE_EXPIRED",
+          lobbyEntryId: challenge.streamerLobbyEntryId,
+        },
+      );
+      await publishLobbyEvent(LobbyChannels.invite(challenge.streamerUserId), {
+        event: "CHALLENGE_EXPIRED",
+      });
+    } catch (err) {
+      console.error("[LOBBY_EXPIRY] failed to expire stream challenge", {
+        id: challenge.id,
+        err,
+      });
+    }
+  }
+
+  // 2) General expiry: WAITING or INVITED past expiresAt
   const staleEntries = await prisma.lobbyEntry.findMany({
     where: {
       status: { in: [LobbyStatus.WAITING, LobbyStatus.INVITED] },
@@ -1047,7 +1378,7 @@ export async function runLobbyExpiryScan(): Promise<{
     }
   }
 
-  // 2) Invite timeouts: INVITED whose inviteExpiresAt passed but main
+  // 3) Normal-lobby invite timeouts: INVITED whose inviteExpiresAt passed but main
   //    expiresAt is still in the future — revert to WAITING.
   const timedOutInvites = await prisma.lobbyEntry.findMany({
     where: {
@@ -1088,7 +1419,7 @@ export async function runLobbyExpiryScan(): Promise<{
     }
   }
 
-  return { expired, inviteTimeouts };
+  return { expired, inviteTimeouts, streamChallengesExpired };
 }
 
 // ---------------------------------------------------------------------------

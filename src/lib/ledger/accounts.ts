@@ -127,17 +127,31 @@ export async function getSystemAccount(
       accountType: type,
       userId: null,
     },
+    orderBy: { createdAt: "asc" },
   });
 
   if (account) return account;
 
-  return tx.ledgerAccount.create({
-    data: {
-      accountType: type,
-      balance: new Decimal("0.00"),
-      currency: "USD",
-    },
-  });
+  try {
+    return await tx.ledgerAccount.create({
+      data: {
+        accountType: type,
+        balance: new Decimal("0.00"),
+        currency: "USD",
+      },
+    });
+  } catch (error) {
+    // A concurrent first-use may have created the singleton after our read.
+    const concurrentAccount = await tx.ledgerAccount.findFirst({
+      where: {
+        accountType: type,
+        userId: null,
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    if (concurrentAccount) return concurrentAccount;
+    throw error;
+  }
 }
 
 // ---------------------------------------------------------------------------

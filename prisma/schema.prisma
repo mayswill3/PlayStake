@@ -157,6 +157,8 @@ model User {
   kickAccount       KickAccount?
   lobbyEntries      LobbyEntry[]     @relation("LobbyUser")
   lobbyInvitesSent  LobbyEntry[]     @relation("LobbyInviter")
+  challengesSent     StreamChallenge[] @relation("ChallengeChallenger")
+  challengesReceived StreamChallenge[] @relation("ChallengeStreamer")
 
   @@index([email], map: "idx_user_email")
   @@index([stripeCustomerId], map: "idx_user_stripe_customer")
@@ -404,6 +406,7 @@ model Bet {
   disputes        Dispute[]
   escrowAccounts  LedgerAccount[]
   webhookLogs     WebhookDeliveryLog[]
+  streamChallenge StreamChallenge?
 
   @@index([gameId, status], map: "idx_bet_game_status")
   @@index([playerAId, status], map: "idx_bet_player_a_status")
@@ -593,6 +596,14 @@ enum LobbyStatus {
   CANCELLED
 }
 
+enum StreamChallengeStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
+}
+
 model LobbyEntry {
   id              String      @id @default(cuid())
   gameType        String      @map("game_type") @db.VarChar(50)
@@ -609,7 +620,37 @@ model LobbyEntry {
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
 
+  challengeAsChallenger StreamChallenge? @relation("ChallengeChallengerEntry")
+  challengeAsStreamer   StreamChallenge? @relation("ChallengeStreamerEntry")
+
   @@index([gameType, role, status, expiresAt], map: "idx_lobby_match")
   @@index([userId, status], map: "idx_lobby_user")
   @@map("lobby_entries")
+}
+
+model StreamChallenge {
+  id                     String                @id @default(cuid())
+  challengerUserId       String                @map("challenger_user_id") @db.Uuid
+  streamerUserId         String                @map("streamer_user_id") @db.Uuid
+  gameType               String                @map("game_type") @db.VarChar(50)
+  stakeAmount            Int                   @map("stake_amount")
+  status                 StreamChallengeStatus @default(PENDING)
+  challengerLobbyEntryId String                @unique @map("challenger_lobby_entry_id")
+  streamerLobbyEntryId   String                @unique @map("streamer_lobby_entry_id")
+  betId                  String?               @unique @map("bet_id") @db.Uuid
+  expiresAt              DateTime              @map("expires_at")
+  respondedAt            DateTime?             @map("responded_at")
+  createdAt              DateTime              @default(now()) @map("created_at")
+  updatedAt              DateTime              @updatedAt @map("updated_at")
+
+  challenger           User       @relation("ChallengeChallenger", fields: [challengerUserId], references: [id], onDelete: Cascade)
+  streamer             User       @relation("ChallengeStreamer", fields: [streamerUserId], references: [id], onDelete: Cascade)
+  challengerLobbyEntry LobbyEntry @relation("ChallengeChallengerEntry", fields: [challengerLobbyEntryId], references: [id], onDelete: Cascade)
+  streamerLobbyEntry   LobbyEntry @relation("ChallengeStreamerEntry", fields: [streamerLobbyEntryId], references: [id], onDelete: Cascade)
+  bet                  Bet?       @relation(fields: [betId], references: [id], onDelete: SetNull)
+
+  @@index([challengerUserId, status, createdAt], map: "idx_stream_challenge_challenger")
+  @@index([streamerUserId, status, expiresAt], map: "idx_stream_challenge_streamer")
+  @@index([status, expiresAt], map: "idx_stream_challenge_expiry")
+  @@map("stream_challenges")
 }

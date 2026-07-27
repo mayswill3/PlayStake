@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { usePendingChallengeCount } from '@/components/lobby/ChallengesProvider';
+import { KickConnectionCard } from '@/components/kick/KickConnectionCard';
 
 interface SidebarProps {
   userRole?: string;
@@ -33,10 +34,10 @@ interface NavItem {
 
 const playerNav: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Play', href: '/play', icon: Gamepad2 },
   { label: 'Wallet', href: '/wallet', icon: Wallet },
   { label: 'Bets', href: '/bets', icon: Swords },
   { label: 'Challenges', href: '/challenges', icon: Bell },
-  { label: 'Play', href: '/play', icon: Gamepad2 },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -120,6 +121,8 @@ export function Sidebar({ userRole }: SidebarProps) {
             </>
           )}
         </nav>
+
+        <KickConnectionCard />
 
         {/* Bottom */}
         <div className="px-4 py-4 border-t border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">

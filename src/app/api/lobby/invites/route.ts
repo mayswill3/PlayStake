@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionToken } from "@/lib/auth/helpers";
 import { validateSession } from "@/lib/auth/session";
 import { AuthenticationError, errorResponse } from "@/lib/errors/index";
-import { listMyInvites, listMyMatches } from "@/lib/lobby/service";
+import {
+  listMyInvites,
+  listMyMatches,
+  listMyOutgoingChallenges,
+} from "@/lib/lobby/service";
 
 export const dynamic = "force-dynamic";
 
@@ -25,14 +29,16 @@ export async function GET(request: NextRequest) {
     const session = await validateSession(token);
     if (!session) throw new AuthenticationError("Invalid or expired session");
 
-    const [invites, matches] = await Promise.all([
+    const [invites, matches, outgoing] = await Promise.all([
       listMyInvites(session.userId),
       listMyMatches(session.userId),
+      listMyOutgoingChallenges(session.userId),
     ]);
 
     return NextResponse.json({
       invites,
       matches,
+      outgoing,
       sseEnabled: process.env.ENABLE_LOBBY_SSE === "true",
     });
   } catch (err) {

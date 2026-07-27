@@ -10,10 +10,10 @@ export const dynamic = "force-dynamic";
 /**
  * Return PlayStake users whose linked Kick channel is currently live.
  *
- * "Who is live" comes from our own DB (kept current by the livestream webhook).
- * We then best-effort enrich each with the live thumbnail + viewer count via
- * Kick's public channels API (app token). If that enrichment confirms a channel
- * is NOT live, we drop it — self-healing any stale is_live flag.
+ * Poll every linked channel through Kick's public API so newly-live channels
+ * are discoverable even when webhooks cannot reach the app (for example during
+ * local development). The webhook-maintained DB flag remains a fallback when
+ * Kick's API is unavailable, and successful polls synchronize that flag.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -23,18 +23,24 @@ export async function GET(request: NextRequest) {
     const session = await validateSession(token);
     if (!session) throw new AuthenticationError("Invalid or expired session");
 
-    const candidates = await prisma.kickAccount.findMany({
-      where: { isLive: true, channelSlug: { not: null } },
-      select: { channelSlug: true, displayName: true, profilePicture: true },
+    const linkedChannels = await prisma.kickAccount.findMany({
+      where: { channelSlug: { not: null } },
+      select: {
+        id: true,
+        channelSlug: true,
+        displayName: true,
+        profilePicture: true,
+        isLive: true,
+      },
       take: 50,
     });
 
-    if (candidates.length === 0) {
+    if (linkedChannels.length === 0) {
       return NextResponse.json({ live: [] });
     }
 
-    const slugs = candidates
-      .map((c) => c.channelSlug)
+    const slugs = linkedChannels
+      .map((channel) => channel.channelSlug)
       .filter((s): s is string => Boolean(s));
 
     const enrich: Record<
@@ -45,31 +51,75 @@ export async function GET(request: NextRequest) {
     try {
       const channels = await fetchPublicChannels(slugs);
       enriched = true;
-      for (const ch of channels) {
-        enrich[ch.slug] = {
-          isLive: ch.stream?.is_live ?? false,
-          viewerCount: ch.stream?.viewer_count ?? null,
+      for (const channel of channels) {
+        enrich[channel.slug.toLowerCase()] = {
+          isLive: channel.stream?.is_live ?? false,
+          viewerCount: channel.stream?.viewer_count ?? null,
           // Kick returns "" until the live thumbnail is generated; treat as none.
-          thumbnail: ch.stream?.thumbnail || null,
-          title: ch.stream_title ?? null,
+          thumbnail: channel.stream?.thumbnail || null,
+          title: channel.stream_title ?? null,
         };
       }
     } catch (err) {
       console.error("Kick live enrichment failed:", err);
     }
 
-    const live = candidates
-      .map((c) => {
-        const e = c.channelSlug ? enrich[c.channelSlug] : undefined;
+    if (enriched) {
+      const newlyLiveIds = linkedChannels
+        .filter((channel) => {
+          const current = channel.channelSlug
+            ? enrich[channel.channelSlug.toLowerCase()]
+            : undefined;
+          return !channel.isLive && Boolean(current?.isLive);
+        })
+        .map((channel) => channel.id);
+      const newlyOfflineIds = linkedChannels
+        .filter((channel) => {
+          const current = channel.channelSlug
+            ? enrich[channel.channelSlug.toLowerCase()]
+            : undefined;
+          return channel.isLive && !current?.isLive;
+        })
+        .map((channel) => channel.id);
+
+      try {
+        const updates = [];
+        if (newlyLiveIds.length > 0) {
+          updates.push(
+            prisma.kickAccount.updateMany({
+              where: { id: { in: newlyLiveIds } },
+              data: { isLive: true, lastLiveAt: new Date() },
+            }),
+          );
+        }
+        if (newlyOfflineIds.length > 0) {
+          updates.push(
+            prisma.kickAccount.updateMany({
+              where: { id: { in: newlyOfflineIds } },
+              data: { isLive: false },
+            }),
+          );
+        }
+        await Promise.all(updates);
+      } catch (err) {
+        // Discovery should still succeed if persisting the refreshed flag fails.
+        console.error("Kick live-state synchronization failed:", err);
+      }
+    }
+
+    const live = linkedChannels
+      .map((channel) => {
+        const current = channel.channelSlug
+          ? enrich[channel.channelSlug.toLowerCase()]
+          : undefined;
         return {
-          displayName: c.displayName,
-          channelSlug: c.channelSlug,
-          profilePicture: c.profilePicture,
-          thumbnail: e?.thumbnail ?? null,
-          viewerCount: e?.viewerCount ?? null,
-          title: e?.title ?? null,
-          // Trust the live API when we have it; otherwise fall back to our flag.
-          isLive: enriched ? e?.isLive ?? false : true,
+          displayName: channel.displayName,
+          channelSlug: channel.channelSlug,
+          profilePicture: channel.profilePicture,
+          thumbnail: current?.thumbnail ?? null,
+          viewerCount: current?.viewerCount ?? null,
+          title: current?.title ?? null,
+          isLive: enriched ? current?.isLive ?? false : channel.isLive,
         };
       })
       .filter((x) => x.isLive);

@@ -5,6 +5,8 @@ import { GlowCard } from '@/components/ui/playstake/GlowCard';
 import { IconTile } from '@/components/ui/playstake/IconTile';
 import { StatusPill } from '@/components/ui/playstake/StatusPill';
 import { PSButton } from '@/components/ui/playstake/PSButton';
+import { KickConnectionCard } from '@/components/kick/KickConnectionCard';
+import { LiveNowRail } from '@/components/kick/LiveNowRail';
 
 interface DemoCardProps {
   href: string;
@@ -40,20 +42,32 @@ const DEMOS: DemoCardProps[] = [
 
 export default function DemoIndex() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-      <div className="mb-10">
-        <h1 className="font-display text-3xl sm:text-4xl font-bold text-ps-text dark:text-ps-text-on-dark mb-2">
-          Game Lobby
-        </h1>
-        <p className="text-base text-ps-muted dark:text-ps-muted-on-dark">
-          Choose a game and stake your claim.
-        </p>
-      </div>
+    <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0">
+          <div className="mb-10">
+            <KickConnectionCard variant="featured" />
+          </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {DEMOS.map((demo) => (
-          <DemoCard key={demo.href} {...demo} />
-        ))}
+          <div className="mb-10">
+            <h1 className="font-display text-3xl sm:text-4xl font-bold text-ps-text dark:text-ps-text-on-dark mb-2">
+              Game Lobby
+            </h1>
+            <p className="text-base text-ps-muted dark:text-ps-muted-on-dark">
+              Choose a game and stake your claim.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {DEMOS.map((demo) => (
+              <DemoCard key={demo.href} {...demo} />
+            ))}
+          </div>
+        </div>
+
+        <aside className="self-start xl:sticky xl:top-20">
+          <LiveNowRail />
+        </aside>
       </div>
     </div>
   );

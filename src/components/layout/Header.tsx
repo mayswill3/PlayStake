@@ -45,8 +45,7 @@ export function Header({ user, balance }: HeaderProps) {
 
   return (
     <header
-      className="sticky top-0 z-30 border-b border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] backdrop-blur-md"
-      style={{ backgroundColor: 'color-mix(in srgb, var(--ps-paper) 85%, transparent)' }}
+      className="sticky top-0 z-30 border-b border-[var(--ps-border-light)] bg-ps-paper/85 backdrop-blur-md dark:border-[var(--ps-border-dark)] dark:bg-ps-ink/85"
     >
       <div className="flex items-center justify-between h-16 px-4 lg:px-6">
         {/* Left spacer for mobile hamburger */}

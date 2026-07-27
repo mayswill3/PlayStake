@@ -16,18 +16,16 @@ import {
   Layers,
   Grid3x3,
   Target,
-  Radio,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { SkeletonCard, SkeletonTableRow } from '@/components/ui/Skeleton';
 import { StatusPill } from '@/components/ui/playstake/StatusPill';
-import { KickPlayer } from '@/components/ui/playstake/KickPlayer';
 import { PSButton } from '@/components/ui/playstake/PSButton';
 import { GlowCard } from '@/components/ui/playstake/GlowCard';
 import { IconTile } from '@/components/ui/playstake/IconTile';
-import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
+import { LiveNowRail } from '@/components/kick/LiveNowRail';
 import { useAuthLayout } from '@/hooks/useAuthLayout';
 import { formatCents, formatPercent, formatDate } from '@/lib/utils/format';
 
@@ -231,9 +229,6 @@ export default function DashboardPage() {
 
             {/* Recent bets */}
             <RecentBetsSection bets={recentBets} />
-
-            {/* Connections */}
-            <KickConnectionCard />
           </div>
 
           {/* Right rail */}
@@ -243,255 +238,6 @@ export default function DashboardPage() {
         </div>
       </div>
     </FadeIn>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Kick Connection
-// ---------------------------------------------------------------------------
-
-interface KickStatus {
-  connected: boolean;
-  channelSlug?: string | null;
-  displayName?: string | null;
-  profilePicture?: string | null;
-  isLive?: boolean;
-  lastLiveAt?: string | null;
-}
-
-function KickConnectionCard() {
-  const { toast } = useToast();
-  const [status, setStatus] = useState<KickStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [disconnecting, setDisconnecting] = useState(false);
-
-  useEffect(() => {
-    fetch('/api/user/kick')
-      .then((r) => (r.ok ? r.json() : { connected: false }))
-      .then((data) => setStatus(data))
-      .catch(() => setStatus({ connected: false }))
-      .finally(() => setLoading(false));
-  }, []);
-
-  async function handleDisconnect() {
-    setDisconnecting(true);
-    try {
-      const res = await fetch('/api/user/kick', { method: 'DELETE' });
-      if (!res.ok) {
-        toast('error', 'Failed to disconnect Kick.');
-        return;
-      }
-      setStatus({ connected: false });
-      toast('success', 'Kick channel disconnected.');
-    } catch {
-      toast('error', 'Something went wrong.');
-    } finally {
-      setDisconnecting(false);
-    }
-  }
-
-  const connected = status?.connected;
-  const slug = status?.channelSlug;
-  const isLive = connected && status?.isLive;
-
-  return (
-    <div className="rounded-[var(--ps-radius-lg)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-ps-paper-elevated dark:bg-ps-ink-2 p-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="h-10 w-10 shrink-0 rounded-[var(--ps-radius-md)] bg-ps-lime/10 text-ps-lime flex items-center justify-center">
-            <Radio size={18} strokeWidth={2.5} />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-display font-semibold text-ps-text dark:text-ps-text-on-dark">Kick</p>
-              {!loading && connected && <Badge variant="success">Connected</Badge>}
-              {!loading && isLive && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-ps-error/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ps-error">
-                  <span className="h-1.5 w-1.5 rounded-full bg-ps-error animate-pulse" />
-                  Live
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark mt-0.5 truncate">
-              {loading
-                ? 'Checking connection…'
-                : connected
-                ? slug
-                  ? `Linked to kick.com/${slug}`
-                  : `Linked as ${status?.displayName ?? 'your channel'}`
-                : 'Connect your Kick channel to watch your stream here.'}
-            </p>
-          </div>
-        </div>
-        {!loading && (
-          connected ? (
-            <PSButton
-              variant="secondary"
-              size="sm"
-              loading={disconnecting}
-              onClick={handleDisconnect}
-            >
-              Disconnect
-            </PSButton>
-          ) : (
-            <a href="/api/auth/kick">
-              <PSButton variant="primary" size="sm" icon={<Radio size={15} />}>
-                Connect Kick
-              </PSButton>
-            </a>
-          )
-        )}
-      </div>
-
-      {/* Embedded Kick player — shows the channel's live stream (or its offline
-          screen) directly on PlayStake. Free; no streaming infra required. */}
-      {!loading && connected && slug && (
-        <div className="mt-4">
-          <KickPlayer slug={slug} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Live Now rail
-// ---------------------------------------------------------------------------
-
-interface LiveStreamer {
-  displayName: string | null;
-  channelSlug: string | null;
-  profilePicture: string | null;
-  thumbnail: string | null;
-  viewerCount: number | null;
-  title: string | null;
-}
-
-function LiveNowRail() {
-  const [live, setLive] = useState<LiveStreamer[] | null>(null);
-  // Bumped on each poll; passed to cards so they retry a not-yet-ready
-  // thumbnail (see LiveStreamerCard) instead of caching Kick's initial 404.
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-    const load = () =>
-      fetch('/api/kick/live')
-        .then((r) => (r.ok ? r.json() : { live: [] }))
-        .then((data) => active && setLive(data.live ?? []))
-        .catch(() => active && setLive([]));
-    load();
-    const id = setInterval(() => {
-      if (!active) return;
-      setRefreshKey((k) => k + 1);
-      load();
-    }, 45000); // refresh live status periodically
-    return () => {
-      active = false;
-      clearInterval(id);
-    };
-  }, []);
-
-  return (
-    <div className="rounded-[var(--ps-radius-lg)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-ps-paper-elevated dark:bg-ps-ink-2 p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <span className="h-2 w-2 rounded-full bg-ps-error animate-pulse" />
-        <h2 className="text-base font-display font-semibold text-ps-text dark:text-ps-text-on-dark">
-          Live Now
-        </h2>
-        {live && live.length > 0 && (
-          <span className="text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">
-            {live.length}
-          </span>
-        )}
-      </div>
-
-      {live === null ? (
-        <div className="space-y-3">
-          {Array.from({ length: 2 }, (_, i) => (
-            <div key={i} className="aspect-video rounded-[var(--ps-radius-md)] bg-ps-paper dark:bg-ps-ink-3 animate-pulse" />
-          ))}
-        </div>
-      ) : live.length === 0 ? (
-        <div className="py-8 text-center">
-          <div className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--ps-radius-lg)] bg-ps-paper dark:bg-ps-ink-3 text-ps-muted dark:text-ps-muted-on-dark mb-2">
-            <Radio size={18} />
-          </div>
-          <p className="text-sm text-ps-muted dark:text-ps-muted-on-dark">No one is live right now</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {live.map((s) => (
-            <LiveStreamerCard key={s.channelSlug} streamer={s} refreshKey={refreshKey} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function LiveStreamerCard({ streamer, refreshKey }: { streamer: LiveStreamer; refreshKey: number }) {
-  const { displayName, channelSlug, profilePicture, thumbnail, viewerCount, title } = streamer;
-  // Kick doesn't generate a live thumbnail until a stream has been up for a
-  // minute or two, so the URL 404s early on and older browsers cache that
-  // failure. Retry on each poll and swap to a clean placeholder if it fails,
-  // rather than showing the browser's broken-image glyph.
-  const [thumbFailed, setThumbFailed] = useState(false);
-  useEffect(() => {
-    setThumbFailed(false);
-  }, [thumbnail, refreshKey]);
-
-  if (!channelSlug) return null;
-
-  const thumbSrc =
-    thumbnail && !thumbFailed
-      ? `${thumbnail}${thumbnail.includes('?') ? '&' : '?'}_=${refreshKey}`
-      : null;
-
-  return (
-    <Link href={`/streams/${channelSlug}`} className="group block">
-      <div className="relative overflow-hidden rounded-[var(--ps-radius-md)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-black aspect-video">
-        {thumbSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={thumbSrc}
-            alt={`${channelSlug} live`}
-            onError={() => setThumbFailed(true)}
-            className="h-full w-full object-cover transition-transform group-hover:scale-[1.03]"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-ps-muted-on-dark">
-            <Radio size={22} />
-          </div>
-        )}
-        <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded bg-ps-error px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-          Live
-        </span>
-        {viewerCount !== null && (
-          <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white tabular-nums">
-            {viewerCount.toLocaleString()} watching
-          </span>
-        )}
-      </div>
-      <div className="mt-2 flex items-center gap-2">
-        {profilePicture ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={profilePicture} alt="" className="h-6 w-6 rounded-full object-cover shrink-0" />
-        ) : (
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ps-lime/15 text-ps-lime text-[10px] font-bold">
-            {(displayName || channelSlug).slice(0, 1).toUpperCase()}
-          </span>
-        )}
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-ps-text dark:text-ps-text-on-dark truncate">
-            {displayName || channelSlug}
-          </p>
-          {title && (
-            <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark truncate">{title}</p>
-          )}
-        </div>
-      </div>
-    </Link>
   );
 }
 

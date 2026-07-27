@@ -15,6 +15,7 @@ import {
   WidgetSessionStatus,
 } from "../../generated/prisma/client.js";
 import type { TxClient } from "../../src/lib/db/client.js";
+import { getSystemAccount } from "../../src/lib/ledger/accounts.js";
 import * as crypto from "crypto";
 import { Decimal } from "@prisma/client/runtime/client";
 
@@ -348,29 +349,18 @@ export interface TestSystemAccounts {
 export async function createSystemAccounts(
   tx: TxClient
 ): Promise<TestSystemAccounts> {
-  const platformRevenue = await tx.ledgerAccount.create({
-    data: {
-      accountType: LedgerAccountType.PLATFORM_REVENUE,
-      balance: 0,
-      currency: "USD",
-    },
-  });
-
-  const stripeSource = await tx.ledgerAccount.create({
-    data: {
-      accountType: LedgerAccountType.STRIPE_SOURCE,
-      balance: 0,
-      currency: "USD",
-    },
-  });
-
-  const stripeSink = await tx.ledgerAccount.create({
-    data: {
-      accountType: LedgerAccountType.STRIPE_SINK,
-      balance: 0,
-      currency: "USD",
-    },
-  });
+  const platformRevenue = await getSystemAccount(
+    tx,
+    LedgerAccountType.PLATFORM_REVENUE,
+  );
+  const stripeSource = await getSystemAccount(
+    tx,
+    LedgerAccountType.STRIPE_SOURCE,
+  );
+  const stripeSink = await getSystemAccount(
+    tx,
+    LedgerAccountType.STRIPE_SINK,
+  );
 
   return {
     platformRevenue: { id: platformRevenue.id },
@@ -580,6 +570,16 @@ async function resolveRouteHandler(
   if (path === "/api/lobby/respond") {
     const mod = await import("../../src/app/api/lobby/respond/route.js");
     return { handler: mod.POST };
+  }
+  const lobbyChallengeMatch = path.match(/^\/api\/lobby\/challenges\/([^/]+)$/);
+  if (lobbyChallengeMatch && method === "DELETE") {
+    const mod = await import(
+      "../../src/app/api/lobby/challenges/[id]/route.js"
+    );
+    return {
+      handler: mod.DELETE,
+      params: { id: decodeURIComponent(lobbyChallengeMatch[1]) },
+    };
   }
 
 
