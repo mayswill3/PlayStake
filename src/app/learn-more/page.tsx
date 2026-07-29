@@ -11,12 +11,14 @@ import { BetaSignup } from '@/components/landing/beta-signup';
 import { FAQ } from '@/components/landing/faq';
 import { Footer } from '@/components/layout/Footer';
 import { StickyMobileCTA } from '@/components/ui/StickyMobileCTA';
+import { createPublicMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Learn more | PlayStake',
+export const metadata: Metadata = createPublicMetadata({
+  title: 'How PlayStake Works',
   description:
-    'Learn how PlayStake makes peer-to-peer skill wagering work for competitive gamers.',
-};
+    'Explore PlayStake’s player-versus-player challenges, protected stakes, live Kick integration, referee oversight, supported games, and responsible-play features.',
+  path: '/learn-more',
+});
 
 export default function LearnMorePage() {
   return (

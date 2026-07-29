@@ -1,11 +1,15 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { User, ArrowLeft, ArrowRight, Gavel, Eye, Banknote, AlertTriangle, CheckCircle2, Users, Star } from 'lucide-react';
+import { createPublicMetadata } from '@/lib/seo';
 
-export const metadata = {
-  title: 'Human Referee — PlayStake',
-  description: 'How to become a PlayStake Human Referee: watch live matches, confirm results, and earn a fee for every match you officiate.',
-};
+export const metadata: Metadata = createPublicMetadata({
+  title: 'Become a Human Game Referee',
+  description:
+    'Learn how PlayStake human referees watch live matches, verify results, flag disputes, build an officiating record, and earn a disclosed fee.',
+  path: '/referees/human',
+});
 
 const STEPS = [
   { n: '01', label: 'Sign up as a referee', desc: 'Create your PlayStake account, connect Kick, complete identity verification, and apply from the Referee Hub.' },

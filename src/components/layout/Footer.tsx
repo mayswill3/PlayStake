@@ -9,7 +9,7 @@ export function Footer() {
 
           {/* Column 1: Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <Link href="/learn-more" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <Image
                 src="/logo.png"
                 alt="PlayStake"
@@ -61,17 +61,17 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="#games" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                <a href="/learn-more#games" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   Games
                 </a>
               </li>
               <li>
-                <a href="#community" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                <a href="/learn-more#community" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   Community
                 </a>
               </li>
               <li>
-                <a href="#beta-signup" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                <a href="/learn-more#beta-signup" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   Join Beta
                 </a>
               </li>
@@ -85,12 +85,12 @@ export function Footer() {
             </h3>
             <ul className="space-y-3">
               <li>
-                <a href="#trust" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                <a href="/learn-more#trust" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   Responsible Play
                 </a>
               </li>
               <li>
-                <a href="#faq" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                <a href="/learn-more#faq" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   FAQ
                 </a>
               </li>

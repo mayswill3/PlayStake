@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
   Send, UserCheck, Gamepad2, Bot, User, Trophy,
@@ -5,6 +6,14 @@ import {
 } from 'lucide-react';
 import { LandingNav } from '@/components/landing/nav';
 import { Footer } from '@/components/layout/Footer';
+import { createPublicMetadata } from '@/lib/seo';
+
+export const metadata: Metadata = createPublicMetadata({
+  title: 'How Challenges, Referees and Payouts Work',
+  description:
+    'See how a PlayStake challenge moves from opponent matching and protected stakes through live play, referee verification, disputes, and winner settlement.',
+  path: '/how-it-works',
+});
 
 // ---------------------------------------------------------------------------
 // Data

@@ -1,6 +1,11 @@
 import type { Metadata, Viewport } from 'next';
 import { Sora, Inter } from 'next/font/google';
 import { ToastProvider } from '@/components/ui/Toast';
+import {
+  DEFAULT_SEO_DESCRIPTION,
+  SITE_NAME,
+  SITE_URL,
+} from '@/lib/seo';
 import './globals.css';
 
 const sora = Sora({
@@ -18,12 +23,33 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: 'PlayStake — Play for Stakes. Beat Real Players.',
+    default: 'PlayStake | Skill-Based Player-vs-Player Gaming',
     template: '%s | PlayStake',
   },
-  description:
-    'PlayStake is the peer-to-peer skill wagering platform where competitive gamers challenge real opponents, stake on their own match, and let skill decide the winner.',
+  description: DEFAULT_SEO_DESCRIPTION,
+  applicationName: SITE_NAME,
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  category: 'gaming',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_GB',
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: 'PlayStake | Skill-Based Player-vs-Player Gaming',
+    description: DEFAULT_SEO_DESCRIPTION,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'PlayStake | Skill-Based Player-vs-Player Gaming',
+    description: DEFAULT_SEO_DESCRIPTION,
+  },
 };
 
 export const viewport: Viewport = {

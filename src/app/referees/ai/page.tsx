@@ -1,11 +1,15 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Bot, ArrowLeft, ArrowRight, Shield, Zap, FileCheck, Brain, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { createPublicMetadata } from '@/lib/seo';
 
-export const metadata = {
-  title: 'AI Referee — PlayStake',
-  description: 'How the PlayStake AI Referee works: automated result validation, audit trails, and instant settlement.',
-};
+export const metadata: Metadata = createPublicMetadata({
+  title: 'AI Game Referee and Match Verification',
+  description:
+    'Learn how PlayStake’s automated referee validates game events, checks match results, preserves audit trails, and escalates anomalies for human review.',
+  path: '/referees/ai',
+});
 
 const HOW_IT_WORKS_STEPS = [
   { n: '01', label: 'Match starts', desc: 'Both players accept the bet and the game session begins. The AI referee is activated and begins listening to game state events.' },

@@ -11,6 +11,11 @@ export const metadata: Metadata = {
     template: '%s | PlayStake',
   },
   description: 'Play real-money wagered games on PlayStake.',
+  robots: {
+    index: false,
+    follow: false,
+    noarchive: true,
+  },
 };
 
 // The game pages read the ?bet= query param (accept->play handoff) via

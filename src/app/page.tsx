@@ -12,10 +12,43 @@ import {
 import { LoginForm } from '@/components/auth/LoginForm';
 import { Spinner } from '@/components/ui/Spinner';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import {
+  createPublicMetadata,
+  DEFAULT_SEO_DESCRIPTION,
+  SITE_URL,
+} from '@/lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Log in | PlayStake',
-  description: 'Log in to your PlayStake account.',
+export const metadata: Metadata = createPublicMetadata({
+  title: 'PlayStake | Skill-Based Player-vs-Player Gaming',
+  description: DEFAULT_SEO_DESCRIPTION,
+  path: '/',
+  absoluteTitle: true,
+});
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': `${SITE_URL}/#website`,
+      url: `${SITE_URL}/`,
+      name: 'PlayStake',
+      alternateName: 'Play Stake',
+    },
+    {
+      '@type': 'Organization',
+      '@id': `${SITE_URL}/#organization`,
+      name: 'PlayStake',
+      url: `${SITE_URL}/`,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${SITE_URL}/logo.png`,
+        width: 200,
+        height: 200,
+      },
+      description: DEFAULT_SEO_DESCRIPTION,
+    },
+  ],
 };
 
 export default function HomePage() {
@@ -39,6 +72,12 @@ export default function HomePage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-ps-paper text-ps-text dark:bg-ps-ink dark:text-ps-text-on-dark">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData).replace(/</g, '\\u003c'),
+        }}
+      />
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 overflow-hidden"
@@ -201,7 +240,15 @@ export default function HomePage() {
       <footer className="relative z-10 border-t border-[var(--ps-border-light)] py-5 dark:border-[var(--ps-border-dark)]">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 text-xs text-ps-muted dark:text-ps-muted-on-dark sm:flex-row sm:px-6 lg:px-8">
           <span>© {new Date().getFullYear()} PlayStake</span>
-          <span>Skill decides the winner.</span>
+          <div className="flex items-center gap-4">
+            <Link href="/terms" className="transition-colors hover:text-ps-lime">
+              Terms
+            </Link>
+            <Link href="/privacy" className="transition-colors hover:text-ps-lime">
+              Privacy
+            </Link>
+            <span>Skill decides the winner.</span>
+          </div>
         </div>
       </footer>
     </div>
