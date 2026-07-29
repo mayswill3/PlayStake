@@ -107,7 +107,7 @@ export default function HomePage() {
 
           <p className="mt-5 max-w-xl text-base leading-relaxed text-ps-muted dark:text-ps-muted-on-dark sm:text-lg">
             Challenge another player, agree the stake, play your game and let
-            the result decide who wins. No house betting—just player versus
+            the result decide who wins. No house betting, just player versus
             player.
           </p>
 
