@@ -1,6 +1,35 @@
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
+// Public early-access signup
+// ---------------------------------------------------------------------------
+
+export const betaSignupSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name must be at most 100 characters"),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Invalid email address")
+    .max(255, "Email must be at most 255 characters"),
+  game: z.enum(["Pool / Snooker", "Darts", "Penalty Shootout", "Other"]),
+  playerType: z.enum([
+    "Player",
+    "Streamer",
+    "Investor",
+    "Developer",
+    "Partner",
+  ]),
+  consent: z
+    .boolean()
+    .refine((value) => value, "Consent is required to join the beta list"),
+});
+
+// ---------------------------------------------------------------------------
 // Auth schemas (A1)
 // ---------------------------------------------------------------------------
 

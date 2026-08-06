@@ -165,6 +165,13 @@ export const apiRateLimit = rateLimit({
   },
 });
 
+/** Public beta form: 10 submissions per hour per IP. */
+export const betaSignupRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 10,
+  keyFn: (req) => `beta-signup:${getClientIp(req)}`,
+});
+
 /**
  * Deposit rate limiter: 5 requests per hour per user IP.
  */

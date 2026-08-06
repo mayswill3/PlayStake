@@ -663,6 +663,24 @@ model StripeEvent {
 }
 
 // =============================================================================
+// PUBLIC BETA SIGNUPS
+// =============================================================================
+
+model BetaSignup {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(100)
+  email       String   @unique @db.VarChar(255)
+  game        String   @db.VarChar(100)
+  playerType  String   @map("player_type") @db.VarChar(50)
+  consentedAt DateTime @map("consented_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([createdAt], map: "idx_beta_signup_created_at")
+  @@map("beta_signups")
+}
+
+// =============================================================================
 // DEVELOPER ESCROW CAPS
 // =============================================================================
 

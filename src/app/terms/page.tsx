@@ -40,7 +40,7 @@ export default function TermsPage() {
       eyebrow="Legal"
       title="Terms of Service"
       summary="These Terms explain the rules for using PlayStake, entering player-versus-player challenges, connecting a live stream, and taking part as a player or referee."
-      lastUpdated="29 July 2026"
+      lastUpdated="6 August 2026"
       toc={toc}
     >
       <LegalCallout title="Important beta and licensing notice" tone="warning">
@@ -436,7 +436,7 @@ export default function TermsPage() {
         <p>
           Questions, complaints or notices about these Terms can be sent to
           PlayStake Ltd at{' '}
-          <a href="mailto:support@playstake.com">support@playstake.com</a>.
+          <a href="mailto:support@playstake.org">support@playstake.org</a>.
         </p>
       </LegalSection>
     </LegalPage>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { EyebrowPill, DarkGlowCard, PSButton } from '@/components/ui/playstake';
 
 const GAMES = ['Pool / Snooker', 'Darts', 'Penalty Shootout', 'Other'] as const;
@@ -11,22 +12,56 @@ type FormState = {
   email: string;
   game: string;
   type: string;
+  consent: boolean;
 };
 
 export function BetaSignup() {
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState<FormState>({
     name: '',
     email: '',
     game: '',
     type: '',
+    consent: false,
   });
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // TODO: POST to /api/beta-signup (or Loops / Mailchimp integration)
-    // Expected payload: { name, email, game, playerType }
-    setSubmitted(true);
+    setSubmitting(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/beta-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          game: form.game,
+          playerType: form.type,
+          consent: form.consent,
+        }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as
+          | { error?: string }
+          | null;
+        throw new Error(body?.error ?? 'We could not save your request.');
+      }
+
+      setSubmitted(true);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'We could not save your request. Please try again.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -77,7 +112,7 @@ export function BetaSignup() {
 
           {/* Form inside DarkGlowCard */}
           <DarkGlowCard padding="lg" glow="strong">
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label
@@ -176,12 +211,45 @@ export function BetaSignup() {
                 </div>
               </div>
 
-              <PSButton type="submit" fullWidth size="lg">
+              <label className="flex cursor-pointer items-start gap-3 text-sm text-ps-muted-on-dark">
+                <input
+                  type="checkbox"
+                  name="consent"
+                  required
+                  checked={form.consent}
+                  onChange={(e) =>
+                    setForm({ ...form, consent: e.target.checked })
+                  }
+                  className="mt-0.5 h-4 w-4 rounded border-[var(--ps-border-dark)] bg-ps-ink-3 text-ps-lime focus:ring-2 focus:ring-[var(--ps-lime)] focus:ring-offset-2 focus:ring-offset-[var(--ps-ink-2)]"
+                />
+                <span>
+                  I agree to receive PlayStake beta-access updates and have read
+                  the{' '}
+                  <Link
+                    href="/privacy"
+                    className="font-semibold text-ps-lime underline underline-offset-2 hover:text-ps-lime-strong"
+                  >
+                    Privacy Policy
+                  </Link>
+                  .
+                </span>
+              </label>
+
+              {error && (
+                <p
+                  role="alert"
+                  className="rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-2 text-sm text-red-200"
+                >
+                  {error}
+                </p>
+              )}
+
+              <PSButton type="submit" fullWidth size="lg" loading={submitting}>
                 Request Beta Access
               </PSButton>
 
               <p className="text-center text-xs text-ps-muted-on-dark">
-                No spam. Unsubscribe any time. Your data is never shared.
+                Beta updates only. You can unsubscribe at any time.
               </p>
             </form>
           </DarkGlowCard>

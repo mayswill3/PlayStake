@@ -6,10 +6,7 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { ChallengesProvider } from '@/components/lobby/ChallengesProvider';
 
 export const metadata: Metadata = {
-  title: {
-    default: 'Play | PlayStake',
-    template: '%s | PlayStake',
-  },
+  title: 'Play',
   description: 'Play real-money wagered games on PlayStake.',
   robots: {
     index: false,
@@ -43,7 +40,7 @@ export default function PlayLayout({ children }: { children: React.ReactNode }) 
                 className="font-display text-lg font-bold tracking-wider text-ps-text dark:text-ps-text-on-dark"
               >
                 <span className="inline-flex items-center gap-2">
-                  <Image src="/logo.png" alt="PlayStake" width={32} height={32} className="h-8 w-8" />
+                  <Image src="/logo.png" alt="" width={32} height={32} className="h-8 w-8" />
                   <span>PlayStake</span>
                 </span>
               </Link>

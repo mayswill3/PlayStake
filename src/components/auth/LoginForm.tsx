@@ -109,7 +109,7 @@ export function LoginForm() {
           <div className="w-full border-t border-themed" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-card px-2 text-fg-muted">or</span>
+          <span className="bg-card px-2 text-fg-secondary">or</span>
         </div>
       </div>
 
@@ -160,7 +160,7 @@ export function LoginForm() {
         </Link>
         <Link
           href="/register"
-          className="font-semibold text-brand-600 transition-colors hover:text-brand-700"
+          className="font-semibold text-brand-700 transition-colors hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-300"
         >
           Create account
         </Link>

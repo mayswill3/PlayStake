@@ -15,6 +15,7 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 import {
   createPublicMetadata,
   DEFAULT_SEO_DESCRIPTION,
+  SOCIAL_PROFILES,
   SITE_URL,
 } from '@/lib/seo';
 
@@ -47,6 +48,7 @@ const structuredData = {
         height: 200,
       },
       description: DEFAULT_SEO_DESCRIPTION,
+      sameAs: [SOCIAL_PROFILES.instagram, SOCIAL_PROFILES.tiktok],
     },
   ],
 };
@@ -101,7 +103,7 @@ export default function HomePage() {
           >
             <Image
               src="/logo.png"
-              alt="PlayStake"
+              alt=""
               width={40}
               height={40}
               className="h-10 w-10"
@@ -116,7 +118,7 @@ export default function HomePage() {
               href="/learn-more"
               className="inline-flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-ps-muted transition-colors hover:bg-ps-paper-elevated hover:text-ps-text dark:text-ps-muted-on-dark dark:hover:bg-ps-ink-2 dark:hover:text-ps-text-on-dark"
             >
-              Learn more
+              How PlayStake works
               <ArrowRight size={15} />
             </Link>
             <Link
@@ -247,6 +249,22 @@ export default function HomePage() {
             <Link href="/privacy" className="transition-colors hover:text-ps-lime">
               Privacy
             </Link>
+            <a
+              href={SOCIAL_PROFILES.instagram}
+              target="_blank"
+              rel="me noopener noreferrer"
+              className="transition-colors hover:text-ps-lime"
+            >
+              Instagram
+            </a>
+            <a
+              href={SOCIAL_PROFILES.tiktok}
+              target="_blank"
+              rel="me noopener noreferrer"
+              className="transition-colors hover:text-ps-lime"
+            >
+              TikTok
+            </a>
             <span>Skill decides the winner.</span>
           </div>
         </div>

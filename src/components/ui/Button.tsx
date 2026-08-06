@@ -5,7 +5,7 @@ import { Spinner } from './Spinner';
 
 const variantStyles = {
   primary:
-    'bg-brand-400 text-surface-950 hover:bg-brand-500 focus-visible:ring-brand-400',
+    'bg-brand-400 text-ps-ink hover:bg-brand-500 focus-visible:ring-brand-400',
   secondary:
     'bg-surface-700 text-surface-100 hover:bg-surface-600 focus-visible:ring-surface-500',
   danger:
@@ -18,7 +18,7 @@ const variantStyles = {
    * against surface-950 (#0a0a0f) background.
    */
   'landing-primary':
-    'bg-brand-500 text-surface-950 hover:bg-brand-400 btn-glow-hover focus-visible:ring-brand-400',
+    'bg-brand-500 text-ps-ink hover:bg-brand-400 btn-glow-hover focus-visible:ring-brand-400',
   /**
    * landing-ghost: neon green outline button for secondary landing CTAs.
    */

@@ -64,6 +64,10 @@ const dataRows = [
     <strong key="support">Communications</strong>,
     'Messages and information you send when contacting support, reporting a problem, applying as a referee or communicating in a dispute.',
   ],
+  [
+    <strong key="beta">Beta and launch updates</strong>,
+    'Name, email address, favourite game, participant type and the time you consented when you request beta access.',
+  ],
 ];
 
 const useRows = [
@@ -138,7 +142,7 @@ export default function PrivacyPage() {
       eyebrow="Privacy"
       title="Privacy Policy"
       summary="This policy explains how PlayStake handles personal information when you visit the website, create an account, play a match, connect Kick, make a transaction, file a dispute or act as a referee."
-      lastUpdated="29 July 2026"
+      lastUpdated="6 August 2026"
       toc={toc}
     >
       <LegalCallout title="A plain-language promise">
@@ -164,7 +168,7 @@ export default function PrivacyPage() {
         </p>
         <p>
           For privacy questions or requests, contact{' '}
-          <a href="mailto:support@playstake.com">support@playstake.com</a>.
+          <a href="mailto:support@playstake.org">support@playstake.org</a>.
         </p>
       </LegalSection>
 
@@ -352,7 +356,11 @@ export default function PrivacyPage() {
           </li>
           <li>
             failed-login, anomaly and security information is retained according
-            to risk and investigation needs.
+            to risk and investigation needs; and
+          </li>
+          <li>
+            beta-signup information is kept until you unsubscribe, ask us to
+            delete it or it is no longer needed for launch and beta updates.
           </li>
         </ul>
         <p>
@@ -424,7 +432,7 @@ export default function PrivacyPage() {
         </p>
         <p>
           To exercise a right, email{' '}
-          <a href="mailto:support@playstake.com">support@playstake.com</a>. We
+          <a href="mailto:support@playstake.org">support@playstake.org</a>. We
           may need to verify your identity before acting on the request.
         </p>
       </LegalSection>
@@ -471,7 +479,7 @@ export default function PrivacyPage() {
         </p>
         <p>
           Privacy questions and requests can be sent to PlayStake Ltd at{' '}
-          <a href="mailto:support@playstake.com">support@playstake.com</a>.
+          <a href="mailto:support@playstake.org">support@playstake.org</a>.
         </p>
       </LegalSection>
     </LegalPage>

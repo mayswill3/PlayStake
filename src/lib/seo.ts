@@ -2,6 +2,11 @@ import type { Metadata } from 'next';
 
 export const SITE_NAME = 'PlayStake';
 export const SITE_URL = 'https://playstake.org';
+export const SOCIAL_IMAGE_URL = `${SITE_URL}/opengraph-image`;
+export const SOCIAL_PROFILES = {
+  instagram: 'https://www.instagram.com/joinplaystake/',
+  tiktok: 'https://www.tiktok.com/@joinplaystake',
+} as const;
 
 export const DEFAULT_SEO_DESCRIPTION =
   'PlayStake lets competitive gamers challenge real players, agree a stake, play live, and settle skill-based matches with protected funds and referee oversight.';
@@ -45,11 +50,20 @@ export function createPublicMetadata({
       siteName: SITE_NAME,
       title,
       description,
+      images: [
+        {
+          url: SOCIAL_IMAGE_URL,
+          width: 1200,
+          height: 630,
+          alt: 'PlayStake competitive gaming platform',
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
+      images: [SOCIAL_IMAGE_URL],
     },
   };
 }
