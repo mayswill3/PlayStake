@@ -4,7 +4,10 @@ import { validateSession } from "../../../../lib/auth/session";
 import { getSessionToken } from "../../../../lib/auth/helpers";
 import { fetchPublicChannels } from "../../../../lib/kick/api";
 import { dollarsToCents } from "../../../../lib/utils/money";
-import { lobbyGameTypeForSlug } from "../../../../lib/lobby/games";
+import {
+  isRefereedStreamGame,
+  streamGameTypeForSlug,
+} from "../../../../lib/games/catalogue";
 import {
   errorResponse,
   AuthenticationError,
@@ -57,10 +60,9 @@ export async function GET(
       throw new NotFoundError("Streamer not found");
     }
 
-    // The declared game, mapped back into the challengeable gameType vocabulary.
-    // null when nothing is declared or it isn't a challengeable lobby game.
+    // Map the stored Game row into the supported stream-game vocabulary.
     const declaredGameType = account.declaredGame
-      ? lobbyGameTypeForSlug(account.declaredGame.slug)
+      ? streamGameTypeForSlug(account.declaredGame.slug)
       : null;
     const declaredGame =
       account.declaredGame && declaredGameType
@@ -142,6 +144,18 @@ export async function GET(
         : null,
     }));
 
+    const streamVsStreamEligible = Boolean(
+      !isSelf &&
+        isLive &&
+        account.declaredGame &&
+        viewerKick?.isLive &&
+        viewerKick.declaredGameId &&
+        viewerKick.declaredGameId === account.declaredGame.id,
+    );
+    const selectedGameRequiresReferee = declaredGameType
+      ? isRefereedStreamGame(declaredGameType)
+      : false;
+
     return NextResponse.json({
       streamer: {
         channelSlug: account.channelSlug,
@@ -153,16 +167,14 @@ export async function GET(
         title,
         declaredGame,
         isSelf,
-        canChallenge: !isSelf && Boolean(isLive && account.declaredGame),
-        streamVsStreamEligible:
+        canChallenge:
           !isSelf &&
-          Boolean(
-            isLive &&
-              account.declaredGame &&
-              viewerKick?.isLive &&
-              viewerKick.declaredGameId &&
-              viewerKick.declaredGameId === account.declaredGame.id,
-          ),
+          Boolean(isLive && declaredGame) &&
+          (viewerKick?.isLive
+            ? streamVsStreamEligible
+            : !selectedGameRequiresReferee),
+        streamVsStreamEligible,
+        selectedGameRequiresReferee,
       },
       bets: activeBets,
     });

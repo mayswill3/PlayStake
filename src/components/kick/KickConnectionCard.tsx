@@ -20,6 +20,8 @@ interface KickConnectionCardProps {
 interface DeclaredGameOption {
   gameType: string;
   name: string;
+  category: string;
+  requiresReferee: boolean;
 }
 
 export function KickConnectionCard({ variant = 'sidebar' }: KickConnectionCardProps) {
@@ -121,6 +123,16 @@ export function KickConnectionCard({ variant = 'sidebar' }: KickConnectionCardPr
   const declaredGameName = gameOptions.find(
     (option) => option.gameType === declaredGameType,
   )?.name;
+  const selectedGame = gameOptions.find(
+    (option) => option.gameType === declaredGameType,
+  );
+  const groupedGameOptions = gameOptions.reduce<Record<string, DeclaredGameOption[]>>(
+    (groups, option) => {
+      (groups[option.category] ??= []).push(option);
+      return groups;
+    },
+    {},
+  );
 
   return (
     <section
@@ -205,10 +217,14 @@ export function KickConnectionCard({ variant = 'sidebar' }: KickConnectionCardPr
                   ? 'Unable to load games'
                   : 'None — don’t accept challenges'}
             </option>
-            {gameOptions.map((option) => (
-              <option key={option.gameType} value={option.gameType}>
-                {option.name}
-              </option>
+            {Object.entries(groupedGameOptions).map(([category, options]) => (
+              <optgroup key={category} label={category}>
+                {(options ?? []).map((option) => (
+                  <option key={option.gameType} value={option.gameType}>
+                    {option.name}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
           {declaredLoading ? (
@@ -225,7 +241,9 @@ export function KickConnectionCard({ variant = 'sidebar' }: KickConnectionCardPr
             </p>
           ) : declaredGameType ? (
             <p className="mt-2 text-xs text-ps-muted dark:text-ps-muted-on-dark" aria-live="polite">
-              Viewers can challenge you to {declaredGameName ?? 'this game'}.
+              {selectedGame?.requiresReferee
+                ? `Live players on ${declaredGameName ?? 'this game'} can challenge you when they select the same game. A referee is required.`
+                : `Viewers can challenge you to ${declaredGameName ?? 'this game'}.`}
             </p>
           ) : (
             <p className="mt-2 flex items-center gap-1.5 text-xs text-ps-warning" aria-live="polite">

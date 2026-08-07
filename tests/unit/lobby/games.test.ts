@@ -12,6 +12,13 @@ import {
   LOBBY_GAME_META,
   LOBBY_GAME_TYPES,
 } from "../../../src/lib/lobby/games.js";
+import {
+  isRefereedStreamGame,
+  isStreamGameType,
+  streamGameTypeForSlug,
+  STREAM_GAME_CATALOGUE,
+  STREAM_GAME_TYPES,
+} from "../../../src/lib/games/catalogue.js";
 
 describe("lobbyGameTypeForSlug", () => {
   it("resolves each lobby game's slug back to its gameType", () => {
@@ -37,5 +44,23 @@ describe("lobbyGameTypeForSlug", () => {
     const gt = lobbyGameTypeForSlug("darts-301");
     expect(gt).not.toBeNull();
     expect(isLobbyGameType(gt)).toBe(true);
+  });
+});
+
+describe("stream game catalogue", () => {
+  it("round-trips every supported stream game slug", () => {
+    for (const gameType of STREAM_GAME_TYPES) {
+      expect(streamGameTypeForSlug(STREAM_GAME_CATALOGUE[gameType].slug)).toBe(
+        gameType,
+      );
+      expect(isStreamGameType(gameType)).toBe(true);
+    }
+  });
+
+  it("marks console titles as referee-required", () => {
+    expect(isRefereedStreamGame("call-of-duty")).toBe(true);
+    expect(isRefereedStreamGame("grand-theft-auto-v")).toBe(true);
+    expect(isRefereedStreamGame("ea-sports-fc-26")).toBe(true);
+    expect(isRefereedStreamGame("cards")).toBe(false);
   });
 });

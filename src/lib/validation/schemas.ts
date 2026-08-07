@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  BETA_FAVOURITE_GAMES,
+  STREAM_GAME_TYPES,
+} from "@/lib/games/catalogue";
 
 // ---------------------------------------------------------------------------
 // Public early-access signup
@@ -16,7 +20,7 @@ export const betaSignupSchema = z.object({
     .toLowerCase()
     .email("Invalid email address")
     .max(255, "Email must be at most 255 characters"),
-  game: z.enum(["Pool / Snooker", "Darts", "Penalty Shootout", "Other"]),
+  game: z.enum(BETA_FAVOURITE_GAMES),
   playerType: z.enum([
     "Player",
     "Streamer",
@@ -195,11 +199,11 @@ export const betListQuerySchema = z.object({
 
 /**
  * Set (or clear) the streamer's currently-declared game. `gameType` is one of
- * the challengeable lobby games; `null` clears the declaration. The API speaks
+ * the supported streaming games; `null` clears the declaration. The API speaks
  * gameType; the route resolves it to a real Game row (FK) server-side.
  */
 export const setDeclaredGameSchema = z.object({
-  gameType: z.enum(["cards", "tictactoe", "darts"]).nullable(),
+  gameType: z.enum(STREAM_GAME_TYPES).nullable(),
 });
 
 /**

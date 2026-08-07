@@ -16,6 +16,15 @@ describe("betaSignupSchema", () => {
     expect(result.email).toBe("player@example.com");
   });
 
+  it.each([
+    "Call of Duty",
+    "Grand Theft Auto V / GTA Online",
+    "EA SPORTS FC 26",
+    "Fortnite",
+  ])("accepts the popular game option %s", (game) => {
+    expect(betaSignupSchema.safeParse({ ...validSignup, game }).success).toBe(true);
+  });
+
   it("requires explicit consent", () => {
     const result = betaSignupSchema.safeParse({
       ...validSignup,

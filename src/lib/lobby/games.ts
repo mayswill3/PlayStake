@@ -7,6 +7,10 @@
 // =============================================================================
 
 import { prisma } from "@/lib/db/client";
+import {
+  STREAM_GAME_CATALOGUE,
+  type StreamGameType,
+} from "@/lib/games/catalogue";
 
 export type LobbyGameType = "cards" | "tictactoe" | "darts";
 
@@ -55,6 +59,21 @@ export async function getDemoGameId(gameType: LobbyGameType): Promise<string> {
   if (!game) {
     throw new Error(
       `Demo game '${gameType}' (slug '${meta.slug}') not provisioned — run /api/demo/setup first`
+    );
+  }
+  return game.id;
+}
+
+/** Resolve the database Game row backing any supported Kick stream game. */
+export async function getStreamGameId(gameType: StreamGameType): Promise<string> {
+  const meta = STREAM_GAME_CATALOGUE[gameType];
+  const game = await prisma.game.findUnique({
+    where: { slug: meta.slug },
+    select: { id: true },
+  });
+  if (!game) {
+    throw new Error(
+      `Stream game '${gameType}' (slug '${meta.slug}') has not been provisioned`,
     );
   }
   return game.id;

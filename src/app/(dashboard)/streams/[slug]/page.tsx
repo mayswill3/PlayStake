@@ -54,6 +54,7 @@ interface Streamer {
   isSelf: boolean;
   canChallenge: boolean;
   streamVsStreamEligible: boolean;
+  selectedGameRequiresReferee: boolean;
 }
 
 interface ActiveBet {
@@ -249,7 +250,7 @@ export default function StreamDetailPage() {
               ? 'Challenges open when this streamer is live.'
               : !streamer.declaredGame
                 ? 'This streamer hasn’t declared a game to challenge yet.'
-                : 'Go live on Kick with the same declared game to challenge this player.'}
+                : 'Go live on Kick and select the same game to challenge this player.'}
           </p>
         )}
 
@@ -331,7 +332,7 @@ export default function StreamDetailPage() {
                 <span className="font-semibold text-ps-lime">
                   {streamer.declaredGame?.name}
                 </span>
-                . {streamer.streamVsStreamEligible
+                . {streamer.streamVsStreamEligible || streamer.selectedGameRequiresReferee
                   ? 'Both Kick channels must remain live on this game. Pick your stake; an approved referee is assigned before the result can settle.'
                   : 'Pick your stake — both players lock the same amount when the challenge is accepted.'}
               </p>

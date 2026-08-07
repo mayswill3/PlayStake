@@ -3,8 +3,8 @@
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { EyebrowPill, DarkGlowCard, PSButton } from '@/components/ui/playstake';
+import { BETA_FAVOURITE_GAMES } from '@/lib/games/catalogue';
 
-const GAMES = ['Pool / Snooker', 'Darts', 'Penalty Shootout', 'Other'] as const;
 const PLAYER_TYPES = ['Player', 'Streamer', 'Investor', 'Developer', 'Partner'] as const;
 
 type FormState = {
@@ -176,7 +176,7 @@ export function BetaSignup() {
                     <option value="" disabled>
                       Select a game
                     </option>
-                    {GAMES.map((g) => (
+                    {BETA_FAVOURITE_GAMES.map((g) => (
                       <option key={g} value={g}>
                         {g}
                       </option>

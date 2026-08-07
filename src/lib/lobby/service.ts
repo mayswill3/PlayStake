@@ -28,10 +28,17 @@ import { holdEscrow } from "@/lib/ledger/escrow";
 import {
   isLobbyGameType,
   getDemoGameId,
-  lobbyGameTypeForSlug,
+  getStreamGameId,
   LOBBY_GAME_META,
   type LobbyGameType,
 } from "./games";
+import {
+  isRefereedStreamGame,
+  isStreamGameType,
+  streamGameTypeForSlug,
+  STREAM_GAME_CATALOGUE,
+  type StreamGameType,
+} from "@/lib/games/catalogue";
 import { LobbyChannels, publishLobbyEvent } from "./pubsub";
 import { createRefereeAssignmentForBet } from "@/lib/referees/service";
 
@@ -365,7 +372,7 @@ export interface CreateChallengeResult {
   /** The streamer's (Player B) invited entry — what they accept via /respond. */
   streamerLobbyEntryId: string;
   streamerUserId: string;
-  gameType: LobbyGameType;
+  gameType: StreamGameType;
   stakeAmount: number;
   inviteExpiresAt: Date;
 }
@@ -420,22 +427,24 @@ export async function createChallenge(
   if (!account.declaredGame) {
     throw new ValidationError("This streamer hasn't declared a game to challenge");
   }
-  if (
-    challengerKick?.isLive &&
-    (!challengerKick.declaredGameId ||
-      challengerKick.declaredGameId !== account.declaredGameId)
-  ) {
-    throw new ConflictError("Both players must be live and playing the same declared game");
-  }
-  const requiresReferee = Boolean(
-    challengerKick?.isLive &&
-      challengerKick.declaredGameId === account.declaredGameId,
-  );
-  const gameType = lobbyGameTypeForSlug(account.declaredGame.slug);
+  const gameType = streamGameTypeForSlug(account.declaredGame.slug);
   if (!gameType) {
-    // Declared game isn't one of the challengeable lobby games.
     throw new ValidationError("This streamer's game can't be challenged");
   }
+  const sameLiveGame = Boolean(
+    challengerKick?.isLive &&
+      challengerKick.declaredGameId &&
+      challengerKick.declaredGameId === account.declaredGameId,
+  );
+  if (challengerKick?.isLive && !sameLiveGame) {
+    throw new ConflictError("Both players must be live and playing the same declared game");
+  }
+  if (isRefereedStreamGame(gameType) && !sameLiveGame) {
+    throw new ConflictError(
+      "Go live on Kick and select the same game before sending this challenge",
+    );
+  }
+  const requiresReferee = isRefereedStreamGame(gameType) || sameLiveGame;
 
   const streamerUserId = account.userId;
 
@@ -632,7 +641,7 @@ export type RespondResult =
   | {
       status: "MATCHED";
       betId: string;
-      gameType: LobbyGameType;
+      gameType: StreamGameType;
       awaitingReferee: boolean;
     }
   | { status: "DECLINED" };
@@ -725,11 +734,25 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
   if (entryPreview.userId !== input.callerUserId) {
     throw new AuthorizationError("You don't own that lobby entry");
   }
-  if (!isLobbyGameType(entryPreview.gameType)) {
+  const streamChallengePreview = await prisma.streamChallenge.findUnique({
+    where: { streamerLobbyEntryId: entryPreview.id },
+    select: {
+      challengerUserId: true,
+      streamerUserId: true,
+      requiresReferee: true,
+    },
+  });
+  if (
+    streamChallengePreview
+      ? !isStreamGameType(entryPreview.gameType)
+      : !isLobbyGameType(entryPreview.gameType)
+  ) {
     throw new ValidationError(`Unknown gameType: ${entryPreview.gameType}`);
   }
-  const gameType = entryPreview.gameType as LobbyGameType;
-  const resolvedGameId = await getDemoGameId(gameType);
+  const gameType = entryPreview.gameType as StreamGameType;
+  const resolvedGameId = streamChallengePreview
+    ? await getStreamGameId(gameType)
+    : await getDemoGameId(gameType as LobbyGameType);
 
   // Load game for platform fee / limits
   const game = await prisma.game.findUniqueOrThrow({
@@ -740,14 +763,6 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
   // Stream challenges are accepted only while both connected Kick channels are
   // still live on the same game. This is repeated inside the consent handoff so
   // a stale challenge cannot lock funds after either player changes games.
-  const streamChallengePreview = await prisma.streamChallenge.findUnique({
-    where: { streamerLobbyEntryId: entryPreview.id },
-    select: {
-      challengerUserId: true,
-      streamerUserId: true,
-      requiresReferee: true,
-    },
-  });
   if (streamChallengePreview?.requiresReferee) {
     const liveAccounts = await prisma.kickAccount.findMany({
       where: {
@@ -1109,7 +1124,7 @@ export async function getLobbyStatus(
 export interface MyInviteDTO {
   /** The caller's own (Player B) lobby entry — what Accept/Decline acts on. */
   lobbyEntryId: string;
-  gameType: LobbyGameType;
+  gameType: StreamGameType;
   gameName: string;
   /** Stake, in cents. */
   stakeAmount: number;
@@ -1159,13 +1174,13 @@ export async function listMyInvites(callerUserId: string): Promise<MyInviteDTO[]
   const nameById = new Map(inviters.map((u) => [u.id, u.displayName ?? "Player"]));
 
   return rows
-    .filter((r) => r.invitedById && r.inviteExpiresAt && isLobbyGameType(r.gameType))
+    .filter((r) => r.invitedById && r.inviteExpiresAt && isStreamGameType(r.gameType))
     .map((r) => {
-      const gameType = r.gameType as LobbyGameType;
+      const gameType = r.gameType as StreamGameType;
       return {
         lobbyEntryId: r.id,
         gameType,
-        gameName: LOBBY_GAME_META[gameType].name,
+        gameName: STREAM_GAME_CATALOGUE[gameType].name,
         stakeAmount: r.stakeAmount,
         from: {
           userId: r.invitedById as string,
@@ -1185,7 +1200,7 @@ export async function listMyInvites(callerUserId: string): Promise<MyInviteDTO[]
 export interface MyOutgoingChallengeDTO {
   challengeId: string;
   status: StreamChallengeStatus;
-  gameType: LobbyGameType;
+  gameType: StreamGameType;
   gameName: string;
   stakeAmount: number;
   streamer: { userId: string; displayName: string };
@@ -1209,9 +1224,9 @@ export async function listMyOutgoingChallenges(
   const now = new Date();
 
   return rows
-    .filter((row) => isLobbyGameType(row.gameType))
+    .filter((row) => isStreamGameType(row.gameType))
     .map((row) => {
-      const gameType = row.gameType as LobbyGameType;
+      const gameType = row.gameType as StreamGameType;
       return {
         challengeId: row.id,
         status:
@@ -1219,7 +1234,7 @@ export async function listMyOutgoingChallenges(
             ? StreamChallengeStatus.EXPIRED
             : row.status,
         gameType,
-        gameName: LOBBY_GAME_META[gameType].name,
+        gameName: STREAM_GAME_CATALOGUE[gameType].name,
         stakeAmount: row.stakeAmount,
         streamer: {
           userId: row.streamer.id,

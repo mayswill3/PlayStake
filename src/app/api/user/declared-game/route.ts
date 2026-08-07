@@ -5,10 +5,13 @@ import { getSessionToken } from "../../../../lib/auth/helpers";
 import { setDeclaredGameSchema } from "../../../../lib/validation/schemas";
 import { validateBody } from "../../../../lib/middleware/validate";
 import {
-  getDemoGameId,
-  lobbyGameTypeForSlug,
-  LOBBY_GAME_META,
+  getStreamGameId,
 } from "../../../../lib/lobby/games";
+import {
+  STREAM_GAME_CATALOGUE,
+  STREAM_GAME_TYPES,
+  streamGameTypeForSlug,
+} from "../../../../lib/games/catalogue";
 import {
   errorResponse,
   AuthenticationError,
@@ -19,14 +22,14 @@ export const dynamic = "force-dynamic";
 
 /**
  * Shape the stored declared Game (FK) back into the gameType vocabulary the
- * rest of the lobby/challenge flow speaks. Returns null when nothing is
- * declared or the declared game isn't a challengeable lobby game.
+ * rest of the stream/challenge flow speaks. Returns null when nothing is
+ * declared or the stored row is no longer in the supported catalogue.
  */
 function toDeclaredGameDTO(
   declaredGame: { slug: string; name: string } | null,
 ): { gameType: string; name: string; slug: string } | null {
   if (!declaredGame) return null;
-  const gameType = lobbyGameTypeForSlug(declaredGame.slug);
+  const gameType = streamGameTypeForSlug(declaredGame.slug);
   if (!gameType) return null;
   return { gameType, name: declaredGame.name, slug: declaredGame.slug };
 }
@@ -49,9 +52,11 @@ export async function GET(request: NextRequest) {
       select: { declaredGame: { select: { slug: true, name: true } } },
     });
 
-    const options = Object.entries(LOBBY_GAME_META).map(([gameType, meta]) => ({
+    const options = STREAM_GAME_TYPES.map((gameType) => ({
       gameType,
-      name: meta.name,
+      name: STREAM_GAME_CATALOGUE[gameType].name,
+      category: STREAM_GAME_CATALOGUE[gameType].category,
+      requiresReferee: STREAM_GAME_CATALOGUE[gameType].mode === "refereed",
     }));
 
     return NextResponse.json({
@@ -68,7 +73,7 @@ export async function GET(request: NextRequest) {
  * PUT /api/user/declared-game
  *
  * Set or clear the streamer's declared game. Body: `{ gameType }` where
- * gameType is a challengeable lobby game, or `null` to clear. Editable while
+ * gameType is a supported streaming game, or `null` to clear. Editable while
  * offline — this is meant to be set before going live. Requires a linked Kick
  * account (only streamers declare games).
  */
@@ -91,7 +96,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Resolve gameType -> real Game row (FK). null clears the declaration.
-    const declaredGameId = gameType ? await getDemoGameId(gameType) : null;
+    const declaredGameId = gameType ? await getStreamGameId(gameType) : null;
 
     const updated = await prisma.kickAccount.update({
       where: { id: account.id },
