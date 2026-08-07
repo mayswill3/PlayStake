@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../lib/db/client";
+import { withTransaction } from "../../../../lib/db/client";
 import { hashPassword, validatePasswordStrength } from "../../../../lib/auth/password";
-import { destroyAllUserSessions } from "../../../../lib/auth/session";
 import { resetPasswordSchema } from "../../../../lib/validation/schemas";
 import { validateBody } from "../../../../lib/middleware/validate";
 import { errorResponse, AppError, ValidationError } from "../../../../lib/errors/index";
+import { AuthTokenType } from "../../../../../generated/prisma/client";
+import { consumeAuthToken } from "../../../../lib/auth/tokens";
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,27 +18,31 @@ export async function POST(request: NextRequest) {
       throw new ValidationError("Password too weak", strength.errors);
     }
 
-    // TODO: In production, verify a signed token that encodes the user ID
-    // and expiry, and check it against a stored token hash. For now, we
-    // treat the token as the user ID directly (stub).
-
-    const user = await prisma.user.findUnique({
-      where: { id: input.token },
-    });
-
-    if (!user) {
-      throw new AppError("Invalid or expired token", 400, "INVALID_TOKEN");
-    }
-
     const passwordHash = await hashPassword(input.newPassword);
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { passwordHash },
-    });
+    await withTransaction(async (tx) => {
+      const token = await consumeAuthToken(
+        tx,
+        input.token,
+        AuthTokenType.PASSWORD_RESET,
+      );
+      if (!token) {
+        throw new AppError("Invalid or expired token", 400, "INVALID_TOKEN");
+      }
 
-    // Destroy all sessions to force re-authentication
-    await destroyAllUserSessions(user.id);
+      await tx.user.update({
+        where: { id: token.userId },
+        data: { passwordHash },
+      });
+      await tx.session.deleteMany({ where: { userId: token.userId } });
+      await tx.authToken.deleteMany({
+        where: {
+          userId: token.userId,
+          type: AuthTokenType.PASSWORD_RESET,
+          usedAt: null,
+        },
+      });
+    });
 
     return NextResponse.json({ ok: true });
   } catch (error) {

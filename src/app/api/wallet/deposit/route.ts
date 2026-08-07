@@ -9,13 +9,17 @@ import { getSessionToken } from "../../../../lib/auth/helpers";
 import { depositRateLimit } from "../../../../lib/middleware/rate-limit";
 import { depositSchema } from "../../../../lib/validation/schemas";
 import { validateBody } from "../../../../lib/middleware/validate";
-import { checkIdempotency } from "../../../../lib/middleware/idempotency";
-import { centsToDollars } from "../../../../lib/utils/money";
-import { errorResponse, AuthenticationError } from "../../../../lib/errors/index";
+import { centsToDollars, dollarsToCents } from "../../../../lib/utils/money";
+import {
+  errorResponse,
+  AuthenticationError,
+  ConflictError,
+} from "../../../../lib/errors/index";
 import {
   createPaymentIntent,
   getOrCreateCustomer,
 } from "../../../../lib/payments/stripe";
+import { assertTestPaymentsEnabled } from "../../../../lib/payments/policy";
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,31 +33,48 @@ export async function POST(request: NextRequest) {
     const session = await validateSession(token);
     if (!session) throw new AuthenticationError("Invalid or expired session");
 
+    // Fail closed: this integration is intentionally restricted to Stripe test mode.
+    assertTestPaymentsEnabled();
+
     const body = await request.json();
     const input = validateBody(depositSchema, body);
 
-    // Check idempotency
-    const idempotencyResult = await checkIdempotency(input.idempotencyKey, {
-      amount: input.amount,
-      type: "DEPOSIT",
-    });
-
-    if (idempotencyResult.exists && idempotencyResult.response) {
-      // Retrieve the existing transaction to return the stored client secret
-      const existingTx = await prisma.transaction.findUnique({
-        where: { idempotencyKey: input.idempotencyKey },
-      });
-      const storedClientSecret =
-        (existingTx?.metadata as any)?.stripeClientSecret || null;
-
-      return NextResponse.json({
-        transactionId: idempotencyResult.response.transactionId,
-        stripeClientSecret: storedClientSecret,
-      });
-    }
-
     // Convert cents to dollars for database storage
     const amountDollars = centsToDollars(input.amount);
+
+    // A retry can safely resume after a process interruption. Stripe receives
+    // the same idempotency key, so it returns the original PaymentIntent.
+    const existingTx = await prisma.transaction.findUnique({
+      where: { idempotencyKey: input.idempotencyKey },
+    });
+    if (existingTx) {
+      const existingMetadata = existingTx.metadata as Record<string, unknown> | null;
+      if (
+        existingTx.type !== TransactionType.DEPOSIT ||
+        dollarsToCents(existingTx.amount) !== input.amount ||
+        existingMetadata?.userId !== session.userId
+      ) {
+        throw new ConflictError(
+          "Idempotency key already used with different parameters",
+        );
+      }
+      if (
+        existingTx.status === TransactionStatus.FAILED ||
+        existingTx.status === TransactionStatus.REVERSED
+      ) {
+        throw new ConflictError(
+          `Transaction has status ${existingTx.status}. Use a new idempotency key.`,
+        );
+      }
+      const storedClientSecret =
+        existingMetadata?.stripeClientSecret;
+      if (typeof storedClientSecret === "string") {
+        return NextResponse.json({
+          transactionId: existingTx.id,
+          stripeClientSecret: storedClientSecret,
+        });
+      }
+    }
 
     // Get or create a Stripe customer for this user
     const stripeCustomerId = await getOrCreateCustomer(
@@ -63,20 +84,22 @@ export async function POST(request: NextRequest) {
     );
 
     // Create a PENDING deposit transaction first (before Stripe call)
-    const transaction = await prisma.transaction.create({
-      data: {
-        idempotencyKey: input.idempotencyKey,
-        type: TransactionType.DEPOSIT,
-        status: TransactionStatus.PENDING,
-        amount: amountDollars,
-        currency: "USD",
-        description: "Deposit via Stripe",
-        metadata: {
-          userId: session.userId,
-          amountCents: input.amount,
+    const transaction =
+      existingTx ??
+      (await prisma.transaction.create({
+        data: {
+          idempotencyKey: input.idempotencyKey,
+          type: TransactionType.DEPOSIT,
+          status: TransactionStatus.PENDING,
+          amount: amountDollars,
+          currency: "USD",
+          description: "Deposit via Stripe",
+          metadata: {
+            userId: session.userId,
+            amountCents: input.amount,
+          },
         },
-      },
-    });
+      }));
 
     // Create a Stripe PaymentIntent
     const paymentIntent = await createPaymentIntent(

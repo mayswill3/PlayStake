@@ -1,7 +1,7 @@
 import { withSessionAuth } from "@/lib/middleware/auth";
 import { prisma } from "@/lib/db/client";
 import * as OTPAuth from "otpauth";
-import crypto from "crypto";
+import { encryptTwoFactorSecret } from "@/lib/auth/two-factor";
 
 export const POST = withSessionAuth(async (_req, _context, auth) => {
   // Don't re-enable if already enabled
@@ -25,11 +25,12 @@ export const POST = withSessionAuth(async (_req, _context, auth) => {
     secret,
   });
 
-  // Store the secret (encrypted with a simple hex encoding for now)
-  // In production, encrypt with an application-level key
   await prisma.user.update({
     where: { id: auth.userId },
-    data: { twoFactorSecret: secret.base32 },
+    data: {
+      twoFactorSecret: encryptTwoFactorSecret(secret.base32),
+      twoFactorLastUsedStep: null,
+    },
   });
 
   return Response.json({

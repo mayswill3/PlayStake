@@ -11,6 +11,7 @@ import { loginRateLimit, getClientIp } from "../../../../lib/middleware/rate-lim
 import { loginSchema } from "../../../../lib/validation/schemas";
 import { validateBody } from "../../../../lib/middleware/validate";
 import { sessionCookieValue } from "../../../../lib/auth/helpers";
+import { verifySecondFactor } from "../../../../lib/auth/two-factor";
 import {
   errorResponse,
   AuthenticationError,
@@ -76,9 +77,17 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // TODO: Verify TOTP code against user.twoFactorSecret
-      // For now, accept any 6-digit code as a stub.
-      // In production, use a TOTP library (e.g., otplib) to verify.
+      if (
+        !user.twoFactorSecret ||
+        !(await verifySecondFactor(
+          user.id,
+          user.twoFactorSecret,
+          input.twoFactorCode,
+        ))
+      ) {
+        await recordFailedAttempt(ip);
+        throw new AuthenticationError("Invalid two-factor code");
+      }
     }
 
     // Clear failed attempts on successful login

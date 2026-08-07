@@ -1,8 +1,12 @@
 import { withSessionAuth } from "@/lib/middleware/auth";
-import { prisma } from "@/lib/db/client";
+import { withTransaction } from "@/lib/db/client";
 import { confirm2FASchema } from "@/lib/validation/schemas";
 import * as OTPAuth from "otpauth";
-import crypto from "crypto";
+import {
+  decryptTwoFactorSecret,
+  generateBackupCodes,
+  hashBackupCode,
+} from "@/lib/auth/two-factor";
 
 export const POST = withSessionAuth(async (req, _context, auth) => {
   // Must have a pending secret
@@ -37,7 +41,9 @@ export const POST = withSessionAuth(async (req, _context, auth) => {
     algorithm: "SHA1",
     digits: 6,
     period: 30,
-    secret: OTPAuth.Secret.fromBase32(auth.user.twoFactorSecret),
+    secret: OTPAuth.Secret.fromBase32(
+      decryptTwoFactorSecret(auth.user.twoFactorSecret),
+    ),
   });
 
   const delta = totp.validate({ token: parsed.data.code, window: 1 });
@@ -50,14 +56,22 @@ export const POST = withSessionAuth(async (req, _context, auth) => {
   }
 
   // Generate backup codes
-  const backupCodes = Array.from({ length: 8 }, () =>
-    crypto.randomBytes(4).toString("hex")
-  );
+  const backupCodes = generateBackupCodes();
 
-  // Enable 2FA
-  await prisma.user.update({
-    where: { id: auth.userId },
-    data: { twoFactorEnabled: true },
+  await withTransaction(async (tx) => {
+    await tx.twoFactorBackupCode.deleteMany({
+      where: { userId: auth.userId },
+    });
+    await tx.twoFactorBackupCode.createMany({
+      data: backupCodes.map((code) => ({
+        userId: auth.userId,
+        codeHash: hashBackupCode(code),
+      })),
+    });
+    await tx.user.update({
+      where: { id: auth.userId },
+      data: { twoFactorEnabled: true, twoFactorLastUsedStep: null },
+    });
   });
 
   return Response.json({

@@ -9,6 +9,14 @@ import { Spinner } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/Toast';
 import { formatCents } from '@/lib/utils/format';
 
+interface ConnectStatus {
+  mode: 'test' | 'disabled';
+  accountId: string | null;
+  detailsSubmitted: boolean;
+  payoutsEnabled: boolean;
+  currentlyDue: string[];
+}
+
 export default function WithdrawPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -18,17 +26,40 @@ export default function WithdrawPage() {
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState('');
+  const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
+  const [onboarding, setOnboarding] = useState(false);
 
   const amountCents = Math.round(parseFloat(amount || '0') * 100);
 
   useEffect(() => {
-    fetch('/api/wallet/balance')
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (data) setAvailable(data.available);
+    Promise.all([
+      fetch('/api/wallet/balance').then((r) => r.ok ? r.json() : null),
+      fetch('/api/wallet/connect/status').then((r) => r.ok ? r.json() : null),
+    ])
+      .then(([balance, connect]) => {
+        if (balance) setAvailable(balance.available);
+        if (connect) setConnectStatus(connect);
       })
       .finally(() => setPageLoading(false));
   }, []);
+
+  async function startOnboarding() {
+    setOnboarding(true);
+    setError('');
+    try {
+      const res = await fetch('/api/wallet/connect/onboard', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        setError(data.error || 'Withdrawal setup is currently unavailable.');
+        return;
+      }
+      window.location.assign(data.url);
+    } catch {
+      setError('Withdrawal setup is currently unavailable.');
+    } finally {
+      setOnboarding(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -91,6 +122,11 @@ export default function WithdrawPage() {
       </div>
 
       <Card>
+        <div className="mb-6 rounded-sm border border-warning-500/25 bg-warning-500/10 p-4 text-sm text-text-secondary">
+          <strong className="text-text-primary">Test mode only.</strong>{' '}
+          No real money is charged or paid out while payment-provider approval is outstanding.
+        </div>
+
         <div className="mb-6 p-4 rounded-sm bg-surface-800">
           <p className="text-sm text-text-secondary font-mono">Available Balance</p>
           <p className="text-2xl font-bold font-display text-brand-400">
@@ -104,6 +140,20 @@ export default function WithdrawPage() {
           </div>
         )}
 
+        {connectStatus?.mode === 'disabled' ? (
+          <div className="rounded-sm border border-danger-500/25 bg-danger-500/10 p-4 text-sm text-danger-400">
+            Test payments are not configured on this environment.
+          </div>
+        ) : !connectStatus?.payoutsEnabled ? (
+          <div className="space-y-4">
+            <p className="text-sm text-text-secondary">
+              Set up a Stripe test connected account and complete its simulated identity and bank details before withdrawing test funds.
+            </p>
+            <Button type="button" loading={onboarding} onClick={startOnboarding} className="w-full">
+              {connectStatus?.accountId ? 'Continue withdrawal setup' : 'Set up test withdrawals'}
+            </Button>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           <Input
             label="Amount"
@@ -136,6 +186,7 @@ export default function WithdrawPage() {
             Withdraw {amountCents > 0 ? formatCents(amountCents) : ''}
           </Button>
         </form>
+        )}
       </Card>
 
       <Button variant="ghost" onClick={() => router.back()} className="w-full">

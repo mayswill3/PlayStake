@@ -32,6 +32,11 @@ enum KycStatus {
   REJECTED
 }
 
+enum AuthTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
 enum TransactionType {
   DEPOSIT
   WITHDRAWAL
@@ -152,45 +157,82 @@ enum AnomalyStatus {
 // =============================================================================
 
 model User {
-  id               String    @id @default(uuid()) @db.Uuid
-  email            String    @unique @db.VarChar(255)
-  passwordHash     String?   @map("password_hash") @db.VarChar(255)
-  role             UserRole  @default(PLAYER)
-  displayName      String    @map("display_name") @db.VarChar(100)
-  avatarUrl        String?   @map("avatar_url") @db.VarChar(500)
-  kycStatus        KycStatus @default(NOT_STARTED) @map("kyc_status")
-  stripeCustomerId String?   @unique @map("stripe_customer_id") @db.VarChar(255)
-  emailVerified    Boolean   @default(false) @map("email_verified")
-  twoFactorEnabled Boolean   @default(false) @map("two_factor_enabled")
-  twoFactorSecret  String?   @map("two_factor_secret") @db.VarChar(255)
-  lastLoginAt      DateTime? @map("last_login_at")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  deletedAt        DateTime? @map("deleted_at")
+  id                            String    @id @default(uuid()) @db.Uuid
+  email                         String    @unique @db.VarChar(255)
+  passwordHash                  String?   @map("password_hash") @db.VarChar(255)
+  role                          UserRole  @default(PLAYER)
+  displayName                   String    @map("display_name") @db.VarChar(100)
+  avatarUrl                     String?   @map("avatar_url") @db.VarChar(500)
+  kycStatus                     KycStatus @default(NOT_STARTED) @map("kyc_status")
+  stripeCustomerId              String?   @unique @map("stripe_customer_id") @db.VarChar(255)
+  stripeConnectAccountId        String?   @unique @map("stripe_connect_account_id") @db.VarChar(255)
+  stripeConnectDetailsSubmitted Boolean   @default(false) @map("stripe_connect_details_submitted")
+  stripeConnectPayoutsEnabled   Boolean   @default(false) @map("stripe_connect_payouts_enabled")
+  emailVerified                 Boolean   @default(false) @map("email_verified")
+  twoFactorEnabled              Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorSecret               String?   @map("two_factor_secret") @db.VarChar(512)
+  twoFactorLastUsedStep         Int?      @map("two_factor_last_used_step")
+  lastLoginAt                   DateTime? @map("last_login_at")
+  createdAt                     DateTime  @default(now()) @map("created_at")
+  updatedAt                     DateTime  @updatedAt @map("updated_at")
+  deletedAt                     DateTime? @map("deleted_at")
 
   // Relations
-  ledgerAccounts     LedgerAccount[]
-  sessionsAsPlayerA  Bet[]               @relation("PlayerA")
-  sessionsAsPlayerB  Bet[]               @relation("PlayerB")
-  disputesFiled      Dispute[]           @relation("DisputeFiler")
-  disputeMessages    DisputeMessage[]
-  developerProfile   DeveloperProfile?
-  widgetSessions     WidgetSession[]
-  sessions           Session[]
-  oauthAccounts      OAuthAccount[]
-  kickAccount        KickAccount?
-  lobbyEntries       LobbyEntry[]        @relation("LobbyUser")
-  lobbyInvitesSent   LobbyEntry[]        @relation("LobbyInviter")
-  challengesSent     StreamChallenge[]   @relation("ChallengeChallenger")
-  challengesReceived StreamChallenge[]   @relation("ChallengeStreamer")
-  refereeProfile     RefereeProfile?
-  refereeAuditEvents RefereeAuditEvent[] @relation("RefereeAuditActor")
+  ledgerAccounts       LedgerAccount[]
+  sessionsAsPlayerA    Bet[]                 @relation("PlayerA")
+  sessionsAsPlayerB    Bet[]                 @relation("PlayerB")
+  disputesFiled        Dispute[]             @relation("DisputeFiler")
+  disputeMessages      DisputeMessage[]
+  developerProfile     DeveloperProfile?
+  widgetSessions       WidgetSession[]
+  sessions             Session[]
+  oauthAccounts        OAuthAccount[]
+  kickAccount          KickAccount?
+  lobbyEntries         LobbyEntry[]          @relation("LobbyUser")
+  lobbyInvitesSent     LobbyEntry[]          @relation("LobbyInviter")
+  challengesSent       StreamChallenge[]     @relation("ChallengeChallenger")
+  challengesReceived   StreamChallenge[]     @relation("ChallengeStreamer")
+  refereeProfile       RefereeProfile?
+  refereeAuditEvents   RefereeAuditEvent[]   @relation("RefereeAuditActor")
+  authTokens           AuthToken[]
+  twoFactorBackupCodes TwoFactorBackupCode[]
 
   @@index([email], map: "idx_user_email")
   @@index([stripeCustomerId], map: "idx_user_stripe_customer")
+  @@index([stripeConnectAccountId], map: "idx_user_stripe_connect_account")
   @@index([role], map: "idx_user_role")
   @@index([createdAt], map: "idx_user_created_at")
   @@map("users")
+}
+
+model AuthToken {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String        @map("user_id") @db.Uuid
+  type      AuthTokenType
+  tokenHash String        @unique @map("token_hash") @db.VarChar(64)
+  expiresAt DateTime      @map("expires_at")
+  usedAt    DateTime?     @map("used_at")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type], map: "idx_auth_token_user_type")
+  @@index([expiresAt], map: "idx_auth_token_expires")
+  @@map("auth_tokens")
+}
+
+model TwoFactorBackupCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  codeHash  String    @map("code_hash") @db.VarChar(64)
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, codeHash], map: "uq_two_factor_backup_user_code")
+  @@index([userId, usedAt], map: "idx_two_factor_backup_user_used")
+  @@map("two_factor_backup_codes")
 }
 
 model Session {

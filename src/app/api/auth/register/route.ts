@@ -5,6 +5,9 @@ import { getOrCreatePlayerAccount } from "../../../../lib/ledger/accounts";
 import { registerSchema } from "../../../../lib/validation/schemas";
 import { validateBody } from "../../../../lib/middleware/validate";
 import { errorResponse, ValidationError, ConflictError } from "../../../../lib/errors/index";
+import { AuthTokenType } from "../../../../../generated/prisma/client";
+import { issueAuthToken } from "../../../../lib/auth/tokens";
+import { sendVerificationEmail } from "../../../../lib/email/resend";
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,12 +44,28 @@ export async function POST(request: NextRequest) {
       // Create the PLAYER_BALANCE ledger account
       await getOrCreatePlayerAccount(tx, newUser.id);
 
-      // TODO: Send verification email
-      // In production, generate a signed token and send via email service.
-      // For now, the user is created with emailVerified = false.
-
       return newUser;
     });
+
+    let verificationEmailSent = false;
+    try {
+      const token = await issueAuthToken(
+        user.id,
+        AuthTokenType.EMAIL_VERIFICATION,
+      );
+      await sendVerificationEmail({
+        email: user.email,
+        displayName: user.displayName,
+        token: token.rawToken,
+        tokenId: token.id,
+      });
+      verificationEmailSent = true;
+    } catch (emailError) {
+      console.error(
+        `[Auth] Verification email could not be sent for user ${user.id}:`,
+        emailError,
+      );
+    }
 
     return NextResponse.json(
       {
@@ -56,6 +75,7 @@ export async function POST(request: NextRequest) {
           displayName: user.displayName,
           role: user.role,
         },
+        verificationEmailSent,
       },
       { status: 201 }
     );

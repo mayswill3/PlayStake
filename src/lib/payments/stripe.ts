@@ -101,44 +101,6 @@ export async function getOrCreateCustomer(
 }
 
 // ---------------------------------------------------------------------------
-// Payouts / Transfers (withdrawals)
-// ---------------------------------------------------------------------------
-
-/**
- * Create a Stripe Transfer to a customer for withdrawal purposes.
- *
- * NOTE: In a production system with Stripe Connect, this would be a Payout
- * to the user's connected account. For the current integration we use
- * Stripe Transfers as a simplified proxy. If Connect is not set up, the
- * function records the intent and returns a mock-like Transfer object from
- * the Stripe API.
- *
- * @param amount         Amount in cents.
- * @param customerId     Stripe Customer ID (used in metadata).
- * @param idempotencyKey Stripe idempotency key.
- */
-export async function createPayout(
-  amount: number,
-  customerId: string,
-  idempotencyKey: string
-): Promise<Stripe.Payout> {
-  // Stripe Payouts go to the platform's bank account by default.
-  // In a Connect scenario you would use stripe.payouts.create on the
-  // connected account. For now we issue a payout on the platform account.
-  return stripe.payouts.create(
-    {
-      amount,
-      currency: "usd",
-      metadata: {
-        customerId,
-        idempotencyKey,
-      },
-    },
-    { idempotencyKey }
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Webhook signature verification
 // ---------------------------------------------------------------------------
 

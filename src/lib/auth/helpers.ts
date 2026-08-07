@@ -35,6 +35,10 @@ export function sanitizeUser(user: Record<string, unknown>): Record<string, unkn
     twoFactorSecret,
     deletedAt,
     stripeCustomerId,
+    stripeConnectAccountId,
+    stripeConnectDetailsSubmitted,
+    stripeConnectPayoutsEnabled,
+    twoFactorLastUsedStep,
     ...safe
   } = user;
   return safe;

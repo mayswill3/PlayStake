@@ -20,8 +20,7 @@ import type Stripe from "stripe";
 // This endpoint MUST:
 //   1. Read the raw body (not parsed JSON) for signature verification.
 //   2. Be publicly accessible (no session auth) but protected by signature.
-//   3. Always return 200 to Stripe to prevent unnecessary retries.
-//      Processing errors are logged but not surfaced to Stripe.
+//   3. Return a non-2xx response when processing fails so Stripe retries.
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
@@ -114,6 +113,12 @@ export async function POST(request: NextRequest) {
         await handlePayoutFailed(stripeEvent.data.object as Stripe.Payout);
         break;
 
+      case "account.updated":
+        await handleConnectAccountUpdated(
+          stripeEvent.data.object as Stripe.Account,
+        );
+        break;
+
       default:
         // Unhandled event type -- log and move on
         console.log(
@@ -127,14 +132,38 @@ export async function POST(request: NextRequest) {
       data: { processed: true, processedAt: new Date() },
     });
   } catch (err) {
-    // Log the error but still return 200 to Stripe so it does not retry
     console.error(
       `[Stripe Webhook] Error processing ${stripeEvent.type} (${stripeEvent.id}):`,
       err
     );
+    return NextResponse.json(
+      { error: "Webhook processing failed" },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ received: true });
+}
+
+async function handleConnectAccountUpdated(account: Stripe.Account) {
+  const user = await prisma.user.findUnique({
+    where: { stripeConnectAccountId: account.id },
+    select: { id: true },
+  });
+  if (!user) {
+    console.warn(
+      `[Stripe Webhook] No PlayStake user owns connected account ${account.id}`,
+    );
+    return;
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      stripeConnectDetailsSubmitted: account.details_submitted,
+      stripeConnectPayoutsEnabled: account.payouts_enabled,
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------

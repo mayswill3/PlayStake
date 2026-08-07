@@ -17,9 +17,10 @@ import {
   AppError,
 } from "../../../../lib/errors/index";
 import {
-  createPayout,
-  getOrCreateCustomer,
-} from "../../../../lib/payments/stripe";
+  createConnectedAccountTransfer,
+  syncConnectStatus,
+} from "../../../../lib/payments/connect";
+import { assertTestPaymentsEnabled } from "../../../../lib/payments/policy";
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,10 +30,23 @@ export async function POST(request: NextRequest) {
     const session = await validateSession(token);
     if (!session) throw new AuthenticationError("Invalid or expired session");
 
+    assertTestPaymentsEnabled();
+
     // Email must be verified for withdrawals
     if (!session.user.emailVerified) {
       throw new AuthorizationError(
         "Email must be verified before making withdrawals"
+      );
+    }
+
+    const connectStatus = await syncConnectStatus(session.userId);
+    if (
+      !connectStatus.accountId ||
+      !connectStatus.detailsSubmitted ||
+      !connectStatus.payoutsEnabled
+    ) {
+      throw new AuthorizationError(
+        "Complete Stripe test-mode withdrawal setup before withdrawing",
       );
     }
 
@@ -43,15 +57,25 @@ export async function POST(request: NextRequest) {
     const idempotencyResult = await checkIdempotency(input.idempotencyKey, {
       amount: input.amount,
       type: "WITHDRAWAL",
+      userId: session.userId,
     });
 
     if (idempotencyResult.exists && idempotencyResult.response) {
-      return NextResponse.json({
-        transactionId: idempotencyResult.response.transactionId,
-        estimatedArrival: new Date(
-          Date.now() + 3 * 24 * 60 * 60 * 1000
-        ).toISOString(),
+      const existing = await prisma.transaction.findUniqueOrThrow({
+        where: { id: String(idempotencyResult.response.transactionId) },
+        select: { stripePaymentId: true },
       });
+      // If a process stopped after the ledger debit but before the external
+      // transfer was recorded, continue below. Stripe's idempotency key makes
+      // retrying the transfer safe.
+      if (existing.stripePaymentId) {
+        return NextResponse.json({
+          transactionId: idempotencyResult.response.transactionId,
+          estimatedArrival: new Date(
+            Date.now() + 3 * 24 * 60 * 60 * 1000
+          ).toISOString(),
+        });
+      }
     }
 
     const amountDollars = centsToDollars(input.amount);
@@ -89,37 +113,34 @@ export async function POST(request: NextRequest) {
       });
     });
 
-    // Get or create Stripe customer for payout
-    const stripeCustomerId = await getOrCreateCustomer(
-      session.userId,
-      session.user.email,
-      session.user.displayName
-    );
-
-    // Attempt to create a Stripe Payout
+    // Transfer test funds to the user's verified connected account. Stripe then
+    // controls the connected account's payout schedule and bank destination.
     try {
-      const payout = await createPayout(
-        input.amount,
-        stripeCustomerId,
-        input.idempotencyKey
-      );
+      const stripeTransfer = await createConnectedAccountTransfer({
+        amount: input.amount,
+        destination: connectStatus.accountId,
+        userId: session.userId,
+        transactionId: result.transaction.id,
+        idempotencyKey: input.idempotencyKey,
+      });
 
-      // Store the Stripe Payout ID on the transaction
       await prisma.transaction.update({
         where: { id: result.transaction.id },
         data: {
-          stripePaymentId: payout.id,
+          stripePaymentId: stripeTransfer.id,
           metadata: {
             userId: session.userId,
             amountCents: input.amount,
-            stripePayoutId: payout.id,
+            stripeConnectAccountId: connectStatus.accountId,
+            stripeTransferId: stripeTransfer.id,
+            paymentMode: "test",
           },
         },
       });
     } catch (stripeError) {
       // Stripe payout failed -- reverse the ledger transaction
       console.error(
-        `[Withdraw] Stripe payout failed for transaction ${result.transaction.id}:`,
+        `[Withdraw] Stripe Connect transfer failed for transaction ${result.transaction.id}:`,
         stripeError
       );
 
@@ -139,7 +160,7 @@ export async function POST(request: NextRequest) {
           toAccountId: playerAccount.id,
           amount: amountDollars,
           transactionType: TransactionType.ADJUSTMENT,
-          description: "Withdrawal reversal: Stripe payout creation failed",
+          description: "Withdrawal reversal: Stripe transfer creation failed",
           idempotencyKey: `reversal_${input.idempotencyKey}`,
           metadata: {
             userId: session.userId,
@@ -159,7 +180,7 @@ export async function POST(request: NextRequest) {
             failureReason:
               stripeError instanceof Error
                 ? stripeError.message
-                : "Stripe payout creation failed",
+                : "Stripe transfer creation failed",
           },
         });
       });

@@ -1,50 +1,140 @@
-import { stripe } from "./stripe";
-import { prisma } from "../db/client";
+import type Stripe from 'stripe';
+import { prisma } from '@/lib/db/client';
+import { stripe } from '@/lib/payments/stripe';
 
-// ---------------------------------------------------------------------------
-// Stripe Connect helpers (future use)
-// ---------------------------------------------------------------------------
+export type ConnectStatus = {
+  accountId: string | null;
+  detailsSubmitted: boolean;
+  payoutsEnabled: boolean;
+  chargesEnabled: boolean;
+  currentlyDue: string[];
+};
 
-/**
- * Create a Stripe Connect Account Link for user onboarding.
- *
- * In a full Connect integration each user who wants to receive payouts
- * would have a connected Stripe account. This function creates the
- * onboarding link that redirects the user through Stripe's hosted
- * identity verification and bank account setup flow.
- *
- * NOTE: This requires the platform to be enrolled in Stripe Connect.
- * Currently this is stubbed for future implementation. The withdraw
- * route uses a simplified Payout approach in the meantime.
- *
- * @param userId  PlayStake user ID.
- * @returns URL to redirect the user to for Stripe Connect onboarding.
- */
-export async function createConnectAccountLink(
-  userId: string
-): Promise<string> {
+function publicAppUrl() {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ??
+    process.env.SITE_URL ??
+    'http://localhost:3000'
+  ).replace(/\/$/, '');
+}
+
+async function createConnectedAccount(userId: string) {
+  const country = process.env.STRIPE_CONNECT_COUNTRY;
+  if (!country) {
+    throw new Error('STRIPE_CONNECT_COUNTRY environment variable is not set');
+  }
+
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: userId },
-    select: { email: true, displayName: true, stripeCustomerId: true },
+    select: { email: true },
+  });
+  const account = await stripe.accounts.create(
+    {
+      type: 'express',
+      country,
+      email: user.email,
+      metadata: { playstakeUserId: userId },
+      capabilities: { transfers: { requested: true } },
+    },
+    { idempotencyKey: `connect_account_${userId}` },
+  );
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { stripeConnectAccountId: account.id },
+  });
+  return account.id;
+}
+
+export async function getOrCreateConnectedAccount(userId: string) {
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { stripeConnectAccountId: true },
+  });
+  return user.stripeConnectAccountId ?? createConnectedAccount(userId);
+}
+
+export async function syncConnectStatus(userId: string): Promise<ConnectStatus> {
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { stripeConnectAccountId: true },
   });
 
-  // Create or retrieve the connected account
-  // In production, store the connected account ID on the User model
-  const account = await stripe.accounts.create({
-    type: "express",
-    email: user.email,
-    metadata: { playstakeUserId: userId },
-    capabilities: {
-      transfers: { requested: true },
+  if (!user.stripeConnectAccountId) {
+    return {
+      accountId: null,
+      detailsSubmitted: false,
+      payoutsEnabled: false,
+      chargesEnabled: false,
+      currentlyDue: [],
+    };
+  }
+
+  const account = await stripe.accounts.retrieve(user.stripeConnectAccountId);
+  if (account.deleted) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        stripeConnectAccountId: null,
+        stripeConnectDetailsSubmitted: false,
+        stripeConnectPayoutsEnabled: false,
+      },
+    });
+    return {
+      accountId: null,
+      detailsSubmitted: false,
+      payoutsEnabled: false,
+      chargesEnabled: false,
+      currentlyDue: [],
+    };
+  }
+
+  const detailsSubmitted = account.details_submitted;
+  const payoutsEnabled = account.payouts_enabled;
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      stripeConnectDetailsSubmitted: detailsSubmitted,
+      stripeConnectPayoutsEnabled: payoutsEnabled,
     },
   });
 
-  const accountLink = await stripe.accountLinks.create({
-    account: account.id,
-    refresh_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/wallet/connect/refresh`,
-    return_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/wallet/connect/complete`,
-    type: "account_onboarding",
-  });
+  return {
+    accountId: account.id,
+    detailsSubmitted,
+    payoutsEnabled,
+    chargesEnabled: account.charges_enabled,
+    currentlyDue: account.requirements?.currently_due ?? [],
+  };
+}
 
-  return accountLink.url;
+export async function createConnectAccountLink(userId: string) {
+  const account = await getOrCreateConnectedAccount(userId);
+  return stripe.accountLinks.create({
+    account,
+    refresh_url: `${publicAppUrl()}/api/wallet/connect/refresh`,
+    return_url: `${publicAppUrl()}/wallet/withdraw?connect=return`,
+    type: 'account_onboarding',
+  });
+}
+
+export async function createConnectedAccountTransfer(input: {
+  amount: number;
+  destination: string;
+  userId: string;
+  transactionId: string;
+  idempotencyKey: string;
+}): Promise<Stripe.Transfer> {
+  return stripe.transfers.create(
+    {
+      amount: input.amount,
+      currency: 'usd',
+      destination: input.destination,
+      metadata: {
+        playstakeUserId: input.userId,
+        transactionId: input.transactionId,
+      },
+    },
+    { idempotencyKey: `connect_${input.idempotencyKey}` },
+  );
 }

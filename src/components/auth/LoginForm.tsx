@@ -78,7 +78,7 @@ export function LoginForm() {
 
       {registered && (
         <div className="mb-4 rounded-lg border border-brand-600/25 bg-brand-600/10 p-3 text-sm text-brand-700 dark:text-brand-400">
-          Account created successfully. Please log in.
+          Account created. Please check your inbox to verify your email, then sign in.
         </div>
       )}
 
@@ -134,13 +134,13 @@ export function LoginForm() {
 
         {show2FA && (
           <Input
-            label="Two-Factor Code"
+            label="Two-Factor or Backup Code"
             type="text"
-            inputMode="numeric"
-            maxLength={6}
+            inputMode="text"
+            maxLength={19}
             value={twoFactorCode}
-            onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ''))}
-            placeholder="123456"
+            onChange={(e) => setTwoFactorCode(e.target.value.toUpperCase())}
+            placeholder="123456 or XXXX-XXXX-XXXX-XXXX"
             required
             autoComplete="one-time-code"
           />

@@ -7,6 +7,7 @@ import {
   type LedgerEntry,
 } from "../../../generated/prisma/client";
 import type { TxClient } from "../db/client";
+import { ConflictError } from "../errors";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -95,6 +96,19 @@ export async function transfer(
 
   if (existing) {
     if (existing.status === TransactionStatus.COMPLETED) {
+      const debit = existing.entries.find((entry) => entry.amount.lt(0));
+      const credit = existing.entries.find((entry) => entry.amount.gt(0));
+      if (
+        existing.type !== input.transactionType ||
+        !existing.amount.equals(amount) ||
+        existing.betId !== (input.betId ?? null) ||
+        debit?.ledgerAccountId !== input.fromAccountId ||
+        credit?.ledgerAccountId !== input.toAccountId
+      ) {
+        throw new ConflictError(
+          "Idempotency key already used for a different ledger transfer",
+        );
+      }
       return { transaction: existing, entries: existing.entries };
     }
     // If PENDING, something is still in flight (should not happen inside our

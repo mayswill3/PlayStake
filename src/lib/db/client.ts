@@ -50,10 +50,27 @@ export const prisma = getPrisma();
  */
 export async function withTransaction<T>(
   fn: (tx: TxClient) => Promise<T>,
-  options?: { maxWait?: number; timeout?: number }
+  options?: { maxWait?: number; timeout?: number; retries?: number }
 ): Promise<T> {
-  return prisma.$transaction(fn, {
-    maxWait: options?.maxWait ?? 10_000,
-    timeout: options?.timeout ?? 30_000,
-  });
+  const retries = options?.retries ?? 3;
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await prisma.$transaction(fn, {
+        maxWait: options?.maxWait ?? 10_000,
+        timeout: options?.timeout ?? 30_000,
+        isolationLevel: "Serializable",
+      });
+    } catch (error) {
+      const isWriteConflict =
+        error instanceof Error &&
+        "code" in error &&
+        (error as { code?: string }).code === "P2034";
+      if (!isWriteConflict || attempt >= retries) throw error;
+
+      // Short jitter reduces repeat collisions without holding a DB transaction.
+      await new Promise((resolve) =>
+        setTimeout(resolve, 20 * 2 ** attempt + Math.floor(Math.random() * 25)),
+      );
+    }
+  }
 }

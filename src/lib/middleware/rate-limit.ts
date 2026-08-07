@@ -148,6 +148,20 @@ export const loginRateLimit = rateLimit({
   keyFn: (req) => `login:${getClientIp(req)}`,
 });
 
+/** Password recovery: five requests per hour per source IP. */
+export const passwordRecoveryRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 5,
+  keyFn: (req) => `password-recovery:${getClientIp(req)}`,
+});
+
+/** Verification email resend: five requests per hour per source IP. */
+export const verificationEmailRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 5,
+  keyFn: (req) => `verification-email:${getClientIp(req)}`,
+});
+
 /**
  * API rate limiter: 1000 requests per minute per API key.
  *

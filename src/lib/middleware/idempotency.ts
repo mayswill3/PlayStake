@@ -18,7 +18,7 @@ import { ConflictError } from "../errors/index";
  */
 export async function checkIdempotency(
   key: string,
-  params: { amount?: number; type?: string }
+  params: { amount?: number; type?: string; userId?: string }
 ): Promise<{ exists: boolean; response?: Record<string, unknown> }> {
   const existing = await prisma.transaction.findUnique({
     where: { idempotencyKey: key },
@@ -26,6 +26,16 @@ export async function checkIdempotency(
 
   if (!existing) {
     return { exists: false };
+  }
+
+  const metadata = existing.metadata as Record<string, unknown> | null;
+  if (
+    (params.type !== undefined && existing.type !== params.type) ||
+    (params.userId !== undefined && metadata?.userId !== params.userId)
+  ) {
+    throw new ConflictError(
+      "Idempotency key already used for a different operation",
+    );
   }
 
   if (existing.status === TransactionStatus.PENDING) {

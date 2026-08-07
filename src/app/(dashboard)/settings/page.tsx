@@ -40,6 +40,7 @@ export default function SettingsPage() {
   const [twoFACode, setTwoFACode] = useState('');
   const [twoFASaving, setTwoFASaving] = useState(false);
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [verificationSending, setVerificationSending] = useState(false);
 
   useEffect(() => {
     fetch('/api/user/profile')
@@ -119,6 +120,23 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleResendVerification() {
+    setVerificationSending(true);
+    try {
+      const res = await fetch('/api/auth/resend-verification', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        toast('error', data.error || 'Could not send verification email.');
+      } else {
+        toast('success', 'Verification email sent. Check your inbox.');
+      }
+    } catch {
+      toast('error', 'Could not send verification email.');
+    } finally {
+      setVerificationSending(false);
+    }
+  }
+
   async function handleConfirm2FA() {
     if (twoFACode.length !== 6) return;
     setTwoFASaving(true);
@@ -173,6 +191,22 @@ export default function SettingsPage() {
                   : <Badge variant="warning">Unverified</Badge>
               }
             />
+            {!profile?.emailVerified && (
+              <div className="flex items-center justify-between gap-4 rounded-[var(--ps-radius-md)] bg-ps-paper dark:bg-ps-ink-3 p-3">
+                <p className="text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">
+                  Verify your address to unlock protected account actions.
+                </p>
+                <PSButton
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  loading={verificationSending}
+                  onClick={handleResendVerification}
+                >
+                  Send email
+                </PSButton>
+              </div>
+            )}
             <Input
               label="Display Name"
               type="text"

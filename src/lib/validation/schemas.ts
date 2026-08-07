@@ -58,8 +58,14 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
   twoFactorCode: z
     .string()
-    .length(6, "2FA code must be 6 digits")
-    .regex(/^\d{6}$/, "2FA code must be 6 digits")
+    .trim()
+    .transform((value) => value.toUpperCase())
+    .refine(
+      (value) =>
+        /^\d{6}$/.test(value) ||
+        /^[A-F0-9]{4}(?:-[A-F0-9]{4}){3}$/.test(value),
+      "Enter a 6-digit code or a valid backup code",
+    )
     .optional(),
 });
 

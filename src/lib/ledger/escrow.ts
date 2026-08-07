@@ -123,6 +123,10 @@ export async function holdEscrow(
   // Get player account and escrow account
   const playerAccount = await getOrCreatePlayerAccount(tx, input.playerId);
   const escrowAccount = await createEscrowAccount(tx, input.betId);
+  const wasAlreadyTransferred = await tx.transaction.findUnique({
+    where: { idempotencyKey: input.idempotencyKey },
+    select: { id: true },
+  });
 
   // Execute the double-entry transfer
   const result = await transfer(tx, {
@@ -134,6 +138,8 @@ export async function holdEscrow(
     betId: input.betId,
     idempotencyKey: input.idempotencyKey,
   });
+
+  if (wasAlreadyTransferred) return result;
 
   // Atomically update developer escrow limit
   // Uses UPDATE ... WHERE to enforce the cap atomically
@@ -274,6 +280,10 @@ export async function refundEscrow(
   }
 
   const playerAccount = await getOrCreatePlayerAccount(tx, input.playerId);
+  const wasAlreadyTransferred = await tx.transaction.findUnique({
+    where: { idempotencyKey: input.idempotencyKey },
+    select: { id: true },
+  });
 
   const result = await transfer(tx, {
     fromAccountId: escrowAccount.id,
@@ -284,6 +294,8 @@ export async function refundEscrow(
     betId: input.betId,
     idempotencyKey: input.idempotencyKey,
   });
+
+  if (wasAlreadyTransferred) return result;
 
   // Decrement developer escrow limit
   const escrowLimit = bet.game.developerProfile.escrowLimit;
@@ -342,6 +354,15 @@ export async function collectFee(
     include: { entries: true },
   });
   if (existingFee && existingFee.status === TransactionStatus.COMPLETED) {
+    if (
+      existingFee.type !== TransactionType.PLATFORM_FEE ||
+      existingFee.betId !== input.betId ||
+      !existingFee.amount.equals(feeAmount)
+    ) {
+      throw new EscrowError(
+        "Idempotency key already used for a different fee transaction",
+      );
+    }
     return { transaction: existingFee, entries: existingFee.entries };
   }
 
