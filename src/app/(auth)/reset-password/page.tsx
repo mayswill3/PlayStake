@@ -42,7 +42,7 @@ export default function ResetPasswordPage() {
         return;
       }
 
-      router.push('/');
+      router.push('/login');
     } catch {
       setError('Something went wrong. Please try again.');
       setLoading(false);

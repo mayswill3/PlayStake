@@ -56,7 +56,7 @@ export default function VerifyEmailPage() {
           <h1 className="text-2xl font-bold font-display text-fg mb-2">Email Verified</h1>
           <p className="text-fg-secondary mb-6">Your email has been verified successfully.</p>
           <Link
-            href="/"
+            href="/login"
             className="inline-flex items-center h-11 px-5 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors"
           >
             Continue to Login
@@ -72,7 +72,7 @@ export default function VerifyEmailPage() {
           <h1 className="text-2xl font-bold font-display text-fg mb-2">Verification Failed</h1>
           <p className="text-fg-secondary mb-6">{errorMsg}</p>
           <Link
-            href="/"
+            href="/login"
             className="text-brand-600 hover:text-brand-700 font-semibold text-sm transition-colors"
           >
             Back to login

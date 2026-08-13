@@ -36,7 +36,7 @@ export function useAuthLayout(options: UseAuthLayoutOptions = {}): AuthLayoutSta
       }),
     ]).then(([userData, balanceData]) => {
       if (!userData) {
-        router.push('/');
+        router.push('/login');
         return;
       }
       if (requiredRoles && !requiredRoles.includes(userData.role)) {

@@ -40,7 +40,7 @@ const GAMES = [
 
 export function GameModes() {
   return (
-    <section id="games" className="py-16 lg:py-24 bg-ps-paper dark:bg-ps-ink">
+    <section id="games" className="scroll-mt-16 py-16 lg:py-24 bg-ps-paper dark:bg-ps-ink">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-10">

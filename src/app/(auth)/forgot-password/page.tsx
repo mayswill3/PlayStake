@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
             If an account exists with that email, you will receive a password reset link shortly.
           </div>
           <Link
-            href="/"
+            href="/login"
             className="block text-center text-sm text-brand-600 hover:text-brand-700 font-semibold transition-colors"
           >
             Back to login
@@ -64,7 +64,7 @@ export default function ForgotPasswordPage() {
           </Button>
 
           <Link
-            href="/"
+            href="/login"
             className="block text-center text-sm text-fg-secondary hover:text-fg transition-colors"
           >
             Back to login

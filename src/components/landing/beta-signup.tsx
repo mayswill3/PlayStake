@@ -68,7 +68,7 @@ export function BetaSignup() {
     return (
       <section
         id="beta-signup"
-        className="py-16 lg:py-24 bg-ps-paper dark:bg-ps-ink-2"
+        className="scroll-mt-16 py-16 lg:py-24 bg-ps-paper dark:bg-ps-ink-2"
         aria-live="polite"
         aria-atomic="true"
       >
@@ -88,7 +88,7 @@ export function BetaSignup() {
   }
 
   return (
-    <section id="beta-signup" className="py-16 lg:py-24 bg-ps-paper dark:bg-ps-ink-2 relative overflow-hidden">
+    <section id="beta-signup" className="scroll-mt-16 py-16 lg:py-24 bg-ps-paper dark:bg-ps-ink-2 relative overflow-hidden">
       {/* Subtle gradient background tint */}
       <div
         aria-hidden="true"

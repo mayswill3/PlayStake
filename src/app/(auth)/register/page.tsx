@@ -66,7 +66,7 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push('/?registered=1');
+      router.push('/login?registered=1');
     } catch {
       setError('Something went wrong. Please try again.');
       setLoading(false);
@@ -134,7 +134,7 @@ export default function RegisterPage() {
 
       <p className="mt-4 text-center text-sm text-fg-secondary">
         Already have an account?{' '}
-        <Link href="/" className="text-brand-600 hover:text-brand-700 font-semibold transition-colors">
+        <Link href="/login" className="text-brand-600 hover:text-brand-700 font-semibold transition-colors">
           Sign in
         </Link>
       </p>

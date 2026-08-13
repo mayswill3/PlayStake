@@ -16,17 +16,17 @@ export async function GET(request: NextRequest) {
 
     // User denied consent or other Google error
     if (error) {
-      return NextResponse.redirect(`${appUrl}/?error=google_denied`);
+      return NextResponse.redirect(`${appUrl}/login?error=google_denied`);
     }
 
     if (!code || !state) {
-      return NextResponse.redirect(`${appUrl}/?error=google_invalid`);
+      return NextResponse.redirect(`${appUrl}/login?error=google_invalid`);
     }
 
     // Validate CSRF state
     const storedState = request.cookies.get("oauth_state")?.value;
     if (!storedState || storedState !== state) {
-      return NextResponse.redirect(`${appUrl}/?error=google_invalid`);
+      return NextResponse.redirect(`${appUrl}/login?error=google_invalid`);
     }
 
     // Exchange code for tokens
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const googleUser = getGoogleUserInfo(tokens.id_token);
 
     if (!googleUser.email_verified) {
-      return NextResponse.redirect(`${appUrl}/?error=google_unverified`);
+      return NextResponse.redirect(`${appUrl}/login?error=google_unverified`);
     }
 
     // Account resolution: find or create user
@@ -144,6 +144,6 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (err) {
     console.error("Google OAuth callback error:", err);
-    return NextResponse.redirect(`${appUrl}/?error=google_failed`);
+    return NextResponse.redirect(`${appUrl}/login?error=google_failed`);
   }
 }

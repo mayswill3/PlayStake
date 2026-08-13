@@ -86,18 +86,18 @@ export function MobileMenu({ links }: MobileMenuProps) {
 
             <div className="flex flex-col gap-3 px-6 pb-6 pt-2">
               <Link
-                href="/"
+                href="/login"
                 onClick={() => setOpen(false)}
                 className="flex items-center justify-center h-12 rounded-lg border border-themed text-fg font-medium hover:bg-elevated transition-colors"
               >
                 Log in
               </Link>
               <Link
-                href="/register"
+                href="#beta-signup"
                 onClick={() => setOpen(false)}
                 className="flex items-center justify-center h-12 rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-700 transition-colors"
               >
-                Get Started
+                Join Beta
               </Link>
             </div>
           </div>
