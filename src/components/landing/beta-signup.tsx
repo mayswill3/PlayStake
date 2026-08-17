@@ -3,9 +3,10 @@
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { EyebrowPill, DarkGlowCard, PSButton } from '@/components/ui/playstake';
-import { BETA_FAVOURITE_GAMES } from '@/lib/games/catalogue';
-
-const PLAYER_TYPES = ['Player', 'Streamer', 'Investor', 'Developer', 'Partner'] as const;
+import {
+  BETA_APPLICANT_TYPES,
+  BETA_FAVOURITE_GAMES,
+} from '@/lib/games/catalogue';
 
 type FormState = {
   name: string;
@@ -202,7 +203,7 @@ export function BetaSignup() {
                     <option value="" disabled>
                       Select type
                     </option>
-                    {PLAYER_TYPES.map((t) => (
+                    {BETA_APPLICANT_TYPES.map((t) => (
                       <option key={t} value={t}>
                         {t}
                       </option>

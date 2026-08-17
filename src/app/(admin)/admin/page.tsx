@@ -84,6 +84,7 @@ export default function AdminDashboardPage() {
 
         <div className="flex flex-wrap gap-3">
           <Link href="/admin/users"><Button variant="secondary">Manage Users</Button></Link>
+          <Link href="/admin/beta-signups"><Button variant="secondary">View Beta Signups</Button></Link>
           <Link href="/admin/disputes"><Button variant="secondary">View Disputes</Button></Link>
           <Link href="/admin/anomalies"><Button variant="secondary">Anomaly Alerts</Button></Link>
         </div>

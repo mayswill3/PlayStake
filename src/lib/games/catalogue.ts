@@ -92,6 +92,7 @@ export const BETA_FAVOURITE_GAMES = [
   "Grand Theft Auto V / GTA Online",
   "EA SPORTS FC 26",
   "Fortnite",
+  "Tekken 8",
   "NBA 2K26",
   "Minecraft",
   "Rocket League",
@@ -100,6 +101,14 @@ export const BETA_FAVOURITE_GAMES = [
   "Darts",
   "Penalty Shootout",
   "Other",
+] as const;
+
+export const BETA_APPLICANT_TYPES = [
+  "Player",
+  "Streamer",
+  "Investor",
+  "Developer",
+  "Partner",
 ] as const;
 
 export function isStreamGameType(value: unknown): value is StreamGameType {

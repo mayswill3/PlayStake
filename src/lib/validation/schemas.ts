@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  BETA_APPLICANT_TYPES,
   BETA_FAVOURITE_GAMES,
   STREAM_GAME_TYPES,
 } from "@/lib/games/catalogue";
@@ -21,13 +22,7 @@ export const betaSignupSchema = z.object({
     .email("Invalid email address")
     .max(255, "Email must be at most 255 characters"),
   game: z.enum(BETA_FAVOURITE_GAMES),
-  playerType: z.enum([
-    "Player",
-    "Streamer",
-    "Investor",
-    "Developer",
-    "Partner",
-  ]),
+  playerType: z.enum(BETA_APPLICANT_TYPES),
   consent: z
     .boolean()
     .refine((value) => value, "Consent is required to join the beta list"),
@@ -489,6 +484,14 @@ export const adminUserListQuerySchema = z.object({
   search: z.string().max(255).optional(),
 });
 
+export const adminBetaSignupListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  playerType: z.enum(BETA_APPLICANT_TYPES).optional(),
+  game: z.enum(BETA_FAVOURITE_GAMES).optional(),
+  search: z.string().trim().max(255).optional(),
+});
+
 export const adminUpdateUserSchema = z.object({
   role: z.enum(["PLAYER", "DEVELOPER", "ADMIN"]).optional(),
   kycStatus: z
@@ -573,6 +576,9 @@ export type BetListV1Query = z.infer<typeof betListV1QuerySchema>;
 export type CreateWebhookInput = z.infer<typeof createWebhookSchema>;
 export type UpdateWebhookInput = z.infer<typeof updateWebhookSchema>;
 export type AdminUserListQuery = z.infer<typeof adminUserListQuerySchema>;
+export type AdminBetaSignupListQuery = z.infer<
+  typeof adminBetaSignupListQuerySchema
+>;
 export type AdminUpdateUserInput = z.infer<typeof adminUpdateUserSchema>;
 export type AdminDisputeListQuery = z.infer<typeof adminDisputeListQuerySchema>;
 export type AdminResolveDisputeInput = z.infer<typeof adminResolveDisputeSchema>;

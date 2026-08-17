@@ -21,6 +21,7 @@ describe("betaSignupSchema", () => {
     "Grand Theft Auto V / GTA Online",
     "EA SPORTS FC 26",
     "Fortnite",
+    "Tekken 8",
   ])("accepts the popular game option %s", (game) => {
     expect(betaSignupSchema.safeParse({ ...validSignup, game }).success).toBe(true);
   });

@@ -12,6 +12,7 @@ import {
   Gamepad2,
   Star,
   Users,
+  UserPlus,
   Scale,
   AlertTriangle,
   Bell,
@@ -45,6 +46,7 @@ const playerNav: NavItem[] = [
 const adminNav: NavItem[] = [
   { label: 'Overview', href: '/admin', icon: Star },
   { label: 'Users', href: '/admin/users', icon: Users },
+  { label: 'Beta Signups', href: '/admin/beta-signups', icon: UserPlus },
   { label: 'Referees', href: '/admin/referees', icon: Scale },
   { label: 'Disputes', href: '/admin/disputes', icon: Scale },
   { label: 'Anomalies', href: '/admin/anomalies', icon: AlertTriangle },
