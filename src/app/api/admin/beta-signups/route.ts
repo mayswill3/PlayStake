@@ -1,6 +1,7 @@
 import { withRoleGuard } from '@/lib/middleware/auth';
 import { prisma } from '@/lib/db/client';
 import { adminBetaSignupListQuerySchema } from '@/lib/validation/schemas';
+import { buildDemoBetaSignups } from '@/lib/beta/demo-signups';
 import { Prisma, UserRole } from '../../../../../generated/prisma/client';
 
 export const GET = withRoleGuard([UserRole.ADMIN], async (request) => {
@@ -31,7 +32,7 @@ export const GET = withRoleGuard([UserRole.ADMIN], async (request) => {
     ];
   }
 
-  const [signups, total] = await Promise.all([
+  const [signups, total, realTotal, demoTotal] = await Promise.all([
     prisma.betaSignup.findMany({
       where,
       select: {
@@ -40,6 +41,7 @@ export const GET = withRoleGuard([UserRole.ADMIN], async (request) => {
         email: true,
         game: true,
         playerType: true,
+        isDemo: true,
         consentedAt: true,
         createdAt: true,
       },
@@ -48,6 +50,8 @@ export const GET = withRoleGuard([UserRole.ADMIN], async (request) => {
       take: limit,
     }),
     prisma.betaSignup.count({ where }),
+    prisma.betaSignup.count({ where: { ...where, isDemo: false } }),
+    prisma.betaSignup.count({ where: { ...where, isDemo: true } }),
   ]);
 
   return Response.json({
@@ -56,7 +60,40 @@ export const GET = withRoleGuard([UserRole.ADMIN], async (request) => {
       page,
       limit,
       total,
+      realTotal,
+      demoTotal,
       totalPages: Math.ceil(total / limit),
     },
+  });
+});
+
+export const POST = withRoleGuard([UserRole.ADMIN], async () => {
+  const result = await prisma.betaSignup.createMany({
+    data: buildDemoBetaSignups(),
+    skipDuplicates: true,
+  });
+  const demoTotal = await prisma.betaSignup.count({ where: { isDemo: true } });
+
+  return Response.json(
+    {
+      created: result.count,
+      demoTotal,
+      message:
+        result.count > 0
+          ? `${result.count} demo profiles added`
+          : 'All demo profiles already exist',
+    },
+    { status: result.count > 0 ? 201 : 200 },
+  );
+});
+
+export const DELETE = withRoleGuard([UserRole.ADMIN], async () => {
+  const result = await prisma.betaSignup.deleteMany({
+    where: { isDemo: true },
+  });
+
+  return Response.json({
+    deleted: result.count,
+    message: `${result.count} demo profiles removed`,
   });
 });

@@ -12,6 +12,7 @@ import {
   BETA_APPLICANT_TYPES,
   BETA_FAVOURITE_GAMES,
 } from '@/lib/games/catalogue';
+import { DEMO_BETA_SIGNUP_COUNT } from '@/lib/beta/demo-signups';
 import { UserPlus } from 'lucide-react';
 
 interface BetaSignupItem {
@@ -20,6 +21,7 @@ interface BetaSignupItem {
   email: string;
   game: string;
   playerType: string;
+  isDemo: boolean;
   consentedAt: string;
   createdAt: string;
 }
@@ -30,6 +32,8 @@ interface BetaSignupResponse {
     page: number;
     limit: number;
     total: number;
+    realTotal: number;
+    demoTotal: number;
     totalPages: number;
   };
 }
@@ -60,6 +64,8 @@ export default function AdminBetaSignupsPage() {
   const [signups, setSignups] = useState<BetaSignupItem[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [realTotal, setRealTotal] = useState(0);
+  const [demoTotal, setDemoTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -67,6 +73,8 @@ export default function AdminBetaSignupsPage() {
   const [searchInput, setSearchInput] = useState('');
   const [playerType, setPlayerType] = useState('all');
   const [game, setGame] = useState('all');
+  const [demoAction, setDemoAction] = useState<'add' | 'remove' | null>(null);
+  const [demoMessage, setDemoMessage] = useState('');
 
   const fetchSignups = useCallback(async () => {
     setLoading(true);
@@ -84,6 +92,8 @@ export default function AdminBetaSignupsPage() {
       const body = (await response.json()) as BetaSignupResponse;
       setSignups(body.data);
       setTotal(body.pagination.total);
+      setRealTotal(body.pagination.realTotal);
+      setDemoTotal(body.pagination.demoTotal);
       setTotalPages(body.pagination.totalPages);
     } catch {
       setError('Failed to load beta signups.');
@@ -102,18 +112,106 @@ export default function AdminBetaSignupsPage() {
     setPage(1);
   }
 
+  async function handleAddDemos() {
+    setDemoAction('add');
+    setDemoMessage('');
+
+    try {
+      const response = await fetch('/api/admin/beta-signups', {
+        method: 'POST',
+      });
+      const body = (await response.json().catch(() => null)) as
+        | { message?: string }
+        | null;
+      if (!response.ok) throw new Error('Failed to add demo profiles');
+
+      setDemoMessage(body?.message ?? 'Demo profiles added');
+      if (page === 1) await fetchSignups();
+      else setPage(1);
+    } catch {
+      setDemoMessage('Could not add demo profiles. Please try again.');
+    } finally {
+      setDemoAction(null);
+    }
+  }
+
+  async function handleRemoveDemos() {
+    if (!window.confirm('Remove every demo beta profile? Real signups will remain untouched.')) {
+      return;
+    }
+
+    setDemoAction('remove');
+    setDemoMessage('');
+
+    try {
+      const response = await fetch('/api/admin/beta-signups', {
+        method: 'DELETE',
+      });
+      const body = (await response.json().catch(() => null)) as
+        | { message?: string }
+        | null;
+      if (!response.ok) throw new Error('Failed to remove demo profiles');
+
+      setDemoMessage(body?.message ?? 'Demo profiles removed');
+      if (page === 1) await fetchSignups();
+      else setPage(1);
+    } catch {
+      setDemoMessage('Could not remove demo profiles. Please try again.');
+    } finally {
+      setDemoAction(null);
+    }
+  }
+
   return (
     <FadeIn>
       <div className="mx-auto max-w-6xl space-y-6">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-text-primary">
-            Beta Signups
-          </h1>
-          <p className="mt-1 font-mono text-sm text-text-secondary">
-            {total.toLocaleString('en-GB')} early-access{' '}
-            {total === 1 ? 'application' : 'applications'}
-          </p>
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-text-primary">
+              Beta Signups
+            </h1>
+            <p className="mt-1 font-mono text-sm text-text-secondary">
+              {total.toLocaleString('en-GB')} early-access{' '}
+              {total === 1 ? 'profile' : 'profiles'} ·{' '}
+              {realTotal.toLocaleString('en-GB')} real ·{' '}
+              {demoTotal.toLocaleString('en-GB')} demo
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleAddDemos}
+              disabled={demoAction !== null}
+              className="rounded-sm bg-brand-400 px-4 py-2 font-mono text-sm font-semibold text-surface-950 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {demoAction === 'add'
+                ? 'Adding…'
+                : `Add ${DEMO_BETA_SIGNUP_COUNT} Demo Profiles`}
+            </button>
+            {demoTotal > 0 && (
+              <button
+                type="button"
+                onClick={handleRemoveDemos}
+                disabled={demoAction !== null}
+                className="rounded-sm border border-danger-500/30 px-4 py-2 font-mono text-sm font-medium text-danger-400 transition-colors hover:bg-danger-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {demoAction === 'remove' ? 'Removing…' : 'Remove Demos'}
+              </button>
+            )}
+          </div>
         </div>
+
+        <div className="rounded-sm border border-blue-500/25 bg-blue-500/10 px-4 py-3 font-mono text-xs text-blue-400">
+          Demo profiles are included in the total, carry a visible Demo badge,
+          and use reserved <code>example.test</code> email addresses.
+        </div>
+
+        {demoMessage && (
+          <p className="font-mono text-sm text-text-secondary" role="status">
+            {demoMessage}
+          </p>
+        )}
 
         <div className="flex flex-wrap items-end gap-3">
           <form onSubmit={handleSearch} className="flex w-full gap-2 sm:w-auto">
@@ -224,14 +322,25 @@ export default function AdminBetaSignupsPage() {
                       >
                         <td className="px-4 py-3">
                           <p className="font-mono font-medium text-surface-200">
-                            {signup.name}
+                            {signup.name}{' '}
+                            {signup.isDemo && (
+                              <Badge variant="info" className="ml-1 align-middle">
+                                Demo
+                              </Badge>
+                            )}
                           </p>
-                          <a
-                            href={`mailto:${signup.email}`}
-                            className="font-mono text-xs text-text-muted transition-colors hover:text-brand-400"
-                          >
-                            {signup.email}
-                          </a>
+                          {signup.isDemo ? (
+                            <p className="font-mono text-xs text-text-muted">
+                              {signup.email}
+                            </p>
+                          ) : (
+                            <a
+                              href={`mailto:${signup.email}`}
+                              className="font-mono text-xs text-text-muted transition-colors hover:text-brand-400"
+                            >
+                              {signup.email}
+                            </a>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <Badge variant={applicantVariant(signup.playerType)}>
@@ -242,7 +351,9 @@ export default function AdminBetaSignupsPage() {
                           {signup.game}
                         </td>
                         <td className="px-4 py-3 font-mono text-sm text-text-secondary">
-                          {formatAdminDate(signup.consentedAt)}
+                          {signup.isDemo
+                            ? 'Not applicable'
+                            : formatAdminDate(signup.consentedAt)}
                         </td>
                         <td className="px-4 py-3 font-mono text-sm text-text-secondary">
                           {formatAdminDate(signup.createdAt)}
@@ -271,16 +382,16 @@ export default function AdminBetaSignupsPage() {
                       <p className="truncate font-mono text-sm font-medium text-surface-200">
                         {signup.name}
                       </p>
-                      <a
-                        href={`mailto:${signup.email}`}
-                        className="mt-0.5 block break-all font-mono text-xs text-text-muted"
-                      >
+                      <p className="mt-0.5 break-all font-mono text-xs text-text-muted">
                         {signup.email}
-                      </a>
+                      </p>
                     </div>
-                    <Badge variant={applicantVariant(signup.playerType)}>
-                      {signup.playerType}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      {signup.isDemo && <Badge variant="info">Demo</Badge>}
+                      <Badge variant={applicantVariant(signup.playerType)}>
+                        {signup.playerType}
+                      </Badge>
+                    </div>
                   </div>
                   <dl className="mt-4 grid grid-cols-2 gap-3 font-mono text-xs">
                     <div className="col-span-2">
@@ -290,7 +401,9 @@ export default function AdminBetaSignupsPage() {
                     <div>
                       <dt className="text-text-muted">Consented</dt>
                       <dd className="mt-0.5 text-text-secondary">
-                        {formatAdminDate(signup.consentedAt)}
+                        {signup.isDemo
+                          ? 'Not applicable'
+                          : formatAdminDate(signup.consentedAt)}
                       </dd>
                     </div>
                     <div>

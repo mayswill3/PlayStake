@@ -714,11 +714,13 @@ model BetaSignup {
   email       String   @unique @db.VarChar(255)
   game        String   @db.VarChar(100)
   playerType  String   @map("player_type") @db.VarChar(50)
+  isDemo      Boolean  @default(false) @map("is_demo")
   consentedAt DateTime @map("consented_at")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@index([createdAt], map: "idx_beta_signup_created_at")
+  @@index([isDemo, createdAt], map: "idx_beta_signup_demo_created_at")
   @@map("beta_signups")
 }
 
