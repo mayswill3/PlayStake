@@ -68,22 +68,30 @@ export const GET = withRoleGuard([UserRole.ADMIN], async (request) => {
 });
 
 export const POST = withRoleGuard([UserRole.ADMIN], async () => {
-  const result = await prisma.betaSignup.createMany({
-    data: buildDemoBetaSignups(),
-    skipDuplicates: true,
+  const existingDemoTotal = await prisma.betaSignup.count({
+    where: { isDemo: true },
   });
-  const demoTotal = await prisma.betaSignup.count({ where: { isDemo: true } });
+
+  const demoTotal = await prisma.$transaction(async (tx) => {
+    await tx.betaSignup.deleteMany({ where: { isDemo: true } });
+    const result = await tx.betaSignup.createMany({
+      data: buildDemoBetaSignups(),
+      skipDuplicates: true,
+    });
+
+    return result.count;
+  });
 
   return Response.json(
     {
-      created: result.count,
+      created: demoTotal,
       demoTotal,
       message:
-        result.count > 0
-          ? `${result.count} demo profiles added`
-          : 'All demo profiles already exist',
+        existingDemoTotal > 0
+          ? `${demoTotal} demo profiles refreshed`
+          : `${demoTotal} demo profiles added`,
     },
-    { status: result.count > 0 ? 201 : 200 },
+    { status: existingDemoTotal > 0 ? 200 : 201 },
   );
 });
 

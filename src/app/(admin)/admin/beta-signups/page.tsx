@@ -187,7 +187,9 @@ export default function AdminBetaSignupsPage() {
             >
               {demoAction === 'add'
                 ? 'Adding…'
-                : `Add ${DEMO_BETA_SIGNUP_COUNT} Demo Profiles`}
+                : demoTotal > 0
+                  ? 'Refresh Demo Profiles'
+                  : `Add ${DEMO_BETA_SIGNUP_COUNT} Demo Profiles`}
             </button>
             {demoTotal > 0 && (
               <button
@@ -203,8 +205,7 @@ export default function AdminBetaSignupsPage() {
         </div>
 
         <div className="rounded-sm border border-blue-500/25 bg-blue-500/10 px-4 py-3 font-mono text-xs text-blue-400">
-          Demo profiles are included in the total, carry a visible Demo badge,
-          and use reserved <code>example.test</code> email addresses.
+          Demo profiles are included in the total.
         </div>
 
         {demoMessage && (
@@ -322,12 +323,7 @@ export default function AdminBetaSignupsPage() {
                       >
                         <td className="px-4 py-3">
                           <p className="font-mono font-medium text-surface-200">
-                            {signup.name}{' '}
-                            {signup.isDemo && (
-                              <Badge variant="info" className="ml-1 align-middle">
-                                Demo
-                              </Badge>
-                            )}
+                            {signup.name}
                           </p>
                           {signup.isDemo ? (
                             <p className="font-mono text-xs text-text-muted">
@@ -387,7 +383,6 @@ export default function AdminBetaSignupsPage() {
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      {signup.isDemo && <Badge variant="info">Demo</Badge>}
                       <Badge variant={applicantVariant(signup.playerType)}>
                         {signup.playerType}
                       </Badge>
