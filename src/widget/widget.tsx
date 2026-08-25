@@ -156,11 +156,11 @@ function WidgetApp() {
   }
 
   // ---- Active bet with result needing confirmation ----
-  const showResultConfirmation =
-    activeBet &&
-    activeBet.status === "RESULT_REPORTED" &&
-    activeBet.outcome &&
-    !activeBet.resultVerified;
+  // Consent and result confirmation moved server-side: the matchmaking lobby
+  // locks escrow on accept, and the demo games report + settle through
+  // /api/demo/settle-bet. The widget has no live endpoint for either, so it
+  // shows state and stays out of the way rather than rendering dead buttons.
+  const showResultConfirmation = false;
 
   return (
     <div className={`ps-widget ${themeClass}`}>
@@ -197,7 +197,7 @@ function WidgetApp() {
 
       {/* Active bet banner */}
       {activeBet && !showResultConfirmation && (
-        <ActiveBet bet={activeBet} onConfirmResult={handleConfirmResult} onConsent={consentBet} />
+        <ActiveBet bet={activeBet} onConfirmResult={handleConfirmResult} />
       )}
 
       {/* Content — recent bets only, or an empty prompt when nothing's going on.

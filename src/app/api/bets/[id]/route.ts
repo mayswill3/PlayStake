@@ -105,6 +105,10 @@ export async function GET(
       status: bet.status,
       matchType: bet.matchType,
       outcome: bet.outcome,
+      // The widget gates its result-confirmation UI on these two, so they have
+      // to survive the trip even though the dashboard doesn't read them.
+      resultVerified: bet.resultVerified,
+      expiresAt: bet.expiresAt.toISOString(),
       platformFeeAmount: bet.platformFeeAmount
         ? dollarsToCents(bet.platformFeeAmount)
         : null,

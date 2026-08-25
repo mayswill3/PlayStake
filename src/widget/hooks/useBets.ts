@@ -50,44 +50,114 @@ export function useBets({
 
   // ---- Data fetching ----
 
+  // The bets API returns two different shapes: a flat list row (opponent +
+  // myRole) and a fuller detail object (playerA/playerB). Both get normalised
+  // into BetData here so the components downstream only ever see one shape.
+  const mapListBet = useCallback((row: any): BetData => {
+    const me = row.myRole === "PLAYER_A" ? "playerA" : "playerB";
+    const them = me === "playerA" ? "playerB" : "playerA";
+    const self = { id: "", displayName: "You" };
+    const opponent = row.opponent
+      ? { id: row.opponent.id, displayName: row.opponent.displayName }
+      : null;
+
+    return {
+      betId: row.id,
+      gameId: row.gameId,
+      status: row.status,
+      amount: row.amount,
+      currency: "USD",
+      [me]: self,
+      [them]: opponent,
+      outcome: row.outcome ?? null,
+      resultVerified: false,
+      platformFeeAmount: null,
+      gameMetadata: null,
+      createdAt: row.createdAt,
+      matchedAt: null,
+      expiresAt: null,
+      resultReportedAt: null,
+      settledAt: row.settledAt ?? null,
+    } as BetData;
+  }, []);
+
+  const mapDetailBet = useCallback((d: any): BetData => ({
+    betId: d.id,
+    externalId: d.externalId ?? undefined,
+    gameId: d.game?.id ?? gameId,
+    status: d.status,
+    amount: d.amount,
+    currency: d.currency ?? "USD",
+    playerA: d.playerA ?? null,
+    playerB: d.playerB ?? null,
+    outcome: d.outcome ?? null,
+    resultVerified: Boolean(d.resultVerified),
+    platformFeeAmount: d.platformFeeAmount ?? null,
+    gameMetadata: (d.gameMetadata as Record<string, unknown> | null) ?? null,
+    createdAt: d.createdAt,
+    matchedAt: d.matchedAt ?? null,
+    expiresAt: d.expiresAt ?? null,
+    resultReportedAt: d.resultReportedAt ?? null,
+    settledAt: d.settledAt ?? null,
+  }), [gameId]);
+
   const fetchOpenBets = useCallback(async () => {
     try {
       const res = await authFetch(
-        `/api/v1/bets?gameId=${encodeURIComponent(gameId)}&status=OPEN&limit=20`
+        `/api/bets?gameId=${encodeURIComponent(gameId)}&status=OPEN&limit=20`
       );
       if (!res.ok) return;
       const data = await res.json();
       if (mountedRef.current) {
-        setOpenBets(data.data || []);
+        setOpenBets((data.data || []).map(mapListBet));
       }
     } catch {
       // Silently fail on poll errors; we'll retry
     }
-  }, [authFetch, gameId]);
+  }, [authFetch, gameId, mapListBet]);
 
   const prevActiveBetStatusRef = useRef<string | null>(null);
 
+  const ACTIVE_STATUSES = ["PENDING_CONSENT", "OPEN", "MATCHED", "RESULT_REPORTED"];
+
   const fetchActiveBet = useCallback(async () => {
     try {
-      // Fetch bets in active states for this game
-      const statuses = ["PENDING_CONSENT", "OPEN", "MATCHED", "RESULT_REPORTED"];
-      for (const status of statuses) {
-        const res = await authFetch(
-          `/api/v1/bets?gameId=${encodeURIComponent(gameId)}&status=${status}&limit=1`
-        );
-        if (!res.ok) continue;
-        const data = await res.json();
-        if (data.data && data.data.length > 0) {
-          const bet = data.data[0];
-          // Refresh balance when bet status changes (e.g. OPEN → MATCHED)
-          if (prevActiveBetStatusRef.current && prevActiveBetStatusRef.current !== bet.status) {
-            onBalanceChange();
-          }
-          prevActiveBetStatusRef.current = bet.status;
-          if (mountedRef.current) setActiveBet(bet);
-          return;
+      // One unfiltered page beats four status-filtered requests on a 3s poll.
+      const res = await authFetch(
+        `/api/bets?gameId=${encodeURIComponent(gameId)}&limit=20`
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      const rows: any[] = data.data || [];
+
+      // Most advanced state first, so a matched bet wins over a stale open one.
+      const row = ACTIVE_STATUSES
+        .map((st) => rows.find((r) => r.status === st))
+        .filter(Boolean)
+        .sort(
+          (a, b) =>
+            ACTIVE_STATUSES.indexOf(b!.status) - ACTIVE_STATUSES.indexOf(a!.status)
+        )[0];
+
+      if (row) {
+        // Hydrate from the detail route — the list shape carries neither
+        // playerA/playerB nor resultVerified, both of which the UI needs.
+        let bet = mapListBet(row);
+        try {
+          const detail = await authFetch(`/api/bets/${row.id}`);
+          if (detail.ok) bet = mapDetailBet(await detail.json());
+        } catch {
+          // Fall back to the list row rather than showing nothing.
         }
+
+        if (prevActiveBetStatusRef.current && prevActiveBetStatusRef.current !== bet.status) {
+          onBalanceChange();
+        }
+        prevActiveBetStatusRef.current = bet.status;
+        if (mountedRef.current) setActiveBet(bet);
+        return;
       }
+
       // Bet disappeared (settled/cancelled) — refresh balance
       if (prevActiveBetStatusRef.current) {
         prevActiveBetStatusRef.current = null;
@@ -97,22 +167,22 @@ export function useBets({
     } catch {
       // Silently fail
     }
-  }, [authFetch, gameId, onBalanceChange]);
+  }, [authFetch, gameId, onBalanceChange, mapListBet, mapDetailBet]);
 
   const fetchRecentBets = useCallback(async () => {
     try {
       const res = await authFetch(
-        `/api/v1/bets?gameId=${encodeURIComponent(gameId)}&status=SETTLED&limit=5`
+        `/api/bets?gameId=${encodeURIComponent(gameId)}&status=SETTLED&limit=5`
       );
       if (!res.ok) return;
       const data = await res.json();
       if (mountedRef.current) {
-        setRecentBets(data.data || []);
+        setRecentBets((data.data || []).map(mapListBet));
       }
     } catch {
       // Silently fail
     }
-  }, [authFetch, gameId]);
+  }, [authFetch, gameId, mapListBet]);
 
   const refresh = useCallback(async () => {
     if (!isAuthenticated) return;
