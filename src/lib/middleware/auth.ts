@@ -17,9 +17,13 @@ export interface SessionAuthContext {
  * Next.js App Router handler signature.
  * Handlers receive (Request, context) and return a Response.
  */
+type RouteContext = {
+  params?: Record<string, string> | Promise<Record<string, string>>;
+};
+
 type RouteHandler = (
   req: Request,
-  context?: { params?: Record<string, string> }
+  context?: RouteContext
 ) => Promise<Response>;
 
 /**
@@ -81,10 +85,7 @@ function getSessionTokenFromCookies(req: Request): string | null {
  * ```
  */
 export function withSessionAuth(handler: AuthenticatedHandler): RouteHandler {
-  return async (
-    req: Request,
-    context?: { params?: Record<string, string> }
-  ): Promise<Response> => {
+  return async (req: Request, context?: RouteContext): Promise<Response> => {
     const sessionToken = getSessionTokenFromCookies(req);
 
     if (!sessionToken) {
@@ -103,7 +104,11 @@ export function withSessionAuth(handler: AuthenticatedHandler): RouteHandler {
       );
     }
 
-    return handler(req, context ?? {}, {
+    // Next.js hands dynamic route params over as a Promise. Resolve them here so
+    // handlers can read `context.params.id` directly.
+    const params = context?.params ? await context.params : undefined;
+
+    return handler(req, { params }, {
       userId: session.userId,
       user: session.user,
     });

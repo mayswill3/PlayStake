@@ -56,9 +56,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="/#games" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                <Link href="/#games" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   Games
-                </a>
+                </Link>
               </li>
               <li>
                 <a href="/learn-more#community" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
@@ -66,9 +66,9 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a href="/#beta-signup" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                <Link href="/#beta-signup" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   Join Beta
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -80,14 +80,14 @@ export function Footer() {
             </h3>
             <ul className="space-y-3">
               <li>
-                <a href="/#trust" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                <Link href="/#trust" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   Responsible Play
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/#faq" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                <Link href="/#faq" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   FAQ
-                </a>
+                </Link>
               </li>
               <li>
                 <a

@@ -10,7 +10,7 @@ import { FadeIn } from '@/components/ui/FadeIn';
 import { DarkGlowCard } from '@/components/ui/playstake/DarkGlowCard';
 import { StatusPill } from '@/components/ui/playstake/StatusPill';
 import { PSButton } from '@/components/ui/playstake/PSButton';
-import { Lock, ArrowLeftRight, ArrowDown, ArrowUp, Unlock, Minus, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { Lock, ArrowLeftRight, ArrowDown, ArrowUp, Unlock, Minus, CheckCircle, Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
 import { formatCents, formatDate } from '@/lib/utils/format';
 
 interface Balance {
@@ -71,6 +71,7 @@ export default function WalletPage() {
   const [depositPending, setDepositPending] = useState(false);
   const [depositSuccess, setDepositSuccess] = useState(false);
   const [depositFailed, setDepositFailed] = useState(false);
+  const [kycStatus, setKycStatus] = useState<string | null>(null);
 
   const isDepositReturn = searchParams.get('deposit') === 'success';
   const depositTxnId = searchParams.get('txn');
@@ -81,6 +82,18 @@ export default function WalletPage() {
       freshFetch('/api/wallet/transactions?limit=10').then((r) => r.ok ? r.json() : null),
     ]);
     return { bal, txns: (txns?.data || []) as Transaction[] };
+  }, []);
+
+  // Deposits and withdrawals are gated on identity verification.
+  useEffect(() => {
+    freshFetch('/api/kyc')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (data) setKycStatus(data.kycStatus as string);
+      })
+      .catch(() => {
+        /* the API itself enforces the gate; the banner is a courtesy */
+      });
   }, []);
 
   // Initial load
@@ -173,6 +186,8 @@ export default function WalletPage() {
     );
   }
 
+  const kycVerified = kycStatus === 'VERIFIED';
+
   return (
     <FadeIn>
       <div className="max-w-4xl mx-auto space-y-6">
@@ -195,6 +210,22 @@ export default function WalletPage() {
           <div className="flex items-center gap-3 p-4 rounded-[var(--ps-radius-md)] bg-ps-error/10 border border-ps-error/25">
             <AlertCircle className="h-5 w-5 text-ps-error" />
             <p className="text-sm font-mono text-ps-error">Deposit failed. Please try again or contact support.</p>
+          </div>
+        )}
+
+        {kycStatus && !kycVerified && (
+          <div className="flex items-start gap-3 p-4 rounded-[var(--ps-radius-md)] bg-ps-warning/10 border border-ps-warning/25">
+            <ShieldCheck className="h-5 w-5 shrink-0 text-ps-warning" />
+            <div className="text-sm">
+              <p className="font-mono text-ps-warning">
+                {kycStatus === 'PENDING'
+                  ? 'Your identity verification is under review.'
+                  : 'Verify your identity to deposit and withdraw.'}
+              </p>
+              <Link href="/verification" className="underline text-ps-muted dark:text-ps-muted-on-dark">
+                {kycStatus === 'PENDING' ? 'Check status' : 'Start verification'}
+              </Link>
+            </div>
           </div>
         )}
 
@@ -222,12 +253,22 @@ export default function WalletPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-3 mt-6">
-            <Link href="/wallet/deposit">
-              <PSButton variant="primary">Deposit</PSButton>
-            </Link>
-            <Link href="/wallet/withdraw">
-              <PSButton variant="secondary">Withdraw</PSButton>
-            </Link>
+            {kycVerified ? (
+              <>
+                <Link href="/wallet/deposit">
+                  <PSButton variant="primary">Deposit</PSButton>
+                </Link>
+                <Link href="/wallet/withdraw">
+                  <PSButton variant="secondary">Withdraw</PSButton>
+                </Link>
+              </>
+            ) : (
+              <Link href="/verification">
+                <PSButton variant="primary" icon={<ShieldCheck size={16} />}>
+                  {kycStatus === 'PENDING' ? 'Verification in review' : 'Verify your identity'}
+                </PSButton>
+              </Link>
+            )}
           </div>
         </DarkGlowCard>
 

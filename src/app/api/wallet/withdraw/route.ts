@@ -21,6 +21,7 @@ import {
   syncConnectStatus,
 } from "../../../../lib/payments/connect";
 import { assertTestPaymentsEnabled } from "../../../../lib/payments/policy";
+import { assertKycVerified } from "../../../../lib/kyc/policy";
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,6 +39,8 @@ export async function POST(request: NextRequest) {
         "Email must be verified before making withdrawals"
       );
     }
+
+    assertKycVerified(session.user);
 
     const connectStatus = await syncConnectStatus(session.userId);
     if (

@@ -94,7 +94,7 @@ export default function AiRefereePage() {
         {/* What is it */}
         <Section icon={<Brain size={20} />} color="cyan" title="What is an AI Referee?">
           <p>
-            The AI Referee is a rules engine that runs server-side for every match on PlayStake. It is not a chatbot or a machine learning model making probabilistic guesses. It is a deterministic validator: given a set of game events, it applies the game's rules and checks whether the reported result is consistent with what actually happened.
+            The AI Referee is a rules engine that runs server-side for every match on PlayStake. It is not a chatbot or a machine learning model making probabilistic guesses. It is a deterministic validator: given a set of game events, it applies the game&apos;s rules and checks whether the reported result is consistent with what actually happened.
           </p>
           <p>
             Every game built on the PlayStake SDK emits a structured stream of events — scores, moves, turn changes, win conditions. The AI engine consumes this stream directly. Players cannot alter it.
@@ -146,7 +146,7 @@ export default function AiRefereePage() {
             Every AI decision produces a signed verification record tied to the bet ID. The record contains the full event log that was evaluated, the rules that were applied to each event, the intermediate checks, and the final decision.
           </p>
           <p>
-            Both players can view their match's audit record at any time from the bet detail page. The record is immutable: it cannot be edited after the fact, and the signature lets anyone verify the record has not been tampered with.
+            Both players can view their match&apos;s audit record at any time from the bet detail page. The record is immutable: it cannot be edited after the fact, and the signature lets anyone verify the record has not been tampered with.
           </p>
           <p>
             This gives players a level of transparency that is impossible with a human referee: you can see exactly why you won or lost, not just that a referee said so.

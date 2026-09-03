@@ -20,6 +20,7 @@ import {
   getOrCreateCustomer,
 } from "../../../../lib/payments/stripe";
 import { assertTestPaymentsEnabled } from "../../../../lib/payments/policy";
+import { assertKycVerified } from "../../../../lib/kyc/policy";
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,6 +36,9 @@ export async function POST(request: NextRequest) {
 
     // Fail closed: this integration is intentionally restricted to Stripe test mode.
     assertTestPaymentsEnabled();
+
+    // No money enters the platform for an unverified identity.
+    assertKycVerified(session.user);
 
     const body = await request.json();
     const input = validateBody(depositSchema, body);

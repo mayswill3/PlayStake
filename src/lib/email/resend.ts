@@ -85,3 +85,38 @@ export async function sendPasswordResetEmail(input: {
     html: `<p>Hi ${name},</p><p>Use this secure link to reset your PlayStake password:</p><p><a href="${url}">Reset password</a></p><p>This link expires in one hour and can only be used once. If you did not request it, you can ignore this email.</p>`,
   });
 }
+
+export async function sendKycDecisionEmail(input: {
+  email: string;
+  displayName: string;
+  submissionId: string;
+  approved: boolean;
+  reviewNotes?: string | null;
+}) {
+  const url = appUrl('/verification');
+  const name = escapeHtml(input.displayName);
+
+  if (input.approved) {
+    return sendEmail({
+      to: input.email,
+      subject: 'Your PlayStake identity check is approved',
+      idempotencyKey: `kyc-approved-${input.submissionId}`,
+      text: `Hi ${input.displayName}, your identity has been verified. You can now deposit and withdraw on PlayStake: ${url}`,
+      html: `<p>Hi ${name},</p><p>Your identity has been verified. Deposits and withdrawals are now unlocked on your account.</p><p><a href="${url}">Go to PlayStake</a></p>`,
+    });
+  }
+
+  const reason = input.reviewNotes
+    ? `<p>Reviewer notes: ${escapeHtml(input.reviewNotes)}</p>`
+    : '';
+
+  return sendEmail({
+    to: input.email,
+    subject: 'Your PlayStake identity check needs another look',
+    idempotencyKey: `kyc-rejected-${input.submissionId}`,
+    text: `Hi ${input.displayName}, we could not verify your identity from the documents provided.${
+      input.reviewNotes ? ` Reviewer notes: ${input.reviewNotes}.` : ''
+    } You can submit new documents here: ${url}`,
+    html: `<p>Hi ${name},</p><p>We could not verify your identity from the documents provided.</p>${reason}<p><a href="${url}">Submit new documents</a></p>`,
+  });
+}

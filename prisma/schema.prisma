@@ -32,6 +32,24 @@ enum KycStatus {
   REJECTED
 }
 
+enum KycSubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum KycDocumentType {
+  PASSPORT
+  DRIVERS_LICENCE
+  NATIONAL_ID
+}
+
+enum KycDocumentKind {
+  DOCUMENT_FRONT
+  DOCUMENT_BACK
+  SELFIE
+}
+
 enum AuthTokenType {
   EMAIL_VERIFICATION
   PASSWORD_RESET
@@ -196,6 +214,8 @@ model User {
   refereeAuditEvents   RefereeAuditEvent[]   @relation("RefereeAuditActor")
   authTokens           AuthToken[]
   twoFactorBackupCodes TwoFactorBackupCode[]
+  kycSubmissions       KycSubmission[]       @relation("KycSubject")
+  kycReviews           KycSubmission[]       @relation("KycReviewer")
 
   @@index([email], map: "idx_user_email")
   @@index([stripeCustomerId], map: "idx_user_stripe_customer")
@@ -837,4 +857,61 @@ model StreamChallenge {
   @@index([streamerUserId, status, expiresAt], map: "idx_stream_challenge_streamer")
   @@index([status, expiresAt], map: "idx_stream_challenge_expiry")
   @@map("stream_challenges")
+}
+
+// =============================================================================
+// KYC / IDENTITY VERIFICATION
+// =============================================================================
+
+/// A player's identity verification packet, reviewed manually by an admin.
+/// The denormalised `User.kycStatus` mirrors the newest submission's outcome
+/// and is what the money paths gate on.
+model KycSubmission {
+  id             String              @id @default(uuid()) @db.Uuid
+  userId         String              @map("user_id") @db.Uuid
+  status         KycSubmissionStatus @default(PENDING)
+  legalFirstName String              @map("legal_first_name") @db.VarChar(100)
+  legalLastName  String              @map("legal_last_name") @db.VarChar(100)
+  dateOfBirth    DateTime            @map("date_of_birth") @db.Date
+  addressLine1   String              @map("address_line1") @db.VarChar(200)
+  addressLine2   String?             @map("address_line2") @db.VarChar(200)
+  city           String              @db.VarChar(100)
+  region         String?             @db.VarChar(100)
+  postalCode     String              @map("postal_code") @db.VarChar(20)
+  country        String              @db.VarChar(2)
+  documentType   KycDocumentType     @map("document_type")
+  reviewedById   String?             @map("reviewed_by_id") @db.Uuid
+  reviewedAt     DateTime?           @map("reviewed_at")
+  reviewNotes    String?             @map("review_notes") @db.VarChar(1000)
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  user       User          @relation("KycSubject", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User?         @relation("KycReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  documents  KycDocument[]
+
+  @@index([status, createdAt], map: "idx_kyc_submission_status")
+  @@index([userId, createdAt], map: "idx_kyc_submission_user")
+  @@map("kyc_submissions")
+}
+
+/// An uploaded identity document. Bytes are AES-256-GCM encrypted at rest with
+/// KYC_DOCUMENT_ENCRYPTION_KEY and are only ever decrypted for an admin
+/// reviewer streaming the image back.
+model KycDocument {
+  id           String          @id @default(uuid()) @db.Uuid
+  submissionId String          @map("submission_id") @db.Uuid
+  kind         KycDocumentKind
+  mimeType     String          @map("mime_type") @db.VarChar(100)
+  byteSize     Int             @map("byte_size")
+  sha256       String          @db.VarChar(64)
+  ciphertext   Bytes
+  iv           Bytes
+  authTag      Bytes           @map("auth_tag")
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  submission KycSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, kind], map: "uq_kyc_document_submission_kind")
+  @@map("kyc_documents")
 }

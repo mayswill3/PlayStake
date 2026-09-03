@@ -16,6 +16,7 @@ import {
   Layers,
   Grid3x3,
   Target,
+  ShieldCheck,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { FadeIn } from '@/components/ui/FadeIn';
@@ -108,6 +109,7 @@ export default function DashboardPage() {
   const [recentBets, setRecentBets] = useState<RecentBet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [kycStatus, setKycStatus] = useState<string | null>(null);
 
   // Surface feedback from the Kick OAuth callback redirect (/dashboard?kick=...)
   // then strip the param so it doesn't re-fire on refresh.
@@ -118,6 +120,19 @@ export default function DashboardPage() {
     if (feedback) toast(feedback.type, feedback.message);
     router.replace('/dashboard');
   }, [searchParams, toast, router]);
+
+  // New players land here straight after signing up; point them at the
+  // verification they need before any money can move.
+  useEffect(() => {
+    fetch('/api/kyc', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data) setKycStatus(data.kycStatus as string);
+      })
+      .catch(() => {
+        /* the money paths enforce this server-side regardless */
+      });
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -174,6 +189,29 @@ export default function DashboardPage() {
             Your betting overview and quick actions
           </p>
         </div>
+
+        {kycStatus && kycStatus !== 'VERIFIED' && (
+          <Link
+            href="/verification"
+            className="flex items-start gap-3 p-4 rounded-[var(--ps-radius-md)] bg-ps-warning/10 border border-ps-warning/25 hover:border-ps-warning/50 transition-colors"
+          >
+            <ShieldCheck className="h-5 w-5 shrink-0 text-ps-warning" />
+            <div className="text-sm">
+              <p className="font-mono text-ps-warning">
+                {kycStatus === 'PENDING'
+                  ? 'Identity verification under review'
+                  : kycStatus === 'REJECTED'
+                    ? 'Identity verification needs another look'
+                    : 'Verify your identity to start staking'}
+              </p>
+              <p className="text-ps-muted dark:text-ps-muted-on-dark mt-0.5">
+                {kycStatus === 'PENDING'
+                  ? 'We will email you as soon as a reviewer has checked your documents.'
+                  : 'Deposits and withdrawals stay locked until your identity is verified.'}
+              </p>
+            </div>
+          </Link>
+        )}
 
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6">
           {/* Main column */}

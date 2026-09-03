@@ -583,3 +583,69 @@ export type AdminUpdateUserInput = z.infer<typeof adminUpdateUserSchema>;
 export type AdminDisputeListQuery = z.infer<typeof adminDisputeListQuerySchema>;
 export type AdminResolveDisputeInput = z.infer<typeof adminResolveDisputeSchema>;
 export type AdminAnomalyListQuery = z.infer<typeof adminAnomalyListQuerySchema>;
+
+// ---------------------------------------------------------------------------
+// KYC / identity verification
+// ---------------------------------------------------------------------------
+
+const isoDate = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Text fields of a verification packet. Files are validated separately. */
+export const kycSubmissionSchema = z.object({
+  legalFirstName: z
+    .string()
+    .trim()
+    .min(1, "Legal first name is required")
+    .max(100, "Legal first name must be at most 100 characters"),
+  legalLastName: z
+    .string()
+    .trim()
+    .min(1, "Legal last name is required")
+    .max(100, "Legal last name must be at most 100 characters"),
+  dateOfBirth: z
+    .string()
+    .regex(isoDate, "Date of birth must be in YYYY-MM-DD format")
+    .refine(
+      (value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)),
+      "Date of birth is not a real date",
+    ),
+  addressLine1: z
+    .string()
+    .trim()
+    .min(1, "Address is required")
+    .max(200, "Address must be at most 200 characters"),
+  addressLine2: z.string().trim().max(200).optional().or(z.literal("")),
+  city: z
+    .string()
+    .trim()
+    .min(1, "City is required")
+    .max(100, "City must be at most 100 characters"),
+  region: z.string().trim().max(100).optional().or(z.literal("")),
+  postalCode: z
+    .string()
+    .trim()
+    .min(1, "Postal code is required")
+    .max(20, "Postal code must be at most 20 characters"),
+  country: z
+    .string()
+    .trim()
+    .length(2, "Country must be a two-letter ISO code")
+    .transform((value) => value.toUpperCase()),
+  documentType: z.enum(["PASSPORT", "DRIVERS_LICENCE", "NATIONAL_ID"]),
+});
+
+export const adminKycListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
+  search: z.string().trim().max(255).optional(),
+});
+
+export const adminKycReviewSchema = z.object({
+  decision: z.enum(["APPROVE", "REJECT"]),
+  reviewNotes: z
+    .string()
+    .trim()
+    .max(1000, "Notes must be at most 1000 characters")
+    .optional(),
+});

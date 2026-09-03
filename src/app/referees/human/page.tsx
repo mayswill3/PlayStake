@@ -97,7 +97,7 @@ export default function HumanRefereePage() {
             Human referees are verified PlayStake community members who watch live matches and confirm the outcome is legitimate. While the AI Referee handles the majority of matches automatically, human referees are available for games and situations where live judgement matters.
           </p>
           <p>
-            You are not making rulings on complex edge cases from scratch. The match gives you everything you need: a live spectator view, the game state, and both players' actions. Your job is to confirm what you saw.
+            You are not making rulings on complex edge cases from scratch. The match gives you everything you need: a live spectator view, the game state, and both players&apos; actions. Your job is to confirm what you saw.
           </p>
         </Section>
 

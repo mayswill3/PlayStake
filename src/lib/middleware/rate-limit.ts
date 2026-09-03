@@ -211,3 +211,13 @@ export const refereeActionRateLimit = rateLimit({
   maxRequests: 30,
   keyFn: (req) => `referee-action:${getClientIp(req)}`,
 });
+
+/**
+ * Identity verification uploads: five per hour per IP. Document review is
+ * manual, so a flood of packets costs reviewer time rather than compute.
+ */
+export const kycSubmissionRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 5,
+  keyFn: (req) => `kyc-submission:${getClientIp(req)}`,
+});

@@ -445,6 +445,7 @@ export async function callApi(
   path: string,
   options: {
     body?: unknown;
+    formData?: FormData;
     headers?: Record<string, string>;
     sessionToken?: string;
     apiKey?: string;
@@ -473,7 +474,11 @@ export async function callApi(
     headers,
   };
 
-  if (options.body !== undefined && method !== "GET") {
+  if (options.formData) {
+    // Let undici set the multipart boundary itself.
+    delete headers["content-type"];
+    requestInit.body = options.formData;
+  } else if (options.body !== undefined && method !== "GET") {
     requestInit.body = JSON.stringify(options.body);
   }
 
@@ -510,8 +515,18 @@ export async function callApi(
 // Route resolution: maps URL paths to imported handler functions
 // ---------------------------------------------------------------------------
 
+/**
+ * A Next.js route handler. Each route declares its own dynamic-param shape, so
+ * the context stays loose here; callApi passes whatever the route expects.
+ */
+type ResolvedRouteHandler = (
+  request: NextRequest,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  context?: any,
+) => Promise<Response>;
+
 interface ResolvedRoute {
-  handler: Function;
+  handler: ResolvedRouteHandler;
   params?: Record<string, string>;
 }
 
@@ -582,6 +597,24 @@ async function resolveRouteHandler(
     };
   }
 
+
+  // KYC routes
+  if (path === "/api/kyc") {
+    const mod = await import("../../src/app/api/kyc/route.js");
+    return { handler: method === "GET" ? mod.GET : mod.POST };
+  }
+  if (path.startsWith("/api/admin/kyc?") || path === "/api/admin/kyc") {
+    const mod = await import("../../src/app/api/admin/kyc/route.js");
+    return { handler: mod.GET };
+  }
+  const kycSubmissionMatch = path.match(/^\/api\/admin\/kyc\/([^/?]+)$/);
+  if (kycSubmissionMatch) {
+    const mod = await import("../../src/app/api/admin/kyc/[id]/route.js");
+    return {
+      handler: method === "PATCH" ? mod.PATCH : mod.GET,
+      params: { id: decodeURIComponent(kycSubmissionMatch[1]) },
+    };
+  }
 
   throw new Error(`No route handler found for ${method} ${path}`);
 }
