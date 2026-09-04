@@ -76,6 +76,11 @@ const SCHEDULES: ScheduleEntry[] = [
     jobName: "lobby-expiry-scan",
     every: 30_000, // every 30 seconds
   },
+  {
+    queueName: QUEUE_NAMES.DEPOSIT_LIMIT_ACTIVATION,
+    jobName: "deposit-limit-activation-scan",
+    every: 60_000, // every 60 seconds
+  },
 ];
 
 // ---------------------------------------------------------------------------

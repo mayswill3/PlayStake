@@ -616,6 +616,24 @@ async function resolveRouteHandler(
     };
   }
 
+  // Responsible play
+  if (path === "/api/responsible-play") {
+    const mod = await import("../../src/app/api/responsible-play/route.js");
+    return { handler: method === "GET" ? mod.GET : mod.PATCH };
+  }
+  if (path === "/api/responsible-play/deposit-limits") {
+    const mod = await import(
+      "../../src/app/api/responsible-play/deposit-limits/route.js"
+    );
+    return { handler: method === "PUT" ? mod.PUT : mod.DELETE };
+  }
+  if (path === "/api/responsible-play/break") {
+    const mod = await import(
+      "../../src/app/api/responsible-play/break/route.js"
+    );
+    return { handler: mod.POST };
+  }
+
   throw new Error(`No route handler found for ${method} ${path}`);
 }
 

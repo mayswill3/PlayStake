@@ -50,6 +50,17 @@ enum KycDocumentKind {
   SELFIE
 }
 
+enum DepositLimitPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum PlayBreakType {
+  COOL_OFF
+  SELF_EXCLUSION
+}
+
 enum AuthTokenType {
   EMAIL_VERIFICATION
   PASSWORD_RESET
@@ -197,25 +208,28 @@ model User {
 
   // Relations
   ledgerAccounts       LedgerAccount[]
-  sessionsAsPlayerA    Bet[]                 @relation("PlayerA")
-  sessionsAsPlayerB    Bet[]                 @relation("PlayerB")
-  disputesFiled        Dispute[]             @relation("DisputeFiler")
+  sessionsAsPlayerA    Bet[]                    @relation("PlayerA")
+  sessionsAsPlayerB    Bet[]                    @relation("PlayerB")
+  disputesFiled        Dispute[]                @relation("DisputeFiler")
   disputeMessages      DisputeMessage[]
   developerProfile     DeveloperProfile?
   widgetSessions       WidgetSession[]
   sessions             Session[]
   oauthAccounts        OAuthAccount[]
   kickAccount          KickAccount?
-  lobbyEntries         LobbyEntry[]          @relation("LobbyUser")
-  lobbyInvitesSent     LobbyEntry[]          @relation("LobbyInviter")
-  challengesSent       StreamChallenge[]     @relation("ChallengeChallenger")
-  challengesReceived   StreamChallenge[]     @relation("ChallengeStreamer")
+  lobbyEntries         LobbyEntry[]             @relation("LobbyUser")
+  lobbyInvitesSent     LobbyEntry[]             @relation("LobbyInviter")
+  challengesSent       StreamChallenge[]        @relation("ChallengeChallenger")
+  challengesReceived   StreamChallenge[]        @relation("ChallengeStreamer")
   refereeProfile       RefereeProfile?
-  refereeAuditEvents   RefereeAuditEvent[]   @relation("RefereeAuditActor")
+  refereeAuditEvents   RefereeAuditEvent[]      @relation("RefereeAuditActor")
   authTokens           AuthToken[]
   twoFactorBackupCodes TwoFactorBackupCode[]
-  kycSubmissions       KycSubmission[]       @relation("KycSubject")
-  kycReviews           KycSubmission[]       @relation("KycReviewer")
+  kycSubmissions       KycSubmission[]          @relation("KycSubject")
+  kycReviews           KycSubmission[]          @relation("KycReviewer")
+  depositLimits        DepositLimit[]
+  playBreaks           PlayBreak[]
+  responsiblePlay      ResponsiblePlaySettings?
 
   @@index([email], map: "idx_user_email")
   @@index([stripeCustomerId], map: "idx_user_stripe_customer")
@@ -914,4 +928,59 @@ model KycDocument {
 
   @@unique([submissionId, kind], map: "uq_kyc_document_submission_kind")
   @@map("kyc_documents")
+}
+
+// =============================================================================
+// RESPONSIBLE PLAY
+// =============================================================================
+
+/// A user-set cap on deposits over a rolling window.
+///
+/// Decreases apply immediately. Increases are staged in `pendingAmount` and
+/// only become effective at `pendingEffectiveAt`, so a limit cannot be raised
+/// in the heat of a session.
+model DepositLimit {
+  id                 String             @id @default(uuid()) @db.Uuid
+  userId             String             @map("user_id") @db.Uuid
+  period             DepositLimitPeriod
+  amount             Decimal            @db.Decimal(14, 2)
+  pendingAmount      Decimal?           @map("pending_amount") @db.Decimal(14, 2)
+  pendingEffectiveAt DateTime?          @map("pending_effective_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, period], map: "uq_deposit_limit_user_period")
+  @@index([pendingEffectiveAt], map: "idx_deposit_limit_pending")
+  @@map("deposit_limits")
+}
+
+/// A cool-off or self-exclusion period. Rows are immutable once written: a
+/// break cannot be shortened or lifted early, which is the entire point.
+model PlayBreak {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String        @map("user_id") @db.Uuid
+  type      PlayBreakType
+  startsAt  DateTime      @map("starts_at")
+  endsAt    DateTime      @map("ends_at")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, endsAt], map: "idx_play_break_user_active")
+  @@map("play_breaks")
+}
+
+model ResponsiblePlaySettings {
+  id                     String   @id @default(uuid()) @db.Uuid
+  userId                 String   @unique @map("user_id") @db.Uuid
+  /// Minutes between in-session play reminders; null disables them.
+  sessionReminderMinutes Int?     @map("session_reminder_minutes")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("responsible_play_settings")
 }

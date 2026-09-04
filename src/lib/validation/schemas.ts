@@ -649,3 +649,36 @@ export const adminKycReviewSchema = z.object({
     .max(1000, "Notes must be at most 1000 characters")
     .optional(),
 });
+
+// ---------------------------------------------------------------------------
+// Responsible play
+// ---------------------------------------------------------------------------
+
+export const setDepositLimitSchema = z.object({
+  period: z.enum(["DAILY", "WEEKLY", "MONTHLY"]),
+  // Integer cents, matching the rest of the money API surface.
+  amount: z
+    .number()
+    .int("Amount must be whole cents")
+    .positive("A deposit limit must be greater than zero")
+    .max(1_000_000_00, "That deposit limit is too high"),
+});
+
+export const removeDepositLimitSchema = z.object({
+  period: z.enum(["DAILY", "WEEKLY", "MONTHLY"]),
+  // "pending" drops only a staged increase and leaves the active limit alone.
+  scope: z.enum(["pending", "limit"]).default("pending"),
+});
+
+export const startPlayBreakSchema = z.object({
+  type: z.enum(["COOL_OFF", "SELF_EXCLUSION"]),
+  optionId: z.string().trim().min(1).max(10),
+  /** Must be true: the user has read that a break cannot be lifted early. */
+  acknowledged: z.literal(true, {
+    message: "You must confirm you understand a break cannot be undone",
+  }),
+});
+
+export const sessionReminderSchema = z.object({
+  minutes: z.union([z.literal(15), z.literal(30), z.literal(60), z.literal(120), z.null()]),
+});

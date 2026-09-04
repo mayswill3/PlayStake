@@ -70,6 +70,15 @@ export interface LobbyExpiryScanPayload {
   triggeredAt: string;
 }
 
+/**
+ * Folds matured deposit-limit increases into the active limit. Purely
+ * cosmetic: the gate resolves a matured increase on read regardless, so a
+ * stalled worker can never leave a limit looser than the user intended.
+ */
+export interface DepositLimitActivationPayload {
+  triggeredAt: string;
+}
+
 // ---------------------------------------------------------------------------
 // Queue name constants
 // ---------------------------------------------------------------------------
@@ -84,6 +93,7 @@ export const QUEUE_NAMES = {
   DISPUTE_ESCALATION: "dispute-escalation",
   LEDGER_AUDIT: "ledger-audit",
   LOBBY_EXPIRY: "lobby-expiry",
+  DEPOSIT_LIMIT_ACTIVATION: "deposit-limit-activation",
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];

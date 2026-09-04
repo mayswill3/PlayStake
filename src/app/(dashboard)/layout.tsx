@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { Spinner } from '@/components/ui/Spinner';
 import { ChallengesProvider } from '@/components/lobby/ChallengesProvider';
+import { SessionReminder } from '@/components/responsible-play/SessionReminder';
 import { useAuthLayout } from '@/hooks/useAuthLayout';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -29,6 +30,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </main>
         </div>
         <MobileBottomNav />
+        <SessionReminder />
       </div>
     </ChallengesProvider>
   );

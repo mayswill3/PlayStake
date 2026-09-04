@@ -25,6 +25,7 @@ import {
 } from "@/lib/errors/index";
 import { centsToDollars } from "@/lib/utils/money";
 import { holdEscrow } from "@/lib/ledger/escrow";
+import { assertCanWager } from "@/lib/responsible-play/policy";
 import {
   isLobbyGameType,
   getDemoGameId,
@@ -91,6 +92,10 @@ export async function joinLobby(input: JoinLobbyInput): Promise<JoinLobbyResult>
 
   const gameType = input.gameType as LobbyGameType;
   const now = new Date();
+
+  // A cool-off or self-exclusion blocks wagering at the door, before the user
+  // is placed in front of an opponent.
+  await assertCanWager(input.userId, now);
 
   // Idempotent: reuse an existing active entry for this user+game
   const existing = await prisma.lobbyEntry.findFirst({
@@ -398,6 +403,8 @@ export async function createChallenge(
     throw new ValidationError("stakeAmount must be a positive integer (cents)");
   }
 
+  await assertCanWager(input.challengerUserId);
+
   // Resolve the streamer from their Kick channel. Live status + declared game
   // both live on the KickAccount, so this is a single lookup.
   const [account, challengerKick] = await Promise.all([
@@ -648,6 +655,11 @@ export type RespondResult =
 
 export async function respondToInvite(input: RespondInput): Promise<RespondResult> {
   const now = new Date();
+
+  // Declining is always allowed — only accepting commits a stake.
+  if (input.response === "ACCEPT") {
+    await assertCanWager(input.callerUserId, now);
+  }
 
   if (input.response === "DECLINE") {
     const entry = await prisma.lobbyEntry.findUnique({

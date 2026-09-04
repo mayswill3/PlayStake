@@ -72,6 +72,10 @@ export default function WalletPage() {
   const [depositSuccess, setDepositSuccess] = useState(false);
   const [depositFailed, setDepositFailed] = useState(false);
   const [kycStatus, setKycStatus] = useState<string | null>(null);
+  const [playBreak, setPlayBreak] = useState<{ type: string; endsAt: string } | null>(null);
+  const [depositLimits, setDepositLimits] = useState<
+    Array<{ period: string; amountCents: number; remainingCents: number }>
+  >([]);
 
   const isDepositReturn = searchParams.get('deposit') === 'success';
   const depositTxnId = searchParams.get('txn');
@@ -82,6 +86,20 @@ export default function WalletPage() {
       freshFetch('/api/wallet/transactions?limit=10').then((r) => r.ok ? r.json() : null),
     ]);
     return { bal, txns: (txns?.data || []) as Transaction[] };
+  }, []);
+
+  // Responsible-play state decides whether depositing is available at all.
+  useEffect(() => {
+    freshFetch('/api/responsible-play')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!data) return;
+        setPlayBreak(data.activeBreak ?? null);
+        setDepositLimits(data.limits ?? []);
+      })
+      .catch(() => {
+        /* the deposit route enforces these server-side regardless */
+      });
   }, []);
 
   // Deposits and withdrawals are gated on identity verification.
@@ -187,6 +205,10 @@ export default function WalletPage() {
   }
 
   const kycVerified = kycStatus === 'VERIFIED';
+  const onBreak = playBreak !== null;
+  const tightestLimit = depositLimits.length
+    ? depositLimits.reduce((a, b) => (a.remainingCents <= b.remainingCents ? a : b))
+    : null;
 
   return (
     <FadeIn>
@@ -210,6 +232,39 @@ export default function WalletPage() {
           <div className="flex items-center gap-3 p-4 rounded-[var(--ps-radius-md)] bg-ps-error/10 border border-ps-error/25">
             <AlertCircle className="h-5 w-5 text-ps-error" />
             <p className="text-sm font-mono text-ps-error">Deposit failed. Please try again or contact support.</p>
+          </div>
+        )}
+
+        {onBreak && (
+          <div className="flex items-start gap-3 p-4 rounded-[var(--ps-radius-md)] bg-ps-warning/10 border border-ps-warning/25">
+            <AlertCircle className="h-5 w-5 shrink-0 text-ps-warning" />
+            <div className="text-sm">
+              <p className="font-mono text-ps-warning">
+                {playBreak?.type === 'SELF_EXCLUSION'
+                  ? 'Your account is self-excluded.'
+                  : 'You are on a cool-off break.'}
+              </p>
+              <p className="text-ps-muted dark:text-ps-muted-on-dark mt-0.5">
+                Deposits and betting are blocked until{' '}
+                {playBreak ? new Date(playBreak.endsAt).toLocaleDateString('en-GB', {
+                  day: 'numeric', month: 'short', year: 'numeric',
+                }) : ''}. You can still withdraw your balance.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {!onBreak && kycVerified && tightestLimit && (
+          <div className="flex items-start gap-3 p-4 rounded-[var(--ps-radius-md)] border border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">
+            <ArrowDown className="h-5 w-5 shrink-0 text-ps-muted dark:text-ps-muted-on-dark" />
+            <div className="text-sm">
+              <p className="text-ps-text dark:text-ps-text-on-dark">
+                {formatCents(tightestLimit.remainingCents)} left of your deposit limit
+              </p>
+              <Link href="/responsible-play" className="underline text-ps-muted dark:text-ps-muted-on-dark">
+                Manage limits
+              </Link>
+            </div>
           </div>
         )}
 
@@ -253,7 +308,12 @@ export default function WalletPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-3 mt-6">
-            {kycVerified ? (
+            {kycVerified && onBreak ? (
+              // Withdrawals stay open during a break so funds are never trapped.
+              <Link href="/wallet/withdraw">
+                <PSButton variant="secondary">Withdraw</PSButton>
+              </Link>
+            ) : kycVerified ? (
               <>
                 <Link href="/wallet/deposit">
                   <PSButton variant="primary">Deposit</PSButton>
