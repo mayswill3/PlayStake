@@ -130,8 +130,15 @@ async function voidStaleMatch(betId: string): Promise<void> {
     }
     // voidNoShowMatch re-reads the bet and no-ops unless it is still MATCHED,
     // so a play/result landing at the same moment is never double-handled.
-    const { voided } = await voidNoShowMatch(tx, betId);
-    if (voided) log("info", "no_show_voided", { betId });
+    const { voided, refunded } = await voidNoShowMatch(tx, betId);
+    if (voided) {
+      // Distinguish the two outcomes: a bet closed without a refund never had
+      // funds locked against it, which is a data artifact rather than a
+      // no-show, and should not read like money was returned.
+      log("info", refunded ? "no_show_voided" : "no_show_voided_unescrowed", {
+        betId,
+      });
+    }
   });
 }
 
@@ -150,6 +157,10 @@ async function processBetExpiryScan(
       expiresAt: { lt: now },
     },
     select: { id: true },
+    // Oldest first: without an explicit order a row that fails every scan can
+    // sit inside the take() window indefinitely and starve bets that would
+    // otherwise be refunded.
+    orderBy: { expiresAt: "asc" },
     take: 100,
   });
 
@@ -177,6 +188,7 @@ async function processBetExpiryScan(
       updatedAt: { lt: new Date(now.getTime() - NO_SHOW_TTL_MS) },
     },
     select: { id: true },
+    orderBy: { updatedAt: "asc" },
     take: 100,
   });
 

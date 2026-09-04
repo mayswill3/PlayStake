@@ -233,4 +233,83 @@ describe("No-show void", () => {
     const again = await prisma.$transaction((tx) => voidNoShowMatch(tx as never, betId));
     expect(again.voided).toBe(false);
   });
+
+  it("reports that funds were returned when escrow existed", async () => {
+    const { betId } = await acceptedMatch(500);
+    const result = await prisma.$transaction((tx) =>
+      voidNoShowMatch(tx as never, betId),
+    );
+    expect(result).toEqual({ voided: true, refunded: true });
+  });
+
+  it("closes a bet that never had escrow instead of failing forever", async () => {
+    const betId = await unescrowedMatchedBet();
+
+    // Previously this threw on the missing escrow account, rolling back the
+    // VOIDED update and leaving the bet to be swept again every scan.
+    const result = await prisma.$transaction((tx) =>
+      voidNoShowMatch(tx as never, betId),
+    );
+    expect(result).toEqual({ voided: true, refunded: false });
+
+    const bet = await prisma.bet.findUniqueOrThrow({ where: { id: betId } });
+    expect(bet.status).toBe(BetStatus.VOIDED);
+
+    // No longer MATCHED, so the no-show sweep will not pick it up again.
+    const stillSwept = await prisma.bet.count({
+      where: { id: betId, status: BetStatus.MATCHED },
+    });
+    expect(stillSwept).toBe(0);
+  });
+
+  it("refuses to close a bet that has transactions but no escrow account", async () => {
+    const betId = await unescrowedMatchedBet();
+    await prisma.transaction.create({
+      data: {
+        idempotencyKey: `orphan-${betId}`,
+        type: "BET_ESCROW",
+        status: "COMPLETED",
+        amount: new Decimal("5.00"),
+        betId,
+      },
+    });
+
+    // Money moved against this bet by some path that left no escrow account —
+    // a real inconsistency, so it must surface rather than be closed quietly.
+    await expect(
+      prisma.$transaction((tx) => voidNoShowMatch(tx as never, betId)),
+    ).rejects.toThrow(/no escrow account/i);
+
+    const bet = await prisma.bet.findUniqueOrThrow({ where: { id: betId } });
+    expect(bet.status).toBe(BetStatus.MATCHED);
+  });
 });
+
+/**
+ * A bet sitting in MATCHED with no escrow account, mirroring the rows
+ * prisma/seed.ts fabricates.
+ */
+async function unescrowedMatchedBet(): Promise<string> {
+  const playerA = await makeUser("Unescrowed A");
+  const playerB = await makeUser("Unescrowed B");
+
+  const bet = await prisma.bet.create({
+    data: {
+      gameId,
+      playerAId: playerA.id,
+      playerBId: playerB.id,
+      amount: new Decimal("5.00"),
+      status: BetStatus.MATCHED,
+      platformFeePercent: new Decimal("0.05"),
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    },
+    select: { id: true },
+  });
+
+  const escrowCount = await prisma.ledgerAccount.count({
+    where: { betId: bet.id, accountType: LedgerAccountType.ESCROW },
+  });
+  expect(escrowCount).toBe(0);
+
+  return bet.id;
+}
