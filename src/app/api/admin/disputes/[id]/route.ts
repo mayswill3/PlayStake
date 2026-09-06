@@ -140,15 +140,32 @@ export const PATCH = withRoleGuard([UserRole.ADMIN], async (req, context, auth) 
             resultReportedAt: now,
           },
         });
+
+        // The referee's own call stays in `decision`. Overwriting it here used
+        // to erase the only queryable record of what they decided, leaving
+        // overturn rate reconstructible solely from the audit chain.
+        const overturned =
+          assignment.decision !== null && assignment.decision !== outcome;
+
         await tx.refereeAssignment.update({
           where: { id: assignment.id },
           data: {
             status: RefereeAssignmentStatus.DECISION_SUBMITTED,
-            decision: outcome,
+            // Only fill `decision` when the referee never submitted one.
+            decision: assignment.decision ?? outcome,
+            overturnedOutcome: overturned ? outcome : null,
+            overturnedAt: overturned ? now : null,
             disputeDeadline: now,
             version: { increment: 1 },
           },
         });
+
+        if (overturned && assignment.refereeProfileId) {
+          await tx.refereeProfile.update({
+            where: { id: assignment.refereeProfileId },
+            data: { disputesUpheld: { increment: 1 } },
+          });
+        }
       }
 
       await appendRefereeAudit(tx, {
@@ -159,6 +176,11 @@ export const PATCH = withRoleGuard([UserRole.ADMIN], async (req, context, auth) 
           disputeId: id,
           resolutionStatus: parsed.data.status,
           outcome: outcome ?? null,
+          refereeDecision: assignment.decision ?? null,
+          overturned:
+            assignment.decision !== null &&
+            outcome !== null &&
+            assignment.decision !== outcome,
           resolution: parsed.data.resolution,
         },
         context: auditContextFromRequest(req),

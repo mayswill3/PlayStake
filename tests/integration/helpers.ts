@@ -634,6 +634,22 @@ async function resolveRouteHandler(
     return { handler: mod.POST };
   }
 
+  // Admin dispute resolution
+  const disputeMatch = path.match(/^\/api\/admin\/disputes\/([^/?]+)$/);
+  if (disputeMatch) {
+    const mod = await import("../../src/app/api/admin/disputes/[id]/route.js");
+    return {
+      handler: method === "PATCH" ? mod.PATCH : mod.GET,
+      params: { id: decodeURIComponent(disputeMatch[1]) },
+    };
+  }
+  if (path.startsWith("/api/admin/referees/operations")) {
+    const mod = await import(
+      "../../src/app/api/admin/referees/operations/route.js"
+    );
+    return { handler: mod.GET };
+  }
+
   throw new Error(`No route handler found for ${method} ${path}`);
 }
 

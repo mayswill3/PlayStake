@@ -573,6 +573,8 @@ model RefereeProfile {
   isAvailable    Boolean              @default(false) @map("is_available")
   bio            String?              @db.VarChar(500)
   matchesHandled Int                  @default(0) @map("matches_handled")
+  /// Disputes resolved against this referee — i.e. their decision was
+  /// overturned by an admin. Written by dispute resolution.
   disputesUpheld Int                  @default(0) @map("disputes_upheld")
   approvedAt     DateTime?            @map("approved_at")
   suspendedAt    DateTime?            @map("suspended_at")
@@ -607,7 +609,13 @@ model RefereeAssignment {
   status              RefereeAssignmentStatus @default(OPEN)
   rewardPercent       Decimal                 @default(0.10) @map("reward_percent") @db.Decimal(5, 4)
   rewardAmount        Decimal?                @map("reward_amount") @db.Decimal(12, 2)
+  /// What the referee decided. Never overwritten — an admin resolving a
+  /// dispute differently records that in overturnedOutcome instead, so the
+  /// referee's original call stays queryable for quality measurement.
   decision            BetOutcome?
+  /// Set when a dispute resolution replaced the referee's decision.
+  overturnedOutcome   BetOutcome?             @map("overturned_outcome")
+  overturnedAt        DateTime?               @map("overturned_at")
   evidence            Json?
   version             Int                     @default(1)
   claimedAt           DateTime?               @map("claimed_at")
@@ -627,6 +635,7 @@ model RefereeAssignment {
   @@index([status, createdAt], map: "idx_referee_assignment_open")
   @@index([refereeProfileId, status], map: "idx_referee_assignment_referee")
   @@index([disputeDeadline], map: "idx_referee_assignment_dispute_deadline")
+  @@index([overturnedAt], map: "idx_referee_assignment_overturned")
   @@map("referee_assignments")
 }
 
