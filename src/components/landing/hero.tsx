@@ -40,6 +40,12 @@ export function Hero() {
                 </span>
               </h1>
 
+              {/* Product preview — sits between headline and sub-headline on mobile.
+                  Device frame lives in its own column from lg up. */}
+              <div className="mt-6 w-full max-w-sm mx-auto lg:hidden">
+                <MatchPreview variant="bare" />
+              </div>
+
               {/* Sub-headline */}
               <p className="mt-5 text-base sm:text-[1.0625rem] leading-relaxed text-ps-muted dark:text-ps-muted-on-dark max-w-md mx-auto lg:mx-0">
                 Challenge opponents in competitive gaming matches, stake on your own
@@ -83,15 +89,10 @@ export function Hero() {
               </div>
             </div>
 
-            {/* Product preview column — bare card on mobile, device frame from lg up.
-                A phone bezel rendered on a phone costs ~90px of fold with no added information. */}
-            <div className="order-2 flex justify-center lg:justify-end">
-              <div className="w-full max-w-sm lg:hidden">
-                <MatchPreview variant="bare" />
-              </div>
-              <div className="hidden lg:block">
-                <PhoneMockup />
-              </div>
+            {/* Device frame column — lg and up only. The mobile preview is inlined
+                in the text column above, between the headline and sub-headline. */}
+            <div className="order-2 hidden lg:flex lg:justify-end">
+              <PhoneMockup />
             </div>
           </div>
         </div>
