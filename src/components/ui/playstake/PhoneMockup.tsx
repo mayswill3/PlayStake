@@ -6,6 +6,7 @@
  * ```tsx
  * <PhoneMockup />
  * <PhoneMockup className="scale-90" />
+ * <MatchPreview variant="bare" />   // same screen, no device chrome (mobile)
  * ```
  *
  * Changes from original (`src/components/ui/PhoneMockup.tsx`):
@@ -76,7 +77,7 @@ export function PhoneMockup({
           ) : children ? (
             children
           ) : (
-            <PlaceholderScreen />
+            <MatchPreview variant="phone" />
           )}
         </div>
 
@@ -93,19 +94,51 @@ export function PhoneMockup({
   );
 }
 
-/** Placeholder UI visible until a real screenshot is supplied. */
-function PlaceholderScreen() {
+interface MatchPreviewProps {
+  /**
+   * `phone` fills a device frame (status bar, full-height layout).
+   * `bare` renders the same screen as a standalone card sized to its content —
+   * used below `lg`, where a phone bezel inside a phone adds height but no information.
+   */
+  variant?: 'phone' | 'bare';
+  /** Additional Tailwind classes. */
+  className?: string;
+}
+
+/**
+ * Live-match screen shown in the hero. Decorative sample data — not live state.
+ */
+export function MatchPreview({ variant = 'phone', className = '' }: MatchPreviewProps) {
+  const isBare = variant === 'bare';
+
   return (
-    <div className="flex h-full w-full flex-col" style={{ paddingTop: 52 }}>
-      {/* Status bar */}
-      <div className="flex items-center justify-between px-5 pb-2">
-        <span className="font-mono text-[10px] tabular-nums text-white/35">9:41</span>
-        <span className="font-mono text-[10px] text-white/35">●●●</span>
-      </div>
+    <div
+      className={
+        isBare
+          ? `relative w-full select-none overflow-hidden rounded-3xl bg-ps-ink p-4 ${className}`
+          : `flex h-full w-full flex-col px-3 pb-6 ${className}`
+      }
+      style={
+        isBare
+          ? {
+              border: '1px solid var(--ps-ink-2)',
+              boxShadow: '0 18px 44px rgba(0,0,0,0.28), var(--ps-glow-lg)',
+            }
+          : { paddingTop: 52 }
+      }
+      aria-hidden="true"
+    >
+      {/* Status bar — device chrome only */}
+      {!isBare && (
+        <div className="flex items-center justify-between px-2 pb-2">
+          <span className="font-mono text-[10px] tabular-nums text-white/35">9:41</span>
+          <span className="font-mono text-[10px] text-white/35">●●●</span>
+        </div>
+      )}
 
       {/* Match card */}
       <div
-        className="mx-3 overflow-hidden rounded-2xl"
+        className="overflow-hidden rounded-2xl"
         style={{
           background: 'var(--ps-lime-10)',
           border: '1px solid var(--ps-lime-35)',
@@ -161,7 +194,7 @@ function PlaceholderScreen() {
       </div>
 
       {/* Stake / Pot */}
-      <div className="mx-3 mt-3 grid grid-cols-2 gap-2">
+      <div className="mt-3 grid grid-cols-2 gap-2">
         <div
           className="rounded-xl p-3"
           style={{
@@ -193,13 +226,26 @@ function PlaceholderScreen() {
 
       {/* Timer */}
       <div
-        className="mx-3 mt-3 flex items-center justify-between rounded-xl px-4 py-3"
+        className="mt-3 flex items-center justify-between rounded-xl px-4 py-3"
         style={{ background: 'rgba(255,255,255,0.03)' }}
       >
         <span className="text-[11px] uppercase tracking-wider text-white/35">Verified in</span>
         <span className="text-[13px] font-bold tabular-nums" style={{ color: 'var(--ps-lime)' }}>
           00:45
         </span>
+      </div>
+
+      {/* Escrow footer — fills the lower half of the device frame */}
+      <div className={isBare ? 'mt-3' : 'mt-auto pt-3'}>
+        <div
+          className="flex items-center justify-center gap-2 rounded-xl py-3 text-[11px] font-bold uppercase tracking-widest"
+          style={{ background: 'var(--ps-gradient-brand-h)', color: 'var(--ps-ink)' }}
+        >
+          Escrow Locked
+        </div>
+        <p className="mt-2 text-center text-[10px] leading-relaxed text-white/30">
+          Funds release the moment both results match.
+        </p>
       </div>
     </div>
   );

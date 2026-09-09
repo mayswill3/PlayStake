@@ -25,7 +25,7 @@ export { EyebrowPill } from './EyebrowPill';
 export { GlowCard } from './GlowCard';
 export { DarkGlowCard } from './DarkGlowCard';
 export { IconTile } from './IconTile';
-export { PhoneMockup } from './PhoneMockup';
+export { PhoneMockup, MatchPreview } from './PhoneMockup';
 export { StatStrip } from './StatStrip';
 export { ComparisonCard } from './ComparisonCard';
 export { StepIndicator } from './StepIndicator';

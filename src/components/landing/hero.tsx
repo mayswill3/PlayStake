@@ -1,4 +1,4 @@
-import { EyebrowPill, PhoneMockup, PSButton } from '@/components/ui/playstake';
+import { EyebrowPill, MatchPreview, PhoneMockup, PSButton } from '@/components/ui/playstake';
 import { TrustStrip } from '@/components/ui/TrustStrip';
 
 export function Hero() {
@@ -24,7 +24,7 @@ export function Hero() {
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
             {/* Text column */}
-            <div className="text-center lg:text-left order-2 lg:order-1">
+            <div className="text-center lg:text-left order-1">
 
               {/* Eyebrow pill */}
               <EyebrowPill label="SKILL-BASED ESPORTS WAGERING" className="mb-5" />
@@ -83,9 +83,15 @@ export function Hero() {
               </div>
             </div>
 
-            {/* Phone mockup column */}
-            <div className="flex justify-center lg:justify-end order-1 lg:order-2">
-              <PhoneMockup />
+            {/* Product preview column — bare card on mobile, device frame from lg up.
+                A phone bezel rendered on a phone costs ~90px of fold with no added information. */}
+            <div className="order-2 flex justify-center lg:justify-end">
+              <div className="w-full max-w-sm lg:hidden">
+                <MatchPreview variant="bare" />
+              </div>
+              <div className="hidden lg:block">
+                <PhoneMockup />
+              </div>
             </div>
           </div>
         </div>
