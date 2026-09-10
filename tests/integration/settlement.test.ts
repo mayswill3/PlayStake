@@ -7,10 +7,16 @@
 
 import { describe, it, expect, afterAll } from "vitest";
 import { Decimal } from "@prisma/client/runtime/client";
-import { BetStatus, BetOutcome } from "../../generated/prisma/client.js";
+import {
+  BetStatus,
+  BetOutcome,
+  RefereeAssignmentStatus,
+  RefereeProfileStatus,
+} from "../../generated/prisma/client.js";
 import {
   withRollback,
   createFullScenario,
+  createTestUser,
   getPlayerBalance,
   getEscrowBalance,
   getPlatformRevenueBalance,
@@ -492,6 +498,135 @@ describe("Settlement: Developer revenue share", () => {
       // Platform revenue = full fee
       const platformRevenue = await getPlatformRevenueBalance(tx);
       expect(platformRevenue.eq(new Decimal("1.00"))).toBe(true);
+    });
+  });
+});
+
+// Mirrors the settlement worker's refereed-bet sequence: the referee fee is
+// rewardPercent of the PLATFORM FEE, paid from platform revenue — never from
+// the winner's payout — and the developer share comes out of the fee NET of
+// the referee fee. Per-bet escrow must still net to zero.
+describe("Settlement: Referee fee", () => {
+  async function refereedDecisionSubmitted(tx: any, scenario: any, betAmount: number) {
+    const bet = await createMatchedBet(tx, scenario, betAmount, "PLAYER_A_WIN");
+    const refUser = await createTestUser(tx, { displayName: "SettleRef" });
+    const refereeProfile = await tx.refereeProfile.create({
+      data: {
+        userId: refUser.id,
+        status: RefereeProfileStatus.APPROVED,
+        isAvailable: true,
+        approvedAt: new Date(),
+      },
+    });
+    const assignment = await tx.refereeAssignment.create({
+      data: {
+        betId: bet.id,
+        refereeProfileId: refereeProfile.id,
+        status: RefereeAssignmentStatus.DECISION_SUBMITTED,
+        decision: BetOutcome.PLAYER_A_WIN,
+        claimedAt: new Date(Date.now() - 300_000),
+        decisionSubmittedAt: new Date(Date.now() - 60_000),
+      },
+    });
+    return { bet, refUser, refereeProfile, assignment };
+  }
+
+  it("pays the referee 10% of the platform fee from platform revenue, not the pot", async () => {
+    await withRollback(async (tx) => {
+      const scenario = await createFullScenario(tx, { revSharePercent: 0 });
+      const { collectFee, distributeRefereeFee, releaseEscrow } = await import(
+        "../../src/lib/ledger/escrow.js"
+      );
+
+      const { bet, refUser, assignment } = await refereedDecisionSubmitted(tx, scenario, 10);
+      const pot = new Decimal("20.00");
+      const feeAmount = pot
+        .mul(scenario.game.platformFeePercent.toString())
+        .toDecimalPlaces(2, Decimal.ROUND_HALF_UP); // 1.00
+      const refereeFee = feeAmount
+        .mul(assignment.rewardPercent.toString())
+        .toDecimalPlaces(2, Decimal.ROUND_HALF_UP); // 0.10
+
+      await collectFee(tx, {
+        betId: bet.id,
+        feeAmount,
+        idempotencyKey: `settle_${bet.id}_fee`,
+      });
+      await distributeRefereeFee(tx, {
+        refereeUserId: refUser.id,
+        betId: bet.id,
+        amount: refereeFee,
+        idempotencyKey: `settle_${bet.id}_referee`,
+      });
+      await releaseEscrow(tx, {
+        betId: bet.id,
+        winnerId: scenario.playerA.id,
+        amount: pot.sub(feeAmount),
+        idempotencyKey: `settle_${bet.id}_release`,
+      });
+
+      // Referee got exactly 10% of the fee.
+      expect((await getPlayerBalance(tx, refUser.id)).eq(new Decimal("0.10"))).toBe(true);
+      // Winner payout is unaffected by the referee fee: 100 - 10 stake + 19.
+      expect(
+        (await getPlayerBalance(tx, scenario.playerA.id)).eq(new Decimal("109.00")),
+      ).toBe(true);
+      // Platform keeps fee minus referee fee.
+      expect((await getPlatformRevenueBalance(tx)).eq(new Decimal("0.90"))).toBe(true);
+      // Per-bet escrow nets to zero.
+      expect((await getEscrowBalance(tx, bet.id)).eq(0)).toBe(true);
+    });
+  });
+
+  it("computes the developer share from the fee net of the referee fee", async () => {
+    await withRollback(async (tx) => {
+      const scenario = await createFullScenario(tx, { revSharePercent: 0.5 });
+      const { collectFee, distributeRefereeFee, distributeDevShare, releaseEscrow } =
+        await import("../../src/lib/ledger/escrow.js");
+
+      const { bet, refUser, assignment } = await refereedDecisionSubmitted(tx, scenario, 10);
+      const pot = new Decimal("20.00");
+      const feeAmount = pot
+        .mul(scenario.game.platformFeePercent.toString())
+        .toDecimalPlaces(2, Decimal.ROUND_HALF_UP); // 1.00
+      const refereeFee = feeAmount
+        .mul(assignment.rewardPercent.toString())
+        .toDecimalPlaces(2, Decimal.ROUND_HALF_UP); // 0.10
+      const devShare = feeAmount
+        .sub(refereeFee)
+        .mul("0.5")
+        .toDecimalPlaces(2, Decimal.ROUND_HALF_UP); // 0.45
+
+      await collectFee(tx, {
+        betId: bet.id,
+        feeAmount,
+        idempotencyKey: `settle_${bet.id}_fee`,
+      });
+      await distributeRefereeFee(tx, {
+        refereeUserId: refUser.id,
+        betId: bet.id,
+        amount: refereeFee,
+        idempotencyKey: `settle_${bet.id}_referee`,
+      });
+      await distributeDevShare(tx, {
+        developerUserId: scenario.developerUser.id,
+        amount: devShare,
+        idempotencyKey: `settle_${bet.id}_devshare`,
+      });
+      await releaseEscrow(tx, {
+        betId: bet.id,
+        winnerId: scenario.playerA.id,
+        amount: pot.sub(feeAmount),
+        idempotencyKey: `settle_${bet.id}_release`,
+      });
+
+      expect((await getPlayerBalance(tx, refUser.id)).eq(new Decimal("0.10"))).toBe(true);
+      expect(
+        (await getDeveloperBalance(tx, scenario.developerUser.id)).eq(new Decimal("0.45")),
+      ).toBe(true);
+      // Platform keeps fee - refereeFee - devShare.
+      expect((await getPlatformRevenueBalance(tx)).eq(new Decimal("0.45"))).toBe(true);
+      expect((await getEscrowBalance(tx, bet.id)).eq(0)).toBe(true);
     });
   });
 });

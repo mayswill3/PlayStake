@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionToken } from "@/lib/auth/helpers";
 import { validateSession } from "@/lib/auth/session";
-import { AuthenticationError, ValidationError, errorResponse } from "@/lib/errors";
+import { AuthenticationError, errorResponse } from "@/lib/errors";
 import {
   applyToReferee,
   getRefereeProfile,
   setRefereeAvailability,
 } from "@/lib/referees/service";
 import { refereeActionRateLimit } from "@/lib/middleware/rate-limit";
+import { validateBody } from "@/lib/middleware/validate";
+import {
+  refereeApplySchema,
+  refereeAvailabilitySchema,
+} from "@/lib/validation/schemas";
 
 async function authenticate(request: NextRequest) {
   const token = getSessionToken(request);
@@ -32,13 +37,11 @@ export async function POST(request: NextRequest) {
     if (limited) return limited;
     const session = await authenticate(request);
     const body = await request.json().catch(() => ({}));
-    if (!Array.isArray(body.gameIds) || !body.gameIds.every((id: unknown) => typeof id === "string")) {
-      throw new ValidationError("gameIds must be a list of game IDs");
-    }
+    const input = validateBody(refereeApplySchema, body);
     const profile = await applyToReferee({
       userId: session.userId,
-      bio: typeof body.bio === "string" ? body.bio : undefined,
-      gameIds: body.gameIds,
+      bio: input.bio,
+      gameIds: input.gameIds,
     });
     return NextResponse.json(profile, { status: 201 });
   } catch (error) {
@@ -52,11 +55,9 @@ export async function PATCH(request: NextRequest) {
     if (limited) return limited;
     const session = await authenticate(request);
     const body = await request.json().catch(() => ({}));
-    if (typeof body.isAvailable !== "boolean") {
-      throw new ValidationError("isAvailable must be a boolean");
-    }
+    const input = validateBody(refereeAvailabilitySchema, body);
     return NextResponse.json(
-      await setRefereeAvailability(session.userId, body.isAvailable),
+      await setRefereeAvailability(session.userId, input.isAvailable),
     );
   } catch (error) {
     return errorResponse(error);

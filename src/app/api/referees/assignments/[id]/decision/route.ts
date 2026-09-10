@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BetOutcome } from "@/../generated/prisma/client";
 import { getSessionToken } from "@/lib/auth/helpers";
 import { validateSession } from "@/lib/auth/session";
-import { AuthenticationError, ValidationError, errorResponse } from "@/lib/errors";
+import { AuthenticationError, errorResponse } from "@/lib/errors";
 import { auditContextFromRequest } from "@/lib/referees/audit";
 import { submitRefereeDecision } from "@/lib/referees/service";
 import { refereeActionRateLimit } from "@/lib/middleware/rate-limit";
+import { validateBody } from "@/lib/middleware/validate";
+import { refereeDecisionSchema } from "@/lib/validation/schemas";
 
 export async function POST(
   request: NextRequest,
@@ -19,19 +20,14 @@ export async function POST(
     const session = await validateSession(token);
     if (!session) throw new AuthenticationError("Invalid or expired session");
     const body = await request.json().catch(() => ({}));
-    if (!Object.values(BetOutcome).includes(body.decision)) {
-      throw new ValidationError("Invalid decision");
-    }
-    if (typeof body.notes !== "string") {
-      throw new ValidationError("Decision notes are required");
-    }
+    const input = validateBody(refereeDecisionSchema, body);
     const { id } = await params;
     return NextResponse.json(
       await submitRefereeDecision({
         userId: session.userId,
         assignmentId: id,
-        decision: body.decision,
-        notes: body.notes,
+        decision: input.decision,
+        notes: input.notes,
         context: auditContextFromRequest(request),
       }),
     );

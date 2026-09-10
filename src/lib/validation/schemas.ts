@@ -227,6 +227,37 @@ export const disputeSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Referee schemas
+// ---------------------------------------------------------------------------
+
+export const refereeApplySchema = z.object({
+  bio: z.string().max(500, "Bio must be 500 characters or fewer").optional(),
+  gameIds: z
+    .array(z.string().uuid("Invalid game ID"))
+    .min(1, "Select at least one game you can referee"),
+});
+
+export const refereeAvailabilitySchema = z.object({
+  isAvailable: z.boolean("isAvailable must be a boolean"),
+});
+
+export const refereeActionSchema = z.object({
+  action: z.enum(["READY", "START"], "action must be READY or START"),
+});
+
+export const refereeDecisionSchema = z.object({
+  decision: z.enum(
+    ["PLAYER_A_WIN", "PLAYER_B_WIN", "DRAW"],
+    "Decision must select player A, player B, or draw",
+  ),
+  notes: z
+    .string()
+    .trim()
+    .min(10, "Decision notes must be at least 10 characters")
+    .max(2000, "Decision notes must be at most 2000 characters"),
+});
+
+// ---------------------------------------------------------------------------
 // Developer schemas (A6)
 // ---------------------------------------------------------------------------
 
@@ -559,6 +590,10 @@ export type WithdrawInput = z.infer<typeof withdrawSchema>;
 export type TransactionListQuery = z.infer<typeof transactionListQuerySchema>;
 export type BetListQuery = z.infer<typeof betListQuerySchema>;
 export type DisputeInput = z.infer<typeof disputeSchema>;
+export type RefereeApplyInput = z.infer<typeof refereeApplySchema>;
+export type RefereeAvailabilityInput = z.infer<typeof refereeAvailabilitySchema>;
+export type RefereeActionInput = z.infer<typeof refereeActionSchema>;
+export type RefereeDecisionInput = z.infer<typeof refereeDecisionSchema>;
 export type SetDeclaredGameInput = z.infer<typeof setDeclaredGameSchema>;
 export type ChallengeInput = z.infer<typeof challengeSchema>;
 export type DeveloperRegisterInput = z.infer<typeof developerRegisterSchema>;
