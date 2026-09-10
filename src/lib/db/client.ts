@@ -61,10 +61,24 @@ export async function withTransaction<T>(
         isolationLevel: "Serializable",
       });
     } catch (error) {
+      // P2034 is Prisma's own write-conflict/deadlock code. A serialization
+      // failure hit by a raw query (our SELECT ... FOR UPDATE pattern) is NOT
+      // mapped to P2034 — it surfaces as P2010 carrying the Postgres SQLSTATE
+      // 40001, nested under meta.code or (with the PrismaPg driver adapter)
+      // meta.driverAdapterError.cause.originalCode. All of these mean the same
+      // thing under Serializable: safe to retry.
+      const err = error as {
+        code?: string;
+        meta?: {
+          code?: string;
+          driverAdapterError?: { cause?: { originalCode?: string } };
+        };
+      };
+      const code = error instanceof Error ? err.code : undefined;
+      const sqlState =
+        err.meta?.code ?? err.meta?.driverAdapterError?.cause?.originalCode;
       const isWriteConflict =
-        error instanceof Error &&
-        "code" in error &&
-        (error as { code?: string }).code === "P2034";
+        code === "P2034" || (code === "P2010" && sqlState === "40001");
       if (!isWriteConflict || attempt >= retries) throw error;
 
       // Short jitter reduces repeat collisions without holding a DB transaction.
