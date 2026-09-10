@@ -1012,6 +1012,13 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
   // Refereed matches remain in escrow but do not become joinable until the
   // referee confirms both feeds and starts officiating. The player poll then
   // picks them up as soon as the assignment reaches IN_PROGRESS.
+  if (result.awaitingReferee) {
+    await publishLobbyEvent(LobbyChannels.referees(), {
+      event: "REFEREE_ASSIGNMENT_OPENED",
+      betId: result.betId,
+      gameType: result.gameType,
+    });
+  }
   if (!result.awaitingReferee) {
     await publishLobbyEvent(LobbyChannels.matched(result.playerAUserId), {
       event: "MATCH_CONFIRMED",

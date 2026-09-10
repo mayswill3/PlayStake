@@ -513,6 +513,43 @@ async function getOwnedAssignmentForUpdate(
   return assignment;
 }
 
+/**
+ * How many OPEN assignments this user could claim right now. Powers the nav
+ * badge, so it stays cheap: qualification and player-exclusion filters only —
+ * the stricter both-players-live check happens at listing/claim time.
+ * Returns 0 for anyone who is not an approved, available referee.
+ */
+export async function countClaimableAssignments(userId: string): Promise<number> {
+  const profile = await prisma.refereeProfile.findUnique({
+    where: { userId },
+    select: {
+      status: true,
+      isAvailable: true,
+      qualifications: { select: { gameId: true } },
+    },
+  });
+  if (
+    !profile ||
+    profile.status !== RefereeProfileStatus.APPROVED ||
+    !profile.isAvailable ||
+    profile.qualifications.length === 0
+  ) {
+    return 0;
+  }
+
+  return prisma.refereeAssignment.count({
+    where: {
+      status: RefereeAssignmentStatus.OPEN,
+      bet: {
+        gameId: { in: profile.qualifications.map((item) => item.gameId) },
+        status: BetStatus.MATCHED,
+        playerAId: { not: userId },
+        playerBId: { not: userId },
+      },
+    },
+  });
+}
+
 export type RefereeSweepOutcome =
   | "expired_unclaimed"
   | "released_stalled"

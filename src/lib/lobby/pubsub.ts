@@ -83,4 +83,7 @@ export const LobbyChannels = {
   inviteDeclined: (userId: string) => `lobby:invite-declined:${userId}`,
   inviteExpired: (userId: string) => `lobby:invite-expired:${userId}`,
   expired: (userId: string) => `lobby:expired:${userId}`,
+  /** Broadcast to approved referees: an assignment opened or was released
+   *  back to the claim pool. Payload is a nudge, not data — clients re-poll. */
+  referees: () => `lobby:referees`,
 };

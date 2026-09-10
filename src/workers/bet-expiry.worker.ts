@@ -16,6 +16,7 @@ import { QUEUE_NAMES, type BetExpiryScanPayload } from "../lib/jobs/types";
 import { prisma, withTransaction, type TxClient } from "../lib/db/client";
 import { refundEscrow } from "../lib/ledger/escrow";
 import { voidNoShowMatch, NO_SHOW_TTL_MS } from "../lib/lobby/match-lifecycle";
+import { LobbyChannels, publishLobbyEvent } from "../lib/lobby/pubsub";
 import {
   REFEREE_CLAIM_TTL_MS,
   REFEREE_MATCH_TTL_MS,
@@ -287,6 +288,7 @@ async function sweepStaleAssignment(
   assignmentId: string,
   betId: string,
 ): Promise<void> {
+  let outcome: Awaited<ReturnType<typeof sweepRefereeAssignment>> = null;
   await withTransaction(async (tx: TxClient) => {
     const lockResult: { locked: boolean }[] = await tx.$queryRaw`
       SELECT pg_try_advisory_xact_lock(hashtext(${betId})) as locked
@@ -295,11 +297,20 @@ async function sweepStaleAssignment(
       log("info", "skip_locked", { betId });
       return;
     }
-    const outcome = await sweepRefereeAssignment(tx, assignmentId);
+    outcome = await sweepRefereeAssignment(tx, assignmentId);
     if (outcome) {
       log("info", `referee_${outcome}`, { assignmentId, betId });
     }
   });
+
+  // A released assignment is claimable again — nudge listening referees.
+  // Published after commit; polling remains the safety net if this fails.
+  if (outcome === "released_stalled") {
+    await publishLobbyEvent(LobbyChannels.referees(), {
+      event: "REFEREE_ASSIGNMENT_OPENED",
+      betId,
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------

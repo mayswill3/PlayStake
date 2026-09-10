@@ -22,7 +22,7 @@ import {
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { usePendingChallengeCount } from '@/components/lobby/ChallengesProvider';
+import { useOpenRefereeCount, usePendingChallengeCount } from '@/components/lobby/ChallengesProvider';
 import { KickConnectionCard } from '@/components/kick/KickConnectionCard';
 
 interface SidebarProps {
@@ -61,6 +61,7 @@ export function Sidebar({ userRole }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const pendingCount = usePendingChallengeCount();
+  const refereeOpenCount = useOpenRefereeCount();
 
   return (
     <>
@@ -109,7 +110,13 @@ export function Sidebar({ userRole }: SidebarProps) {
               key={item.href}
               item={item}
               active={isActive(pathname, item.href)}
-              badge={item.href === '/challenges' ? pendingCount : undefined}
+              badge={
+                item.href === '/challenges'
+                  ? pendingCount
+                  : item.href === '/referee'
+                    ? refereeOpenCount
+                    : undefined
+              }
               onClick={() => setMobileOpen(false)}
             />
           ))}

@@ -76,6 +76,26 @@ export default function RefereeHubPage() {
     return () => window.clearInterval(timer);
   }, [load]);
 
+  // SSE upgrade for approved referees: the lobby stream also carries the
+  // referee claim-pool channel, and every message is just a nudge to re-poll —
+  // polling above stays the source of truth. When SSE is disabled server-side
+  // the request 503s, onerror closes the source, and polling carries on. The
+  // gameType is required by the endpoint but irrelevant here (same trick as
+  // ChallengesProvider).
+  const isApproved = profileData?.profile?.status === 'APPROVED';
+  useEffect(() => {
+    if (!isApproved) return;
+    let es: EventSource;
+    try {
+      es = new EventSource('/api/lobby/stream?gameType=darts');
+    } catch {
+      return;
+    }
+    es.onmessage = () => void load();
+    es.onerror = () => es.close();
+    return () => es.close();
+  }, [isApproved, load]);
+
   const active = useMemo(
     () => mine.find((item) => ['ASSIGNED', 'READY', 'IN_PROGRESS'].includes(item.status)),
     [mine],

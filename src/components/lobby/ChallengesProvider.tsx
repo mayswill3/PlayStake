@@ -53,6 +53,7 @@ interface ChallengesContextValue {
   outgoing: MyOutgoingChallenge[];
   loading: boolean;
   pendingCount: number;
+  refereeOpenCount: number;
   busyId: string | null;
   busyOutgoingId: string | null;
   respond: (lobbyEntryId: string, action: 'ACCEPT' | 'DECLINE') => Promise<void>;
@@ -84,6 +85,13 @@ export function usePendingChallengeCount(): number {
   return ctx?.pendingCount ?? 0;
 }
 
+/** Null-safe count of matches this user could referee right now — 0 for
+ *  non-referees and outside the provider, so the badge simply stays absent. */
+export function useOpenRefereeCount(): number {
+  const ctx = useContext(ChallengesContext);
+  return ctx?.refereeOpenCount ?? 0;
+}
+
 /**
  * Ambient challenge listener + data source for the challenge inbox.
  *
@@ -106,6 +114,7 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
   const [busyOutgoingId, setBusyOutgoingId] = useState<string | null>(null);
   const [modalInvite, setModalInvite] = useState<MyInvite | null>(null);
   const [sseEnabled, setSseEnabled] = useState(false);
+  const [refereeOpenCount, setRefereeOpenCount] = useState(0);
 
   const seenRef = useRef<Set<string>>(new Set());
   const initializedRef = useRef(false);
@@ -126,6 +135,7 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
       setMatches(matchList);
       setOutgoing(outgoingList);
       setSseEnabled(Boolean(data.sseEnabled));
+      setRefereeOpenCount(Number(data.refereeOpenCount) || 0);
 
       // Surface only genuinely NEW invites — never on the first load.
       if (initializedRef.current) {
@@ -273,6 +283,7 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
     outgoing,
     loading,
     pendingCount: invites.length,
+    refereeOpenCount,
     busyId,
     busyOutgoingId,
     respond,

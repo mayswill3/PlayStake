@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
+import { RefereeProfileStatus } from "@/../generated/prisma/client";
 import { getSessionToken } from "@/lib/auth/helpers";
 import { validateSession } from "@/lib/auth/session";
 import { AuthenticationError, ValidationError, errorResponse } from "@/lib/errors/index";
+import { prisma } from "@/lib/db/client";
 import { getRedisConnection } from "@/lib/jobs/queue";
 import { isLobbyGameType } from "@/lib/lobby/games";
 import { LobbyChannels } from "@/lib/lobby/pubsub";
@@ -45,6 +47,17 @@ export async function GET(request: NextRequest) {
       LobbyChannels.inviteExpired(userId),
       LobbyChannels.expired(userId),
     ];
+
+    // Approved referees also hear the claim-pool broadcast. Events are only a
+    // nudge to re-poll /api/referees/assignments — no assignment data flows
+    // over the stream itself.
+    const refereeProfile = await prisma.refereeProfile.findUnique({
+      where: { userId },
+      select: { status: true },
+    });
+    if (refereeProfile?.status === RefereeProfileStatus.APPROVED) {
+      channels.push(LobbyChannels.referees());
+    }
 
     let heartbeat: ReturnType<typeof setInterval> | null = null;
     let closed = false;
