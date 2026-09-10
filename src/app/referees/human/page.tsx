@@ -94,7 +94,7 @@ export default function HumanRefereePage() {
         {/* What is it */}
         <Section icon={<Users size={20} />} color="green" title="What is a Human Referee?">
           <p>
-            Human referees are verified PlayStake community members who watch live matches and confirm the outcome is legitimate. While the AI Referee handles the majority of matches automatically, human referees are available for games and situations where live judgement matters.
+            Human referees are verified PlayStake community members who watch live matches and confirm the outcome is legitimate. Human referees handle refereed matches on PlayStake today; an automated AI Referee is in development to take on routine validations, with humans staying in the loop wherever live judgement matters.
           </p>
           <p>
             You are not making rulings on complex edge cases from scratch. The match gives you everything you need: a live spectator view, the game state, and both players&apos; actions. Your job is to confirm what you saw.

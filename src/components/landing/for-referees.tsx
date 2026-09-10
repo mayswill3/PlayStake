@@ -2,10 +2,10 @@ import Link from 'next/link';
 import { Bot, User, CheckCircle2, ArrowRight, Gavel, Users } from 'lucide-react';
 
 const AI_FEATURES = [
-  'Watches game state in real-time',
-  'Auto-validates results instantly',
+  'Will watch game state in real-time',
+  'Will auto-validate results instantly',
   'Available 24/7, no scheduling',
-  'Cryptographically audited log',
+  'Auditable decision log',
 ];
 
 const HUMAN_FEATURES = [
@@ -36,7 +36,7 @@ export function ForReferees() {
             Watch games. Verify results. Get paid.
           </h2>
           <p className="mt-4 text-lg text-fg-secondary max-w-2xl mx-auto">
-            Every match needs a referee. Choose your style: automated AI or a human referee.
+            Every match needs a referee. Human referees verify matches today — an automated AI referee is in development.
           </p>
         </div>
 
@@ -51,13 +51,13 @@ export function ForReferees() {
                   <Bot size={24} strokeWidth={1.75} />
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-[#06b6d4]/10 text-[#0891b2] dark:bg-[#06b6d4]/15 dark:text-[#22d3ee]">
-                  Automated
+                  Coming soon
                 </span>
               </div>
 
               <h3 className="font-display text-xl font-bold text-fg mb-1">AI Referee</h3>
               <p className="text-sm text-fg-secondary mb-5">
-                Instant, unbiased, always on. The AI engine validates results directly from game data. No human needed.
+                Instant, unbiased, always on. We&apos;re building a rules engine that will validate results directly from game data — it is not live yet.
               </p>
 
               <ul className="space-y-2.5 flex-1 mb-6">
@@ -73,7 +73,7 @@ export function ForReferees() {
                 href="/referees/ai"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-[#0891b2] dark:text-[#22d3ee] hover:opacity-80 transition-opacity"
               >
-                How AI refereeing works
+                What we&apos;re building
                 <ArrowRight size={14} />
               </Link>
             </div>

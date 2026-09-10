@@ -52,7 +52,7 @@ const STEPS_BEFORE_FORK = [
   },
 ];
 
-const AI_CHIPS = ['Screen recording required', 'Confirmed in seconds', 'Available 24/7'];
+const AI_CHIPS = ['Deterministic rules engine', 'Settles in seconds', 'In development — not yet live'];
 const HUMAN_CHIPS = ['Live match spectator', 'Manual confirmation', 'Avg. match found in under 5 mins'];
 
 const STEP_06 = {
@@ -209,7 +209,7 @@ function StepsTimeline() {
               </div>
             </div>
             <p className="text-fg-secondary text-sm leading-relaxed">
-              Before play begins, both players choose how the match will be monitored. You can either use the instant AI referee or wait for a verified human referee to be assigned.
+              Before play begins, both players agree how the match will be monitored. Today that means a verified human referee alongside automatic dual-source result checks — an instant AI referee is in development and will become an option here once it launches.
             </p>
           </div>
         </div>
@@ -233,12 +233,12 @@ function StepsTimeline() {
                     className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full"
                     style={{ background: 'rgba(6,182,212,0.12)', color: '#22d3ee' }}
                   >
-                    05a · Automated
+                    05a · Coming soon
                   </span>
                 </div>
                 <h4 className="font-display text-base font-bold text-fg mb-1">AI Referee</h4>
                 <p className="text-sm text-fg-secondary leading-relaxed flex-1 mb-4">
-                  The AI engine monitors your screen recording in real time. Once recording is confirmed, you are cleared to start immediately.
+                  In development: a deterministic rules engine that will validate results directly from game event data and clear settlement in seconds, with anything ambiguous escalated to a human.
                 </p>
                 <ul className="space-y-1.5">
                   {AI_CHIPS.map((c) => (
