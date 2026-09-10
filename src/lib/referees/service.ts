@@ -15,8 +15,19 @@ import {
   ValidationError,
 } from "@/lib/errors";
 import { appendRefereeAudit, type AuditContext } from "./audit";
+import { voidNoShowMatch } from "@/lib/lobby/match-lifecycle";
 
 export const REFEREE_DISPUTE_WINDOW_MS = 15 * 60 * 1000;
+
+/** How long an OPEN assignment may sit unclaimed before the match is voided
+ *  and both stakes refunded. Matches the general no-show window. */
+export const REFEREE_CLAIM_TTL_MS = 10 * 60 * 1000;
+/** How long a claimed referee may stall before starting the match. The
+ *  assignment is released back to OPEN so another referee can take it. */
+export const REFEREE_START_TTL_MS = 5 * 60 * 1000;
+/** Hard ceiling on an in-progress refereed match. Past this the match is
+ *  voided and refunded rather than left holding both stakes indefinitely. */
+export const REFEREE_MATCH_TTL_MS = 2 * 60 * 60 * 1000;
 
 const activeAssignmentStatuses = [
   RefereeAssignmentStatus.ASSIGNED,
@@ -500,6 +511,116 @@ async function getOwnedAssignmentForUpdate(
     throw new AuthorizationError("This assignment belongs to another referee");
   }
   return assignment;
+}
+
+export type RefereeSweepOutcome =
+  | "expired_unclaimed"
+  | "released_stalled"
+  | "voided_overrun"
+  | null;
+
+/**
+ * Apply the referee TTL rules to a single assignment. Called by the bet-expiry
+ * worker while it holds the bet's advisory lock; never from request handlers.
+ *
+ * Re-reads the assignment under FOR UPDATE and no-ops unless one of the rules
+ * still matches, so a claim, ready/start, or decision landing between the
+ * worker's scan and this transaction is never clobbered:
+ *
+ *   - OPEN and unclaimed past REFEREE_CLAIM_TTL_MS   -> void bet + refund
+ *   - ASSIGNED/READY stalled past REFEREE_START_TTL_MS -> release back to OPEN
+ *   - IN_PROGRESS past REFEREE_MATCH_TTL_MS          -> void bet + refund
+ *
+ * Voiding goes through voidNoShowMatch, which also cancels the assignment and
+ * writes the ASSIGNMENT_CANCELLED audit event.
+ */
+export async function sweepRefereeAssignment(
+  tx: TxClient,
+  assignmentId: string,
+  now: Date = new Date(),
+): Promise<RefereeSweepOutcome> {
+  const rows: Array<{ status: RefereeAssignmentStatus }> = await tx.$queryRaw`
+    SELECT status FROM referee_assignments
+    WHERE id = ${assignmentId}::uuid
+    FOR UPDATE
+  `;
+  if (!rows[0]) return null;
+
+  const assignment = await tx.refereeAssignment.findUniqueOrThrow({
+    where: { id: assignmentId },
+    include: { bet: { select: { status: true } } },
+  });
+  if (assignment.bet.status !== BetStatus.MATCHED) return null;
+
+  const olderThan = (anchor: Date | null, ttlMs: number) =>
+    anchor !== null && now.getTime() - anchor.getTime() >= ttlMs;
+
+  if (
+    assignment.status === RefereeAssignmentStatus.OPEN &&
+    olderThan(assignment.updatedAt, REFEREE_CLAIM_TTL_MS)
+  ) {
+    await appendRefereeAudit(tx, {
+      assignmentId,
+      action: "ASSIGNMENT_EXPIRED",
+      details: { reason: "no_referee_claimed", openSince: assignment.updatedAt.toISOString() },
+    });
+    await voidNoShowMatch(tx, assignment.betId);
+    return "expired_unclaimed";
+  }
+
+  const stallAnchor =
+    assignment.status === RefereeAssignmentStatus.ASSIGNED
+      ? assignment.claimedAt
+      : assignment.status === RefereeAssignmentStatus.READY
+        ? assignment.readyAt
+        : null;
+  if (stallAnchor !== null && olderThan(stallAnchor, REFEREE_START_TTL_MS)) {
+    // Release rather than void: the players are still waiting, so give the
+    // match back to the claim pool. updatedAt restarts the claim window.
+    const previousStatus = assignment.status;
+    await appendRefereeAudit(tx, {
+      assignmentId,
+      actorUserId: assignment.refereeProfileId
+        ? (
+            await tx.refereeProfile.findUniqueOrThrow({
+              where: { id: assignment.refereeProfileId },
+              select: { userId: true },
+            })
+          ).userId
+        : null,
+      action: "ASSIGNMENT_RELEASED",
+      details: { reason: "referee_stalled", previousStatus },
+    });
+    await tx.refereeAssignment.update({
+      where: { id: assignmentId },
+      data: {
+        status: RefereeAssignmentStatus.OPEN,
+        refereeProfileId: null,
+        claimedAt: null,
+        readyAt: null,
+        version: { increment: 1 },
+      },
+    });
+    return "released_stalled";
+  }
+
+  if (
+    assignment.status === RefereeAssignmentStatus.IN_PROGRESS &&
+    olderThan(assignment.startedAt, REFEREE_MATCH_TTL_MS)
+  ) {
+    await appendRefereeAudit(tx, {
+      assignmentId,
+      action: "MATCH_OVERRUN",
+      details: {
+        reason: "match_exceeded_ceiling",
+        startedAt: assignment.startedAt?.toISOString() ?? null,
+      },
+    });
+    await voidNoShowMatch(tx, assignment.betId);
+    return "voided_overrun";
+  }
+
+  return null;
 }
 
 export async function createRefereeAssignmentForBet(

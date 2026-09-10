@@ -11,9 +11,14 @@
 // dispute-escalation worker. No new escrow/ledger logic.
 // =============================================================================
 
-import { BetStatus, LedgerAccountType } from "../../../generated/prisma/client";
+import {
+  BetStatus,
+  LedgerAccountType,
+  RefereeAssignmentStatus,
+} from "../../../generated/prisma/client";
 import type { TxClient } from "../db/client";
 import { refundEscrow } from "../ledger/escrow";
+import { appendRefereeAudit } from "../referees/audit";
 
 /** How long a MATCHED bet may sit unplayed before it's treated as a no-show.
  *  Matches the orphan window already used by /api/demo/cleanup-bets. */
@@ -54,6 +59,8 @@ export async function voidNoShowMatch(
   if (!bet || bet.status !== BetStatus.MATCHED || !bet.playerBId) {
     return { voided: false, refunded: false };
   }
+
+  await cancelActiveRefereeAssignment(tx, bet.id);
 
   // Funds can only be locked through the bet's escrow account, so its absence
   // is proof that nothing was ever held.
@@ -101,4 +108,43 @@ export async function voidNoShowMatch(
   });
 
   return { voided: true, refunded: true };
+}
+
+/**
+ * Cancel the bet's referee assignment, if it has one still in a live state.
+ *
+ * Voiding a refereed bet without this leaves the referee holding a phantom
+ * ASSIGNED/IN_PROGRESS assignment: the one-active-match rule counts assignment
+ * status regardless of bet status, so the referee could never claim another
+ * match.
+ */
+async function cancelActiveRefereeAssignment(
+  tx: TxClient,
+  betId: string,
+): Promise<void> {
+  const assignment = await tx.refereeAssignment.findUnique({
+    where: { betId },
+    select: { id: true, status: true },
+  });
+  const liveStatuses: RefereeAssignmentStatus[] = [
+    RefereeAssignmentStatus.OPEN,
+    RefereeAssignmentStatus.ASSIGNED,
+    RefereeAssignmentStatus.READY,
+    RefereeAssignmentStatus.IN_PROGRESS,
+  ];
+  if (!assignment || !liveStatuses.includes(assignment.status)) return;
+
+  await tx.refereeAssignment.update({
+    where: { id: assignment.id },
+    data: {
+      status: RefereeAssignmentStatus.CANCELLED,
+      cancelledAt: new Date(),
+      version: { increment: 1 },
+    },
+  });
+  await appendRefereeAudit(tx, {
+    assignmentId: assignment.id,
+    action: "ASSIGNMENT_CANCELLED",
+    details: { reason: "bet_voided", previousStatus: assignment.status },
+  });
 }
