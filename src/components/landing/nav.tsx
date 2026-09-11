@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { href: '#games', label: 'Games' },
   { href: '#trust', label: 'Trust & Safety' },
   { href: '#faq', label: 'FAQ' },
+  { href: '#for-referees', label: 'Referees' },
 ];
 
 export function LandingNav() {

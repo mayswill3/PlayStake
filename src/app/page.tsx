@@ -5,6 +5,7 @@ import { HowItWorks } from '@/components/landing/how-it-works';
 import { BetaSignup } from '@/components/landing/beta-signup';
 import { GameModes } from '@/components/landing/game-modes';
 import { TrustSection } from '@/components/landing/trust-section';
+import { ForReferees } from '@/components/landing/for-referees';
 import { FAQ } from '@/components/landing/faq';
 import { Footer } from '@/components/layout/Footer';
 import { StickyMobileCTA } from '@/components/ui/StickyMobileCTA';
@@ -68,6 +69,7 @@ export default function HomePage() {
         <GameModes />
         <TrustSection />
         <FAQ />
+        <ForReferees />
       </main>
 
       <Footer />
