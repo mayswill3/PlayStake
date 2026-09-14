@@ -300,6 +300,14 @@ function ApplicationCard(props: {
           >
             Submit application
           </PSButton>
+          {/* Say why the button is disabled rather than leaving it silently grey. */}
+          {!props.busy && (!props.requirements.kickConnected || props.selected.length === 0) && (
+            <p className="mt-2 text-center text-xs text-ps-muted dark:text-ps-muted-on-dark" aria-live="polite">
+              {!props.requirements.kickConnected
+                ? 'Connect your Kick account to apply'
+                : 'Select at least one game to apply'}
+            </p>
+          )}
         </div>
       </div>
     </Card>
