@@ -101,6 +101,9 @@ export function Sidebar({ userRole }: SidebarProps) {
           </Link>
         </div>
 
+        {/* Time-sensitive: pinned above the nav so it's never below the fold. */}
+        <PlayerRefereeSidebarCard onNavigate={() => setMobileOpen(false)} />
+
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-ps-muted dark:text-ps-muted-on-dark">
@@ -139,7 +142,6 @@ export function Sidebar({ userRole }: SidebarProps) {
           )}
         </nav>
 
-        <PlayerRefereeSidebarCard onNavigate={() => setMobileOpen(false)} />
         <KickConnectionCard />
 
         {/* Bottom */}

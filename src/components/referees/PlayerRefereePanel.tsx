@@ -95,7 +95,7 @@ export function PlayerRefereeSidebarCard({ onNavigate }: { onNavigate?: () => vo
       href={`/bets/${assignment.bet.id}`}
       onClick={onNavigate}
       aria-label={`${referee ? `Referee: ${referee.displayName}` : 'Waiting for a referee'} — view protected match`}
-      className="group mx-3 mb-3 block shrink-0 rounded-[var(--ps-radius-lg)] border border-ps-lime/30 bg-ps-paper-elevated p-3 transition-colors hover:border-ps-lime/60 dark:bg-ps-ink-2"
+      className="group mx-3 mt-3 block shrink-0 rounded-[var(--ps-radius-lg)] border border-ps-lime/30 bg-ps-paper-elevated p-3 transition-colors hover:border-ps-lime/60 dark:bg-ps-ink-2"
     >
       <div className="flex items-center gap-2">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--ps-radius-md)] bg-ps-lime/10 text-ps-lime">
