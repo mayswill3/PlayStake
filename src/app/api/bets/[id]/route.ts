@@ -49,7 +49,7 @@ export async function GET(
                 user: {
                   select: {
                     displayName: true,
-                    kickAccount: { select: { channelSlug: true } },
+                    kickAccount: { select: { channelSlug: true, isLive: true } },
                   },
                 },
               },
@@ -148,6 +148,9 @@ export async function GET(
                   kickChannel:
                     bet.refereeAssignment.refereeProfile.user.kickAccount
                       ?.channelSlug ?? null,
+                  kickLive:
+                    bet.refereeAssignment.refereeProfile.user.kickAccount
+                      ?.isLive ?? false,
                 }
               : null,
           }

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { Scale } from 'lucide-react';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
@@ -47,6 +48,8 @@ interface BetDetail {
 }
 
 const REFEREE_POLL_MS = 5_000;
+/** Slower refresh once a referee has claimed — only live status and progress change. */
+const REFEREE_ACTIVE_POLL_MS = 10_000;
 
 type PillStatus = 'live' | 'waiting' | 'completed' | 'disputed' | 'settled' | 'expired';
 
@@ -102,11 +105,18 @@ export default function BetDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // While the match is waiting for a referee, keep the page live so the claim
-  // (or the unclaimed refund) shows up without a manual reload.
-  const awaitingReferee = bet?.refereeAssignment?.status === 'OPEN';
+  // Keep the page live for the whole refereed match: the claim (or unclaimed
+  // refund) while OPEN, then the referee's Kick live status and progress.
+  const refereeStatus = bet?.refereeAssignment?.status;
+  const refereeMatchActive =
+    refereeStatus !== undefined && ['OPEN', 'ASSIGNED', 'READY', 'IN_PROGRESS'].includes(refereeStatus);
+  const pollMs = refereeStatus === 'OPEN' ? REFEREE_POLL_MS : REFEREE_ACTIVE_POLL_MS;
+  const betRef = useRef(bet);
   useEffect(() => {
-    if (!awaitingReferee) return;
+    betRef.current = bet;
+  }, [bet]);
+  useEffect(() => {
+    if (!refereeMatchActive) return;
     let active = true;
     const timer = window.setInterval(async () => {
       try {
@@ -114,22 +124,23 @@ export default function BetDetailPage() {
         if (!response.ok || !active) return;
         const next: BetDetail = await response.json();
         if (!active) return;
+        const previous = betRef.current;
         setBet(next);
         const referee = next.refereeAssignment?.referee;
-        if (referee) {
+        if (referee && !previous?.refereeAssignment?.referee) {
           toast('success', `${referee.displayName} claimed your match — you're protected.`);
-        } else if (next.status === 'VOIDED') {
+        } else if (next.status === 'VOIDED' && previous?.status !== 'VOIDED') {
           toast('info', 'No referee claimed in time — both stakes were refunded.');
         }
       } catch {
         /* network blip — the next poll retries */
       }
-    }, REFEREE_POLL_MS);
+    }, pollMs);
     return () => {
       active = false;
       window.clearInterval(timer);
     };
-  }, [awaitingReferee, id, toast]);
+  }, [refereeMatchActive, pollMs, id, toast]);
 
   const refereeDeadlineOpen = !bet?.refereeAssignment?.disputeDeadline ||
     new Date(bet.refereeAssignment.disputeDeadline).getTime() > Date.now();
@@ -253,12 +264,22 @@ export default function BetDetailPage() {
           />
         )}
 
-        {/* Kick streams — watch participants' live streams during the bet */}
+        {/* Kick streams — the players' feeds, plus the referee officiating on camera */}
         <KickStreamsSection
           players={[
             { name: bet.playerA.displayName, kick: bet.playerA.kick },
             ...(bet.playerB
               ? [{ name: bet.playerB.displayName, kick: bet.playerB.kick }]
+              : []),
+            ...(bet.refereeAssignment?.referee?.kickChannel
+              ? [{
+                  name: bet.refereeAssignment.referee.displayName,
+                  kick: {
+                    channelSlug: bet.refereeAssignment.referee.kickChannel,
+                    isLive: bet.refereeAssignment.referee.kickLive,
+                  },
+                  isReferee: true,
+                }]
               : []),
           ]}
         />
@@ -356,13 +377,15 @@ export default function BetDetailPage() {
   );
 }
 
-function KickStreamsSection({
-  players,
-}: {
-  players: { name: string; kick: KickInfo | null }[];
-}) {
+interface StreamTile {
+  name: string;
+  kick: KickInfo | null;
+  isReferee?: boolean;
+}
+
+function KickStreamsSection({ players }: { players: StreamTile[] }) {
   const streamers = players.filter(
-    (p): p is { name: string; kick: KickInfo } => p.kick !== null,
+    (p): p is StreamTile & { kick: KickInfo } => p.kick !== null,
   );
   if (streamers.length === 0) return null;
 
@@ -376,6 +399,12 @@ function KickStreamsSection({
               <p className="text-sm font-display font-medium text-ps-text dark:text-ps-text-on-dark truncate">
                 {p.name}
               </p>
+              {p.isReferee && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-ps-lime/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ps-lime">
+                  <Scale className="h-3 w-3" aria-hidden="true" />
+                  Referee
+                </span>
+              )}
               {p.kick.isLive ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-ps-error/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ps-error">
                   <span className="h-1.5 w-1.5 rounded-full bg-ps-error animate-pulse" />

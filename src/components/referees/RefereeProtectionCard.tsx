@@ -15,7 +15,7 @@ export interface RefereeAssignmentView {
   claimOpenedAt: string | null;
   claimDeadline: string | null;
   rewardPolicy: string;
-  referee: { displayName: string; kickChannel: string | null } | null;
+  referee: { displayName: string; kickChannel: string | null; kickLive: boolean } | null;
 }
 
 interface RefereeProtectionCardProps {
@@ -38,8 +38,22 @@ export function RefereeProtectionCard({ assignment, gameName, stakeCents }: Refe
             {assignment.referee
               ? `${assignment.referee.displayName} is the independent referee`
               : 'Waiting for an approved referee to claim this match'}
-            {assignment.referee?.kickChannel ? ` · Kick: ${assignment.referee.kickChannel}` : ''}
           </p>
+          {assignment.referee?.kickChannel && (
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold">
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  assignment.referee.kickLive ? 'bg-ps-error animate-pulse' : 'bg-ps-muted'
+                }`}
+                aria-hidden="true"
+              />
+              <span className={assignment.referee.kickLive ? 'text-ps-error' : 'text-ps-muted dark:text-ps-muted-on-dark'}>
+                {assignment.referee.kickLive
+                  ? `Officiating live on Kick · ${assignment.referee.kickChannel}`
+                  : `Referee offline on Kick · ${assignment.referee.kickChannel}`}
+              </span>
+            </p>
+          )}
           <p className="mt-1 text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">
             Reward: {assignment.rewardPolicy}
             {assignment.disputeDeadline
