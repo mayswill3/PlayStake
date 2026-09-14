@@ -3,6 +3,7 @@ import { prisma } from "../../../../lib/db/client";
 import { validateSession } from "../../../../lib/auth/session";
 import { getSessionToken } from "../../../../lib/auth/helpers";
 import { dollarsToCents } from "../../../../lib/utils/money";
+import { REFEREE_CLAIM_TTL_MS } from "../../../../lib/referees/service";
 import {
   errorResponse,
   AuthenticationError,
@@ -125,6 +126,20 @@ export async function GET(
             decision: bet.refereeAssignment.decision,
             disputeDeadline:
               bet.refereeAssignment.disputeDeadline?.toISOString() ?? null,
+            // The claim window: when an unclaimed assignment is voided and
+            // refunded by the bet-expiry sweep — anchored on updatedAt exactly
+            // as sweepRefereeAssignment does (a released match restarts it).
+            claimOpenedAt:
+              bet.refereeAssignment.status === "OPEN"
+                ? bet.refereeAssignment.updatedAt.toISOString()
+                : null,
+            claimDeadline:
+              bet.refereeAssignment.status === "OPEN"
+                ? new Date(
+                    bet.refereeAssignment.updatedAt.getTime() +
+                      REFEREE_CLAIM_TTL_MS,
+                  ).toISOString()
+                : null,
             rewardPolicy: "10% of the platform fee",
             referee: bet.refereeAssignment.refereeProfile
               ? {

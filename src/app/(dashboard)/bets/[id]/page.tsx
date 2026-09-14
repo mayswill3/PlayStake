@@ -14,6 +14,10 @@ import { StatusPill } from '@/components/ui/playstake/StatusPill';
 import { KickPlayer } from '@/components/ui/playstake/KickPlayer';
 import { StepIndicator } from '@/components/ui/playstake/StepIndicator';
 import { PSButton } from '@/components/ui/playstake/PSButton';
+import {
+  RefereeProtectionCard,
+  type RefereeAssignmentView,
+} from '@/components/referees/RefereeProtectionCard';
 import { formatCents, formatDate } from '@/lib/utils/format';
 
 interface KickInfo {
@@ -39,15 +43,10 @@ interface BetDetail {
   resultReportedAt: string | null;
   settledAt: string | null;
   matchType: string;
-  refereeAssignment: null | {
-    id: string;
-    status: string;
-    decision: string | null;
-    disputeDeadline: string | null;
-    rewardPolicy: string;
-    referee: { displayName: string; kickChannel: string | null } | null;
-  };
+  refereeAssignment: RefereeAssignmentView | null;
 }
+
+const REFEREE_POLL_MS = 5_000;
 
 type PillStatus = 'live' | 'waiting' | 'completed' | 'disputed' | 'settled' | 'expired';
 
@@ -102,6 +101,35 @@ export default function BetDetailPage() {
       .catch(() => setError('Failed to load bet details.'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // While the match is waiting for a referee, keep the page live so the claim
+  // (or the unclaimed refund) shows up without a manual reload.
+  const awaitingReferee = bet?.refereeAssignment?.status === 'OPEN';
+  useEffect(() => {
+    if (!awaitingReferee) return;
+    let active = true;
+    const timer = window.setInterval(async () => {
+      try {
+        const response = await fetch(`/api/bets/${id}`, { cache: 'no-store' });
+        if (!response.ok || !active) return;
+        const next: BetDetail = await response.json();
+        if (!active) return;
+        setBet(next);
+        const referee = next.refereeAssignment?.referee;
+        if (referee) {
+          toast('success', `${referee.displayName} claimed your match — you're protected.`);
+        } else if (next.status === 'VOIDED') {
+          toast('info', 'No referee claimed in time — both stakes were refunded.');
+        }
+      } catch {
+        /* network blip — the next poll retries */
+      }
+    }, REFEREE_POLL_MS);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [awaitingReferee, id, toast]);
 
   const refereeDeadlineOpen = !bet?.refereeAssignment?.disputeDeadline ||
     new Date(bet.refereeAssignment.disputeDeadline).getTime() > Date.now();
@@ -218,39 +246,11 @@ export default function BetDetailPage() {
         </DarkGlowCard>
 
         {bet.refereeAssignment && (
-          <Card>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <CardTitle>Human referee protection</CardTitle>
-                <p className="mt-2 text-sm text-ps-muted dark:text-ps-muted-on-dark">
-                  {bet.refereeAssignment.referee
-                    ? `${bet.refereeAssignment.referee.displayName} is the independent referee`
-                    : 'Waiting for an approved referee to claim this match'}
-                  {bet.refereeAssignment.referee?.kickChannel
-                    ? ` · Kick: ${bet.refereeAssignment.referee.kickChannel}`
-                    : ''}
-                </p>
-                <p className="mt-1 text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">
-                  Reward: {bet.refereeAssignment.rewardPolicy}
-                  {bet.refereeAssignment.disputeDeadline
-                    ? ` · Dispute deadline ${formatDate(bet.refereeAssignment.disputeDeadline)}`
-                    : ' · Funds remain locked until a reviewed result'}
-                </p>
-              </div>
-              <StatusPill
-                status={bet.refereeAssignment.status === 'DISPUTED' ? 'disputed' : bet.refereeAssignment.referee ? 'live' : 'waiting'}
-                label={bet.refereeAssignment.status.replace(/_/g, ' ')}
-              />
-            </div>
-            <a
-              href={`/api/referees/assignments/${bet.refereeAssignment.id}/audit`}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 inline-block text-xs font-semibold text-ps-lime hover:underline"
-            >
-              Verify immutable audit trail
-            </a>
-          </Card>
+          <RefereeProtectionCard
+            assignment={bet.refereeAssignment}
+            gameName={bet.game.name}
+            stakeCents={bet.amount}
+          />
         )}
 
         {/* Kick streams — watch participants' live streams during the bet */}
