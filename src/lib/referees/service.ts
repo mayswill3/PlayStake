@@ -52,7 +52,7 @@ export async function getRefereeProfile(userId: string) {
       where: { id: userId },
       select: {
         kycStatus: true,
-        kickAccount: { select: { channelSlug: true } },
+        kickAccount: { select: { channelSlug: true, isLive: true } },
       },
     }),
   ]);
@@ -63,6 +63,8 @@ export async function getRefereeProfile(userId: string) {
     requirements: {
       kickConnected: Boolean(account.kickAccount?.channelSlug),
       kycVerified: account.kycStatus === KycStatus.VERIFIED,
+      /** Required to start officiating (not to claim). */
+      kickLive: Boolean(account.kickAccount?.isLive),
     },
   };
 }
@@ -219,10 +221,10 @@ export async function listRefereeAssignments(userId: string, scope: string) {
     });
   }
 
-  if (
-    profile.status !== RefereeProfileStatus.APPROVED ||
-    !profile.isAvailable
-  ) {
+  // Approved referees see waiting matches even while unavailable, so demand is
+  // visible before they commit to going available. Claiming still requires
+  // availability (and KYC) — claimAssignment enforces that, not this listing.
+  if (profile.status !== RefereeProfileStatus.APPROVED) {
     return [];
   }
 
@@ -389,6 +391,18 @@ export async function advanceAssignment(
       throw new ConflictError(
         "Both players must be live on Kick with the assigned game",
       );
+    }
+    // Officiating happens on camera: the referee must be live on their own Kick
+    // channel to start, so players and viewers can watch the call being made.
+    // Claiming and READY stay open to offline referees to keep claims fast.
+    if (action === "START") {
+      const refereeKick = await tx.kickAccount.findUnique({
+        where: { userId },
+        select: { isLive: true },
+      });
+      if (!refereeKick?.isLive) {
+        throw new ConflictError("Go live on Kick before you start officiating");
+      }
     }
 
     const now = new Date();

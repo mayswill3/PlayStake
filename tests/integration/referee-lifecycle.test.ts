@@ -20,7 +20,9 @@ import {
 } from "../../generated/prisma/client.js";
 import { withTransaction } from "../../src/lib/db/client.js";
 import {
+  advanceAssignment,
   claimAssignment,
+  listRefereeAssignments,
   sweepRefereeAssignment,
   REFEREE_CLAIM_TTL_MS,
   REFEREE_START_TTL_MS,
@@ -206,6 +208,56 @@ describe("Referee lifecycle: claiming", () => {
     });
     expect(claimed.status).toBe(RefereeAssignmentStatus.ASSIGNED);
     expect([ref1.profile.id, ref2.profile.id]).toContain(claimed.refereeProfileId);
+  });
+
+  it("shows waiting matches to an unavailable referee but refuses their claim", async () => {
+    const { assignment } = await makeClaimableMatch();
+    const referee = await makeReferee("Ref Life Offline");
+    await prisma.refereeProfile.update({
+      where: { id: referee.profile.id },
+      data: { isAvailable: false },
+    });
+
+    // Demand is visible while off duty...
+    const listed = await listRefereeAssignments(referee.user.id, "available");
+    expect(listed.map((item) => item.id)).toContain(assignment.id);
+
+    // ...but claiming still requires going available.
+    await expect(claimAssignment(referee.user.id, assignment.id)).rejects.toBeInstanceOf(
+      ConflictError,
+    );
+    const after = await prisma.refereeAssignment.findUniqueOrThrow({
+      where: { id: assignment.id },
+    });
+    expect(after.status).toBe(RefereeAssignmentStatus.OPEN);
+    expect(after.refereeProfileId).toBeNull();
+  });
+});
+
+describe("Referee lifecycle: officiating on camera", () => {
+  it("lets an offline referee get ready but only start once live on Kick", async () => {
+    const { assignment } = await makeClaimableMatch();
+    const referee = await makeReferee("Ref Life Camera");
+
+    // Claim and READY don't require the referee to be streaming...
+    await claimAssignment(referee.user.id, assignment.id);
+    const ready = await advanceAssignment(referee.user.id, assignment.id, "READY");
+    expect(ready.status).toBe(RefereeAssignmentStatus.READY);
+
+    // ...but starting the match does.
+    await expect(
+      advanceAssignment(referee.user.id, assignment.id, "START"),
+    ).rejects.toBeInstanceOf(ConflictError);
+    expect(
+      (await prisma.refereeAssignment.findUniqueOrThrow({ where: { id: assignment.id } })).status,
+    ).toBe(RefereeAssignmentStatus.READY);
+
+    await prisma.kickAccount.update({
+      where: { userId: referee.user.id },
+      data: { isLive: true },
+    });
+    const started = await advanceAssignment(referee.user.id, assignment.id, "START");
+    expect(started.status).toBe(RefereeAssignmentStatus.IN_PROGRESS);
   });
 });
 

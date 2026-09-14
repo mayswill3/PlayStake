@@ -18,7 +18,7 @@ interface ProfileResponse {
     qualifications: { game: Game }[];
   };
   games: Game[];
-  requirements: { kickConnected: boolean; kycVerified: boolean };
+  requirements: { kickConnected: boolean; kycVerified: boolean; kickLive: boolean };
 }
 interface Assignment {
   id: string;
@@ -161,8 +161,12 @@ export default function RefereeHubPage() {
     );
   }
 
+  // Unavailable referees can see waiting matches, but alerts are only for
+  // referees who are actually on duty.
+  const isAvailable = profileData?.profile?.isAvailable ?? false;
   useEffect(() => {
     if (
+      isAvailable &&
       available.length > 0 &&
       typeof Notification !== 'undefined' &&
       Notification.permission === 'granted'
@@ -175,7 +179,7 @@ export default function RefereeHubPage() {
         });
       }
     }
-  }, [available]);
+  }, [available, isAvailable]);
 
   if (!profileData) return <div className="py-20 text-center text-ps-muted">Loading referee hub…</div>;
 
@@ -198,6 +202,7 @@ export default function RefereeHubPage() {
               variant={profileData.profile.isAvailable ? 'danger' : 'primary'}
               disabled={busy}
               onClick={toggleAvailability}
+              className="whitespace-nowrap"
             >
               {profileData.profile.isAvailable ? 'Go unavailable' : 'Go available'}
             </PSButton>
@@ -243,9 +248,21 @@ export default function RefereeHubPage() {
             </Card>
           )}
           {active ? (
-            <RefereeWorkbench assignment={active} busy={busy} onAction={assignmentAction} />
+            <RefereeWorkbench
+              assignment={active}
+              busy={busy}
+              refereeLive={profileData.requirements.kickLive}
+              onAction={assignmentAction}
+            />
           ) : (
-            <AvailableMatches assignments={available} busy={busy} onClaim={(id) => assignmentAction(id, 'claim')} />
+            <AvailableMatches
+              assignments={available}
+              busy={busy}
+              isAvailable={isAvailable}
+              canGoAvailable={profileData.requirements.kycVerified}
+              onGoAvailable={toggleAvailability}
+              onClaim={(id) => assignmentAction(id, 'claim')}
+            />
           )}
           <AssignmentHistory assignments={mine} />
         </>
@@ -323,17 +340,46 @@ function Requirement({ ok, label }: { ok: boolean; label: string }) {
   );
 }
 
-function AvailableMatches({ assignments, busy, onClaim }: { assignments: Assignment[]; busy: boolean; onClaim: (id: string) => void }) {
+function AvailableMatches({
+  assignments,
+  busy,
+  isAvailable,
+  canGoAvailable,
+  onGoAvailable,
+  onClaim,
+}: {
+  assignments: Assignment[];
+  busy: boolean;
+  isAvailable: boolean;
+  canGoAvailable: boolean;
+  onGoAvailable: () => void;
+  onClaim: (id: string) => void;
+}) {
   return (
     <Card>
       <div className="flex items-center justify-between">
         <CardTitle>Available live matches</CardTitle>
         <StatusPill status={assignments.length ? 'live' : 'waiting'} label={`${assignments.length} waiting`} />
       </div>
+      {!isAvailable && assignments.length > 0 && (
+        <div className="mt-4 flex flex-col gap-3 rounded-xl border border-ps-lime/40 bg-ps-lime/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-ps-text dark:text-white">
+            {assignments.length === 1 ? 'A match needs' : `${assignments.length} matches need`} a referee.{' '}
+            <span className="text-ps-muted dark:text-ps-muted-on-dark">
+              {canGoAvailable ? 'Go available to claim.' : 'Verify your identity to go available and claim.'}
+            </span>
+          </p>
+          {canGoAvailable && (
+            <PSButton size="sm" disabled={busy} onClick={onGoAvailable}>Go available</PSButton>
+          )}
+        </div>
+      )}
       <div className="mt-4 space-y-3">
         {assignments.length === 0 ? (
           <p className="py-8 text-center text-sm text-ps-muted dark:text-ps-muted-on-dark">
-            No eligible same-game live matches need a referee right now.
+            {isAvailable
+              ? 'No eligible same-game live matches need a referee right now.'
+              : 'No matches need a referee right now. Go available to be alerted when one does.'}
           </p>
         ) : assignments.map((assignment) => (
           <div key={assignment.id} className="flex flex-col gap-3 rounded-xl border border-[var(--ps-border-light)] p-4 dark:border-[var(--ps-border-dark)] sm:flex-row sm:items-center sm:justify-between">
@@ -346,7 +392,13 @@ function AvailableMatches({ assignments, busy, onClaim }: { assignments: Assignm
                 ${(Number(assignment.bet.amount) * 2 * Number(assignment.bet.platformFeePercent) * Number(assignment.rewardPercent)).toFixed(2)} referee fee
               </p>
             </div>
-            <PSButton disabled={busy} onClick={() => onClaim(assignment.id)}>Claim match</PSButton>
+            <PSButton
+              disabled={busy || !isAvailable}
+              title={isAvailable ? undefined : 'Go available to claim this match'}
+              onClick={() => onClaim(assignment.id)}
+            >
+              Claim match
+            </PSButton>
           </div>
         ))}
       </div>
@@ -354,9 +406,31 @@ function AvailableMatches({ assignments, busy, onClaim }: { assignments: Assignm
   );
 }
 
-function RefereeWorkbench({ assignment, busy, onAction }: { assignment: Assignment; busy: boolean; onAction: (id: string, endpoint: string, body?: object) => void }) {
+function RefereeWorkbench({
+  assignment,
+  busy,
+  refereeLive,
+  onAction,
+}: {
+  assignment: Assignment;
+  busy: boolean;
+  refereeLive: boolean;
+  onAction: (id: string, endpoint: string, body?: object) => void;
+}) {
   const [decision, setDecision] = useState('PLAYER_A_WIN');
   const [notes, setNotes] = useState('');
+
+  // The live flag is webhook-driven; if Kick's webhook is slow or missed, the
+  // /api/kick/live poll re-checks Kick directly and syncs the flag, which the
+  // hub's own 10s profile poll then picks up.
+  const waitingToGoLive = assignment.status === 'READY' && !refereeLive;
+  useEffect(() => {
+    if (!waitingToGoLive) return;
+    const sync = () => void fetch('/api/kick/live', { cache: 'no-store' }).catch(() => {});
+    sync();
+    const timer = window.setInterval(sync, 10_000);
+    return () => window.clearInterval(timer);
+  }, [waitingToGoLive]);
   const players = [assignment.bet.playerA, assignment.bet.playerB].filter(Boolean) as Player[];
 
   return (
@@ -387,11 +461,40 @@ function RefereeWorkbench({ assignment, busy, onAction }: { assignment: Assignme
             </PSButton>
           )}
           {assignment.status === 'READY' && (
-            <PSButton disabled={busy} onClick={() => onAction(assignment.id, 'action', { action: 'START' })}>
+            <PSButton
+              disabled={busy || !refereeLive}
+              onClick={() => onAction(assignment.id, 'action', { action: 'START' })}
+            >
               Start officiating
             </PSButton>
           )}
         </div>
+        {/* Officiating happens on camera — the server refuses START until the
+            referee's own Kick channel is live. */}
+        {assignment.status === 'READY' && !refereeLive && (
+          <div className="mt-4 flex flex-col gap-3 rounded-xl border border-ps-warning/40 bg-ps-warning/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-ps-text dark:text-white">
+              Go live on Kick to start officiating.{' '}
+              <span className="text-ps-muted dark:text-ps-muted-on-dark">
+                Players and viewers watch the referee on the match page. This unlocks automatically once Kick reports you live.
+              </span>
+            </p>
+            <a href="https://dashboard.kick.com/" target="_blank" rel="noopener noreferrer" className="shrink-0">
+              <PSButton size="sm" variant="ghost">Open Kick</PSButton>
+            </a>
+          </div>
+        )}
+        {assignment.status !== 'READY' && (
+          <p className="mt-4 flex items-center gap-1.5 text-xs font-semibold">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${refereeLive ? 'bg-ps-error animate-pulse' : 'bg-ps-muted'}`}
+              aria-hidden="true"
+            />
+            <span className={refereeLive ? 'text-ps-error' : 'text-ps-muted dark:text-ps-muted-on-dark'}>
+              {refereeLive ? 'You are live on Kick' : 'You are offline on Kick'}
+            </span>
+          </p>
+        )}
       </Card>
       {assignment.status === 'IN_PROGRESS' && (
         <Card>
