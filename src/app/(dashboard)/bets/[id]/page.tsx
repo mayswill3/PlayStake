@@ -17,6 +17,7 @@ import {
   RefereeProtectionCard,
   type RefereeAssignmentView,
 } from '@/components/referees/RefereeProtectionCard';
+import { MatchChat } from '@/components/matches/MatchChat';
 import { MatchStreams } from '@/components/matches/MatchStreams';
 import { formatCents, formatDate } from '@/lib/utils/format';
 
@@ -285,6 +286,9 @@ export default function BetDetailPage() {
             />
           </Card>
         )}
+
+        {/* The spectator chat from /watch — read-only for the players. */}
+        {bet.matchType === 'STREAM_VS_STREAM' && <MatchChat betId={bet.id} className="h-[420px]" />}
 
         {/* Timeline */}
         <Card>

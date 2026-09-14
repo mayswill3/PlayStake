@@ -230,6 +230,8 @@ model User {
   depositLimits        DepositLimit[]
   playBreaks           PlayBreak[]
   responsiblePlay      ResponsiblePlaySettings?
+  chatMessages         MatchChatMessage[]       @relation("ChatAuthor")
+  chatModerations      MatchChatMessage[]       @relation("ChatModerator")
 
   @@index([email], map: "idx_user_email")
   @@index([stripeCustomerId], map: "idx_user_stripe_customer")
@@ -512,6 +514,7 @@ model Bet {
   webhookLogs       WebhookDeliveryLog[]
   streamChallenge   StreamChallenge?
   refereeAssignment RefereeAssignment?
+  chatMessages      MatchChatMessage[]
 
   @@index([gameId, status], map: "idx_bet_game_status")
   @@index([playerAId, status], map: "idx_bet_player_a_status")
@@ -992,4 +995,26 @@ model ResponsiblePlaySettings {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("responsible_play_settings")
+}
+
+/// Live chat for a match: one room per bet, shared by both players, the
+/// referee and — for refereed stream matches — spectators. Moderators
+/// soft-delete (deletedAt) so a removed message stays auditable.
+model MatchChatMessage {
+  id          String    @id @default(uuid()) @db.Uuid
+  betId       String    @map("bet_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  body        String    @db.VarChar(280)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  deletedAt   DateTime? @map("deleted_at")
+  deletedById String?   @map("deleted_by_id") @db.Uuid
+
+  bet       Bet   @relation(fields: [betId], references: [id], onDelete: Cascade)
+  user      User  @relation("ChatAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  deletedBy User? @relation("ChatModerator", fields: [deletedById], references: [id], onDelete: SetNull)
+
+  @@index([betId, createdAt], map: "idx_match_chat_bet_created")
+  @@index([betId, deletedAt], map: "idx_match_chat_bet_deleted")
+  @@index([userId, createdAt], map: "idx_match_chat_user_created")
+  @@map("match_chat_messages")
 }

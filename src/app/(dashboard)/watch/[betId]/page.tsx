@@ -8,6 +8,7 @@ import { Card, CardTitle } from '@/components/ui/Card';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { Spinner } from '@/components/ui/Spinner';
 import { DarkGlowCard } from '@/components/ui/playstake/DarkGlowCard';
+import { MatchChat } from '@/components/matches/MatchChat';
 import { MatchStreams } from '@/components/matches/MatchStreams';
 import {
   ACTIVE_PHASES,
@@ -78,7 +79,7 @@ export default function WatchMatchPage() {
 
   return (
     <FadeIn>
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className="mx-auto max-w-7xl space-y-6">
         <Link
           href="/watch"
           className="inline-block text-sm font-mono text-ps-muted transition-colors hover:text-ps-text dark:text-ps-muted-on-dark dark:hover:text-ps-text-on-dark"
@@ -89,20 +90,27 @@ export default function WatchMatchPage() {
         <Scoreboard match={match} />
         <ResultBanner match={match} />
 
-        <Card>
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <CardTitle>Watch on Kick</CardTitle>
-            {match.phase === 'FINDING_REFEREE' && (
-              <span className="text-xs text-ps-muted dark:text-ps-muted-on-dark">
-                The referee cam appears here once a referee claims the match
-              </span>
-            )}
-          </div>
-          <MatchStreams
-            referee={match.referee ? toStream(match.referee) : null}
-            players={[match.playerA, ...(match.playerB ? [match.playerB] : [])].map(toStream)}
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <Card className="min-w-0">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <CardTitle>Watch on Kick</CardTitle>
+              {match.phase === 'FINDING_REFEREE' && (
+                <span className="text-xs text-ps-muted dark:text-ps-muted-on-dark">
+                  The referee cam appears here once a referee claims the match
+                </span>
+              )}
+            </div>
+            <MatchStreams
+              referee={match.referee ? toStream(match.referee) : null}
+              players={[match.playerA, ...(match.playerB ? [match.playerB] : [])].map(toStream)}
+            />
+          </Card>
+          {/* Beside the streams on wide screens (pinned while scrolling), below them otherwise. */}
+          <MatchChat
+            betId={match.betId}
+            className="h-[520px] xl:sticky xl:top-20 xl:h-[calc(100vh-7rem)] xl:max-h-[780px]"
           />
-        </Card>
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Assurance icon={<Lock className="h-4 w-4" />} title="Stakes in escrow">

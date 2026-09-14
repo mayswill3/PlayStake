@@ -221,3 +221,13 @@ export const kycSubmissionRateLimit = rateLimit({
   maxRequests: 5,
   keyFn: (req) => `kyc-submission:${getClientIp(req)}`,
 });
+
+/**
+ * Match chat: 20 messages per minute per IP. Backs up the per-user cooldown in
+ * the chat service, which catches a single account hopping IPs.
+ */
+export const chatMessageRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  maxRequests: 20,
+  keyFn: (req) => `chat-message:${getClientIp(req)}`,
+});
