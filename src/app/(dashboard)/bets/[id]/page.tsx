@@ -198,10 +198,12 @@ export default function BetDetailPage() {
   }
 
   const outcomeDisplay = getOutcomeDisplay(bet.outcome);
+  // Stream matches carry the spectator chat, shown as a right-hand column.
+  const hasChat = bet.matchType === 'STREAM_VS_STREAM';
 
   return (
     <FadeIn>
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className={`${hasChat ? 'max-w-6xl' : 'max-w-3xl'} mx-auto space-y-6`}>
         <div className="flex items-center justify-between">
           <div>
             <button
@@ -215,141 +217,156 @@ export default function BetDetailPage() {
           <StatusPill status={mapBetStatusToPill(bet.status)} label={bet.status.replace(/_/g, ' ')} />
         </div>
 
-        {/* Main info */}
-        <DarkGlowCard>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Game</p>
-              <p className="text-ps-text-on-dark font-display font-medium">{bet.game.name}</p>
-            </div>
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Stake</p>
-              <p className="text-ps-lime font-display font-semibold text-lg tabular-nums">{formatCents(bet.amount)}</p>
-            </div>
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Player A</p>
-              <p className="font-mono text-ps-text-on-dark">{bet.playerA.displayName}</p>
-            </div>
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Player B</p>
-              <p className="font-mono text-ps-text-on-dark">{bet.playerB?.displayName ?? 'Awaiting opponent'}</p>
-            </div>
-            {bet.outcome && (
-              <div>
-                <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Outcome</p>
-                <p className={`font-display font-semibold ${outcomeDisplay.color}`}>{outcomeDisplay.label}</p>
+        {/* On xl the chat is a sticky right-hand column spanning both left groups;
+            below xl everything stacks, with the chat straight after the streams. */}
+        <div className={`grid items-start gap-6 ${hasChat ? 'xl:grid-cols-[minmax(0,1fr)_340px]' : ''}`}>
+          <div className="min-w-0 space-y-6 xl:col-start-1 xl:row-start-1">
+            {/* Main info */}
+            <DarkGlowCard>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Game</p>
+                  <p className="text-ps-text-on-dark font-display font-medium">{bet.game.name}</p>
+                </div>
+                <div>
+                  <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Stake</p>
+                  <p className="text-ps-lime font-display font-semibold text-lg tabular-nums">{formatCents(bet.amount)}</p>
+                </div>
+                <div>
+                  <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Player A</p>
+                  <p className="font-mono text-ps-text-on-dark">{bet.playerA.displayName}</p>
+                </div>
+                <div>
+                  <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Player B</p>
+                  <p className="font-mono text-ps-text-on-dark">{bet.playerB?.displayName ?? 'Awaiting opponent'}</p>
+                </div>
+                {bet.outcome && (
+                  <div>
+                    <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Outcome</p>
+                    <p className={`font-display font-semibold ${outcomeDisplay.color}`}>{outcomeDisplay.label}</p>
+                  </div>
+                )}
+                {bet.platformFeeAmount !== null && (
+                  <div>
+                    <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Platform Fee</p>
+                    <p className="font-mono tabular-nums text-ps-muted-on-dark">{formatCents(bet.platformFeeAmount)}</p>
+                  </div>
+                )}
               </div>
+
+              {bet.externalId && (
+                <div className="mt-4 pt-4 border-t border-[var(--ps-border-dark)]">
+                  <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">External Match ID</p>
+                  <p className="text-ps-muted-on-dark text-sm font-mono">{bet.externalId}</p>
+                </div>
+              )}
+            </DarkGlowCard>
+
+            {bet.refereeAssignment && (
+              <RefereeProtectionCard
+                assignment={bet.refereeAssignment}
+                gameName={bet.game.name}
+                stakeCents={bet.amount}
+              />
             )}
-            {bet.platformFeeAmount !== null && (
-              <div>
-                <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">Platform Fee</p>
-                <p className="font-mono tabular-nums text-ps-muted-on-dark">{formatCents(bet.platformFeeAmount)}</p>
-              </div>
+
+            {/* Kick streams — the players' feeds, plus the referee officiating on camera */}
+            {(bet.playerA.kick || bet.playerB?.kick || bet.refereeAssignment?.referee?.kickChannel) && (
+              <Card>
+                <CardTitle className="mb-4">Watch on Kick</CardTitle>
+                <MatchStreams
+                  referee={
+                    bet.refereeAssignment?.referee
+                      ? {
+                          name: bet.refereeAssignment.referee.displayName,
+                          channelSlug: bet.refereeAssignment.referee.kickChannel,
+                          isLive: bet.refereeAssignment.referee.kickLive,
+                        }
+                      : null
+                  }
+                  players={[bet.playerA, ...(bet.playerB ? [bet.playerB] : [])].map((player) => ({
+                    name: player.displayName,
+                    channelSlug: player.kick?.channelSlug ?? null,
+                    isLive: player.kick?.isLive ?? false,
+                  }))}
+                />
+              </Card>
             )}
           </div>
 
-          {bet.externalId && (
-            <div className="mt-4 pt-4 border-t border-[var(--ps-border-dark)]">
-              <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark">External Match ID</p>
-              <p className="text-ps-muted-on-dark text-sm font-mono">{bet.externalId}</p>
+          {/* The spectator chat from /watch — read-only for the players. */}
+          {hasChat && (
+            <div className="xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:self-stretch">
+              <MatchChat
+                betId={bet.id}
+                className="h-[420px] xl:sticky xl:top-20 xl:h-[calc(100vh-7rem)] xl:max-h-[720px]"
+              />
             </div>
           )}
-        </DarkGlowCard>
 
-        {bet.refereeAssignment && (
-          <RefereeProtectionCard
-            assignment={bet.refereeAssignment}
-            gameName={bet.game.name}
-            stakeCents={bet.amount}
-          />
-        )}
-
-        {/* Kick streams — the players' feeds, plus the referee officiating on camera */}
-        {(bet.playerA.kick || bet.playerB?.kick || bet.refereeAssignment?.referee?.kickChannel) && (
-          <Card>
-            <CardTitle className="mb-4">Watch on Kick</CardTitle>
-            <MatchStreams
-              referee={
-                bet.refereeAssignment?.referee
-                  ? {
-                      name: bet.refereeAssignment.referee.displayName,
-                      channelSlug: bet.refereeAssignment.referee.kickChannel,
-                      isLive: bet.refereeAssignment.referee.kickLive,
-                    }
-                  : null
-              }
-              players={[bet.playerA, ...(bet.playerB ? [bet.playerB] : [])].map((player) => ({
-                name: player.displayName,
-                channelSlug: player.kick?.channelSlug ?? null,
-                isLive: player.kick?.isLive ?? false,
-              }))}
-            />
-          </Card>
-        )}
-
-        {/* The spectator chat from /watch — read-only for the players. */}
-        {bet.matchType === 'STREAM_VS_STREAM' && <MatchChat betId={bet.id} className="h-[420px]" />}
-
-        {/* Timeline */}
-        <Card>
-          <CardTitle className="mb-4">Match Timeline</CardTitle>
-          <StepIndicator
-            steps={[
-              { label: 'Created' },
-              { label: 'Matched' },
-              { label: 'Result Reported' },
-              { label: 'Settled' },
-            ]}
-            currentStep={getTimelineStep(bet)}
-            orientation="auto"
-          />
-          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">
-            <span>{bet.createdAt ? formatDate(bet.createdAt) : '-'}</span>
-            <span>{bet.matchedAt ? formatDate(bet.matchedAt) : '-'}</span>
-            <span>{bet.resultReportedAt ? formatDate(bet.resultReportedAt) : '-'}</span>
-            <span>{bet.settledAt ? formatDate(bet.settledAt) : '-'}</span>
-          </div>
-        </Card>
-
-        {/* Game metadata */}
-        {bet.gameMetadata && Object.keys(bet.gameMetadata).length > 0 && (
-          <Card>
-            <CardTitle className="mb-4">Game Details</CardTitle>
-            <div className="grid grid-cols-2 gap-3">
-              {Object.entries(bet.gameMetadata).map(([key, value]) => (
-                <div key={key}>
-                  <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted dark:text-ps-muted-on-dark">{key}</p>
-                  <p className="text-sm font-mono text-ps-text dark:text-ps-text-on-dark">{String(value)}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-        )}
-
-        {/* Result payload */}
-        {bet.resultPayload && Object.keys(bet.resultPayload).length > 0 && (
-          <Card>
-            <CardTitle className="mb-4">Result Data</CardTitle>
-            <CodeBlock code={JSON.stringify(bet.resultPayload, null, 2)} />
-          </Card>
-        )}
-
-        {/* Actions */}
-        {canDispute && (
-          <Card>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-display font-medium text-ps-text dark:text-ps-text-on-dark">Dispute this bet</p>
-                <p className="text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">
-                  If you believe the result is incorrect, file before the displayed deadline. Settlement pauses immediately.
-                </p>
+          <div className="min-w-0 space-y-6 xl:col-start-1 xl:row-start-2">
+            {/* Timeline */}
+            <Card>
+              <CardTitle className="mb-4">Match Timeline</CardTitle>
+              <StepIndicator
+                steps={[
+                  { label: 'Created' },
+                  { label: 'Matched' },
+                  { label: 'Result Reported' },
+                  { label: 'Settled' },
+                ]}
+                currentStep={getTimelineStep(bet)}
+                orientation="auto"
+              />
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">
+                <span>{bet.createdAt ? formatDate(bet.createdAt) : '-'}</span>
+                <span>{bet.matchedAt ? formatDate(bet.matchedAt) : '-'}</span>
+                <span>{bet.resultReportedAt ? formatDate(bet.resultReportedAt) : '-'}</span>
+                <span>{bet.settledAt ? formatDate(bet.settledAt) : '-'}</span>
               </div>
-              <PSButton variant="danger" size="sm" onClick={() => setDisputeOpen(true)}>
-                File Dispute
-              </PSButton>
-            </div>
-          </Card>
-        )}
+            </Card>
+
+            {/* Game metadata */}
+            {bet.gameMetadata && Object.keys(bet.gameMetadata).length > 0 && (
+              <Card>
+                <CardTitle className="mb-4">Game Details</CardTitle>
+                <div className="grid grid-cols-2 gap-3">
+                  {Object.entries(bet.gameMetadata).map(([key, value]) => (
+                    <div key={key}>
+                      <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted dark:text-ps-muted-on-dark">{key}</p>
+                      <p className="text-sm font-mono text-ps-text dark:text-ps-text-on-dark">{String(value)}</p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Result payload */}
+            {bet.resultPayload && Object.keys(bet.resultPayload).length > 0 && (
+              <Card>
+                <CardTitle className="mb-4">Result Data</CardTitle>
+                <CodeBlock code={JSON.stringify(bet.resultPayload, null, 2)} />
+              </Card>
+            )}
+
+            {/* Actions */}
+            {canDispute && (
+              <Card>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-display font-medium text-ps-text dark:text-ps-text-on-dark">Dispute this bet</p>
+                    <p className="text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">
+                      If you believe the result is incorrect, file before the displayed deadline. Settlement pauses immediately.
+                    </p>
+                  </div>
+                  <PSButton variant="danger" size="sm" onClick={() => setDisputeOpen(true)}>
+                    File Dispute
+                  </PSButton>
+                </div>
+              </Card>
+            )}
+          </div>
+        </div>
 
         {/* Dispute dialog */}
         <Dialog
