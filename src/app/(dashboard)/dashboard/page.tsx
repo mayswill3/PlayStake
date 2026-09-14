@@ -27,6 +27,7 @@ import { GlowCard } from '@/components/ui/playstake/GlowCard';
 import { IconTile } from '@/components/ui/playstake/IconTile';
 import { useToast } from '@/components/ui/Toast';
 import { LiveNowRail } from '@/components/kick/LiveNowRail';
+import { LiveMatchesCarousel } from '@/components/matches/LiveMatchesCarousel';
 import { useAuthLayout } from '@/hooks/useAuthLayout';
 import { formatCents, formatPercent, formatDate } from '@/lib/utils/format';
 
@@ -212,6 +213,9 @@ export default function DashboardPage() {
             </div>
           </Link>
         )}
+
+        {/* Hero slideshow of refereed stream matches — hidden when none are live. */}
+        <LiveMatchesCarousel />
 
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6">
           {/* Main column */}

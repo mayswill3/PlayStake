@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   Bell,
   Menu,
+  Tv,
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -39,6 +40,7 @@ interface NavItem {
 const playerNav: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Play', href: '/play', icon: Gamepad2 },
+  { label: 'Watch', href: '/watch', icon: Tv },
   { label: 'Referee', href: '/referee', icon: Scale },
   { label: 'Wallet', href: '/wallet', icon: Wallet },
   { label: 'Verification', href: '/verification', icon: ShieldCheck },
