@@ -23,7 +23,14 @@ export function useAuthLayout(options: UseAuthLayoutOptions = {}): AuthLayoutSta
   const [balance, setBalance] = useState<Balance | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Callers pass inline array literals (e.g. `requiredRoles: ['ADMIN']`), which
+  // are a new reference every render. Depending on the array directly re-runs
+  // the effect after every fetch's setState — an infinite refetch loop. Key the
+  // effect on the joined string instead so it only re-runs on a real change.
+  const rolesKey = requiredRoles?.join(',');
+
   useEffect(() => {
+    const roles = rolesKey ? rolesKey.split(',') : undefined;
     Promise.all([
       fetch('/api/user/profile').then(async (r) => {
         if (r.status === 401) return null;
@@ -39,7 +46,7 @@ export function useAuthLayout(options: UseAuthLayoutOptions = {}): AuthLayoutSta
         router.push('/login');
         return;
       }
-      if (requiredRoles && !requiredRoles.includes(userData.role)) {
+      if (roles && !roles.includes(userData.role)) {
         router.push(redirectTo);
         return;
       }
@@ -47,7 +54,7 @@ export function useAuthLayout(options: UseAuthLayoutOptions = {}): AuthLayoutSta
       setBalance(balanceData);
       setLoading(false);
     });
-  }, [router, requiredRoles, redirectTo]);
+  }, [router, rolesKey, redirectTo]);
 
   return { user, balance, loading };
 }
