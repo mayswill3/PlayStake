@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Scale } from 'lucide-react';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
@@ -12,13 +11,13 @@ import { FadeIn } from '@/components/ui/FadeIn';
 import { useToast } from '@/components/ui/Toast';
 import { DarkGlowCard } from '@/components/ui/playstake/DarkGlowCard';
 import { StatusPill } from '@/components/ui/playstake/StatusPill';
-import { KickPlayer } from '@/components/ui/playstake/KickPlayer';
 import { StepIndicator } from '@/components/ui/playstake/StepIndicator';
 import { PSButton } from '@/components/ui/playstake/PSButton';
 import {
   RefereeProtectionCard,
   type RefereeAssignmentView,
 } from '@/components/referees/RefereeProtectionCard';
+import { MatchStreams } from '@/components/matches/MatchStreams';
 import { formatCents, formatDate } from '@/lib/utils/format';
 
 interface KickInfo {
@@ -265,24 +264,27 @@ export default function BetDetailPage() {
         )}
 
         {/* Kick streams — the players' feeds, plus the referee officiating on camera */}
-        <KickStreamsSection
-          players={[
-            { name: bet.playerA.displayName, kick: bet.playerA.kick },
-            ...(bet.playerB
-              ? [{ name: bet.playerB.displayName, kick: bet.playerB.kick }]
-              : []),
-            ...(bet.refereeAssignment?.referee?.kickChannel
-              ? [{
-                  name: bet.refereeAssignment.referee.displayName,
-                  kick: {
-                    channelSlug: bet.refereeAssignment.referee.kickChannel,
-                    isLive: bet.refereeAssignment.referee.kickLive,
-                  },
-                  isReferee: true,
-                }]
-              : []),
-          ]}
-        />
+        {(bet.playerA.kick || bet.playerB?.kick || bet.refereeAssignment?.referee?.kickChannel) && (
+          <Card>
+            <CardTitle className="mb-4">Watch on Kick</CardTitle>
+            <MatchStreams
+              referee={
+                bet.refereeAssignment?.referee
+                  ? {
+                      name: bet.refereeAssignment.referee.displayName,
+                      channelSlug: bet.refereeAssignment.referee.kickChannel,
+                      isLive: bet.refereeAssignment.referee.kickLive,
+                    }
+                  : null
+              }
+              players={[bet.playerA, ...(bet.playerB ? [bet.playerB] : [])].map((player) => ({
+                name: player.displayName,
+                channelSlug: player.kick?.channelSlug ?? null,
+                isLive: player.kick?.isLive ?? false,
+              }))}
+            />
+          </Card>
+        )}
 
         {/* Timeline */}
         <Card>
@@ -374,53 +376,6 @@ export default function BetDetailPage() {
         </Dialog>
       </div>
     </FadeIn>
-  );
-}
-
-interface StreamTile {
-  name: string;
-  kick: KickInfo | null;
-  isReferee?: boolean;
-}
-
-function KickStreamsSection({ players }: { players: StreamTile[] }) {
-  const streamers = players.filter(
-    (p): p is StreamTile & { kick: KickInfo } => p.kick !== null,
-  );
-  if (streamers.length === 0) return null;
-
-  return (
-    <Card>
-      <CardTitle className="mb-4">Watch on Kick</CardTitle>
-      <div className={`grid grid-cols-1 gap-4 ${streamers.length > 1 ? 'sm:grid-cols-2' : ''}`}>
-        {streamers.map((p) => (
-          <div key={p.kick.channelSlug}>
-            <div className="flex items-center gap-2 mb-2">
-              <p className="text-sm font-display font-medium text-ps-text dark:text-ps-text-on-dark truncate">
-                {p.name}
-              </p>
-              {p.isReferee && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-ps-lime/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ps-lime">
-                  <Scale className="h-3 w-3" aria-hidden="true" />
-                  Referee
-                </span>
-              )}
-              {p.kick.isLive ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-ps-error/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ps-error">
-                  <span className="h-1.5 w-1.5 rounded-full bg-ps-error animate-pulse" />
-                  Live
-                </span>
-              ) : (
-                <span className="text-[10px] font-mono uppercase tracking-wider text-ps-muted dark:text-ps-muted-on-dark">
-                  Offline
-                </span>
-              )}
-            </div>
-            <KickPlayer slug={p.kick.channelSlug} />
-          </div>
-        ))}
-      </div>
-    </Card>
   );
 }
 
