@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { AlertTriangle, ExternalLink, Radio } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { KickPlayer } from '@/components/ui/playstake/KickPlayer';
@@ -136,8 +137,9 @@ export function KickConnectionCard({ variant = 'sidebar' }: KickConnectionCardPr
 
   return (
     <section
+      id={featured ? 'go-live' : undefined}
       aria-label="Kick connection"
-      className={`shrink-0 rounded-[var(--ps-radius-lg)] border border-[var(--ps-border-light)] bg-ps-paper-elevated dark:border-[var(--ps-border-dark)] dark:bg-ps-ink-2 ${
+      className={`shrink-0 scroll-mt-20 rounded-[var(--ps-radius-lg)] border border-[var(--ps-border-light)] bg-ps-paper-elevated dark:border-[var(--ps-border-dark)] dark:bg-ps-ink-2 ${
         featured ? 'p-5 sm:p-6' : 'mx-3 mb-3 p-3'
       }`}
     >
@@ -258,22 +260,37 @@ export function KickConnectionCard({ variant = 'sidebar' }: KickConnectionCardPr
         <div className={featured ? 'mt-4' : 'mt-3'}>
           {connected ? (
             <div className="space-y-1">
-              <a
-                href="https://dashboard.kick.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-              >
-                <PSButton
-                  variant="primary"
-                  size={featured ? 'md' : 'sm'}
-                  fullWidth
-                  icon={<ExternalLink size={featured ? 16 : 14} />}
-                  className={featured ? '' : 'min-h-9 text-xs'}
+              {featured ? (
+                <a
+                  href="https://dashboard.kick.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block"
                 >
-                  Go Live
-                </PSButton>
-              </a>
+                  <PSButton
+                    variant="primary"
+                    size="md"
+                    fullWidth
+                    icon={<ExternalLink size={16} />}
+                  >
+                    Go Live
+                  </PSButton>
+                </a>
+              ) : (
+                // The sidebar card has no game picker — send the streamer to the
+                // featured card on /play to declare their game before going live.
+                <Link href="/play#go-live" className="block">
+                  <PSButton
+                    variant="primary"
+                    size="sm"
+                    fullWidth
+                    icon={<Radio size={14} />}
+                    className="min-h-9 text-xs"
+                  >
+                    Go Live
+                  </PSButton>
+                </Link>
+              )}
               <PSButton
                 variant="ghost"
                 size={featured ? 'md' : 'sm'}
