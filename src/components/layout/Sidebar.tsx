@@ -24,6 +24,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useOpenRefereeCount, usePendingChallengeCount } from '@/components/lobby/ChallengesProvider';
 import { KickConnectionCard } from '@/components/kick/KickConnectionCard';
+import { PlayerRefereeSidebarCard } from '@/components/referees/PlayerRefereePanel';
 
 interface SidebarProps {
   userRole?: string;
@@ -138,6 +139,7 @@ export function Sidebar({ userRole }: SidebarProps) {
           )}
         </nav>
 
+        <PlayerRefereeSidebarCard onNavigate={() => setMobileOpen(false)} />
         <KickConnectionCard />
 
         {/* Bottom */}
