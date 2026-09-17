@@ -28,6 +28,7 @@ import { IconTile } from '@/components/ui/playstake/IconTile';
 import { useToast } from '@/components/ui/Toast';
 import { LiveNowRail } from '@/components/kick/LiveNowRail';
 import { LiveMatchesCarousel } from '@/components/matches/LiveMatchesCarousel';
+import { GoLiveBanner } from '@/components/kick/GoLiveBanner';
 import { useAuthLayout } from '@/hooks/useAuthLayout';
 import { formatCents, formatPercent, formatDate } from '@/lib/utils/format';
 
@@ -213,6 +214,9 @@ export default function DashboardPage() {
             </div>
           </Link>
         )}
+
+        {/* Prominent Go Live entry point — the sidebar card is easy to miss. */}
+        <GoLiveBanner />
 
         {/* Hero slideshow of refereed stream matches — hidden when none are live. */}
         <LiveMatchesCarousel />
