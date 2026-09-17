@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Radio } from 'lucide-react';
+import { Gamepad2, Radio } from 'lucide-react';
 
 interface LiveStreamer {
   displayName: string | null;
@@ -11,6 +11,8 @@ interface LiveStreamer {
   thumbnail: string | null;
   viewerCount: number | null;
   title: string | null;
+  /** The game declared on PlayStake — null when they haven't picked one. */
+  gameName: string | null;
 }
 
 export function LiveNowRail() {
@@ -107,6 +109,7 @@ function LiveStreamerCard({
     thumbnail,
     viewerCount,
     title,
+    gameName,
   } = streamer;
   const [thumbFailed, setThumbFailed] = useState(false);
 
@@ -140,6 +143,12 @@ function LiveStreamerCard({
         <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded bg-ps-error px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
           Live
         </span>
+        {gameName && (
+          <span className="absolute bottom-2 left-2 inline-flex max-w-[65%] items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+            <Gamepad2 size={11} className="shrink-0 text-ps-lime" aria-hidden="true" />
+            <span className="truncate">{gameName}</span>
+          </span>
+        )}
         {viewerCount !== null && (
           <span className="absolute right-2 bottom-2 inline-flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white tabular-nums">
             {viewerCount.toLocaleString()} watching

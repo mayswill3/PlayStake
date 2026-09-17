@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, ExternalLink, Radio } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Gamepad2, Power, Radio } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { KickPlayer } from '@/components/ui/playstake/KickPlayer';
 import { PSButton } from '@/components/ui/playstake/PSButton';
@@ -12,7 +12,12 @@ interface KickStatus {
   channelSlug?: string | null;
   displayName?: string | null;
   isLive?: boolean;
+  /** Game declared on PlayStake — what viewers can challenge them to. */
+  declaredGameName?: string | null;
 }
+
+/** Re-check live status so the card flips to Live without a reload. */
+const STATUS_POLL_MS = 30_000;
 
 interface KickConnectionCardProps {
   variant?: 'sidebar' | 'featured';
@@ -36,6 +41,7 @@ export function KickConnectionCard({ variant = 'sidebar' }: KickConnectionCardPr
   const [declaredLoading, setDeclaredLoading] = useState(false);
   const [declaredSaving, setDeclaredSaving] = useState(false);
   const [declaredLoadFailed, setDeclaredLoadFailed] = useState(false);
+  const [goingOffline, setGoingOffline] = useState(false);
 
   useEffect(() => {
     fetch('/api/user/kick')
@@ -43,6 +49,14 @@ export function KickConnectionCard({ variant = 'sidebar' }: KickConnectionCardPr
       .then((data) => setStatus(data))
       .catch(() => setStatus({ connected: false }))
       .finally(() => setLoading(false));
+
+    const timer = window.setInterval(() => {
+      fetch('/api/user/kick')
+        .then((response) => (response.ok ? response.json() : null))
+        .then((data) => data && setStatus(data))
+        .catch(() => {});
+    }, STATUS_POLL_MS);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -110,6 +124,7 @@ export function KickConnectionCard({ variant = 'sidebar' }: KickConnectionCardPr
 
       const data = await response.json();
       setDeclaredGameType(data.declaredGame?.gameType ?? '');
+      setStatus((current) => current && { ...current, declaredGameName: data.declaredGame?.name ?? null });
     } catch (error) {
       setDeclaredGameType(previousGameType);
       toast('error', error instanceof Error ? error.message : 'Failed to update your game.');
@@ -118,7 +133,32 @@ export function KickConnectionCard({ variant = 'sidebar' }: KickConnectionCardPr
     }
   }
 
+  // Going offline on PlayStake clears the declared game, which stops new
+  // challenges. PlayStake can't end the Kick broadcast itself.
+  async function handleGoOffline() {
+    setGoingOffline(true);
+    try {
+      const response = await fetch('/api/user/declared-game', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameType: null }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Could not go offline.');
+      }
+      setDeclaredGameType('');
+      setStatus((current) => current && { ...current, declaredGameName: null });
+      toast('success', 'You’re offline on PlayStake — challenges are paused. End the broadcast on Kick to stop streaming.');
+    } catch (error) {
+      toast('error', error instanceof Error ? error.message : 'Could not go offline.');
+    } finally {
+      setGoingOffline(false);
+    }
+  }
+
   const connected = status?.connected;
+  const isLive = Boolean(status?.isLive);
   const slug = status?.channelSlug;
   const channelName = slug ?? status?.displayName ?? 'your channel';
   const declaredGameName = gameOptions.find(
@@ -127,6 +167,9 @@ export function KickConnectionCard({ variant = 'sidebar' }: KickConnectionCardPr
   const selectedGame = gameOptions.find(
     (option) => option.gameType === declaredGameType,
   );
+  // The featured card's dropdown is the freshest source once its options load.
+  const currentGameName =
+    featured && gameOptions.length > 0 ? declaredGameName ?? null : status?.declaredGameName ?? null;
   const groupedGameOptions = gameOptions.reduce<Record<string, DeclaredGameOption[]>>(
     (groups, option) => {
       (groups[option.category] ??= []).push(option);
@@ -165,15 +208,15 @@ export function KickConnectionCard({ variant = 'sidebar' }: KickConnectionCardPr
                 className={`inline-flex items-center gap-1.5 font-semibold uppercase tracking-wider ${
                   featured ? 'text-xs' : 'text-[10px]'
                 } ${
-                  status?.isLive ? 'text-ps-error' : 'text-ps-lime'
+                  isLive ? 'text-ps-error' : 'text-ps-lime'
                 }`}
               >
                 <span
                   className={`h-1.5 w-1.5 rounded-full ${
-                    status?.isLive ? 'bg-ps-error animate-pulse' : 'bg-ps-lime'
+                    isLive ? 'bg-ps-error animate-pulse' : 'bg-ps-lime'
                   }`}
                 />
-                {status?.isLive ? 'Live' : 'Connected'}
+                {isLive ? 'Live' : 'Connected'}
               </span>
             )}
           </div>
@@ -190,6 +233,32 @@ export function KickConnectionCard({ variant = 'sidebar' }: KickConnectionCardPr
           </p>
         </div>
       </div>
+
+      {!loading && connected && isLive && (
+        <div
+          className={`mt-3 flex items-center gap-2 rounded-[var(--ps-radius-md)] px-2.5 py-2 ${
+            currentGameName ? 'bg-ps-lime/10' : 'bg-ps-warning/10'
+          }`}
+        >
+          <Gamepad2
+            size={featured ? 16 : 14}
+            className={`shrink-0 ${currentGameName ? 'text-ps-lime' : 'text-ps-warning'}`}
+            aria-hidden="true"
+          />
+          <p className={`min-w-0 ${featured ? 'truncate text-sm' : 'text-xs leading-snug'}`}>
+            {currentGameName ? (
+              <>
+                <span className="text-ps-muted dark:text-ps-muted-on-dark">Streaming </span>
+                <span className="font-semibold text-ps-text dark:text-ps-text-on-dark">{currentGameName}</span>
+              </>
+            ) : (
+              <span className="font-medium text-ps-warning">
+                {featured ? 'Live on Kick — no game selected' : 'No game selected'}
+              </span>
+            )}
+          </p>
+        </div>
+      )}
 
       {!loading && connected && slug && (
         <div className="mt-3">
@@ -260,7 +329,36 @@ export function KickConnectionCard({ variant = 'sidebar' }: KickConnectionCardPr
         <div className={featured ? 'mt-4' : 'mt-3'}>
           {connected ? (
             <div className="space-y-1">
-              {featured ? (
+              {isLive && currentGameName ? (
+                // Live with a game declared: no Go Live — offer to go offline on PlayStake.
+                <PSButton
+                  variant="secondary"
+                  size={featured ? 'md' : 'sm'}
+                  fullWidth
+                  loading={goingOffline}
+                  onClick={handleGoOffline}
+                  icon={<Power size={featured ? 16 : 14} />}
+                  className={featured ? '' : 'min-h-9 text-xs'}
+                >
+                  Go offline
+                </PSButton>
+              ) : isLive ? (
+                // Live on Kick but not challengeable yet. The featured card has the
+                // picker right above; the sidebar sends them to it.
+                !featured && (
+                  <Link href="/play#go-live" className="block">
+                    <PSButton
+                      variant="primary"
+                      size="sm"
+                      fullWidth
+                      icon={<Gamepad2 size={14} />}
+                      className="min-h-9 text-xs"
+                    >
+                      Choose your game
+                    </PSButton>
+                  </Link>
+                )
+              ) : featured ? (
                 <a
                   href="https://dashboard.kick.com/"
                   target="_blank"

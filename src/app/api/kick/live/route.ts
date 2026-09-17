@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
         displayName: true,
         profilePicture: true,
         isLive: true,
+        declaredGame: { select: { name: true } },
       },
       take: 50,
     });
@@ -119,6 +120,8 @@ export async function GET(request: NextRequest) {
           thumbnail: current?.thumbnail ?? null,
           viewerCount: current?.viewerCount ?? null,
           title: current?.title ?? null,
+          // The game they've declared on PlayStake (what viewers can challenge them to).
+          gameName: channel.declaredGame?.name ?? null,
           isLive: enriched ? current?.isLive ?? false : channel.isLive,
         };
       })

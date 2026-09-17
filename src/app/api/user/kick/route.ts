@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
         isLive: true,
         lastLiveAt: true,
         createdAt: true,
+        declaredGame: { select: { name: true } },
       },
     });
 
@@ -45,6 +46,8 @@ export async function GET(request: NextRequest) {
       displayName: account.displayName,
       profilePicture: account.profilePicture,
       isLive: account.isLive,
+      /** The game they've told PlayStake they're streaming (challengeable), if any. */
+      declaredGameName: account.declaredGame?.name ?? null,
       lastLiveAt: account.lastLiveAt?.toISOString() ?? null,
       connectedAt: account.createdAt.toISOString(),
     });
