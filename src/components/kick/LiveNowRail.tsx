@@ -108,7 +108,6 @@ function LiveStreamerCard({
     profilePicture,
     thumbnail,
     viewerCount,
-    title,
     gameName,
   } = streamer;
   const [thumbFailed, setThumbFailed] = useState(false);
@@ -143,12 +142,6 @@ function LiveStreamerCard({
         <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded bg-ps-error px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
           Live
         </span>
-        {gameName && (
-          <span className="absolute bottom-2 left-2 inline-flex max-w-[65%] items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-            <Gamepad2 size={11} className="shrink-0 text-ps-lime" aria-hidden="true" />
-            <span className="truncate">{gameName}</span>
-          </span>
-        )}
         {viewerCount !== null && (
           <span className="absolute right-2 bottom-2 inline-flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white tabular-nums">
             {viewerCount.toLocaleString()} watching
@@ -172,9 +165,10 @@ function LiveStreamerCard({
           <p className="truncate text-sm font-medium text-ps-text dark:text-ps-text-on-dark">
             {displayName || channelSlug}
           </p>
-          {title && (
-            <p className="truncate text-xs text-ps-muted dark:text-ps-muted-on-dark">
-              {title}
+          {gameName && (
+            <p className="flex items-center gap-1 truncate text-xs text-ps-muted dark:text-ps-muted-on-dark">
+              <Gamepad2 size={12} className="shrink-0 text-ps-lime" aria-hidden="true" />
+              <span className="truncate">{gameName}</span>
             </p>
           )}
         </div>
