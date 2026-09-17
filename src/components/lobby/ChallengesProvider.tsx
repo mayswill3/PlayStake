@@ -12,8 +12,8 @@ import {
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
-import { Dialog } from '@/components/ui/Dialog';
-import { ChallengeItem, type MyInvite } from './ChallengeItem';
+import { type MyInvite } from './ChallengeItem';
+import { ChallengeModal } from './ChallengeModal';
 
 /** A joinable match (bet reached MATCHED, not yet played) — mirrors MyMatchDTO. */
 export interface MyMatch {
@@ -315,15 +315,12 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
           </Button>
         </div>
       )}
-      <Dialog open={modalInvite !== null} onClose={() => setModalInvite(null)} title="New challenge">
-        {modalInvite && (
-          <ChallengeItem
-            invite={modalInvite}
-            busy={busyId === modalInvite.lobbyEntryId}
-            onRespond={respond}
-          />
-        )}
-      </Dialog>
+      <ChallengeModal
+        invite={modalInvite}
+        busy={modalInvite !== null && busyId === modalInvite.lobbyEntryId}
+        onRespond={respond}
+        onClose={() => setModalInvite(null)}
+      />
     </ChallengesContext.Provider>
   );
 }

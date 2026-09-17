@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Radio, Users, ExternalLink, Swords, Gamepad2, Scale } from 'lucide-react';
@@ -9,11 +9,13 @@ import { Spinner } from '@/components/ui/Spinner';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Dialog } from '@/components/ui/Dialog';
-import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { PSButton } from '@/components/ui/playstake/PSButton';
 import { StatusPill } from '@/components/ui/playstake/StatusPill';
 import { KickPlayer } from '@/components/ui/playstake/KickPlayer';
+import { GoLiveBanner } from '@/components/kick/GoLiveBanner';
+import { useOnKickStatusChanged } from '@/components/kick/kick-status';
+import { STREAM_GAME_CATALOGUE, type StreamGameType } from '@/lib/games/catalogue';
 import { formatCents } from '@/lib/utils/format';
 
 const STAKE_OPTIONS_CENTS = [100, 500, 1000, 2500];
@@ -81,6 +83,10 @@ export default function StreamDetailPage() {
   const [data, setData] = useState<StreamData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // Bumped when the viewer goes live / changes game, so challenge eligibility
+  // (canChallenge) is re-checked straight away instead of on the next poll.
+  const [refreshKey, setRefreshKey] = useState(0);
+  useOnKickStatusChanged(useCallback(() => setRefreshKey((key) => key + 1), []));
 
   // Challenge dialog state.
   const [challengeOpen, setChallengeOpen] = useState(false);
@@ -139,7 +145,7 @@ export default function StreamDetailPage() {
       active = false;
       clearInterval(id);
     };
-  }, [slug]);
+  }, [slug, refreshKey]);
 
   if (loading) {
     return (
@@ -164,6 +170,14 @@ export default function StreamDetailPage() {
 
   const { streamer, bets } = data;
   const name = streamer.displayName || streamer.channelSlug;
+  // Refereed games need the challenger live on the same game — offer it in one click.
+  const declaredMeta = streamer.declaredGame
+    ? STREAM_GAME_CATALOGUE[streamer.declaredGame.gameType as StreamGameType]
+    : undefined;
+  const suggestedGame =
+    !streamer.isSelf && streamer.declaredGame && declaredMeta?.mode === 'refereed'
+      ? { gameType: streamer.declaredGame.gameType, name: streamer.declaredGame.name, streamerName: name }
+      : null;
 
   return (
     <FadeIn>
@@ -254,6 +268,9 @@ export default function StreamDetailPage() {
           </p>
         )}
 
+        {/* Prominent Go Live — challenging a refereed game needs you live on it too. */}
+        <GoLiveBanner suggestedGame={suggestedGame} />
+
         {/* Player */}
         <KickPlayer slug={streamer.channelSlug} />
 
@@ -303,18 +320,19 @@ export default function StreamDetailPage() {
         <Dialog
           open={challengeOpen}
           onClose={() => setChallengeOpen(false)}
+          size="lg"
           title={sent ? 'Challenge sent' : `Challenge ${name}`}
           actions={
             sent ? (
-              <Button onClick={() => setChallengeOpen(false)}>Done</Button>
+              <PSButton onClick={() => setChallengeOpen(false)}>Done</PSButton>
             ) : (
               <>
-                <Button variant="ghost" onClick={() => setChallengeOpen(false)}>
+                <PSButton variant="ghost" onClick={() => setChallengeOpen(false)}>
                   Cancel
-                </Button>
-                <Button loading={sending} onClick={sendChallenge}>
-                  Send Challenge
-                </Button>
+                </PSButton>
+                <PSButton loading={sending} icon={<Swords size={16} />} onClick={sendChallenge}>
+                  Send {formatCents(stakeCents)} challenge
+                </PSButton>
               </>
             )
           }
@@ -336,7 +354,8 @@ export default function StreamDetailPage() {
                   ? 'Both Kick channels must remain live on this game. Pick your stake; an approved referee is assigned before the result can settle.'
                   : 'Pick your stake — both players lock the same amount when the challenge is accepted.'}
               </p>
-              <div className="grid grid-cols-4 gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wider">Your stake</p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {STAKE_OPTIONS_CENTS.map((cents) => {
                   const selected = stakeCents === cents;
                   return (
@@ -345,7 +364,7 @@ export default function StreamDetailPage() {
                       type="button"
                       onClick={() => setStakeCents(cents)}
                       aria-pressed={selected}
-                      className={`rounded-lg border py-2 text-sm font-semibold tabular-nums transition-colors ${
+                      className={`rounded-lg border py-4 font-display text-lg font-semibold tabular-nums transition-colors ${
                         selected
                           ? 'border-ps-lime bg-ps-lime/10 text-ps-lime'
                           : 'border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] text-ps-muted dark:text-ps-muted-on-dark hover:border-ps-lime/40'
@@ -356,6 +375,12 @@ export default function StreamDetailPage() {
                   );
                 })}
               </div>
+              <p className="flex items-center justify-between rounded-lg bg-ps-lime/10 px-4 py-3 text-sm">
+                <span>Pot if {name} accepts</span>
+                <span className="font-display text-lg font-semibold text-ps-lime tabular-nums">
+                  {formatCents(stakeCents * 2)}
+                </span>
+              </p>
             </div>
           )}
         </Dialog>

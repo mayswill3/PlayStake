@@ -8,9 +8,16 @@ interface DialogProps {
   title?: string;
   children: ReactNode;
   actions?: ReactNode;
+  /** md (default) for confirmations; lg for richer content like challenges. */
+  size?: 'md' | 'lg';
 }
 
-export function Dialog({ open, onClose, title, children, actions }: DialogProps) {
+const SIZE_CLASSES = {
+  md: 'max-w-lg',
+  lg: 'max-w-2xl',
+} as const;
+
+export function Dialog({ open, onClose, title, children, actions, size = 'md' }: DialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -42,20 +49,22 @@ export function Dialog({ open, onClose, title, children, actions }: DialogProps)
       ref={dialogRef}
       onClose={handleClose}
       onClick={handleBackdropClick}
-      className="
+      // m-auto centres the top-layer dialog on both axes; the width leaves a
+      // 1rem gutter on small screens (a horizontal margin would break centring).
+      className={`
         backdrop:bg-black/60 backdrop:backdrop-blur-sm
         bg-transparent p-0 m-auto
         open:animate-in open:fade-in open:zoom-in-95
-        max-w-lg w-full mx-4
-      "
+        w-[calc(100%-2rem)] ${SIZE_CLASSES[size]}
+      `}
     >
-      <div className="bg-surface-850 border border-white/8 rounded-sm p-6">
+      <div className="rounded-[var(--ps-radius-lg)] border border-[var(--ps-border-light)] bg-ps-paper-elevated p-6 shadow-2xl dark:border-[var(--ps-border-dark)] dark:bg-ps-ink-2">
         {title && (
           <div className="mb-4">
-            <h2 className="text-lg font-display font-semibold text-text-primary">{title}</h2>
+            <h2 className="text-lg font-display font-semibold text-ps-text dark:text-ps-text-on-dark">{title}</h2>
           </div>
         )}
-        <div className="text-surface-300 font-mono">{children}</div>
+        <div className="font-mono text-ps-muted dark:text-ps-muted-on-dark">{children}</div>
         {actions && (
           <div className="mt-6 flex justify-end gap-3">{actions}</div>
         )}

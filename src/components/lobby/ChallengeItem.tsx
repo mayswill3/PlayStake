@@ -17,7 +17,7 @@ export interface MyInvite {
 }
 
 /** Seconds remaining until an ISO timestamp, floored at 0, ticking each second. */
-function useSecondsLeft(iso: string): number {
+export function useSecondsLeft(iso: string): number {
   const compute = () => Math.max(0, Math.round((new Date(iso).getTime() - Date.now()) / 1000));
   const [left, setLeft] = useState(compute);
   useEffect(() => {
