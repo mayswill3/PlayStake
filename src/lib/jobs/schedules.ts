@@ -57,6 +57,11 @@ const SCHEDULES: ScheduleEntry[] = [
     every: 10_000, // every 10 seconds (webhooks should be fast)
   },
   {
+    queueName: QUEUE_NAMES.EMAIL_DELIVERY,
+    jobName: "email-delivery-scan",
+    every: 15_000, // every 15 seconds
+  },
+  {
     queueName: QUEUE_NAMES.ANOMALY_DETECTION,
     jobName: "anomaly-detection-scan",
     every: 15 * 60_000, // every 15 minutes

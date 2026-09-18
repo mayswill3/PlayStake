@@ -15,6 +15,7 @@ import { createSettlementWorker } from "./settlement.worker";
 import { createConsentExpiryWorker } from "./consent-expiry.worker";
 import { createBetExpiryWorker } from "./bet-expiry.worker";
 import { createWebhookDeliveryWorker } from "./webhook-delivery.worker";
+import { createEmailDeliveryWorker } from "./email-delivery.worker";
 import { createUnverifiedResultWorker } from "./unverified-result.worker";
 import { createAnomalyDetectionWorker } from "./anomaly-detection.worker";
 import { createDisputeEscalationWorker } from "./dispute-escalation.worker";
@@ -44,6 +45,7 @@ async function start(): Promise<void> {
   workers.push(createConsentExpiryWorker());
   workers.push(createBetExpiryWorker());
   workers.push(createWebhookDeliveryWorker());
+  workers.push(createEmailDeliveryWorker());
   workers.push(createUnverifiedResultWorker());
   workers.push(createAnomalyDetectionWorker());
   workers.push(createDisputeEscalationWorker());

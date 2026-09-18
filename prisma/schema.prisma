@@ -165,6 +165,13 @@ enum WidgetSessionStatus {
   REVOKED
 }
 
+enum EmailOutboxStatus {
+  PENDING
+  SENT
+  FAILED
+  EXPIRED
+}
+
 enum AnomalyType {
   SKEWED_WIN_RATE
   RAPID_BET_SETTLEMENT
@@ -198,6 +205,9 @@ model User {
   stripeConnectDetailsSubmitted Boolean   @default(false) @map("stripe_connect_details_submitted")
   stripeConnectPayoutsEnabled   Boolean   @default(false) @map("stripe_connect_payouts_enabled")
   emailVerified                 Boolean   @default(false) @map("email_verified")
+  /// Optional emails (match results, referee alerts, channel changes). Security,
+  /// money and responsible-play emails always send regardless.
+  emailNotifications            Boolean   @default(true) @map("email_notifications")
   twoFactorEnabled              Boolean   @default(false) @map("two_factor_enabled")
   twoFactorSecret               String?   @map("two_factor_secret") @db.VarChar(512)
   twoFactorLastUsedStep         Int?      @map("two_factor_last_used_step")
@@ -230,6 +240,7 @@ model User {
   depositLimits        DepositLimit[]
   playBreaks           PlayBreak[]
   responsiblePlay      ResponsiblePlaySettings?
+  emailOutbox          EmailOutbox[]
   chatMessages         MatchChatMessage[]       @relation("ChatAuthor")
   chatModerations      MatchChatMessage[]       @relation("ChatModerator")
 
@@ -1017,4 +1028,30 @@ model MatchChatMessage {
   @@index([betId, deletedAt], map: "idx_match_chat_bet_deleted")
   @@index([userId, createdAt], map: "idx_match_chat_user_created")
   @@map("match_chat_messages")
+}
+
+/// Transactional outbox for notification emails. Rows are written in the same
+/// DB transaction as the event they describe (a settlement, a payout), and the
+/// email-delivery worker sends them — so an email can never be queued for
+/// something that rolled back, and a mail-provider outage never blocks money.
+model EmailOutbox {
+  id            String            @id @default(uuid()) @db.Uuid
+  userId        String?           @map("user_id") @db.Uuid
+  toEmail       String            @map("to_email") @db.VarChar(255)
+  template      String            @db.VarChar(64)
+  payload       Json
+  /// One email per event: doubles as the provider idempotency key.
+  dedupeKey     String            @unique @map("dedupe_key") @db.VarChar(255)
+  status        EmailOutboxStatus @default(PENDING)
+  attempts      Int               @default(0)
+  lastError     String?           @map("last_error") @db.VarChar(1000)
+  nextAttemptAt DateTime          @default(now()) @map("next_attempt_at")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  sentAt        DateTime?         @map("sent_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt], map: "idx_email_outbox_due")
+  @@index([userId, createdAt], map: "idx_email_outbox_user")
+  @@map("email_outbox")
 }

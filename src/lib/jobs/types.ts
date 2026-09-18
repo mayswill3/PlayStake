@@ -29,6 +29,13 @@ export interface BetExpiryScanPayload {
 }
 
 /**
+ * Email delivery scan: picks up due rows from the email outbox.
+ */
+export interface EmailDeliveryScanPayload {
+  triggeredAt: string;
+}
+
+/**
  * Webhook delivery scan: picks up PENDING / RETRYING deliveries.
  */
 export interface WebhookDeliveryScanPayload {
@@ -94,6 +101,7 @@ export const QUEUE_NAMES = {
   LEDGER_AUDIT: "ledger-audit",
   LOBBY_EXPIRY: "lobby-expiry",
   DEPOSIT_LIMIT_ACTIVATION: "deposit-limit-activation",
+  EMAIL_DELIVERY: "email-delivery",
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
