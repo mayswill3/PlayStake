@@ -3,6 +3,7 @@ import { prisma } from "../../../../lib/db/client";
 import { validateSession } from "../../../../lib/auth/session";
 import { getSessionToken } from "../../../../lib/auth/helpers";
 import { errorResponse, AuthenticationError } from "../../../../lib/errors/index";
+import { emailKickConnectionChanged } from "../../../../lib/email/events";
 import {
   getValidAccessToken,
   listWebhookSubscriptions,
@@ -69,7 +70,7 @@ export async function DELETE(request: NextRequest) {
 
     const account = await prisma.kickAccount.findUnique({
       where: { userId: session.userId },
-      select: { id: true },
+      select: { id: true, channelSlug: true },
     });
     if (!account) {
       return NextResponse.json({ connected: false });
@@ -92,6 +93,12 @@ export async function DELETE(request: NextRequest) {
       .catch(() => {
         // Already disconnected — treat as success.
       });
+
+    await emailKickConnectionChanged({
+      userId: session.userId,
+      channel: account.channelSlug ?? "your channel",
+      connected: false,
+    });
 
     return NextResponse.json({ connected: false });
   } catch (error) {

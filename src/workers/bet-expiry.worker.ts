@@ -24,6 +24,7 @@ import {
   sweepRefereeAssignment,
 } from "../lib/referees/service";
 import { dispatchWebhook } from "../lib/webhooks/dispatch";
+import { emailBetVoided } from "../lib/email/events";
 
 // ---------------------------------------------------------------------------
 // Logging helper
@@ -130,6 +131,8 @@ async function expireBet(betId: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 async function voidStaleMatch(betId: string): Promise<void> {
+  let refundedForEmail = false;
+
   await withTransaction(async (tx: TxClient) => {
     const lockResult: { locked: boolean }[] = await tx.$queryRaw`
       SELECT pg_try_advisory_xact_lock(hashtext(${betId})) as locked
@@ -148,8 +151,14 @@ async function voidStaleMatch(betId: string): Promise<void> {
       log("info", refunded ? "no_show_voided" : "no_show_voided_unescrowed", {
         betId,
       });
+      refundedForEmail = refunded;
     }
   });
+
+  // Told after commit: the refund is what the players care about.
+  if (refundedForEmail) {
+    await emailBetVoided(betId, "Nobody turned up to play the match in time.");
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -310,6 +319,12 @@ async function sweepStaleAssignment(
       event: "REFEREE_ASSIGNMENT_OPENED",
       betId,
     });
+  }
+
+  if (outcome === "expired_unclaimed") {
+    await emailBetVoided(betId, "No referee claimed the match in time.");
+  } else if (outcome === "voided_overrun") {
+    await emailBetVoided(betId, "The match ran past its time limit without a result.");
   }
 }
 

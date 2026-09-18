@@ -16,6 +16,10 @@ import {
 } from "@/lib/errors";
 import { appendRefereeAudit, type AuditContext } from "./audit";
 import { voidNoShowMatch } from "@/lib/lobby/match-lifecycle";
+import {
+  emailRefereeApplicationReceived,
+  emailRefereeDecision,
+} from "@/lib/email/events";
 
 export const REFEREE_DISPUTE_WINDOW_MS = 15 * 60 * 1000;
 
@@ -121,6 +125,8 @@ export async function applyToReferee(input: {
       })),
       skipDuplicates: true,
     });
+    await emailRefereeApplicationReceived(input.userId, profile.id);
+
     return profile;
   });
 }
@@ -447,7 +453,7 @@ export async function submitRefereeDecision(input: {
     throw new ValidationError("Decision notes must be between 10 and 2,000 characters");
   }
 
-  return withTransaction(async (tx) => {
+  const decided = await withTransaction(async (tx) => {
     const assignment = await getOwnedAssignmentForUpdate(
       tx,
       input.userId,
@@ -504,6 +510,16 @@ export async function submitRefereeDecision(input: {
     });
     return updated;
   });
+
+  // Players are told the call and how long they have to dispute it. Outside the
+  // transaction: a mail failure must not roll back a recorded decision.
+  await emailRefereeDecision({
+    betId: decided.betId,
+    decision: input.decision,
+    disputeDeadline: decided.disputeDeadline ?? new Date(Date.now() + REFEREE_DISPUTE_WINDOW_MS),
+  });
+
+  return decided;
 }
 
 async function getOwnedAssignmentForUpdate(

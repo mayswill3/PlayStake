@@ -2,6 +2,7 @@ import { withSessionAuth } from "@/lib/middleware/auth";
 import { kycSubmissionRateLimit } from "@/lib/middleware/rate-limit";
 import { kycSubmissionSchema } from "@/lib/validation/schemas";
 import { errorResponse, ValidationError } from "@/lib/errors";
+import { emailKycSubmitted } from "@/lib/email/events";
 import { getKycState, submitKyc } from "@/lib/kyc/service";
 import type { KycDocumentUpload } from "@/lib/kyc/service";
 import { MAX_DOCUMENT_BYTES } from "@/lib/kyc/constants";
@@ -96,6 +97,8 @@ export const POST = withSessionAuth(async (request, _context, auth) => {
       },
       uploads,
     );
+
+    await emailKycSubmitted(auth.userId, submission.id);
 
     return Response.json(submission, { status: 201 });
   } catch (error) {

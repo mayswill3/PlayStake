@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { emailPasswordChanged } from "@/lib/email/events";
 import { prisma } from "../../../../lib/db/client";
 import { validateSession, destroyAllUserSessions, createSession } from "../../../../lib/auth/session";
 import { verifyPassword, hashPassword, validatePasswordStrength } from "../../../../lib/auth/password";
@@ -59,6 +60,8 @@ export async function PATCH(request: NextRequest) {
     const ip = getClientIp(request);
     const userAgent = request.headers.get("user-agent") ?? undefined;
     const newSession = await createSession(session.userId, ip, userAgent);
+
+    await emailPasswordChanged(session.userId);
 
     const response = NextResponse.json({ ok: true });
     response.headers.set(

@@ -6,6 +6,12 @@ import {
   LedgerAccountType,
 } from "../../../../../generated/prisma/client";
 import { prisma, withTransaction } from "../../../../lib/db/client";
+import {
+  emailDepositFailed,
+  emailDepositSucceeded,
+  emailWithdrawalFailed,
+  emailWithdrawalPaid,
+} from "../../../../lib/email/events";
 import { constructWebhookEvent } from "../../../../lib/payments/stripe";
 import {
   getOrCreatePlayerAccount,
@@ -236,6 +242,12 @@ async function handlePaymentIntentSucceeded(
     });
   });
 
+  await emailDepositSucceeded({
+    userId,
+    transactionId: transaction.id,
+    amount: transaction.amount,
+  });
+
   console.log(
     `[Stripe Webhook] Deposit completed for Transaction ${transaction.id}`
   );
@@ -275,6 +287,16 @@ async function handlePaymentIntentFailed(
     },
   });
 
+  const failedUserId = (transaction.metadata as any)?.userId as string | undefined;
+  if (failedUserId) {
+    await emailDepositFailed({
+      userId: failedUserId,
+      transactionId: transaction.id,
+      amount: transaction.amount,
+      reason: failureMessage,
+    });
+  }
+
   console.log(
     `[Stripe Webhook] Deposit FAILED for Transaction ${transaction.id}: ${failureMessage}`
   );
@@ -308,6 +330,15 @@ async function handlePayoutPaid(payout: Stripe.Payout): Promise<void> {
       completedAt: new Date(),
     },
   });
+
+  const paidUserId = (transaction.metadata as any)?.userId as string | undefined;
+  if (paidUserId) {
+    await emailWithdrawalPaid({
+      userId: paidUserId,
+      transactionId: transaction.id,
+      amount: transaction.amount,
+    });
+  }
 
   console.log(
     `[Stripe Webhook] Withdrawal completed for Transaction ${transaction.id}`
@@ -378,6 +409,13 @@ async function handlePayoutFailed(payout: Stripe.Payout): Promise<void> {
         reason: failureMessage,
       },
     });
+  });
+
+  await emailWithdrawalFailed({
+    userId,
+    transactionId: transaction.id,
+    amount: transaction.amount,
+    reason: failureMessage,
   });
 
   console.log(

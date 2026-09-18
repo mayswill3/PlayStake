@@ -9,6 +9,15 @@ import {
 import { adminResolveDisputeSchema } from "@/lib/validation/schemas";
 import { appendRefereeAudit, auditContextFromRequest } from "@/lib/referees/audit";
 import { refundEscrow } from "@/lib/ledger/escrow";
+import { emailDisputeResolved } from "@/lib/email/events";
+
+/** Human-readable outcome for the players' resolution email. */
+const DISPUTE_OUTCOME_LABELS: Record<string, string> = {
+  RESOLVED_PLAYER_A: "Player A won",
+  RESOLVED_PLAYER_B: "Player B won",
+  RESOLVED_DRAW: "Draw — both stakes returned",
+  RESOLVED_VOID: "Match voided — both stakes refunded",
+};
 
 export const GET = withRoleGuard([UserRole.ADMIN], async (_req, context) => {
   const id = context?.params?.id;
@@ -188,6 +197,11 @@ export const PATCH = withRoleGuard([UserRole.ADMIN], async (req, context, auth) 
     }
     return resolved;
   });
+
+  await emailDisputeResolved(
+    dispute.betId,
+    DISPUTE_OUTCOME_LABELS[parsed.data.status] ?? parsed.data.status,
+  );
 
   return Response.json(updated);
 });

@@ -18,6 +18,7 @@ interface UserProfile {
   avatarUrl: string | null;
   role: string;
   emailVerified: boolean;
+  emailNotifications: boolean;
   twoFactorEnabled: boolean;
 }
 
@@ -26,6 +27,7 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [notifSaving, setNotifSaving] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
@@ -54,6 +56,26 @@ export default function SettingsPage() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleNotificationsChange(enabled: boolean) {
+    setNotifSaving(true);
+    // Optimistic: the switch should feel instant, and it reverts on failure.
+    setProfile((current) => (current ? { ...current, emailNotifications: enabled } : current));
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emailNotifications: enabled }),
+      });
+      if (!res.ok) throw new Error('Request failed');
+      toast('success', enabled ? 'Match emails on.' : 'Match emails off.');
+    } catch {
+      setProfile((current) => (current ? { ...current, emailNotifications: !enabled } : current));
+      toast('error', 'Could not update your email preference.');
+    } finally {
+      setNotifSaving(false);
+    }
+  }
 
   async function handleProfileSave(e: FormEvent) {
     e.preventDefault();
@@ -262,11 +284,27 @@ export default function SettingsPage() {
 
         <Card className="bg-ps-paper-elevated dark:bg-ps-ink-2 border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">
           <CardTitle>Notifications</CardTitle>
-          <CardDescription>Notification preferences coming soon.</CardDescription>
-          <div className="mt-4 p-4 rounded-[var(--ps-radius-md)] bg-ps-paper dark:bg-ps-ink-3 text-center">
-            <p className="text-sm font-mono text-ps-muted dark:text-ps-muted-on-dark">
-              Email and push notification settings will be available in a future update.
-            </p>
+          <CardDescription>Choose which emails you get from PlayStake.</CardDescription>
+          <div className="mt-4 flex items-start justify-between gap-4 p-4 rounded-[var(--ps-radius-md)] bg-ps-paper dark:bg-ps-ink-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-ps-text dark:text-ps-text-on-dark">
+                Match and referee emails
+              </p>
+              <p className="mt-1 text-xs text-ps-muted dark:text-ps-muted-on-dark">
+                Results when a match settles, and alerts when a match needs a referee.
+                Security, payment and responsible-play emails are always sent.
+              </p>
+            </div>
+            <label className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-ps-text dark:text-ps-text-on-dark">
+              <input
+                type="checkbox"
+                checked={profile?.emailNotifications ?? true}
+                disabled={notifSaving || !profile}
+                onChange={(event) => void handleNotificationsChange(event.target.checked)}
+                className="h-4 w-4 accent-[var(--ps-lime)]"
+              />
+              {profile?.emailNotifications === false ? 'Off' : 'On'}
+            </label>
           </div>
         </Card>
 

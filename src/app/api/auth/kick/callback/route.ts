@@ -8,6 +8,7 @@ import {
 } from "../../../../../lib/kick/api";
 import { validateSession } from "../../../../../lib/auth/session";
 import { encrypt } from "../../../../../lib/utils/encryption";
+import { emailKickConnectionChanged } from "../../../../../lib/email/events";
 
 const isSecure = (process.env.NEXT_PUBLIC_APP_URL ?? "").startsWith("https");
 
@@ -109,6 +110,12 @@ export async function GET(request: NextRequest) {
     } catch (subErr) {
       console.error("Kick webhook subscription failed:", subErr);
     }
+
+    await emailKickConnectionChanged({
+      userId: session.userId,
+      channel: kickChannel?.slug ?? kickUser.name,
+      connected: true,
+    });
 
     const response = NextResponse.redirect(`${appUrl}/dashboard?kick=linked`);
     clearOAuthCookies(response);

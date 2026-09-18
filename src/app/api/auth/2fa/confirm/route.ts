@@ -1,4 +1,5 @@
 import { withSessionAuth } from "@/lib/middleware/auth";
+import { emailTwoFactorChanged } from "@/lib/email/events";
 import { withTransaction } from "@/lib/db/client";
 import { confirm2FASchema } from "@/lib/validation/schemas";
 import * as OTPAuth from "otpauth";
@@ -73,6 +74,8 @@ export const POST = withSessionAuth(async (req, _context, auth) => {
       data: { twoFactorEnabled: true, twoFactorLastUsedStep: null },
     });
   });
+
+  await emailTwoFactorChanged(auth.userId, true);
 
   return Response.json({
     message: "Two-factor authentication enabled successfully",

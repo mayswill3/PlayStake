@@ -4,6 +4,7 @@ import { TransactionType } from "../../../../../generated/prisma/client";
 import { validateSession } from "../../../../lib/auth/session";
 import { getSessionToken } from "../../../../lib/auth/helpers";
 import { prisma, withTransaction } from "../../../../lib/db/client";
+import { emailWithdrawalRequested } from "../../../../lib/email/events";
 import { getOrCreatePlayerAccount, getSystemAccount } from "../../../../lib/ledger/accounts";
 import { transfer } from "../../../../lib/ledger/transfer";
 import { withdrawSchema } from "../../../../lib/validation/schemas";
@@ -194,6 +195,12 @@ export async function POST(request: NextRequest) {
         "PAYOUT_FAILED"
       );
     }
+
+    await emailWithdrawalRequested({
+      userId: session.userId,
+      transactionId: result.transaction.id,
+      amount: result.transaction.amount,
+    });
 
     const estimatedArrival = new Date(
       Date.now() + 3 * 24 * 60 * 60 * 1000

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/db/client";
+import { emailDisputeFiled } from "../../../../../lib/email/events";
 import {
   BetStatus,
   RefereeAssignmentStatus,
@@ -150,6 +151,8 @@ export async function POST(
       }
       return created;
     });
+
+    await emailDisputeFiled(betId, session.userId);
 
     return NextResponse.json(
       {

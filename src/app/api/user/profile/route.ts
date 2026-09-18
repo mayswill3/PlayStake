@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
       role: user.role,
       kycStatus: user.kycStatus,
       emailVerified: user.emailVerified,
+      emailNotifications: user.emailNotifications,
       twoFactorEnabled: user.twoFactorEnabled,
       createdAt: user.createdAt.toISOString(),
     });
@@ -47,6 +48,9 @@ export async function PATCH(request: NextRequest) {
     const updateData: Record<string, unknown> = {};
     if (input.displayName !== undefined) updateData.displayName = input.displayName;
     if (input.avatarUrl !== undefined) updateData.avatarUrl = input.avatarUrl;
+    if (input.emailNotifications !== undefined) {
+      updateData.emailNotifications = input.emailNotifications;
+    }
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(sanitizeUser(session.user as any));
@@ -65,6 +69,7 @@ export async function PATCH(request: NextRequest) {
       role: updated.role,
       kycStatus: updated.kycStatus,
       emailVerified: updated.emailVerified,
+      emailNotifications: updated.emailNotifications,
       twoFactorEnabled: updated.twoFactorEnabled,
       createdAt: updated.createdAt.toISOString(),
     });

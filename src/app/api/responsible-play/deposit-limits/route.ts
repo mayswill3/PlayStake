@@ -10,6 +10,7 @@ import {
   setDepositLimitSchema,
 } from "@/lib/validation/schemas";
 import { DepositLimitPeriod } from "../../../../../generated/prisma/client";
+import { emailDepositLimitChanged } from "@/lib/email/events";
 
 export const PUT = withSessionAuth(async (request, _context, auth) => {
   try {
@@ -26,6 +27,15 @@ export const PUT = withSessionAuth(async (request, _context, auth) => {
       parsed.data.period as DepositLimitPeriod,
       parsed.data.amount,
     );
+
+    await emailDepositLimitChanged({
+      userId: auth.userId,
+      limitId: `${auth.userId}-${result.period}`,
+      period: result.period,
+      amount: parsed.data.amount / 100,
+      effectiveAt: result.effectiveAt,
+    });
+
     return Response.json(result);
   } catch (error) {
     return errorResponse(error);

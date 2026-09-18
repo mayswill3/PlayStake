@@ -1,6 +1,7 @@
 import { RefereeProfileStatus, UserRole } from "@/../generated/prisma/client";
 import { prisma } from "@/lib/db/client";
 import { withRoleGuard } from "@/lib/middleware/auth";
+import { emailRefereeApplicationDecided } from "@/lib/email/events";
 
 export const PATCH = withRoleGuard([UserRole.ADMIN], async (request, context) => {
   const id = context.params?.id;
@@ -51,5 +52,16 @@ export const PATCH = withRoleGuard([UserRole.ADMIN], async (request, context) =>
         body.status === RefereeProfileStatus.SUSPENDED ? now : null,
     },
   });
+  await emailRefereeApplicationDecided({
+    userId: profile.userId,
+    profileId: profile.id,
+    status:
+      body.status === RefereeProfileStatus.APPROVED
+        ? "approved"
+        : body.status === RefereeProfileStatus.SUSPENDED
+          ? "suspended"
+          : "rejected",
+  });
+
   return Response.json(profile);
 });

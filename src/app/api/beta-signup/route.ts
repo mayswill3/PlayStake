@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/client';
+import { emailBetaSignup } from '@/lib/email/events';
 import { errorResponse } from '@/lib/errors';
 import { betaSignupRateLimit } from '@/lib/middleware/rate-limit';
 import { validateBody } from '@/lib/middleware/validate';
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
     const input = validateBody(betaSignupSchema, await request.json());
     const consentedAt = new Date();
 
-    await prisma.betaSignup.upsert({
+    const signup = await prisma.betaSignup.upsert({
       where: { email: input.email },
       create: {
         name: input.name,
@@ -29,6 +30,8 @@ export async function POST(request: NextRequest) {
         consentedAt,
       },
     });
+
+    await emailBetaSignup(input.email, input.name, signup.id);
 
     return NextResponse.json(
       { message: 'Beta access request saved' },

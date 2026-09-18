@@ -17,6 +17,7 @@ import {
   type DepositLimitActivationPayload,
 } from "../lib/jobs/types";
 import { prisma } from "../lib/db/client";
+import { emailBreakEnded } from "../lib/email/events";
 
 function log(level: string, msg: string, data?: Record<string, unknown>): void {
   console.log(
@@ -28,6 +29,8 @@ async function processActivationScan(
   _job: Job<DepositLimitActivationPayload>,
 ): Promise<void> {
   const now = new Date();
+
+  await notifyEndedBreaks(now);
 
   const matured = await prisma.depositLimit.findMany({
     where: {
@@ -69,6 +72,28 @@ async function processActivationScan(
         error: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+}
+
+/**
+ * Tell players their cool-off or self-exclusion has finished. The outbox
+ * de-duplicates on the break id, so a break is only ever announced once.
+ */
+async function notifyEndedBreaks(now: Date): Promise<void> {
+  const ended = await prisma.playBreak.findMany({
+    where: {
+      endsAt: { lte: now, gt: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+    },
+    select: { id: true, userId: true, type: true },
+    take: 200,
+  });
+
+  for (const playBreak of ended) {
+    await emailBreakEnded({
+      userId: playBreak.userId,
+      breakId: playBreak.id,
+      kind: playBreak.type,
+    });
   }
 }
 

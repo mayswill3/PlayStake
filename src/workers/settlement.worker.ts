@@ -25,6 +25,7 @@ import {
 } from "../lib/ledger/accounts";
 import { dispatchWebhook } from "../lib/webhooks/dispatch";
 import { appendRefereeAudit } from "../lib/referees/audit";
+import { emailBetSettled, emailRefereeFeePaid } from "../lib/email/events";
 
 // ---------------------------------------------------------------------------
 // Logging helper
@@ -39,6 +40,12 @@ function log(level: string, msg: string, data?: Record<string, unknown>): void {
 // ---------------------------------------------------------------------------
 
 async function settleBet(betId: string): Promise<void> {
+  // Captured inside the transaction, used for notifications afterwards.
+  let settledRefereeUserId: string | null = null;
+  let settledAssignmentId: string | null = null;
+  let settledRefereeFee = new Decimal(0);
+  let settledGameName = "";
+
   await withTransaction(
     async (tx: TxClient) => {
       // 1. Acquire advisory lock on the bet ID (xact variant auto-releases)
@@ -272,6 +279,11 @@ async function settleBet(betId: string): Promise<void> {
         `;
       }
 
+      settledRefereeUserId = refereeAssignment?.refereeProfile?.userId ?? null;
+      settledAssignmentId = refereeAssignment?.id ?? null;
+      settledRefereeFee = refereeFeeAmount;
+      settledGameName = game.name;
+
       log("info", "bet_settled", {
         betId,
         outcome,
@@ -287,6 +299,18 @@ async function settleBet(betId: string): Promise<void> {
     },
     { timeout: 30_000 }
   );
+
+  // Notify both players (and the referee, if there was one) outside the
+  // transaction: an email provider must never hold a settlement open.
+  await emailBetSettled(betId);
+  if (settledRefereeUserId && settledRefereeFee.gt(0)) {
+    await emailRefereeFeePaid({
+      userId: settledRefereeUserId,
+      assignmentId: settledAssignmentId!,
+      amount: settledRefereeFee,
+      gameName: settledGameName,
+    });
+  }
 
   // Dispatch webhook outside the transaction
   try {

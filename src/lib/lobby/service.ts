@@ -41,6 +41,7 @@ import {
   type StreamGameType,
 } from "@/lib/games/catalogue";
 import { LobbyChannels, publishLobbyEvent } from "./pubsub";
+import { emailRefereesMatchAvailable } from "@/lib/email/events";
 import { createRefereeAssignmentForBet } from "@/lib/referees/service";
 
 // ---------------------------------------------------------------------------
@@ -1018,6 +1019,8 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
       betId: result.betId,
       gameType: result.gameType,
     });
+    // Email as a backup to the live alert: the claim window is only 10 minutes.
+    await emailRefereesMatchAvailable(result.betId);
   }
   if (!result.awaitingReferee) {
     await publishLobbyEvent(LobbyChannels.matched(result.playerAUserId), {
