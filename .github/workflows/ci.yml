@@ -1,0 +1,129 @@
+name: CI
+
+# Runs the test suite on every push, so a regression is caught here rather than
+# in production. The integration tests talk to a real database and Redis — they
+# invoke route handlers directly against them — so both run as service
+# containers mirroring docker-compose.yml.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch makes an in-flight run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint and types
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # generated/prisma is gitignored, so the client has to be built before
+      # anything type-checks against it.
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: playstake
+          POSTGRES_PASSWORD: playstake
+          POSTGRES_DB: playstake
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U playstake"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # Throwaway values for a throwaway database. Nothing here is a real
+    # credential: the suite stubs every outbound call, so no key is ever used
+    # against a live service. Keys are the right shape (32-byte hex) because the
+    # crypto helpers validate that at import time.
+    env:
+      DATABASE_URL: postgresql://playstake:playstake@localhost:5432/playstake
+      REDIS_URL: redis://localhost:6379
+
+      AUDIT_IP_SALT: "00000000000000000000000000000000000000000000000000000000000000ci"
+      AUTH_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000001"
+      KICK_TOKEN_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000002"
+      KYC_DOCUMENT_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000003"
+      SESSION_SECRET: "ci-session-secret-not-used-outside-github-actions"
+
+      STRIPE_SECRET_KEY: "sk_test_ci"
+      STRIPE_WEBHOOK_SECRET: "whsec_ci"
+      STRIPE_CONNECT_COUNTRY: GB
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_ci"
+
+      KICK_CLIENT_ID: "ci-kick-client-id"
+      KICK_CLIENT_SECRET: "ci-kick-client-secret"
+      GOOGLE_CLIENT_ID: "ci-google-client-id"
+      GOOGLE_CLIENT_SECRET: "ci-google-client-secret"
+
+      RESEND_API_KEY: "re_ci_key"
+      EMAIL_FROM: "PlayStake <support@playstake.org>"
+
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+      SITE_URL: "http://localhost:3000"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      # deploy, not dev: apply the committed migrations exactly, and fail if a
+      # migration is missing rather than inventing one.
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: Run tests
+        run: npm test
