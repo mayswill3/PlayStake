@@ -22,9 +22,22 @@ export default function RootError({
       <div className="text-center max-w-md">
         <div className="text-4xl mb-4" aria-hidden="true">⚠</div>
         <h2 className="text-xl font-bold text-surface-100 mb-2">Something went wrong</h2>
+        {/*
+          Never render error.message. Next redacts server-component errors, but
+          a client-side throw surfaces verbatim — and on this product that can
+          mean a database constraint, an internal path, or a provider's error
+          text. The detail goes to Sentry; the user gets the digest, which is
+          the reference support can search on.
+        */}
         <p className="text-sm text-surface-400 mb-6">
-          {error.message || 'An unexpected error occurred. Please try again.'}
+          Something went wrong on our side. Your balance and any match in
+          progress are unaffected.
         </p>
+        {error.digest && (
+          <p className="text-xs font-mono text-surface-500 mb-6">
+            Reference: {error.digest}
+          </p>
+        )}
         <Button onClick={reset}>Try again</Button>
       </div>
     </div>
