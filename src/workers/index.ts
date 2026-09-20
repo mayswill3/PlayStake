@@ -8,7 +8,9 @@
 // =============================================================================
 
 import "dotenv/config";
+import * as Sentry from "@sentry/node";
 import type { Worker } from "bullmq";
+import { sentryBaseOptions } from "../lib/observability/sentry-options";
 import { registerSchedules } from "../lib/jobs/schedules";
 import { closeAllQueues } from "../lib/jobs/queue";
 import { startHeartbeat } from "../lib/jobs/heartbeat";
@@ -40,6 +42,10 @@ const workers: Worker[] = [];
 let stopHeartbeat: (() => Promise<void>) | undefined;
 
 async function start(): Promise<void> {
+  // Next's instrumentation hook only covers the web process. This one moves
+  // money on a timer with nobody watching, so it needs its own reporter.
+  Sentry.init(sentryBaseOptions());
+
   log("info", "starting_workers");
 
   // 1. Create all worker instances
@@ -129,6 +135,7 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 
 // Handle uncaught exceptions
 process.on("uncaughtException", (error) => {
+  Sentry.captureException(error);
   log("error", "uncaught_exception", {
     error: error.message,
     stack: error.stack,
@@ -137,6 +144,7 @@ process.on("uncaughtException", (error) => {
 });
 
 process.on("unhandledRejection", (reason) => {
+  Sentry.captureException(reason);
   log("error", "unhandled_rejection", {
     error: reason instanceof Error ? reason.message : String(reason),
     stack: reason instanceof Error ? reason.stack : undefined,

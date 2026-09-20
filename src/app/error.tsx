@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { Button } from '@/components/ui/Button';
 
 export default function RootError({
@@ -9,6 +11,12 @@ export default function RootError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // This boundary is where most page errors surface; report before rendering
+  // the apology, so a user hitting it doesn't have to tell us about it.
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="text-center max-w-md">
