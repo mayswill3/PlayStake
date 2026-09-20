@@ -19,9 +19,21 @@ export const SENTRY_DSN =
  */
 const TRACES_SAMPLE_RATE = Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0.1);
 
+/**
+ * Which deploy an error came from — the difference between "something is
+ * broken" and "the thing we shipped at 14:20 is broken".
+ *
+ * Railway injects RAILWAY_GIT_COMMIT_SHA for services deployed from GitHub.
+ * SENTRY_RELEASE overrides it for anything built elsewhere. Undefined is fine:
+ * Sentry simply groups without a release rather than failing.
+ */
+export const SENTRY_RELEASE =
+  process.env.SENTRY_RELEASE ?? process.env.RAILWAY_GIT_COMMIT_SHA;
+
 export function sentryBaseOptions() {
   return {
     dsn: SENTRY_DSN,
+    release: SENTRY_RELEASE,
     environment: process.env.NODE_ENV ?? "development",
 
     // Never attach cookies, headers, or request bodies automatically. A session

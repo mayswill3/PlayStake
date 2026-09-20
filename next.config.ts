@@ -78,6 +78,11 @@ export default process.env.SENTRY_DSN
       // hidden from the client bundle so stack traces stay readable in Sentry
       // without publishing our source to anyone who opens devtools.
       authToken: process.env.SENTRY_AUTH_TOKEN,
+      // Ties uploaded source maps to the deploy that produced them, so a stack
+      // trace resolves against the right build rather than the newest one.
+      release: {
+        name: process.env.SENTRY_RELEASE ?? process.env.RAILWAY_GIT_COMMIT_SHA,
+      },
       silent: true,
       widenClientFileUpload: true,
       sourcemaps: { deleteSourcemapsAfterUpload: true },
