@@ -61,6 +61,20 @@ enum PlayBreakType {
   SELF_EXCLUSION
 }
 
+/// Behavioural markers of possible gambling harm.
+enum PlayerRiskType {
+  /// Stakes climbing through a run of consecutive losses.
+  LOSS_CHASING_STAKES
+  /// Repeatedly topping up immediately after losing.
+  LOSS_CHASING_DEPOSITS
+}
+
+enum PlayerRiskStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+}
+
 enum AuthTokenType {
   EMAIL_VERIFICATION
   PASSWORD_RESET
@@ -240,6 +254,8 @@ model User {
   depositLimits        DepositLimit[]
   playBreaks           PlayBreak[]
   responsiblePlay      ResponsiblePlaySettings?
+  riskSignals          PlayerRiskSignal[]       @relation("PlayerRiskSubject")
+  riskSignalsReviewed  PlayerRiskSignal[]       @relation("PlayerRiskReviewer")
   emailOutbox          EmailOutbox[]
   chatMessages         MatchChatMessage[]       @relation("ChatAuthor")
   chatModerations      MatchChatMessage[]       @relation("ChatModerator")
@@ -993,6 +1009,35 @@ model PlayBreak {
 
   @@index([userId, endsAt], map: "idx_play_break_user_active")
   @@map("play_breaks")
+}
+
+/// Markers of possible gambling harm, raised against a player rather than a
+/// developer. Deliberately NOT an AnomalyAlert: that model is developer-scoped
+/// fraud detection ("is this game rigged"), and mixing player welfare into the
+/// fraud queue would bury one in the other. A signal here is a prompt to look,
+/// never an accusation and never an automatic restriction.
+model PlayerRiskSignal {
+  id           String           @id @default(uuid()) @db.Uuid
+  userId       String           @map("user_id") @db.Uuid
+  type         PlayerRiskType
+  status       PlayerRiskStatus @default(OPEN)
+  severity     String           @db.VarChar(20)
+  /// What was observed: streak length, stake multiple, deposit count.
+  details      Json
+  /// Bounds of the behaviour that triggered it, for review without re-querying.
+  windowStart  DateTime         @map("window_start")
+  windowEnd    DateTime         @map("window_end")
+  reviewedById String?          @map("reviewed_by_id") @db.Uuid
+  reviewedAt   DateTime?        @map("reviewed_at")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  user       User  @relation("PlayerRiskSubject", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("PlayerRiskReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt], map: "idx_player_risk_status")
+  @@index([userId, type, createdAt], map: "idx_player_risk_user_type")
+  @@map("player_risk_signals")
 }
 
 model ResponsiblePlaySettings {

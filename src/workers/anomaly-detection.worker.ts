@@ -19,6 +19,7 @@ import {
 } from "../lib/jobs/types";
 import { prisma } from "../lib/db/client";
 import { reportJobFailure } from "../lib/observability/job-failure";
+import { scanForLossChasing } from "../lib/responsible-play/risk";
 
 // ---------------------------------------------------------------------------
 // Logging helper
@@ -501,6 +502,28 @@ async function processAnomalyDetectionScan(
   log("info", "anomaly_scan_completed", {
     developerCount: developers.length,
   });
+
+  await processPlayerRiskScan();
+}
+
+/**
+ * Player welfare, not developer fraud — a separate pass with its own table,
+ * riding this worker's schedule rather than adding a queue for two queries.
+ */
+async function processPlayerRiskScan(): Promise<void> {
+  try {
+    const result = await scanForLossChasing();
+    if (result.raised > 0) {
+      log("warn", "loss_chasing_signals_raised", result);
+    } else {
+      log("info", "player_risk_scan_completed", result);
+    }
+  } catch (error) {
+    // Never let a welfare scan take down fraud detection.
+    log("error", "player_risk_scan_failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
