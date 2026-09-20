@@ -11,6 +11,7 @@ import "dotenv/config";
 import type { Worker } from "bullmq";
 import { registerSchedules } from "../lib/jobs/schedules";
 import { closeAllQueues } from "../lib/jobs/queue";
+import { startHeartbeat } from "../lib/jobs/heartbeat";
 import { createSettlementWorker } from "./settlement.worker";
 import { createConsentExpiryWorker } from "./consent-expiry.worker";
 import { createBetExpiryWorker } from "./bet-expiry.worker";
@@ -36,6 +37,7 @@ function log(level: string, msg: string, data?: Record<string, unknown>): void {
 // ---------------------------------------------------------------------------
 
 const workers: Worker[] = [];
+let stopHeartbeat: (() => Promise<void>) | undefined;
 
 async function start(): Promise<void> {
   log("info", "starting_workers");
@@ -58,6 +60,9 @@ async function start(): Promise<void> {
   // 2. Register repeatable job schedules
   await registerSchedules();
 
+  // 3. Start beating, so /api/health can tell a live process from a dead one.
+  stopHeartbeat = startHeartbeat(workers.length);
+
   log("info", "all_workers_running", {
     workerCount: workers.length,
     pid: process.pid,
@@ -75,6 +80,14 @@ async function shutdown(signal: string): Promise<void> {
   isShuttingDown = true;
 
   log("info", "shutdown_initiated", { signal });
+
+  // Stop beating before anything else, so health reports down for the whole
+  // restart rather than staying green until the TTL lapses. Must run before
+  // the queue connections close, since clearing the key needs Redis.
+  if (stopHeartbeat) {
+    await stopHeartbeat().catch(() => undefined);
+    stopHeartbeat = undefined;
+  }
 
   // Close all workers (stop accepting new jobs, finish current ones)
   const closePromises = workers.map(async (worker) => {

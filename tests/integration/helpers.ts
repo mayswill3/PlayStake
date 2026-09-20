@@ -534,6 +534,12 @@ async function resolveRouteHandler(
   method: string,
   path: string
 ): Promise<ResolvedRoute> {
+  // Health check
+  if (path === "/api/health") {
+    const mod = await import("../../src/app/api/health/route.js");
+    return { handler: mod.GET };
+  }
+
   // Auth routes
   if (path === "/api/auth/register") {
     const mod = await import("../../src/app/api/auth/register/route.js");
