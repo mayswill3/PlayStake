@@ -12,6 +12,7 @@ import { getRedisConnection } from "../lib/jobs/queue";
 import { QUEUE_NAMES, type ConsentExpiryScanPayload } from "../lib/jobs/types";
 import { prisma } from "../lib/db/client";
 import { dispatchWebhook } from "../lib/webhooks/dispatch";
+import { reportJobFailure } from "../lib/observability/job-failure";
 
 // ---------------------------------------------------------------------------
 // Logging helper
@@ -114,6 +115,7 @@ export function createConsentExpiryWorker(): Worker<ConsentExpiryScanPayload> {
   );
 
   worker.on("failed", (job, err) => {
+    reportJobFailure("consent-expiry", job, err);
     log("error", "consent_expiry_job_failed", {
       jobId: job?.id,
       error: err.message,

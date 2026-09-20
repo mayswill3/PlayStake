@@ -15,6 +15,7 @@ import {
 } from "../lib/jobs/types";
 import { prisma } from "../lib/db/client";
 import { signWebhookPayload } from "../lib/webhooks/sign";
+import { reportJobFailure } from "../lib/observability/job-failure";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -251,6 +252,7 @@ export function createWebhookDeliveryWorker(): Worker<WebhookDeliveryScanPayload
   );
 
   worker.on("failed", (job, err) => {
+    reportJobFailure("webhook-delivery", job, err);
     log("error", "webhook_delivery_job_failed", {
       jobId: job?.id,
       error: err.message,

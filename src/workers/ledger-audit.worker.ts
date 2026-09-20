@@ -11,8 +11,9 @@ import { Decimal } from "@prisma/client/runtime/client";
 import { BetStatus } from "../../generated/prisma/client";
 import { getRedisConnection } from "../lib/jobs/queue";
 import { QUEUE_NAMES, type LedgerAuditPayload } from "../lib/jobs/types";
-import { prisma, withTransaction, type TxClient } from "../lib/db/client";
+import { withTransaction, type TxClient } from "../lib/db/client";
 import { runFullAudit, type AuditReport } from "../lib/ledger/audit";
+import { reportJobFailure } from "../lib/observability/job-failure";
 
 // ---------------------------------------------------------------------------
 // Logging helper
@@ -194,6 +195,7 @@ export function createLedgerAuditWorker(): Worker<LedgerAuditPayload> {
   );
 
   worker.on("failed", (job, err) => {
+    reportJobFailure("ledger-audit", job, err);
     log("error", "ledger_audit_job_failed", {
       jobId: job?.id,
       error: err.message,

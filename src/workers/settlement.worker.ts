@@ -26,6 +26,7 @@ import {
 import { dispatchWebhook } from "../lib/webhooks/dispatch";
 import { appendRefereeAudit } from "../lib/referees/audit";
 import { emailBetSettled, emailRefereeFeePaid } from "../lib/email/events";
+import { reportJobFailure } from "../lib/observability/job-failure";
 
 // ---------------------------------------------------------------------------
 // Logging helper
@@ -410,6 +411,7 @@ export function createSettlementWorker(): Worker<SettlementScanPayload> {
   );
 
   worker.on("failed", (job, err) => {
+    reportJobFailure("settlement", job, err);
     log("error", "settlement_job_failed", {
       jobId: job?.id,
       error: err.message,

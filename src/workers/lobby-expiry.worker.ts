@@ -14,6 +14,7 @@ import { Worker, type Job } from "bullmq";
 import { getRedisConnection } from "../lib/jobs/queue";
 import { QUEUE_NAMES, type LobbyExpiryScanPayload } from "../lib/jobs/types";
 import { runLobbyExpiryScan } from "../lib/lobby/service";
+import { reportJobFailure } from "../lib/observability/job-failure";
 
 function log(level: string, msg: string, data?: Record<string, unknown>): void {
   console.log(JSON.stringify({ level, msg, worker: "lobby-expiry", ...data }));
@@ -44,6 +45,7 @@ export function createLobbyExpiryWorker(): Worker<LobbyExpiryScanPayload> {
   );
 
   worker.on("failed", (job, err) => {
+    reportJobFailure("lobby-expiry", job, err);
     log("error", "lobby_expiry_job_failed", {
       jobId: job?.id,
       error: err.message,

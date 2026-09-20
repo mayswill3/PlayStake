@@ -10,6 +10,7 @@ import { Worker, type Job } from "bullmq";
 import { getRedisConnection } from "../lib/jobs/queue";
 import { QUEUE_NAMES, type EmailDeliveryScanPayload } from "../lib/jobs/types";
 import { flushEmailOutbox } from "../lib/email/outbox";
+import { reportJobFailure } from "../lib/observability/job-failure";
 
 function log(level: string, msg: string, data?: Record<string, unknown>): void {
   console.log(JSON.stringify({ level, msg, worker: "email-delivery", ...data }));
@@ -41,6 +42,7 @@ export function createEmailDeliveryWorker(): Worker<EmailDeliveryScanPayload> {
   );
 
   worker.on("failed", (job, err) => {
+    reportJobFailure("email-delivery", job, err);
     log("error", "email_delivery_job_failed", { jobId: job?.id, error: err.message });
   });
 

@@ -17,6 +17,7 @@ import {
 } from "../lib/jobs/types";
 import { prisma, withTransaction, type TxClient } from "../lib/db/client";
 import { refundEscrow } from "../lib/ledger/escrow";
+import { reportJobFailure } from "../lib/observability/job-failure";
 
 // ---------------------------------------------------------------------------
 // Logging helper
@@ -255,6 +256,7 @@ export function createDisputeEscalationWorker(): Worker<DisputeEscalationScanPay
   );
 
   worker.on("failed", (job, err) => {
+    reportJobFailure("dispute-escalation", job, err);
     log("error", "dispute_escalation_job_failed", {
       jobId: job?.id,
       error: err.message,

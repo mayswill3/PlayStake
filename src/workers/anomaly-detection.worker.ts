@@ -18,6 +18,7 @@ import {
   type AnomalyDetectionScanPayload,
 } from "../lib/jobs/types";
 import { prisma } from "../lib/db/client";
+import { reportJobFailure } from "../lib/observability/job-failure";
 
 // ---------------------------------------------------------------------------
 // Logging helper
@@ -517,6 +518,7 @@ export function createAnomalyDetectionWorker(): Worker<AnomalyDetectionScanPaylo
   );
 
   worker.on("failed", (job, err) => {
+    reportJobFailure("anomaly-detection", job, err);
     log("error", "anomaly_detection_job_failed", {
       jobId: job?.id,
       error: err.message,

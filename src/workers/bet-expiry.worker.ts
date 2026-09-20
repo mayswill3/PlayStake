@@ -25,6 +25,7 @@ import {
 } from "../lib/referees/service";
 import { dispatchWebhook } from "../lib/webhooks/dispatch";
 import { emailBetVoided } from "../lib/email/events";
+import { reportJobFailure } from "../lib/observability/job-failure";
 
 // ---------------------------------------------------------------------------
 // Logging helper
@@ -343,6 +344,7 @@ export function createBetExpiryWorker(): Worker<BetExpiryScanPayload> {
   );
 
   worker.on("failed", (job, err) => {
+    reportJobFailure("bet-expiry", job, err);
     log("error", "bet_expiry_job_failed", {
       jobId: job?.id,
       error: err.message,

@@ -18,6 +18,7 @@ import {
 } from "../lib/jobs/types";
 import { prisma } from "../lib/db/client";
 import { emailBreakEnded } from "../lib/email/events";
+import { reportJobFailure } from "../lib/observability/job-failure";
 
 function log(level: string, msg: string, data?: Record<string, unknown>): void {
   console.log(
@@ -109,6 +110,7 @@ export function createDepositLimitActivationWorker(): Worker<DepositLimitActivat
   );
 
   worker.on("failed", (job, err) => {
+    reportJobFailure("deposit-limit-activation", job, err);
     log("error", "deposit_limit_activation_job_failed", {
       jobId: job?.id,
       error: err.message,

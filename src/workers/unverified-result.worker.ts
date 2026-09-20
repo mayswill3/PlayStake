@@ -15,6 +15,7 @@ import {
   type UnverifiedResultScanPayload,
 } from "../lib/jobs/types";
 import { prisma } from "../lib/db/client";
+import { reportJobFailure } from "../lib/observability/job-failure";
 
 // ---------------------------------------------------------------------------
 // Logging helper
@@ -226,6 +227,7 @@ export function createUnverifiedResultWorker(): Worker<UnverifiedResultScanPaylo
   );
 
   worker.on("failed", (job, err) => {
+    reportJobFailure("unverified-result", job, err);
     log("error", "unverified_result_job_failed", {
       jobId: job?.id,
       error: err.message,
