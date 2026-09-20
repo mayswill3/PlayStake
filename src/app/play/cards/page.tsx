@@ -54,7 +54,7 @@ type CardData = ReturnType<typeof randomCard>;
 
 export default function CardsDemoPage() {
   const [role, setRole] = useState<PlayerRole | null>(null);
-  const [currentCard, setCurrentCard] = useState<CardData>(() => randomCard());
+  const [currentCard, _setCurrentCard] = useState<CardData>(() => randomCard());
   const [nextCard, setNextCard] = useState<CardData | null>(null);
   const [roundResult, setRoundResult] = useState<'correct' | 'wrong' | null>(null);
   const [settlementResult, setSettlementResult] = useState<SettlementResult | null>(null);

@@ -16,7 +16,7 @@ import { GameLobbyLayout } from '@/components/games/game-lobby-layout';
 import type { LobbyMatchResult } from '@/components/lobby/LobbyContainer';
 import { useResumeMatch } from '../_shared/use-resume-match';
 import type { PlayerRole } from '../_shared/types';
-import { DartboardCanvas, hitTest, applyDeviation, type DartsState, type DartThrow } from './DartboardCanvas';
+import { DartboardCanvas, hitTest, type DartsState, type DartThrow } from './DartboardCanvas';
 import { DartsAudio } from './darts-audio';
 
 const STARTING_SCORE = 301;
@@ -272,7 +272,7 @@ export default function DartsDemoPage() {
 
     // Normal dart — check if last dart of turn
     const isLastDart = newDartsThrown >= 3;
-    const turnTotal = (cur.turnStartScore - currentScore) + hit.score; // scored this turn so far
+    const _turnTotal = (cur.turnStartScore - currentScore) + hit.score; // scored this turn so far
     // Actually: total scored this turn = turn start - new remaining
     const totalThisTurn = cur.turnStartScore - newScore;
 

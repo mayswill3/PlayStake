@@ -3,7 +3,6 @@ import { Decimal } from "@prisma/client/runtime/client";
 import {
   TransactionType,
   TransactionStatus,
-  LedgerAccountType,
 } from "../../../generated/prisma/client.js";
 import {
   withRollback,

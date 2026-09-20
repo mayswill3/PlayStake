@@ -26,7 +26,7 @@ afterAll(async () => {
 describe("session management", () => {
   it("creates a session and validates it", async () => {
     await withRollback(async (tx) => {
-      const seeds = await seedTestData(tx);
+      const _seeds = await seedTestData(tx);
 
       // Create session (uses singleton prisma, not tx, but we still seed via tx)
       // For a proper integration test we need to work outside the rollback

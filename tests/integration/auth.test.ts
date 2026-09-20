@@ -4,10 +4,7 @@
 
 import { describe, it, expect, afterAll } from "vitest";
 import {
-  withRollback,
   callApi,
-  createTestUser,
-  createTestSession,
   disconnectTestPrisma,
 } from "./helpers.js";
 import { _resetStore } from "../../src/lib/auth/login-protection.js";

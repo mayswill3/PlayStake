@@ -1,5 +1,4 @@
 import {
-  BetMatchType,
   BetOutcome,
   BetStatus,
   KycStatus,

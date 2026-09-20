@@ -60,7 +60,6 @@ function WidgetApp() {
     recentBets,
     error: betsError,
     createBet,
-    consentBet,
     confirmResult,
     disputeResult,
     refresh: refreshBets,

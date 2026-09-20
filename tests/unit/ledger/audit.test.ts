@@ -3,7 +3,6 @@ import { Decimal } from "@prisma/client/runtime/client";
 import {
   TransactionType,
   BetStatus,
-  LedgerAccountType,
 } from "../../../generated/prisma/client.js";
 import {
   withRollback,
@@ -21,7 +20,6 @@ import { transfer } from "../../../src/lib/ledger/transfer.js";
 import { holdEscrow, collectFee, releaseEscrow } from "../../../src/lib/ledger/escrow.js";
 import {
   getOrCreatePlayerAccount,
-  getEscrowAccountForBet,
 } from "../../../src/lib/ledger/accounts.js";
 
 afterAll(async () => {
@@ -47,7 +45,7 @@ afterAll(async () => {
  * we skip the Stripe boundary entirely and just put money directly into
  * player accounts using paired entries.
  */
-async function fundPlayerForAudit(
+async function _fundPlayerForAudit(
   tx: Parameters<Parameters<import("../../../generated/prisma/client.js").PrismaClient["$transaction"]>[0]>[0],
   playerAccountId: string,
   counterpartyAccountId: string,

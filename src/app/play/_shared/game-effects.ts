@@ -326,7 +326,7 @@ export class EffectsManager {
     elapsed: number
   ): void {
     const opacity = 1 - progress;
-    const dt = elapsed / 16.67; // approximate frame count
+    const _dt = elapsed / 16.67; // approximate frame count
 
     ctx.save();
     ctx.globalAlpha = opacity;

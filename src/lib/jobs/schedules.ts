@@ -9,14 +9,6 @@
 import { getQueue } from "./queue";
 import { QUEUE_NAMES, type QueueName } from "./types";
 import type {
-  SettlementScanPayload,
-  ConsentExpiryScanPayload,
-  BetExpiryScanPayload,
-  WebhookDeliveryScanPayload,
-  AnomalyDetectionScanPayload,
-  UnverifiedResultScanPayload,
-  DisputeEscalationScanPayload,
-  LedgerAuditPayload,
 } from "./types";
 
 // ---------------------------------------------------------------------------

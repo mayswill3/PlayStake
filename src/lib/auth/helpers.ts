@@ -31,14 +31,6 @@ export function clearSessionCookieValue(): string {
  */
 export function sanitizeUser(user: Record<string, unknown>): Record<string, unknown> {
   const {
-    passwordHash,
-    twoFactorSecret,
-    deletedAt,
-    stripeCustomerId,
-    stripeConnectAccountId,
-    stripeConnectDetailsSubmitted,
-    stripeConnectPayoutsEnabled,
-    twoFactorLastUsedStep,
     ...safe
   } = user;
   return safe;

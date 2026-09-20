@@ -18,7 +18,6 @@ import {
   createFullScenario,
   createTestUser,
   createTestWidgetToken,
-  callApi,
   getEscrowBalance,
   disconnectTestPrisma,
 } from "./helpers.js";
@@ -280,7 +279,7 @@ describe("Dual-Source Result Verification", () => {
 
       // Create a third user (non-participant) with a widget token
       const nonParticipant = await createTestUser(tx);
-      const nonParticipantToken = await createTestWidgetToken(
+      const _nonParticipantToken = await createTestWidgetToken(
         tx,
         nonParticipant.id,
         scenario.game.id

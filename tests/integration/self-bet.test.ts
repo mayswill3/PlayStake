@@ -10,7 +10,6 @@ import { BetStatus } from "../../generated/prisma/client.js";
 import {
   withRollback,
   createFullScenario,
-  callApi,
   disconnectTestPrisma,
 } from "./helpers.js";
 

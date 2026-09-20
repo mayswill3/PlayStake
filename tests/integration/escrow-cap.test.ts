@@ -10,7 +10,6 @@ import { BetStatus } from "../../generated/prisma/client.js";
 import {
   withRollback,
   createFullScenario,
-  getPlayerBalance,
   getEscrowBalance,
   getCurrentEscrowLimit,
   disconnectTestPrisma,
