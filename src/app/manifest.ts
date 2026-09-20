@@ -8,8 +8,9 @@ export default function manifest(): MetadataRoute.Manifest {
       'Skill-based player-versus-player challenges for competitive gamers.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#0b1220',
-    theme_color: '#5fdcb2',
+    // Kept in step with design/tokens.css: --ps-ink and --ps-lime.
+    background_color: '#0A0F1C',
+    theme_color: '#5FDCB2',
     icons: [
       {
         src: '/logo.png',
