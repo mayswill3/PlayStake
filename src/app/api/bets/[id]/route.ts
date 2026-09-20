@@ -71,9 +71,26 @@ export async function GET(
       throw new AuthorizationError("You are not a participant in this bet");
     }
 
+    // Which side the caller is on, so the client can offer a rematch without
+    // having to work out who "the other player" is for itself.
+    const opponentRecord =
+      bet.playerAId === session.userId ? bet.playerB : bet.playerA;
+
     return NextResponse.json({
       id: bet.id,
       externalId: bet.externalId,
+      opponent: opponentRecord
+        ? {
+            id: opponentRecord.id,
+            displayName: opponentRecord.displayName,
+            kick: opponentRecord.kickAccount?.channelSlug
+              ? {
+                  channelSlug: opponentRecord.kickAccount.channelSlug,
+                  isLive: opponentRecord.kickAccount.isLive,
+                }
+              : null,
+          }
+        : null,
       game: {
         id: bet.game.id,
         name: bet.game.name,

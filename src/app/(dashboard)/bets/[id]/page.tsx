@@ -13,6 +13,7 @@ import { DarkGlowCard } from '@/components/ui/playstake/DarkGlowCard';
 import { StatusPill } from '@/components/ui/playstake/StatusPill';
 import { StepIndicator } from '@/components/ui/playstake/StepIndicator';
 import { PSButton } from '@/components/ui/playstake/PSButton';
+import { RematchCard, isRematchable } from '@/components/bets/RematchCard';
 import {
   RefereeProtectionCard,
   type RefereeAssignmentView,
@@ -32,6 +33,8 @@ interface BetDetail {
   game: { id: string; name: string; logoUrl: string | null };
   playerA: { id: string; displayName: string; kick: KickInfo | null };
   playerB: { id: string; displayName: string; kick: KickInfo | null } | null;
+  /** The other player, from the caller's point of view. Null until matched. */
+  opponent: { id: string; displayName: string; kick: KickInfo | null } | null;
   amount: number;
   currency: string;
   status: string;
@@ -325,6 +328,9 @@ export default function BetDetailPage() {
                 <span>{bet.settledAt ? formatDate(bet.settledAt) : '-'}</span>
               </div>
             </Card>
+
+            {/* Rematch — the match is over, make the next one one click away */}
+            {isRematchable(bet.status) && <RematchCard opponent={bet.opponent} />}
 
             {/* Game metadata */}
             {bet.gameMetadata && Object.keys(bet.gameMetadata).length > 0 && (

@@ -575,6 +575,15 @@ async function resolveRouteHandler(
   }
 
   // Streamer challenge: /api/streamers/{slug}/challenge
+  const betDetailMatch = path.match(/^\/api\/bets\/([^/?]+)$/);
+  if (betDetailMatch && method === "GET") {
+    const mod = await import("../../src/app/api/bets/[id]/route.js");
+    return {
+      handler: mod.GET,
+      params: { id: decodeURIComponent(betDetailMatch[1]) },
+    };
+  }
+
   const challengeMatch = path.match(/^\/api\/streamers\/([^/]+)\/challenge$/);
   if (challengeMatch) {
     const mod = await import(
