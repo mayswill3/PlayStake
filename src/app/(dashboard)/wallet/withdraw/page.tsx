@@ -40,6 +40,9 @@ export default function WithdrawPage() {
         if (balance) setAvailable(balance.available);
         if (connect) setConnectStatus(connect);
       })
+      // finally() does not handle a rejection — without this a dropped request
+      // escapes as an unhandled promise rejection.
+      .catch(() => undefined)
       .finally(() => setPageLoading(false));
   }, []);
 

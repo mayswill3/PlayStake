@@ -88,9 +88,14 @@ export default function AdminKycPage() {
     if (status) params.set('status', status);
     if (search.trim()) params.set('search', search.trim());
 
-    const result = await fetch(`/api/admin/kyc?${params}`, { cache: 'no-store' });
-    if (result.ok) setResponse((await result.json()) as ListResponse);
-    setLoading(false);
+    try {
+      const result = await fetch(`/api/admin/kyc?${params}`, { cache: 'no-store' });
+      if (result.ok) setResponse((await result.json()) as ListResponse);
+    } catch {
+      // Leave the current list on screen rather than rejecting unhandled.
+    } finally {
+      setLoading(false);
+    }
   }, [page, status, search]);
 
   useEffect(() => {
@@ -99,12 +104,16 @@ export default function AdminKycPage() {
 
   async function openSubmission(id: string) {
     setReviewNotes('');
-    const result = await fetch(`/api/admin/kyc/${id}`, { cache: 'no-store' });
-    if (!result.ok) {
+    try {
+      const result = await fetch(`/api/admin/kyc/${id}`, { cache: 'no-store' });
+      if (!result.ok) {
+        toast('error', 'Could not load that submission.');
+        return;
+      }
+      setSelected((await result.json()) as SubmissionDetail);
+    } catch {
       toast('error', 'Could not load that submission.');
-      return;
     }
-    setSelected((await result.json()) as SubmissionDetail);
   }
 
   async function review(decision: 'APPROVE' | 'REJECT') {

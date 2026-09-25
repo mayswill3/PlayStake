@@ -75,12 +75,18 @@ export function useGameSession(
 
     // Poll for opponent
     pollRef.current = setInterval(async () => {
-      const state = await apiGet(`/api/demo/game/${session.id}`);
-      if (state.status === 'playing') {
-        log('Opponent joined! Game starting...', 'success');
-        stopPolling();
-        setGameState(state);
-        setPhase('playing');
+      try {
+        const state = await apiGet(`/api/demo/game/${session.id}`);
+        if (state.status === 'playing') {
+          log('Opponent joined! Game starting...', 'success');
+          stopPolling();
+          setGameState(state);
+          setPhase('playing');
+        }
+      } catch {
+        // Polls every 1.5s while waiting for an opponent — the fastest poller
+        // in the app. An uncaught rejection here would file a Sentry issue on
+        // every network hiccup. Skip the tick and try again.
       }
     }, 1500);
 

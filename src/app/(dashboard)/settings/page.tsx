@@ -54,6 +54,9 @@ export default function SettingsPage() {
           setAvatarUrl(data.avatarUrl || '');
         }
       })
+      // finally() re-throws a rejection rather than handling it, so a network
+      // failure here still escaped as an unhandled rejection.
+      .catch(() => undefined)
       .finally(() => setLoading(false));
   }, []);
 

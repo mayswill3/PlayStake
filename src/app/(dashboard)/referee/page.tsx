@@ -54,19 +54,25 @@ export default function RefereeHubPage() {
   const notifiedIds = useRef(new Set<string>());
 
   const load = useCallback(async () => {
-    const profileResponse = await fetch('/api/referees/profile', { cache: 'no-store' });
-    if (!profileResponse.ok) return;
-    const profile = await profileResponse.json() as ProfileResponse;
-    setProfileData(profile);
-    if (profile.profile) {
-      const [availableResponse, mineResponse] = await Promise.all([
-        fetch('/api/referees/assignments?scope=available', { cache: 'no-store' }),
-        fetch('/api/referees/assignments?scope=mine', { cache: 'no-store' }),
-      ]);
-      if (availableResponse.ok) {
-        setAvailable((await availableResponse.json()).assignments);
+    try {
+      const profileResponse = await fetch('/api/referees/profile', { cache: 'no-store' });
+      if (!profileResponse.ok) return;
+      const profile = await profileResponse.json() as ProfileResponse;
+      setProfileData(profile);
+      if (profile.profile) {
+        const [availableResponse, mineResponse] = await Promise.all([
+          fetch('/api/referees/assignments?scope=available', { cache: 'no-store' }),
+          fetch('/api/referees/assignments?scope=mine', { cache: 'no-store' }),
+        ]);
+        if (availableResponse.ok) {
+          setAvailable((await availableResponse.json()).assignments);
+        }
+        if (mineResponse.ok) setMine((await mineResponse.json()).assignments);
       }
-      if (mineResponse.ok) setMine((await mineResponse.json()).assignments);
+    } catch {
+      // This polls every 10 seconds, so an uncaught rejection here would file a
+      // Sentry issue every time a referee's connection wobbled. Hold the last
+      // known state; the next tick recovers.
     }
   }, []);
 

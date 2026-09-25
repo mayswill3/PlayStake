@@ -73,9 +73,16 @@ export default function ResponsiblePlayPage() {
   } | null>(null);
 
   const load = useCallback(async () => {
-    const response = await fetch('/api/responsible-play', { cache: 'no-store' });
-    if (response.ok) setState((await response.json()) as State);
-    setLoading(false);
+    try {
+      const response = await fetch('/api/responsible-play', { cache: 'no-store' });
+      if (response.ok) setState((await response.json()) as State);
+    } catch {
+      // Network failure: leave whatever is on screen rather than rejecting
+      // into an unhandled promise, which reports as an error and would have
+      // left this page on its spinner.
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

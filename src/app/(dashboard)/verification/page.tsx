@@ -82,9 +82,14 @@ export default function VerificationPage() {
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
   const load = useCallback(async () => {
-    const response = await fetch('/api/kyc', { cache: 'no-store' });
-    if (response.ok) setState((await response.json()) as KycState);
-    setLoading(false);
+    try {
+      const response = await fetch('/api/kyc', { cache: 'no-store' });
+      if (response.ok) setState((await response.json()) as KycState);
+    } catch {
+      // A dropped request must not strand this page on its spinner.
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

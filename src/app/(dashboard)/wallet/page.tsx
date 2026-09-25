@@ -121,6 +121,9 @@ export default function WalletPage() {
         if (bal) setBalance(bal);
         setTransactions(txns);
       })
+      // finally() re-throws, so without this a dropped request on the wallet
+      // page escaped as an unhandled rejection.
+      .catch(() => undefined)
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

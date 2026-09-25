@@ -63,16 +63,20 @@ export default function AdminRefereesPage() {
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [applications, operations] = await Promise.all([
-      fetch('/api/admin/referees', { cache: 'no-store' }),
-      fetch('/api/admin/referees/operations', { cache: 'no-store' }),
-    ]);
-    if (applications.ok) setProfiles((await applications.json()).profiles);
-    if (operations.ok) {
-      const data = await operations.json();
-      setCapacity(data.capacity);
-      setPerformance(data.performance);
-      setMinDecisions(data.minDecisionsForRate);
+    try {
+      const [applications, operations] = await Promise.all([
+        fetch('/api/admin/referees', { cache: 'no-store' }),
+        fetch('/api/admin/referees/operations', { cache: 'no-store' }),
+      ]);
+      if (applications.ok) setProfiles((await applications.json()).profiles);
+      if (operations.ok) {
+        const data = await operations.json();
+        setCapacity(data.capacity);
+        setPerformance(data.performance);
+        setMinDecisions(data.minDecisionsForRate);
+      }
+    } catch {
+      // Keep the current view rather than rejecting unhandled.
     }
   }, []);
 
@@ -80,18 +84,24 @@ export default function AdminRefereesPage() {
 
   async function update(id: string, status: string) {
     setBusy(id);
-    const response = await fetch(`/api/admin/referees/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-    const body = await response.json();
-    if (!response.ok) toast('error', body.error ?? 'Review failed');
-    else {
-      toast('success', `Referee ${status.toLowerCase()}`);
-      await load();
+    try {
+      const response = await fetch(`/api/admin/referees/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      const body = await response.json();
+      if (!response.ok) toast('error', body.error ?? 'Review failed');
+      else {
+        toast('success', `Referee ${status.toLowerCase()}`);
+        await load();
+      }
+    } catch {
+      // Without this the row stayed stuck on "busy" with no explanation.
+      toast('error', 'Review failed — check your connection and try again.');
+    } finally {
+      setBusy(null);
     }
-    setBusy(null);
   }
 
   return (
