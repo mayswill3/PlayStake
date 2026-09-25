@@ -575,6 +575,36 @@ async function resolveRouteHandler(
   }
 
   // Streamer challenge: /api/streamers/{slug}/challenge
+  // Demo game routes
+  if (path === "/api/demo/game") {
+    const mod = await import("../../src/app/api/demo/game/route.js");
+    return { handler: method === "GET" ? mod.GET : mod.POST };
+  }
+  const demoGameMatch = path.match(/^\/api\/demo\/game\/([^/?]+)$/);
+  if (demoGameMatch) {
+    const mod = await import("../../src/app/api/demo/game/[gameSessionId]/route.js");
+    return {
+      handler: method === "PATCH" ? mod.PATCH : mod.GET,
+      params: { gameSessionId: decodeURIComponent(demoGameMatch[1]) },
+    };
+  }
+  if (path === "/api/demo/settle-bet") {
+    const mod = await import("../../src/app/api/demo/settle-bet/route.js");
+    return { handler: mod.POST };
+  }
+  if (path === "/api/demo/cleanup-bets") {
+    const mod = await import("../../src/app/api/demo/cleanup-bets/route.js");
+    return { handler: mod.POST };
+  }
+  const demoBetResultMatch = path.match(/^\/api\/demo\/bet-result\/([^/?]+)$/);
+  if (demoBetResultMatch) {
+    const mod = await import("../../src/app/api/demo/bet-result/[betId]/route.js");
+    return {
+      handler: mod.GET,
+      params: { betId: decodeURIComponent(demoBetResultMatch[1]) },
+    };
+  }
+
   const betDetailMatch = path.match(/^\/api\/bets\/([^/?]+)$/);
   if (betDetailMatch && method === "GET") {
     const mod = await import("../../src/app/api/bets/[id]/route.js");

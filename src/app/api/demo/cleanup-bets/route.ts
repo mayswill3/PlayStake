@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { withSessionAuth } from "@/lib/middleware/auth";
 import { prisma, withTransaction, type TxClient } from "@/lib/db/client";
 import { refundEscrow } from "@/lib/ledger/escrow";
 import { BetStatus } from "../../../../../generated/prisma/client";
@@ -6,19 +7,14 @@ import { BetStatus } from "../../../../../generated/prisma/client";
 /**
  * POST /api/demo/cleanup-bets
  *
- * Demo-only endpoint that voids stale bets and refunds escrowed funds.
- * Called on page refresh so the widget starts with a clean state.
+ * Demo-only endpoint that voids the caller's own stale bets and refunds the
+ * escrow. Called on page refresh so the demo starts clean.
+ *
+ * The player used to come from the body, which let anyone void anyone else's
+ * open or matched bets by id. It is the signed-in user now, full stop.
  */
-export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { playerId, gameId } = body;
-
-  if (!playerId || !gameId) {
-    return NextResponse.json(
-      { error: "playerId and gameId required" },
-      { status: 400 }
-    );
-  }
+export const POST = withSessionAuth(async (_request, _context, auth) => {
+  const playerId = auth.userId;
 
   // Void unmatched bets immediately, and orphaned matched/reported bets after 10 min
   const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
@@ -103,4 +99,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ voidedCount: voidedBets.length, bets: voidedBets });
-}
+});

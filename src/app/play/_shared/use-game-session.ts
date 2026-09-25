@@ -282,20 +282,11 @@ export function useGameSession(
   const reportAndSettle = useCallback(async (apiKey: string, betId: string): Promise<{ outcome: string; winnerPayout: number } | null> => {
     if (!sessionId) return null;
 
-    // Step 1: Try to report result (may fail if already reported — that's fine)
-    log('Reporting result to PlayStake...', 'bet');
-    try {
-      const res = await apiPost(`/api/demo/game/${sessionId}/result`, { apiKey });
-      if (res.success) {
-        log('Result reported! Settling bet...', 'bet');
-      } else {
-        log('Result already handled by opponent, proceeding...', 'info');
-      }
-    } catch {
-      log('Result report skipped, proceeding to settlement...', 'info');
-    }
-
-    // Step 2: Try to settle (pass sessionId so settle can self-heal if result wasn't reported)
+    // Report and settle in one step. The separate "report result" call that
+    // used to precede this hit /api/v1, an API surface that no longer exists,
+    // and always failed; settle-bet reports the result inline from the game
+    // session, which is the only path that ever worked.
+    log('Settling bet with PlayStake...', 'bet');
     try {
       const settle = await apiPost('/api/demo/settle-bet', { betId, apiKey, sessionId });
       if (settle.success) {
