@@ -26,10 +26,18 @@ function usePlayerRefereeAssignment(): PlayerAssignment | null {
   useEffect(() => {
     let active = true;
     async function load() {
-      const response = await fetch('/api/referees/assignments?scope=player', { cache: 'no-store' });
-      if (!response.ok || !active) return;
-      const data = await response.json();
-      setAssignment(data.assignments?.[0] ?? null);
+      try {
+        const response = await fetch('/api/referees/assignments?scope=player', { cache: 'no-store' });
+        if (!response.ok || !active) return;
+        const data = await response.json();
+        setAssignment(data.assignments?.[0] ?? null);
+      } catch {
+        // A dropped connection, a sleeping tab or a deploy mid-flight rejects
+        // the fetch. This panel polls every 8s on every dashboard page, so an
+        // uncaught rejection here becomes a stream of "Failed to fetch" issues
+        // in Sentry for what is only a missed tick. Keep the last known
+        // assignment on screen; the next poll recovers.
+      }
     }
     void load();
     const timer = window.setInterval(() => void load(), 8_000);
