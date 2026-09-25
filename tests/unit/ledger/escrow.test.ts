@@ -73,6 +73,9 @@ describe("escrow lifecycle", () => {
 
   it("should run a full escrow lifecycle: hold -> fee -> release -> escrow ends at zero", async () => {
     await withRollback(async (tx) => {
+      // Baseline first: PLATFORM_REVENUE is a shared singleton, and other suites
+      // commit real settlements into it. Assert the change, never the total.
+      const platformRevenueBefore = await getAccountBalance(tx, (await getSystemAccount(tx, LedgerAccountType.PLATFORM_REVENUE)).id);
       const seeds = await seedTestData(tx);
 
       // Fund both players with 500.00 each
@@ -170,7 +173,7 @@ describe("escrow lifecycle", () => {
         LedgerAccountType.PLATFORM_REVENUE
       );
       const platformBalance = await getAccountBalance(tx, platformRevenue.id);
-      expect(platformBalance.eq("10.00")).toBe(true);
+      expect(platformBalance.sub(platformRevenueBefore).eq("10.00")).toBe(true);
 
       // Settlement step 2: Release remaining escrow to winner (Player A)
       await releaseEscrow(tx, {
@@ -211,7 +214,7 @@ describe("escrow lifecycle", () => {
 
       // Platform revenue should be reduced by dev share
       const finalPlatformBalance = await getAccountBalance(tx, platformRevenue.id);
-      expect(finalPlatformBalance.eq("9.80")).toBe(true);
+      expect(finalPlatformBalance.sub(platformRevenueBefore).eq("9.80")).toBe(true);
     });
   });
 

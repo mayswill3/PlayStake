@@ -103,6 +103,9 @@ async function createMatchedBet(
 describe("Settlement: DRAW outcome", () => {
   it("should split pot equally between both players minus fees", async () => {
     await withRollback(async (tx) => {
+      // Baseline first: PLATFORM_REVENUE is a shared singleton, and other suites
+      // commit real settlements into it. Assert the change, never the total.
+      const platformRevenueBefore = await getPlatformRevenueBalance(tx);
       const scenario = await createFullScenario(tx, {
         playerABalance: 100,
         playerBBalance: 100,
@@ -178,7 +181,7 @@ describe("Settlement: DRAW outcome", () => {
 
       // Platform revenue = $1.00
       const revenue = await getPlatformRevenueBalance(tx);
-      expect(revenue.eq(new Decimal("1.00"))).toBe(true);
+      expect(revenue.sub(platformRevenueBefore).eq(new Decimal("1.00"))).toBe(true);
     });
   });
 });
@@ -381,6 +384,9 @@ describe("Settlement: Fee calculation uses Decimal precision", () => {
 describe("Settlement: Developer revenue share", () => {
   it("developer receives correct share when revSharePercent > 0", async () => {
     await withRollback(async (tx) => {
+      // Baseline first: PLATFORM_REVENUE is a shared singleton, and other suites
+      // commit real settlements into it. Assert the change, never the total.
+      const platformRevenueBefore = await getPlatformRevenueBalance(tx);
       const scenario = await createFullScenario(tx, {
         playerABalance: 100,
         playerBBalance: 100,
@@ -436,7 +442,7 @@ describe("Settlement: Developer revenue share", () => {
 
       // Platform revenue = fee - dev share = 1.00 - 0.10 = 0.90
       const platformRevenue = await getPlatformRevenueBalance(tx);
-      expect(platformRevenue.eq(new Decimal("0.90"))).toBe(true);
+      expect(platformRevenue.sub(platformRevenueBefore).eq(new Decimal("0.90"))).toBe(true);
 
       // Winner balance: 100 - 10 + 19 = 109
       const balB = await getPlayerBalance(tx, scenario.playerB.id);
@@ -454,6 +460,9 @@ describe("Settlement: Developer revenue share", () => {
 
   it("no dev share distributed when revSharePercent is 0", async () => {
     await withRollback(async (tx) => {
+      // Baseline first: PLATFORM_REVENUE is a shared singleton, and other suites
+      // commit real settlements into it. Assert the change, never the total.
+      const platformRevenueBefore = await getPlatformRevenueBalance(tx);
       const scenario = await createFullScenario(tx, {
         playerABalance: 100,
         playerBBalance: 100,
@@ -497,7 +506,7 @@ describe("Settlement: Developer revenue share", () => {
 
       // Platform revenue = full fee
       const platformRevenue = await getPlatformRevenueBalance(tx);
-      expect(platformRevenue.eq(new Decimal("1.00"))).toBe(true);
+      expect(platformRevenue.sub(platformRevenueBefore).eq(new Decimal("1.00"))).toBe(true);
     });
   });
 });
@@ -533,6 +542,9 @@ describe("Settlement: Referee fee", () => {
 
   it("pays the referee 10% of the platform fee from platform revenue, not the pot", async () => {
     await withRollback(async (tx) => {
+      // Baseline first: PLATFORM_REVENUE is a shared singleton, and other suites
+      // commit real settlements into it. Assert the change, never the total.
+      const platformRevenueBefore = await getPlatformRevenueBalance(tx);
       const scenario = await createFullScenario(tx, { revSharePercent: 0 });
       const { collectFee, distributeRefereeFee, releaseEscrow } = await import(
         "../../src/lib/ledger/escrow.js"
@@ -572,7 +584,7 @@ describe("Settlement: Referee fee", () => {
         (await getPlayerBalance(tx, scenario.playerA.id)).eq(new Decimal("109.00")),
       ).toBe(true);
       // Platform keeps fee minus referee fee.
-      expect((await getPlatformRevenueBalance(tx)).eq(new Decimal("0.90"))).toBe(true);
+      expect((await getPlatformRevenueBalance(tx)).sub(platformRevenueBefore).eq(new Decimal("0.90"))).toBe(true);
       // Per-bet escrow nets to zero.
       expect((await getEscrowBalance(tx, bet.id)).eq(0)).toBe(true);
     });
@@ -580,6 +592,9 @@ describe("Settlement: Referee fee", () => {
 
   it("computes the developer share from the fee net of the referee fee", async () => {
     await withRollback(async (tx) => {
+      // Baseline first: PLATFORM_REVENUE is a shared singleton, and other suites
+      // commit real settlements into it. Assert the change, never the total.
+      const platformRevenueBefore = await getPlatformRevenueBalance(tx);
       const scenario = await createFullScenario(tx, { revSharePercent: 0.5 });
       const { collectFee, distributeRefereeFee, distributeDevShare, releaseEscrow } =
         await import("../../src/lib/ledger/escrow.js");
@@ -625,7 +640,7 @@ describe("Settlement: Referee fee", () => {
         (await getDeveloperBalance(tx, scenario.developerUser.id)).eq(new Decimal("0.45")),
       ).toBe(true);
       // Platform keeps fee - refereeFee - devShare.
-      expect((await getPlatformRevenueBalance(tx)).eq(new Decimal("0.45"))).toBe(true);
+      expect((await getPlatformRevenueBalance(tx)).sub(platformRevenueBefore).eq(new Decimal("0.45"))).toBe(true);
       expect((await getEscrowBalance(tx, bet.id)).eq(0)).toBe(true);
     });
   });

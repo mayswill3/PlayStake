@@ -26,6 +26,9 @@ afterAll(async () => {
 describe("Bet Lifecycle: Full flow from creation to settlement", () => {
   it("should complete the entire bet lifecycle with correct balances", async () => {
     await withRollback(async (tx) => {
+      // Baseline first: PLATFORM_REVENUE is a shared singleton, and other suites
+      // commit real settlements into it. Assert the change, never the total.
+      const platformRevenueBefore = await getPlatformRevenueBalance(tx);
       // ---------------------------------------------------------------
       // 1. Setup: Developer, game, two funded players, widget tokens
       // ---------------------------------------------------------------
@@ -272,7 +275,7 @@ describe("Bet Lifecycle: Full flow from creation to settlement", () => {
       expect(finalEscrow.eq(0)).toBe(true);
 
       // Platform revenue = fee - dev share = 1.00 - 0.02 = 0.98
-      expect(platformRevenue.eq(new Decimal("0.98"))).toBe(true);
+      expect(platformRevenue.sub(platformRevenueBefore).eq(new Decimal("0.98"))).toBe(true);
 
       // Developer balance = devShare = 0.02
       expect(devBalance.eq(new Decimal("0.02"))).toBe(true);
