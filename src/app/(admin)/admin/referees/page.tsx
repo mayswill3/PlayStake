@@ -1,8 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, Scale, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, History, Scale, ShieldCheck } from 'lucide-react';
 import { Card, CardTitle } from '@/components/ui/Card';
+import { Dialog } from '@/components/ui/Dialog';
+import { Spinner } from '@/components/ui/Spinner';
+import { AssignmentHistoryList } from '@/components/referees/AssignmentHistoryList';
+import { AssignmentAdminDetails, type AdminAssignment } from '@/components/referees/AssignmentAdminDetails';
 import { PSButton } from '@/components/ui/playstake/PSButton';
 import { StatusPill } from '@/components/ui/playstake/StatusPill';
 import { useToast } from '@/components/ui/Toast';
@@ -61,6 +65,7 @@ export default function AdminRefereesPage() {
   const [performance, setPerformance] = useState<Performance[]>([]);
   const [minDecisions, setMinDecisions] = useState(5);
   const [busy, setBusy] = useState<string | null>(null);
+  const [historyFor, setHistoryFor] = useState<{ id: string; displayName: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -106,6 +111,7 @@ export default function AdminRefereesPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
+      <RefereeHistoryDialog referee={historyFor} onClose={() => setHistoryFor(null)} />
       <div>
         <p className="mb-2 font-mono text-xs uppercase tracking-[0.22em] text-ps-lime">Trust & safety</p>
         <h1 className="font-display text-3xl font-bold text-ps-text dark:text-white">Referee applications</h1>
@@ -185,7 +191,13 @@ export default function AdminRefereesPage() {
               {performance.map((row) => (
                 <tr key={row.refereeProfileId} className="border-b border-[var(--ps-border-light)] last:border-0 dark:border-[var(--ps-border-dark)]">
                   <td className="py-2">
-                    {row.displayName}
+                    <button
+                      type="button"
+                      className="underline-offset-2 hover:text-ps-lime hover:underline"
+                      onClick={() => setHistoryFor({ id: row.refereeProfileId, displayName: row.displayName })}
+                    >
+                      {row.displayName}
+                    </button>
                     {row.isAvailable && (
                       <span className="ml-2 font-mono text-[10px] uppercase text-ps-lime">available</span>
                     )}
@@ -253,6 +265,13 @@ export default function AdminRefereesPage() {
                 >
                   <ShieldCheck className="mr-2 h-4 w-4" /> Approve
                 </PSButton>
+                <PSButton
+                  variant="ghost"
+                  icon={<History size={14} />}
+                  onClick={() => setHistoryFor({ id: profile.id, displayName: profile.user.displayName })}
+                >
+                  History
+                </PSButton>
                 <PSButton variant="ghost" disabled={busy === profile.id} onClick={() => update(profile.id, 'REJECTED')}>
                   Reject
                 </PSButton>
@@ -267,5 +286,67 @@ export default function AdminRefereesPage() {
         ))}
       </div>
     </div>
+  );
+}
+
+function RefereeHistoryDialog({
+  referee,
+  onClose,
+}: {
+  referee: { id: string; displayName: string } | null;
+  onClose: () => void;
+}) {
+  const [result, setResult] = useState<{
+    refereeId: string;
+    assignments: AdminAssignment[] | null;
+    limit: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!referee) return;
+    let active = true;
+    fetch(`/api/admin/referees/${referee.id}/assignments`, { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Failed to load history');
+        const data = await response.json();
+        if (active) setResult({ refereeId: referee.id, assignments: data.assignments, limit: data.limit });
+      })
+      .catch(() => active && setResult({ refereeId: referee.id, assignments: null, limit: 0 }));
+    return () => {
+      active = false;
+    };
+  }, [referee]);
+
+  // Ignore a previous referee's result while the new one loads.
+  const current = result && referee && result.refereeId === referee.id ? result : null;
+
+  return (
+    <Dialog
+      open={referee !== null}
+      onClose={onClose}
+      size="lg"
+      title={referee ? `${referee.displayName} — assignment history` : undefined}
+      actions={<PSButton variant="ghost" onClick={onClose}>Close</PSButton>}
+    >
+      {!current ? (
+        <div className="flex justify-center py-10">
+          <Spinner />
+        </div>
+      ) : current.assignments === null ? (
+        <p className="py-5 text-sm text-ps-error">Could not load this referee&apos;s history.</p>
+      ) : (
+        <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+          <AssignmentHistoryList
+            assignments={current.assignments}
+            renderExtra={(assignment) => <AssignmentAdminDetails assignment={assignment} />}
+          />
+          {current.assignments.length >= current.limit && (
+            <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark">
+              Showing the {current.limit} most recent assignments.
+            </p>
+          )}
+        </div>
+      )}
+    </Dialog>
   );
 }

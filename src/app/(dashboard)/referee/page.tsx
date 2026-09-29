@@ -1,13 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, CheckCircle2, ShieldCheck, Swords, Video } from 'lucide-react';
+import { Bell, CheckCircle2, ShieldCheck, Video } from 'lucide-react';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { PSButton } from '@/components/ui/playstake/PSButton';
 import { KickPlayer } from '@/components/ui/playstake/KickPlayer';
 import { StatusPill } from '@/components/ui/playstake/StatusPill';
 import { useToast } from '@/components/ui/Toast';
 import { useLiveStatusEvents } from '@/hooks/useLiveStatusEvents';
+import { AssignmentHistoryList } from '@/components/referees/AssignmentHistoryList';
 
 interface Game { id: string; name: string }
 interface ProfileResponse {
@@ -26,6 +27,11 @@ interface Assignment {
   status: string;
   disputeDeadline: string | null;
   decision: string | null;
+  overturnedOutcome: string | null;
+  claimedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
   rewardAmount: string | null;
   rewardPercent: string;
   bet: {
@@ -549,18 +555,8 @@ function AssignmentHistory({ assignments }: { assignments: Assignment[] }) {
   return (
     <Card>
       <CardTitle>Assignment history</CardTitle>
-      <div className="mt-4 divide-y divide-[var(--ps-border-light)] dark:divide-[var(--ps-border-dark)]">
-        {assignments.length === 0 ? (
-          <p className="py-5 text-sm text-ps-muted">No assignments yet.</p>
-        ) : assignments.slice(0, 10).map((assignment) => (
-          <div key={assignment.id} className="flex items-center justify-between py-3 text-sm">
-            <div className="flex items-center gap-3">
-              <Swords className="h-4 w-4 text-ps-lime" />
-              <span className="text-ps-text dark:text-white">{assignment.bet.game.name}</span>
-            </div>
-            <span className="text-ps-muted dark:text-ps-muted-on-dark">{assignment.status.replace(/_/g, ' ')}</span>
-          </div>
-        ))}
+      <div className="mt-4">
+        <AssignmentHistoryList assignments={assignments} callLabel="Your call" />
       </div>
     </Card>
   );

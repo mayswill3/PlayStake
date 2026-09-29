@@ -10,6 +10,7 @@ import { adminResolveDisputeSchema } from "@/lib/validation/schemas";
 import { appendRefereeAudit, auditContextFromRequest } from "@/lib/referees/audit";
 import { refundEscrow } from "@/lib/ledger/escrow";
 import { emailDisputeResolved } from "@/lib/email/events";
+import { getAssignmentForBetForAdmin } from "@/lib/referees/admin-history";
 
 /** Human-readable outcome for the players' resolution email. */
 const DISPUTE_OUTCOME_LABELS: Record<string, string> = {
@@ -49,7 +50,8 @@ export const GET = withRoleGuard([UserRole.ADMIN], async (_req, context) => {
     return Response.json({ error: "Dispute not found" }, { status: 404 });
   }
 
-  return Response.json(dispute);
+  const refereeAssignment = await getAssignmentForBetForAdmin(dispute.betId);
+  return Response.json({ ...dispute, refereeAssignment });
 });
 
 export const PATCH = withRoleGuard([UserRole.ADMIN], async (req, context, auth) => {

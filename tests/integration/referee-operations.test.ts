@@ -257,6 +257,80 @@ describe("Referee operations: overturn tracking", () => {
   });
 });
 
+describe("Referee operations: admin history", () => {
+  it("shows an admin the call, overturn, notes and audit trail", async () => {
+    const { assignment, dispute, refereeProfile } = await disputedMatchWithDecision(
+      BetOutcome.PLAYER_A_WIN,
+    );
+    await prisma.refereeAssignment.update({
+      where: { id: assignment.id },
+      data: { evidence: { notes: "Player A hit the double on the last throw" } },
+    });
+    await callApi("PATCH", `/api/admin/disputes/${dispute.id}`, {
+      sessionToken: adminToken,
+      body: { status: "RESOLVED_PLAYER_B", resolution: "Overturned on review" },
+    });
+
+    const res = await callApi(
+      "GET",
+      `/api/admin/referees/${refereeProfile.id}/assignments`,
+      { sessionToken: adminToken },
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.referee.id).toBe(refereeProfile.id);
+    const [row] = res.body.assignments;
+    expect(row.id).toBe(assignment.id);
+    expect(row.decision).toBe(BetOutcome.PLAYER_A_WIN);
+    expect(row.overturnedOutcome).toBe(BetOutcome.PLAYER_B_WIN);
+    expect(row.evidence.notes).toBe("Player A hit the double on the last throw");
+    expect(row.bet.playerA.displayName).toBe("Ref Ops A");
+
+    const resolved = row.auditEvents.find(
+      (event: { action: string }) => event.action === "DISPUTE_RESOLVED",
+    );
+    expect(resolved).toBeDefined();
+    // Request fingerprints stay out of the admin view.
+    expect(resolved).not.toHaveProperty("ipHash");
+    expect(resolved).not.toHaveProperty("userAgent");
+  });
+
+  it("refuses non-admins", async () => {
+    const { refereeProfile } = await disputedMatchWithDecision(BetOutcome.PLAYER_A_WIN);
+    const player = await makeUser("Ref Ops Nosy Player");
+    const playerToken = (await createTestSession(prisma as never, player.id)).sessionToken;
+
+    const res = await callApi(
+      "GET",
+      `/api/admin/referees/${refereeProfile.id}/assignments`,
+      { sessionToken: playerToken },
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("404s for an unknown referee", async () => {
+    const res = await callApi(
+      "GET",
+      `/api/admin/referees/${crypto.randomUUID()}/assignments`,
+      { sessionToken: adminToken },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("includes the referee's call on the dispute detail", async () => {
+    const { assignment, dispute, refereeProfile } = await disputedMatchWithDecision(
+      BetOutcome.PLAYER_B_WIN,
+    );
+
+    const res = await callApi("GET", `/api/admin/disputes/${dispute.id}`, {
+      sessionToken: adminToken,
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.refereeAssignment.id).toBe(assignment.id);
+    expect(res.body.refereeAssignment.decision).toBe(BetOutcome.PLAYER_B_WIN);
+    expect(res.body.refereeAssignment.refereeProfile.id).toBe(refereeProfile.id);
+  });
+});
+
 describe("Referee operations: capacity and quality", () => {
   it("reports coverage the admin view depends on", async () => {
     await disputedMatchWithDecision(BetOutcome.PLAYER_A_WIN);

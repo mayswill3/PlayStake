@@ -8,6 +8,14 @@ import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/Toast';
 import { formatCents, formatDate } from '@/lib/utils/format';
+import { StatusPill } from '@/components/ui/playstake/StatusPill';
+import { assignmentStatus, outcomeLabel, rewardLabel } from '@/components/referees/AssignmentHistoryList';
+import {
+  AssignmentAuditTrail,
+  AssignmentNotes,
+  AssignmentTimeline,
+  type AdminAssignment,
+} from '@/components/referees/AssignmentAdminDetails';
 
 interface DisputeDetail {
   id: string;
@@ -31,6 +39,8 @@ interface DisputeDetail {
     createdAt: string;
     author: { id: string; displayName: string; role: string };
   }>;
+  /** Present when the bet was refereed. */
+  refereeAssignment: AdminAssignment | null;
 }
 
 const RESOLUTION_OPTIONS = [
@@ -165,6 +175,9 @@ export default function AdminDisputeDetailPage() {
         </div>
       </Card>
 
+      {/* Referee's call, notes, and audit trail — the case being disputed. */}
+      {dispute.refereeAssignment && <RefereeCard assignment={dispute.refereeAssignment} />}
+
       {/* Messages */}
       {dispute.messages.length > 0 && (
         <Card>
@@ -222,6 +235,59 @@ export default function AdminDisputeDetailPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+function RefereeCard({ assignment }: { assignment: AdminAssignment }) {
+  const status = assignmentStatus(assignment.status);
+  const referee = assignment.refereeProfile?.user;
+  return (
+    <Card>
+      <CardTitle>Referee</CardTitle>
+      <div className="mt-4 space-y-3">
+        <DetailRow label="Referee">
+          {referee ? (
+            <>
+              {referee.displayName}
+              {referee.kickAccount?.channelSlug && (
+                <span className="text-text-secondary"> · @{referee.kickAccount.channelSlug}</span>
+              )}
+            </>
+          ) : (
+            'Never claimed'
+          )}
+        </DetailRow>
+        <DetailRow label="Status">
+          <StatusPill status={status.pill} label={status.label} />
+        </DetailRow>
+        <DetailRow label="Call">
+          {assignment.decision ? (
+            <>
+              {outcomeLabel(assignment.decision, assignment)}
+              {assignment.overturnedOutcome && (
+                <span className="text-ps-warning">
+                  {' '}· overturned to {outcomeLabel(assignment.overturnedOutcome, assignment)}
+                </span>
+              )}
+            </>
+          ) : (
+            'No decision submitted'
+          )}
+        </DetailRow>
+        {assignment.evidence?.notes && (
+          <DetailRow label="Notes">
+            <AssignmentNotes assignment={assignment} />
+          </DetailRow>
+        )}
+        <DetailRow label="Referee fee">{rewardLabel(assignment)}</DetailRow>
+        <DetailRow label="Timeline">
+          <AssignmentTimeline assignment={assignment} />
+        </DetailRow>
+        <DetailRow label="Audit trail">
+          <AssignmentAuditTrail assignment={assignment} />
+        </DetailRow>
+      </div>
+    </Card>
   );
 }
 

@@ -694,6 +694,16 @@ async function resolveRouteHandler(
     );
     return { handler: mod.GET };
   }
+  const refereeHistoryMatch = path.match(/^\/api\/admin\/referees\/([^/?]+)\/assignments$/);
+  if (refereeHistoryMatch) {
+    const mod = await import(
+      "../../src/app/api/admin/referees/[id]/assignments/route.js"
+    );
+    return {
+      handler: mod.GET,
+      params: { id: decodeURIComponent(refereeHistoryMatch[1]) },
+    };
+  }
 
   throw new Error(`No route handler found for ${method} ${path}`);
 }
