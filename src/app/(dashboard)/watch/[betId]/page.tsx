@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Lock, Scale, ShieldCheck, Trophy, Video } from 'lucide-react';
@@ -20,6 +20,7 @@ import {
   type SpectatorParticipant,
 } from '@/components/matches/live-matches';
 import { formatCents } from '@/lib/utils/format';
+import { useLiveStatusEvents } from '@/hooks/useLiveStatusEvents';
 
 const POLL_MS = 10_000;
 
@@ -27,6 +28,10 @@ export default function WatchMatchPage() {
   const { betId } = useParams<{ betId: string }>();
   const [match, setMatch] = useState<SpectatorMatch | null>(null);
   const [notFound, setNotFound] = useState(false);
+  // Bumped when someone's live status changes, so the players' and referee's
+  // live badges update straight away instead of on the next poll.
+  const [refreshKey, setRefreshKey] = useState(0);
+  useLiveStatusEvents(useCallback(() => setRefreshKey((key) => key + 1), []));
 
   const active = match ? ACTIVE_PHASES.includes(match.phase) : true;
   useEffect(() => {
@@ -51,7 +56,7 @@ export default function WatchMatchPage() {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [betId, active]);
+  }, [betId, active, refreshKey]);
 
   if (notFound) {
     return (

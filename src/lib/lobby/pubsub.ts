@@ -52,6 +52,8 @@ export async function publishLobbyEvent(
   payload: Record<string, unknown>
 ): Promise<void> {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let onReady: (() => void) | undefined;
+  const publisher = getPublisher();
   try {
     const timeout = new Promise<never>((_, reject) => {
       timer = setTimeout(
@@ -59,8 +61,18 @@ export async function publishLobbyEvent(
         PUBLISH_TIMEOUT_MS
       );
     });
+    // With the offline queue disabled, a publish issued while the connection
+    // is still (re)connecting is rejected outright — which dropped the first
+    // event after every boot. Wait for it to come up, within the same budget.
+    const ready =
+      publisher.status === "ready"
+        ? Promise.resolve()
+        : new Promise<void>((resolve) => {
+            onReady = resolve;
+            publisher.once("ready", onReady);
+          });
     await Promise.race([
-      getPublisher().publish(channel, JSON.stringify(payload)),
+      ready.then(() => publisher.publish(channel, JSON.stringify(payload))),
       timeout,
     ]);
   } catch (err) {
@@ -70,6 +82,7 @@ export async function publishLobbyEvent(
     });
   } finally {
     if (timer) clearTimeout(timer);
+    if (onReady) publisher.off("ready", onReady);
   }
 }
 

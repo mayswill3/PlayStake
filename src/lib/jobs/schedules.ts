@@ -78,6 +78,11 @@ const SCHEDULES: ScheduleEntry[] = [
     jobName: "deposit-limit-activation-scan",
     every: 60_000, // every 60 seconds
   },
+  {
+    queueName: QUEUE_NAMES.KICK_LIVE_SYNC,
+    jobName: "kick-live-sync",
+    every: 15_000, // every 15 seconds (webhook backstop for live status)
+  },
 ];
 
 // ---------------------------------------------------------------------------

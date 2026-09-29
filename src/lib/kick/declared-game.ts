@@ -6,6 +6,7 @@ import {
 import { prisma } from "@/lib/db/client";
 import { ConflictError, ValidationError } from "@/lib/errors";
 import { getStreamGameId } from "@/lib/lobby/games";
+import { publishLiveStatusChanged } from "@/lib/realtime/live-events";
 import type { StreamGameType } from "@/lib/games/catalogue";
 
 /** Refereed-match states in which the players must stay live on the match's game. */
@@ -58,5 +59,6 @@ export async function setDeclaredGame(userId: string, gameType: StreamGameType |
     data: { declaredGameId },
     select: { declaredGame: { select: { slug: true, name: true } } },
   });
+  if (declaredGameId !== account.declaredGameId) await publishLiveStatusChanged();
   return updated.declaredGame;
 }

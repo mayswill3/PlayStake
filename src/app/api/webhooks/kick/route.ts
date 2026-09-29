@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../../lib/db/client";
 import { KICK_HEADERS, verifyKickSignature } from "../../../../lib/kick/webhook";
+import { publishLiveStatusChanged } from "../../../../lib/realtime/live-events";
 
 // Webhook bodies must be read raw (unparsed) so the signature check sees the
 // exact bytes Kick signed. Force the Node runtime + dynamic handling.
@@ -89,13 +90,14 @@ async function dispatchEvent(eventType: string | null, payload: unknown) {
 async function handleLivestreamStatus(event: LivestreamStatusEvent) {
   const kickUserId = String(event.broadcaster.user_id);
 
-  await prisma.kickAccount.updateMany({
+  const { count } = await prisma.kickAccount.updateMany({
     where: { kickUserId },
     data: {
       isLive: event.is_live,
       ...(event.is_live ? { lastLiveAt: new Date() } : {}),
     },
   });
+  if (count > 0) await publishLiveStatusChanged();
 }
 
 async function handleFollow(event: ChannelFollowedEvent) {

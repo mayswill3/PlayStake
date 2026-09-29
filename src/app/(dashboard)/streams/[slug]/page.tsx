@@ -15,6 +15,7 @@ import { StatusPill } from '@/components/ui/playstake/StatusPill';
 import { KickPlayer } from '@/components/ui/playstake/KickPlayer';
 import { GoLiveBanner } from '@/components/kick/GoLiveBanner';
 import { useOnKickStatusChanged } from '@/components/kick/kick-status';
+import { useLiveStatusEvents } from '@/hooks/useLiveStatusEvents';
 import { STREAM_GAME_CATALOGUE, type StreamGameType } from '@/lib/games/catalogue';
 import { formatCents } from '@/lib/utils/format';
 
@@ -83,10 +84,13 @@ export default function StreamDetailPage() {
   const [data, setData] = useState<StreamData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  // Bumped when the viewer goes live / changes game, so challenge eligibility
-  // (canChallenge) is re-checked straight away instead of on the next poll.
+  // Bumped when the viewer or anyone else goes live / changes game, so the
+  // streamer's live badge and challenge eligibility (canChallenge) update
+  // straight away instead of on the next poll.
   const [refreshKey, setRefreshKey] = useState(0);
-  useOnKickStatusChanged(useCallback(() => setRefreshKey((key) => key + 1), []));
+  const bumpRefresh = useCallback(() => setRefreshKey((key) => key + 1), []);
+  useOnKickStatusChanged(bumpRefresh);
+  useLiveStatusEvents(bumpRefresh);
 
   // Challenge dialog state.
   const [challengeOpen, setChallengeOpen] = useState(false);

@@ -1,8 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Gamepad2, Radio } from 'lucide-react';
+import { useLiveStatusEvents } from '@/hooks/useLiveStatusEvents';
+
+const POLL_MS = 45_000;
+const STREAMING_POLL_MS = 90_000;
 
 interface LiveStreamer {
   displayName: string | null;
@@ -21,26 +25,29 @@ export function LiveNowRail() {
   // stream first went live instead of retaining Kick's initial 404 response.
   const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
-    let active = true;
-    const load = () =>
-      fetch('/api/kick/live')
+  const load = useCallback(
+    () =>
+      fetch('/api/kick/live', { cache: 'no-store' })
         .then((response) => (response.ok ? response.json() : { live: [] }))
-        .then((data) => active && setLive(data.live ?? []))
-        .catch(() => active && setLive([]));
+        .then((data) => setLive(data.live ?? []))
+        .catch(() => setLive((current) => current ?? [])),
+    [],
+  );
+  const streaming = useLiveStatusEvents(load);
 
-    load();
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  // Pushed events cover go-live/offline; the poll refreshes viewer counts and
+  // thumbnails, and is the whole mechanism when the stream is unavailable.
+  useEffect(() => {
     const intervalId = setInterval(() => {
-      if (!active) return;
       setRefreshKey((key) => key + 1);
-      load();
-    }, 45000);
-
-    return () => {
-      active = false;
-      clearInterval(intervalId);
-    };
-  }, []);
+      void load();
+    }, streaming ? STREAMING_POLL_MS : POLL_MS);
+    return () => clearInterval(intervalId);
+  }, [load, streaming]);
 
   return (
     <section

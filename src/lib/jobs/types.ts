@@ -86,6 +86,14 @@ export interface DepositLimitActivationPayload {
   triggeredAt: string;
 }
 
+/**
+ * Kick live sync: polls linked Kick channels and announces live-state flips,
+ * so pages update even when Kick's webhook is late or can't reach the app.
+ */
+export interface KickLiveSyncPayload {
+  triggeredAt: string;
+}
+
 // ---------------------------------------------------------------------------
 // Queue name constants
 // ---------------------------------------------------------------------------
@@ -102,6 +110,7 @@ export const QUEUE_NAMES = {
   LOBBY_EXPIRY: "lobby-expiry",
   DEPOSIT_LIMIT_ACTIVATION: "deposit-limit-activation",
   EMAIL_DELIVERY: "email-delivery",
+  KICK_LIVE_SYNC: "kick-live-sync",
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];

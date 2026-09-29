@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useLiveStatusEvents } from '@/hooks/useLiveStatusEvents';
 
 export interface KickStatus {
   connected: boolean;
@@ -11,8 +12,12 @@ export interface KickStatus {
   declaredGameName?: string | null;
 }
 
-/** Re-check live status so Kick controls flip to Live without a reload. */
+/**
+ * Re-check live status so Kick controls flip to Live without a reload. Live
+ * status events usually get there first; the poll is the fallback.
+ */
 const STATUS_POLL_MS = 30_000;
+const STREAMING_STATUS_POLL_MS = 120_000;
 const CHANGED_EVENT = 'playstake:kick-status-changed';
 
 /**
@@ -48,11 +53,19 @@ export function useKickStatus() {
     }
   }, []);
 
+  const streaming = useLiveStatusEvents(refresh);
+
   useEffect(() => {
     void refresh();
-    const timer = window.setInterval(() => void refresh(), STATUS_POLL_MS);
-    return () => window.clearInterval(timer);
   }, [refresh]);
+
+  useEffect(() => {
+    const timer = window.setInterval(
+      () => void refresh(),
+      streaming ? STREAMING_STATUS_POLL_MS : STATUS_POLL_MS,
+    );
+    return () => window.clearInterval(timer);
+  }, [refresh, streaming]);
 
   useOnKickStatusChanged(refresh);
 

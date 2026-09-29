@@ -7,6 +7,7 @@ import { PSButton } from '@/components/ui/playstake/PSButton';
 import { KickPlayer } from '@/components/ui/playstake/KickPlayer';
 import { StatusPill } from '@/components/ui/playstake/StatusPill';
 import { useToast } from '@/components/ui/Toast';
+import { useLiveStatusEvents } from '@/hooks/useLiveStatusEvents';
 
 interface Game { id: string; name: string }
 interface ProfileResponse {
@@ -81,6 +82,10 @@ export default function RefereeHubPage() {
     const timer = window.setInterval(() => void load(), 10_000);
     return () => window.clearInterval(timer);
   }, [load]);
+
+  // Players (and the referee) going live flips the requirement checks and the
+  // assignment's live badges; re-poll the moment it happens.
+  useLiveStatusEvents(load);
 
   // SSE upgrade for approved referees: the lobby stream also carries the
   // referee claim-pool channel, and every message is just a nudge to re-poll —

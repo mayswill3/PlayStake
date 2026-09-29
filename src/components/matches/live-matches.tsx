@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Radio, Scale } from 'lucide-react';
+import { useLiveStatusEvents } from '@/hooks/useLiveStatusEvents';
 import type {
   SpectatorMatch,
   SpectatorParticipant,
@@ -38,31 +39,33 @@ export function PhaseBadge({ phase, className = '' }: { phase: SpectatorPhase; c
 }
 
 /**
- * Polls the live-match list. `null` until the first response. `refreshKey`
- * bumps on each poll so thumbnails that weren't generated yet get retried.
+ * Polls the live-match list, and refetches straight away when a player's live
+ * status changes. `null` until the first response. `refreshKey` bumps on each
+ * load so thumbnails that weren't generated yet get retried. Match phase
+ * changes aren't pushed, so the poll keeps its rate either way.
  */
 export function useLiveMatches(pollMs = 30_000) {
   const [matches, setMatches] = useState<SpectatorMatch[] | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
-    let active = true;
-    const load = () =>
+  const load = useCallback(
+    () =>
       fetch('/api/matches/live', { cache: 'no-store' })
         .then((response) => (response.ok ? response.json() : { matches: [] }))
         .then((data) => {
-          if (!active) return;
           setMatches(data.matches ?? []);
           setRefreshKey((key) => key + 1);
         })
-        .catch(() => active && setMatches((current) => current ?? []));
+        .catch(() => setMatches((current) => current ?? [])),
+    [],
+  );
+  useLiveStatusEvents(load);
+
+  useEffect(() => {
     void load();
     const timer = window.setInterval(() => void load(), pollMs);
-    return () => {
-      active = false;
-      window.clearInterval(timer);
-    };
-  }, [pollMs]);
+    return () => window.clearInterval(timer);
+  }, [load, pollMs]);
 
   return { matches, refreshKey };
 }
