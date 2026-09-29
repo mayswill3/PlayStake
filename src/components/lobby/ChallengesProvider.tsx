@@ -218,8 +218,11 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
           const body = await res.json().catch(() => ({}));
           if (body?.status === 'MATCHED' && body?.betId && body?.gameType) {
             if (body.awaitingReferee) {
+              // Not joinable until a referee starts it, so open the bet's live
+              // page (it tracks the claim and match); the ambient poll still
+              // routes into the game once it's IN_PROGRESS.
               toast('success', 'Challenge accepted — funds locked while an independent referee joins.');
-              router.push('/play');
+              router.push(`/bets/${body.betId}`);
               return;
             }
             routedRef.current.add(body.betId);
