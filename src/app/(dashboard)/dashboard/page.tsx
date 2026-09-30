@@ -30,6 +30,7 @@ import { LiveNowRail } from '@/components/kick/LiveNowRail';
 import { LiveMatchesCarousel } from '@/components/matches/LiveMatchesCarousel';
 import { GoLiveBanner } from '@/components/kick/GoLiveBanner';
 import { useAuthLayout } from '@/hooks/useAuthLayout';
+import { ResolvesIn } from '@/components/bets/ResolvesIn';
 import { formatCents, formatPercent, formatDate } from '@/lib/utils/format';
 
 interface DashboardStats {
@@ -55,7 +56,12 @@ interface RecentBet {
   myRole: string;
   netResult: number | null;
   createdAt: string;
+  /** When escrow is due to release; null unless the bet is on that clock. */
+  resolvesAt: string | null;
 }
+
+/** While a recent bet is counting down to payout, refresh so it flips to settled. */
+const RESOLVING_REFRESH_MS = 15_000;
 
 type PillStatus = 'live' | 'waiting' | 'completed' | 'disputed' | 'settled' | 'expired';
 
@@ -148,6 +154,22 @@ export default function DashboardPage() {
       .catch(() => setError('Failed to load dashboard data.'))
       .finally(() => setLoading(false));
   }, []);
+
+  const resolving = recentBets.some((bet) => bet.resolvesAt !== null);
+  useEffect(() => {
+    if (!resolving) return;
+    const timer = window.setInterval(() => {
+      fetch('/api/bets?limit=5', { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data) setRecentBets(data.data || []);
+        })
+        .catch(() => {
+          /* the next tick retries */
+        });
+    }, RESOLVING_REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, [resolving]);
 
   if (loading) {
     return (
@@ -490,7 +512,10 @@ function BetRow({ bet }: { bet: RecentBet }) {
         </div>
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <StatusPill status={mapBetStatusToPill(bet.status)} label={bet.status.replace(/_/g, ' ')} />
+        <div className="flex flex-col items-end gap-1">
+          <StatusPill status={mapBetStatusToPill(bet.status)} label={bet.status.replace(/_/g, ' ')} />
+          {bet.resolvesAt && <ResolvesIn at={bet.resolvesAt} />}
+        </div>
         <div className="text-right">
           <p className="text-sm font-semibold tabular-nums text-ps-text dark:text-ps-text-on-dark">
             {formatCents(bet.amount)}

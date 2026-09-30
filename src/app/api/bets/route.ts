@@ -8,6 +8,7 @@ import { betListQuerySchema } from "../../../lib/validation/schemas";
 import { validateQuery } from "../../../lib/middleware/validate";
 import { dollarsToCents } from "../../../lib/utils/money";
 import { errorResponse, AuthenticationError } from "../../../lib/errors/index";
+import { settlementDueAt } from "../../../lib/jobs/settlement-timing";
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,6 +45,12 @@ export async function GET(request: NextRequest) {
           game: { select: { id: true, name: true } },
           playerA: { select: { id: true, displayName: true } },
           playerB: { select: { id: true, displayName: true } },
+          refereeAssignment: { select: { status: true, disputeDeadline: true } },
+          disputes: {
+            where: { status: { in: ["OPEN", "UNDER_REVIEW"] } },
+            select: { id: true },
+            take: 1,
+          },
         },
       }),
       prisma.bet.count({ where }),
@@ -94,6 +101,16 @@ export async function GET(request: NextRequest) {
         netResult,
         createdAt: bet.createdAt.toISOString(),
         settledAt: bet.settledAt?.toISOString() ?? null,
+        // When escrow is due to release (see settlementDueAt); null when the
+        // bet isn't waiting on the clock.
+        resolvesAt:
+          settlementDueAt({
+            status: bet.status,
+            resultVerified: bet.resultVerified,
+            resultReportedAt: bet.resultReportedAt,
+            hasOpenDispute: bet.disputes.length > 0,
+            refereeAssignment: bet.refereeAssignment,
+          })?.toISOString() ?? null,
       };
     });
 

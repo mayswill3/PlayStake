@@ -27,6 +27,7 @@ import { dispatchWebhook } from "../lib/webhooks/dispatch";
 import { appendRefereeAudit } from "../lib/referees/audit";
 import { emailBetSettled, emailRefereeFeePaid } from "../lib/email/events";
 import { reportJobFailure } from "../lib/observability/job-failure";
+import { SETTLEMENT_DELAY_MS } from "../lib/jobs/settlement-timing";
 
 // ---------------------------------------------------------------------------
 // Logging helper
@@ -347,8 +348,9 @@ async function processSettlementScan(
   //   - resultVerified = true
   //   - resultReportedAt + 2 minutes < now
   //   - no open disputes
+  // (Mirrors settlementDueAt, which drives the players' countdown.)
   const now = new Date();
-  const twoMinutesAgo = new Date(now.getTime() - 2 * 60 * 1000);
+  const twoMinutesAgo = new Date(now.getTime() - SETTLEMENT_DELAY_MS);
 
   const eligibleBets = await prisma.bet.findMany({
     where: {

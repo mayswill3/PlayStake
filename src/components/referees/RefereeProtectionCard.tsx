@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, Scale } from 'lucide-react';
+import { Check, Lock, Scale } from 'lucide-react';
 import { Card, CardTitle } from '@/components/ui/Card';
+import { PSButton } from '@/components/ui/playstake/PSButton';
 import { StatusPill } from '@/components/ui/playstake/StatusPill';
 import { formatCents, formatDate } from '@/lib/utils/format';
 
@@ -11,6 +12,8 @@ export interface RefereeAssignmentView {
   status: string;
   decision: string | null;
   disputeDeadline: string | null;
+  /** When the referee's decision opened the dispute window. */
+  decisionSubmittedAt: string | null;
   /** Start and end of the claim window — only set while the assignment is OPEN. */
   claimOpenedAt: string | null;
   claimDeadline: string | null;
@@ -22,9 +25,11 @@ interface RefereeProtectionCardProps {
   assignment: RefereeAssignmentView;
   gameName: string;
   stakeCents: number;
+  /** Opens the dispute form; shown beside the countdown while the window is open. */
+  onDispute?: () => void;
 }
 
-export function RefereeProtectionCard({ assignment, gameName, stakeCents }: RefereeProtectionCardProps) {
+export function RefereeProtectionCard({ assignment, gameName, stakeCents, onDispute }: RefereeProtectionCardProps) {
   if (assignment.status === 'OPEN') {
     return <FindingRefereeCard assignment={assignment} gameName={gameName} stakeCents={stakeCents} />;
   }
@@ -56,9 +61,11 @@ export function RefereeProtectionCard({ assignment, gameName, stakeCents }: Refe
           )}
           <p className="mt-1 text-xs font-mono text-ps-muted dark:text-ps-muted-on-dark">
             Reward: {assignment.rewardPolicy}
-            {assignment.disputeDeadline
-              ? ` · Dispute deadline ${formatDate(assignment.disputeDeadline)}`
-              : ' · Funds remain locked until a reviewed result'}
+            {assignment.status === 'DECISION_SUBMITTED' || assignment.status === 'DISPUTED'
+              ? null
+              : assignment.disputeDeadline
+                ? ` · Dispute window closed ${formatDate(assignment.disputeDeadline)}`
+                : ' · Funds remain locked until a reviewed result'}
           </p>
         </div>
         <StatusPill
@@ -66,8 +73,84 @@ export function RefereeProtectionCard({ assignment, gameName, stakeCents }: Refe
           label={assignment.status.replace(/_/g, ' ')}
         />
       </div>
+      {assignment.status === 'DECISION_SUBMITTED' && assignment.disputeDeadline && (
+        <ResolutionCountdown
+          deadline={assignment.disputeDeadline}
+          openedAt={assignment.decisionSubmittedAt}
+          onDispute={onDispute}
+        />
+      )}
+      {assignment.status === 'DISPUTED' && (
+        <p className="mt-4 flex items-center gap-1.5 text-sm text-ps-muted dark:text-ps-muted-on-dark">
+          <Lock className="h-4 w-4 shrink-0 text-ps-warning" aria-hidden="true" />
+          Funds locked in escrow while an admin reviews the dispute
+        </p>
+      )}
       <AuditLink assignmentId={assignment.id} />
     </Card>
+  );
+}
+
+/**
+ * After the referee's call, funds stay in escrow until the dispute window
+ * closes. A live countdown to that moment, with how much of the window is left.
+ */
+function ResolutionCountdown({
+  deadline,
+  openedAt,
+  onDispute,
+}: {
+  deadline: string;
+  openedAt: string | null;
+  onDispute?: () => void;
+}) {
+  const now = useNow(1_000);
+  const end = new Date(deadline).getTime();
+  const start = openedAt ? new Date(openedAt).getTime() : null;
+  const remainingMs = Math.max(0, end - now);
+  const windowMs = start !== null ? end - start : null;
+  const remainingFraction = windowMs ? Math.min(1, remainingMs / windowMs) : null;
+  const closed = remainingMs === 0;
+
+  return (
+    <div className="mt-4">
+      <div className="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
+        <span className="flex items-center gap-1.5 text-ps-muted dark:text-ps-muted-on-dark">
+          <Lock className="h-4 w-4 shrink-0 text-ps-lime" aria-hidden="true" />
+          {closed ? 'Dispute window closed — releasing funds' : 'Funds locked in escrow · resolves in'}
+        </span>
+        {!closed && (
+          <span
+            className="font-mono font-semibold tabular-nums text-ps-text dark:text-ps-text-on-dark"
+            role="timer"
+            aria-label={`Resolves in ${formatCountdown(remainingMs)}`}
+          >
+            {formatCountdown(remainingMs)}
+          </span>
+        )}
+      </div>
+      {remainingFraction !== null && (
+        <div className="h-1.5 overflow-hidden rounded-full bg-ps-lime/10">
+          <div
+            className="h-full rounded-full bg-ps-lime transition-[width] duration-1000 ease-linear"
+            style={{ width: `${remainingFraction * 100}%` }}
+          />
+        </div>
+      )}
+      {!closed && (
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark">
+            Think the call is wrong? Dispute it before the timer runs out — settlement pauses
+            immediately. Otherwise it pays out automatically.
+          </p>
+          {onDispute && (
+            <PSButton variant="danger" size="sm" className="shrink-0" onClick={onDispute}>
+              File Dispute
+            </PSButton>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

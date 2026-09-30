@@ -4,6 +4,7 @@ import { validateSession } from "../../../../lib/auth/session";
 import { getSessionToken } from "../../../../lib/auth/helpers";
 import { dollarsToCents } from "../../../../lib/utils/money";
 import { REFEREE_CLAIM_TTL_MS } from "../../../../lib/referees/service";
+import { settlementDueAt } from "../../../../lib/jobs/settlement-timing";
 import {
   errorResponse,
   AuthenticationError,
@@ -28,6 +29,11 @@ export async function GET(
       where: { id },
       include: {
         game: { select: { id: true, name: true, logoUrl: true } },
+        disputes: {
+          where: { status: { in: ["OPEN", "UNDER_REVIEW"] } },
+          select: { id: true },
+          take: 1,
+        },
         playerA: {
           select: {
             id: true,
@@ -136,6 +142,16 @@ export async function GET(
       matchedAt: bet.matchedAt?.toISOString() ?? null,
       resultReportedAt: bet.resultReportedAt?.toISOString() ?? null,
       settledAt: bet.settledAt?.toISOString() ?? null,
+      // When escrow is due to release (see settlementDueAt); null when the
+      // bet isn't waiting on the clock.
+      resolvesAt:
+        settlementDueAt({
+          status: bet.status,
+          resultVerified: bet.resultVerified,
+          resultReportedAt: bet.resultReportedAt,
+          hasOpenDispute: bet.disputes.length > 0,
+          refereeAssignment: bet.refereeAssignment,
+        })?.toISOString() ?? null,
       refereeAssignment: bet.refereeAssignment
         ? {
             id: bet.refereeAssignment.id,
@@ -143,6 +159,9 @@ export async function GET(
             decision: bet.refereeAssignment.decision,
             disputeDeadline:
               bet.refereeAssignment.disputeDeadline?.toISOString() ?? null,
+            // Start of the dispute window, so the countdown can show progress.
+            decisionSubmittedAt:
+              bet.refereeAssignment.decisionSubmittedAt?.toISOString() ?? null,
             // The claim window: when an unclaimed assignment is voided and
             // refunded by the bet-expiry sweep — anchored on updatedAt exactly
             // as sweepRefereeAssignment does (a released match restarts it).

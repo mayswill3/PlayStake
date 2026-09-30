@@ -14,6 +14,7 @@ import { StatusPill } from '@/components/ui/playstake/StatusPill';
 import { StepIndicator } from '@/components/ui/playstake/StepIndicator';
 import { PSButton } from '@/components/ui/playstake/PSButton';
 import { RematchCard, isRematchable } from '@/components/bets/RematchCard';
+import { ResolvesIn } from '@/components/bets/ResolvesIn';
 import {
   RefereeProtectionCard,
   type RefereeAssignmentView,
@@ -46,6 +47,8 @@ interface BetDetail {
   matchedAt: string | null;
   resultReportedAt: string | null;
   settledAt: string | null;
+  /** When escrow is due to release; null unless the bet is on that clock. */
+  resolvesAt: string | null;
   matchType: string;
   refereeAssignment: RefereeAssignmentView | null;
 }
@@ -109,17 +112,21 @@ export default function BetDetailPage() {
   }, [id]);
 
   // Keep the page live for the whole refereed match: the claim (or unclaimed
-  // refund) while OPEN, then the referee's Kick live status and progress.
+  // refund) while OPEN, then the referee's Kick live status and progress, then
+  // the dispute window, so the card flips to settled when it closes.
   const refereeStatus = bet?.refereeAssignment?.status;
   const refereeMatchActive =
-    refereeStatus !== undefined && ['OPEN', 'ASSIGNED', 'READY', 'IN_PROGRESS'].includes(refereeStatus);
+    refereeStatus !== undefined &&
+    ['OPEN', 'ASSIGNED', 'READY', 'IN_PROGRESS', 'DECISION_SUBMITTED'].includes(refereeStatus);
+  // A bet counting down to payout also polls, so it flips to settled.
+  const keepFresh = refereeMatchActive || Boolean(bet?.resolvesAt);
   const pollMs = refereeStatus === 'OPEN' ? REFEREE_POLL_MS : REFEREE_ACTIVE_POLL_MS;
   const betRef = useRef(bet);
   useEffect(() => {
     betRef.current = bet;
   }, [bet]);
   useEffect(() => {
-    if (!refereeMatchActive) return;
+    if (!keepFresh) return;
     let active = true;
     const timer = window.setInterval(async () => {
       try {
@@ -143,11 +150,15 @@ export default function BetDetailPage() {
       active = false;
       window.clearInterval(timer);
     };
-  }, [refereeMatchActive, pollMs, id, toast]);
+  }, [keepFresh, pollMs, id, toast]);
 
   const refereeDeadlineOpen = !bet?.refereeAssignment?.disputeDeadline ||
     new Date(bet.refereeAssignment.disputeDeadline).getTime() > Date.now();
   const canDispute = bet && ['RESULT_REPORTED', 'SETTLED'].includes(bet.status) && refereeDeadlineOpen;
+  // Refereed matches dispute from the referee card, beside the countdown to
+  // the deadline; everything else keeps the standalone dispute card.
+  const disputeInRefereeCard =
+    bet?.refereeAssignment?.status === 'DECISION_SUBMITTED' && Boolean(bet.refereeAssignment.disputeDeadline);
 
   async function handleDispute() {
     if (!disputeReason.trim()) return;
@@ -217,7 +228,11 @@ export default function BetDetailPage() {
             </button>
             <h1 className="text-2xl font-display font-bold text-ps-text dark:text-ps-text-on-dark">Bet Detail</h1>
           </div>
-          <StatusPill status={mapBetStatusToPill(bet.status)} label={bet.status.replace(/_/g, ' ')} />
+          <div className="flex flex-col items-end gap-1.5">
+            <StatusPill status={mapBetStatusToPill(bet.status)} label={bet.status.replace(/_/g, ' ')} />
+            {/* Refereed matches show this in the referee card, beside the dispute button. */}
+            {bet.resolvesAt && !disputeInRefereeCard && <ResolvesIn at={bet.resolvesAt} />}
+          </div>
         </div>
 
         {/* On xl the chat is a sticky right-hand column spanning both left groups;
@@ -270,6 +285,7 @@ export default function BetDetailPage() {
                 assignment={bet.refereeAssignment}
                 gameName={bet.game.name}
                 stakeCents={bet.amount}
+                onDispute={canDispute ? () => setDisputeOpen(true) : undefined}
               />
             )}
 
@@ -356,7 +372,7 @@ export default function BetDetailPage() {
             )}
 
             {/* Actions */}
-            {canDispute && (
+            {canDispute && !disputeInRefereeCard && (
               <Card>
                 <div className="flex items-center justify-between">
                   <div>

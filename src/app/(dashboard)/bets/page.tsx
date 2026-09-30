@@ -12,6 +12,7 @@ import { PSButton } from '@/components/ui/playstake/PSButton';
 import { Target } from 'lucide-react';
 import { formatCents, formatDate } from '@/lib/utils/format';
 import { useBets } from '@/hooks/useBets';
+import { ResolvesIn } from '@/components/bets/ResolvesIn';
 
 type PillStatus = 'live' | 'waiting' | 'completed' | 'disputed' | 'settled' | 'expired';
 
@@ -142,7 +143,10 @@ export default function BetsPage() {
                           {formatCents(bet.amount)}
                         </td>
                         <td className="px-4 py-3">
-                          <StatusPill status={mapBetStatusToPill(bet.status)} label={bet.status.replace(/_/g, ' ')} />
+                          <div className="flex flex-col items-start gap-1">
+                            <StatusPill status={mapBetStatusToPill(bet.status)} label={bet.status.replace(/_/g, ' ')} />
+                            {bet.resolvesAt && <ResolvesIn at={bet.resolvesAt} />}
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           {bet.netResult !== null ? (
@@ -180,7 +184,10 @@ export default function BetsPage() {
                           vs {bet.opponent?.displayName ?? 'Awaiting'} &middot; {formatDate(bet.createdAt)}
                         </p>
                       </div>
-                      <StatusPill status={mapBetStatusToPill(bet.status)} label={bet.status.replace(/_/g, ' ')} />
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <StatusPill status={mapBetStatusToPill(bet.status)} label={bet.status.replace(/_/g, ' ')} />
+                        {bet.resolvesAt && <ResolvesIn at={bet.resolvesAt} />}
+                      </div>
                     </div>
                     <div className="flex items-center justify-between mt-3">
                       <span className="text-sm font-mono tabular-nums text-ps-muted dark:text-ps-muted-on-dark">{formatCents(bet.amount)}</span>

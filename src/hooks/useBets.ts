@@ -14,7 +14,12 @@ export interface Bet {
   netResult: number | null;
   createdAt: string;
   settledAt: string | null;
+  /** When escrow is due to release; null unless the bet is on that clock. */
+  resolvesAt: string | null;
 }
+
+/** While a listed bet is counting down to payout, refresh so it flips to settled. */
+const RESOLVING_REFRESH_MS = 15_000;
 
 interface PaginationInfo {
   page: number;
@@ -37,9 +42,9 @@ export function useBets(options: UseBetsOptions = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchBets = useCallback(async () => {
+  const fetchBets = useCallback(async (quiet = false) => {
     try {
-      setLoading(true);
+      if (!quiet) setLoading(true);
       const params = new URLSearchParams();
       params.set('page', String(page));
       params.set('limit', String(limit));
@@ -52,9 +57,10 @@ export function useBets(options: UseBetsOptions = {}) {
       setBets(data.data);
       setPagination(data.pagination);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      // A missed background refresh keeps the list on screen; the next tick retries.
+      if (!quiet) setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   }, [page, limit, status, gameId]);
 
@@ -62,5 +68,12 @@ export function useBets(options: UseBetsOptions = {}) {
     fetchBets();
   }, [fetchBets]);
 
-  return { bets, pagination, loading, error, refresh: fetchBets };
+  const resolving = bets.some((bet) => bet.resolvesAt !== null);
+  useEffect(() => {
+    if (!resolving) return;
+    const timer = window.setInterval(() => void fetchBets(true), RESOLVING_REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, [resolving, fetchBets]);
+
+  return { bets, pagination, loading, error, refresh: () => fetchBets() };
 }
