@@ -13,7 +13,7 @@
 import { EmailOutboxStatus, type Prisma } from "../../../generated/prisma/client";
 import { prisma } from "@/lib/db/client";
 import type { TxClient } from "@/lib/db/client";
-import { AccountStatus, GamstopStatus } from "../../../generated/prisma/client";
+import { AccountStatus, GamstopStatus, PlayerRiskStatus } from "../../../generated/prisma/client";
 import { getActiveBreak } from "@/lib/responsible-play/service";
 import {
   isEssential,
@@ -92,8 +92,10 @@ export async function queueEmail<N extends EmailTemplateName>(
 
 /**
  * Whether a user may receive non-essential email. Self-excluded customers,
- * anyone on a cool-off, anyone registered with GAMSTOP and restricted
- * accounts get only essential (security, money, responsible-play) email.
+ * anyone on a cool-off, anyone registered with GAMSTOP, restricted accounts,
+ * and anyone showing a marker of gambling harm in the last 30 days (unless
+ * staff reviewed and dismissed it) get only essential (security, money,
+ * responsible-play) email.
  */
 async function mayReceiveOptionalEmail(
   userId: string,
@@ -106,8 +108,20 @@ async function mayReceiveOptionalEmail(
   if (!user.emailNotifications) return false;
   if (user.accountStatus !== AccountStatus.ACTIVE) return false;
   if (user.gamstopStatus === GamstopStatus.EXCLUDED) return false;
+  const recentHarmSignal = await prisma.playerRiskSignal.findFirst({
+    where: {
+      userId,
+      status: { not: PlayerRiskStatus.DISMISSED },
+      createdAt: { gte: new Date(Date.now() - HARM_MARKETING_PAUSE_MS) },
+    },
+    select: { id: true },
+  });
+  if (recentHarmSignal) return false;
   return (await getActiveBreak(userId)) === null;
 }
+
+/** How long after a marker of harm optional and marketing email stays off. */
+const HARM_MARKETING_PAUSE_MS = 30 * 24 * 60 * 60 * 1000;
 
 /**
  * Queue an email without letting a failure disturb the caller. For use at the

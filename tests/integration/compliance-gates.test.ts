@@ -214,6 +214,29 @@ describe("Self-exclusion", () => {
   });
 });
 
+describe("Marketing and at-risk customers", () => {
+  it("stops optional email for 30 days after a marker of harm", async () => {
+    const player = await makePlayer();
+    await prisma.playerRiskSignal.create({
+      data: {
+        userId: player.id,
+        type: "LOSS_CHASING_STAKES",
+        severity: "medium",
+        details: {},
+        windowStart: new Date(Date.now() - DAY),
+        windowEnd: new Date(),
+      },
+    });
+    await queueEmail({
+      template: "bet.settled",
+      payload: {} as never,
+      dedupeKey: `test-at-risk-${player.id}`,
+      userId: player.id,
+    });
+    expect(await prisma.emailOutbox.count({ where: { userId: player.id } })).toBe(0);
+  });
+});
+
 describe("Deposit limits", () => {
   it("keeps a removed limit in force for 24 hours", async () => {
     const player = await makePlayer();
