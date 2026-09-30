@@ -7,6 +7,8 @@ import { ChallengesProvider } from '@/components/lobby/ChallengesProvider';
 import { EligibilityNotice } from '@/components/compliance/EligibilityNotice';
 import { SessionReminder } from '@/components/responsible-play/SessionReminder';
 import { InteractionPrompt } from '@/components/responsible-play/InteractionPrompt';
+import { LimitReviewPrompt } from '@/components/responsible-play/LimitReviewPrompt';
+import { SessionClock } from '@/components/responsible-play/SessionClock';
 
 export const metadata: Metadata = {
   title: 'Play',
@@ -48,13 +50,15 @@ export default function PlayLayout({ children }: { children: React.ReactNode }) 
                 </span>
               </Link>
               <div className="flex items-center gap-2">
+                <SessionClock />
                 <ThemeToggle />
                 <Link
                   href="/dashboard"
                   className="inline-flex items-center gap-1.5 text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-text dark:hover:text-ps-text-on-dark transition-colors"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Back to Dashboard
+                  <span className="hidden sm:inline">Back to Dashboard</span>
+                  <span className="sm:hidden">Back</span>
                 </Link>
               </div>
             </div>
@@ -62,9 +66,16 @@ export default function PlayLayout({ children }: { children: React.ReactNode }) 
         </nav>
         <EligibilityNotice />
         <main>{children}</main>
+        <div
+          id="play-fullscreen-clock"
+          className="pointer-events-none fixed left-1/2 top-1 z-[110] hidden -translate-x-1/2 [&>div]:bg-black/60 [&>div]:text-white/80"
+        >
+          <SessionClock />
+        </div>
         {/* Reality checks run where the games are played, not only on the dashboard. */}
         <SessionReminder />
         <InteractionPrompt />
+        <LimitReviewPrompt />
       </div>
     </ChallengesProvider>
   );

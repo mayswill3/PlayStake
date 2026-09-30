@@ -4,12 +4,14 @@ import { useEffect, useRef } from 'react';
 import { Check, X, Target } from 'lucide-react';
 import { useCountdown } from '@/hooks/useCountdown';
 import { Spinner } from '@/components/ui/Spinner';
+import { PayoutSummary } from './PayoutSummary';
 
 interface InviteReceivedProps {
   fromName: string;
   fromInitials: string;
   stakeCents: number;
   gameName: string;
+  gameType: string;
   inviteExpiresAt: string;
   onAccept: () => void;
   onDecline: () => void;
@@ -25,6 +27,7 @@ export function InviteReceived({
   fromInitials,
   stakeCents,
   gameName,
+  gameType,
   inviteExpiresAt,
   onAccept,
   onDecline,
@@ -79,6 +82,7 @@ export function InviteReceived({
           </dd>
         </div>
       </dl>
+      <PayoutSummary gameType={gameType} stakeCents={stakeCents} className="-mt-2 mb-4" />
 
       {/* Actions */}
       <div className="grid grid-cols-2 gap-2">

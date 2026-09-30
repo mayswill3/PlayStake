@@ -16,7 +16,11 @@ import { QUEUE_NAMES, type BetExpiryScanPayload } from "../lib/jobs/types";
 import { prisma, withTransaction, type TxClient } from "../lib/db/client";
 import { refundEscrow } from "../lib/ledger/escrow";
 import { voidNoShowMatch, NO_SHOW_TTL_MS } from "../lib/lobby/match-lifecycle";
-import { findFinishedSessionForBet, lastActivityByBet } from "../lib/games/sessions";
+import {
+  findFinishedSessionForBet,
+  forfeitAbandonedMatch,
+  lastActivityByBet,
+} from "../lib/games/sessions";
 import { settleBetFromSession } from "../lib/demo/settle";
 import { LobbyChannels, publishLobbyEvent } from "../lib/lobby/pubsub";
 import {
@@ -153,6 +157,15 @@ async function voidStaleMatch(betId: string): Promise<void> {
     if (bet?.status === BetStatus.MATCHED && (await findFinishedSessionForBet(tx, bet))) {
       const { outcome } = await settleBetFromSession(tx, betId);
       log("info", "finished_match_settled", { betId, outcome });
+      return;
+    }
+
+    // A match that started and then went quiet: whoever's move it is walked
+    // away and forfeits. Voiding it instead would let a losing player take
+    // their stake back by leaving.
+    if (bet?.status === BetStatus.MATCHED && (await forfeitAbandonedMatch(tx, bet, Date.now()))) {
+      const { outcome } = await settleBetFromSession(tx, betId);
+      log("info", "abandoned_match_forfeited", { betId, outcome });
       return;
     }
 

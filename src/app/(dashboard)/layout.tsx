@@ -7,6 +7,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { ChallengesProvider } from '@/components/lobby/ChallengesProvider';
 import { SessionReminder } from '@/components/responsible-play/SessionReminder';
 import { InteractionPrompt } from '@/components/responsible-play/InteractionPrompt';
+import { LimitReviewPrompt } from '@/components/responsible-play/LimitReviewPrompt';
 import { useAuthLayout } from '@/hooks/useAuthLayout';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -33,6 +34,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <MobileBottomNav />
         <SessionReminder />
         <InteractionPrompt />
+        <LimitReviewPrompt />
       </div>
     </ChallengesProvider>
   );

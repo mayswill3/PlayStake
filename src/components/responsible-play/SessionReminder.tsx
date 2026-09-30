@@ -19,7 +19,7 @@ interface Activity {
  * Start-of-session timestamp, held in sessionStorage so it resets per browser
  * tab session rather than persisting across days like localStorage would.
  */
-function getSessionStart(): number {
+export function getSessionStart(): number {
   if (typeof window === 'undefined') return Date.now();
 
   const stored = window.sessionStorage.getItem(SESSION_START_KEY);

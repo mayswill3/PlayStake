@@ -494,6 +494,12 @@ body:has(.game-fullscreen-mobile) [type='password'] {
     display: none !important;
   }
 
+  /* The nav (and its clock) is hidden in fullscreen play, so the clock floats
+     instead: time and session length stay on screen while playing (RTS 13A). */
+  body:has(.game-fullscreen-mobile) #play-fullscreen-clock {
+    display: block !important;
+  }
+
   /* Hide desktop-only chrome on mobile */
   .game-fullscreen-mobile .game-header,
   .game-fullscreen-mobile .game-sidebar,

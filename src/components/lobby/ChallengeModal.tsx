@@ -5,6 +5,7 @@ import { Clock, Scale, Swords } from 'lucide-react';
 import { Dialog } from '@/components/ui/Dialog';
 import { PSButton } from '@/components/ui/playstake/PSButton';
 import { formatCents } from '@/lib/utils/format';
+import { PayoutSummary } from './PayoutSummary';
 import { useSecondsLeft, type MyInvite } from './ChallengeItem';
 
 /**
@@ -91,6 +92,7 @@ function ChallengeBody({
         <Tile label="Stake each" value={formatCents(invite.stakeAmount)} accent />
         <Tile label="Pot" value={formatCents(invite.stakeAmount * 2)} />
       </dl>
+      <PayoutSummary gameType={invite.gameType} stakeCents={invite.stakeAmount} className="mt-3 text-xs" />
 
       {invite.requiresReferee && (
         <p className="mt-4 flex items-start gap-2 rounded-[var(--ps-radius-md)] bg-ps-lime/10 p-3 text-sm">

@@ -19,7 +19,7 @@ const GAMES = [
     icon: <Goal size={24} strokeWidth={1.5} />,
     name: 'Penalty Shootout',
     description:
-      'Take penalties against a live keeper. Best of five — winner takes the pot.',
+      'Take penalties against a live keeper. Best of five — the winner takes the pot, less PlayStake\'s fee.',
     status: 'coming-soon' as const,
   },
   {

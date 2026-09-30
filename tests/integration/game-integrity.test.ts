@@ -126,7 +126,7 @@ describe("Higher / Lower is dealt and decided by the server", () => {
     // is the next one in it.
     const events = await prisma.gameEvent.findMany({ where: { sessionId }, orderBy: { seq: "asc" } });
     expect(events.map((event) => event.type)).toEqual(["created", "joined", "deck_shuffled", "guess", "finished"]);
-    const shuffled = events[2].data as { faceUp: PlayingCard; deck: PlayingCard[] };
+    const shuffled = events[2].data as unknown as { faceUp: PlayingCard; deck: PlayingCard[] };
     expect(shuffled.faceUp).toEqual(current);
     expect(shuffled.deck).toHaveLength(51);
     expect(shuffled.deck[0]).toEqual(next);
@@ -239,6 +239,26 @@ describe("The no-show sweep respects play", () => {
     expect(after.outcome).toBe(
       guessed.body.winner === "A" ? BetOutcome.PLAYER_A_WIN : BetOutcome.PLAYER_B_WIN,
     );
+  });
+
+  it("a player who walks away mid-match forfeits it", async () => {
+    const bet = await matchedBet();
+    const { sessionId } = await startMatch(bet.id, "darts");
+    // A threw one dart and left; it is still A's turn.
+    await callApi("PATCH", `/api/demo/game/${sessionId}`, {
+      sessionToken: tokenA,
+      body: { action: "throw", aimX: 450, aimY: 150, holdMs: 800 },
+    });
+    await ageBet(bet.id);
+    await prisma.$executeRaw`UPDATE game_sessions SET last_activity_at = NOW() - INTERVAL '1 hour' WHERE id = ${sessionId}`;
+
+    await processBetExpiryScan({} as never);
+
+    const after = await prisma.bet.findUniqueOrThrow({ where: { id: bet.id } });
+    expect(after.status).toBe(BetStatus.SETTLED);
+    expect(after.outcome).toBe(BetOutcome.PLAYER_B_WIN);
+    const events = await prisma.gameEvent.findMany({ where: { sessionId }, orderBy: { seq: "asc" } });
+    expect(events.map((event) => event.type)).toContain("forfeit_abandoned");
   });
 
   it("still voids a match nobody played", async () => {

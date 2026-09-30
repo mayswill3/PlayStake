@@ -1,6 +1,7 @@
 'use client';
 
 import { Spinner } from '@/components/ui/Spinner';
+import { PayoutSummary } from './PayoutSummary';
 
 const STAKE_OPTIONS_CENTS = [100, 500, 1000, 2500];
 
@@ -10,6 +11,7 @@ interface StakePickerProps {
   onJoin: () => void;
   isJoining?: boolean;
   role: 'PLAYER_A' | 'PLAYER_B';
+  gameType: string;
 }
 
 function formatUsd(cents: number): string {
@@ -17,7 +19,7 @@ function formatUsd(cents: number): string {
   return dollars.toFixed(dollars % 1 === 0 ? 0 : 2);
 }
 
-export function StakePicker({ value, onChange, onJoin, isJoining, role }: StakePickerProps) {
+export function StakePicker({ value, onChange, onJoin, isJoining, role, gameType }: StakePickerProps) {
   return (
     <div className="rounded-xl border border-themed bg-elevated p-4">
       <h3 className="text-[11px] font-semibold text-fg-muted uppercase tracking-widest mb-2">
@@ -48,9 +50,10 @@ export function StakePicker({ value, onChange, onJoin, isJoining, role }: StakeP
               );
             })}
           </div>
-          <p className="text-[11px] text-fg-muted mb-3">
-            Both players lock the same amount. Winner takes the pot.
+          <p className="text-[11px] text-fg-muted mb-1">
+            Both players lock the same amount.
           </p>
+          <PayoutSummary gameType={gameType} stakeCents={value} className="mb-3" />
         </>
       ) : (
         <p className="text-xs text-fg-secondary mb-3">

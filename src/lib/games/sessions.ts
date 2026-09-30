@@ -360,3 +360,46 @@ export async function lastActivityByBet(betIds: string[]): Promise<Map<string, D
       .map((row) => [row.betId as string, row._max.lastActivityAt as Date]),
   );
 }
+
+/** Whose move it is in a match in play: the side holding things up. */
+function sideToMove(row: GameSession, now: number): "A" | "B" {
+  if (row.gameType === "tictactoe") return (row.publicState as unknown as TicTacToeState).turn;
+  if (row.gameType === "darts") {
+    return advanceDarts(row.publicState as unknown as DartsState, now).currentTurn;
+  }
+  return "A"; // Higher / Lower: only the Guesser acts.
+}
+
+/**
+ * A match that started and then stopped: the player whose move it is has
+ * left it. They forfeit, so walking away from a losing position can never
+ * turn into a refund. Returns the finished session, or null if the bet has no
+ * match in play (never started matches are voided by the caller instead).
+ */
+export async function forfeitAbandonedMatch(
+  tx: TxClient,
+  bet: { id: string; playerAId: string; playerBId: string | null },
+  now: number,
+): Promise<GameSession | null> {
+  if (!bet.playerBId) return null;
+  const playing = await tx.gameSession.findFirst({
+    where: { betId: bet.id, playerAId: bet.playerAId, playerBId: bet.playerBId, status: "playing" },
+    orderBy: { createdAt: "asc" },
+  });
+  if (!playing) return null;
+  const row = await lockSession(tx, playing.id);
+  if (row.status !== "playing") return null;
+
+  const absent = sideToMove(row, now);
+  const winner = absent === "A" ? "B" : "A";
+  const finished = await tx.gameSession.update({
+    where: { id: row.id },
+    data: { status: "finished", winner, finishedAt: new Date(now) },
+  });
+  await appendEvent(tx, row.id, null, "forfeit_abandoned", {
+    absent,
+    lastActivityAt: row.lastActivityAt.toISOString(),
+  });
+  await appendEvent(tx, row.id, null, "finished", { winner, reason: "abandoned" });
+  return finished;
+}

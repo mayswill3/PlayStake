@@ -1187,6 +1187,9 @@ model ResponsiblePlaySettings {
   /// When the customer answered the set-a-deposit-limit prompt that comes
   /// before their first deposit (whether they set one or declined).
   depositLimitPromptedAt DateTime? @map("deposit_limit_prompted_at")
+  /// When the customer last answered the six-monthly "review your limits"
+  /// reminder (RTS 12).
+  limitsReviewedAt       DateTime? @map("limits_reviewed_at")
   createdAt              DateTime @default(now()) @map("created_at")
   updatedAt              DateTime @updatedAt @map("updated_at")
 

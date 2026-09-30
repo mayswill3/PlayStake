@@ -465,6 +465,7 @@ export function LobbyContainer({
         onJoin={handleJoin}
         isJoining={status === 'joining'}
         role={toApiRole(role)}
+        gameType={gameType}
       />
     );
   }
@@ -487,6 +488,7 @@ export function LobbyContainer({
         fromInitials={initialsFromName(lobbyStatus.invitedBy.displayName)}
         stakeCents={lobbyStatus.invitedBy.stakeAmount}
         gameName={gameName}
+        gameType={gameType}
         inviteExpiresAt={lobbyStatus.inviteExpiresAt}
         onAccept={() => handleRespond('ACCEPT')}
         onDecline={() => handleRespond('DECLINE')}

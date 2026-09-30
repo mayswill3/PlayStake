@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { GameConfig } from './game-config';
 
 interface GameInfoPanelProps {
@@ -53,6 +54,12 @@ export function GameInfoPanel({ config }: GameInfoPanelProps) {
             </li>
           ))}
         </ol>
+        <p className="mt-4 text-xs text-fg-muted">
+          Results and every random draw are decided on PlayStake&apos;s servers.{' '}
+          <Link href="/fair-play" className="underline hover:text-fg">
+            Fees, interrupted matches and fair play
+          </Link>
+        </p>
       </div>
     </div>
   );

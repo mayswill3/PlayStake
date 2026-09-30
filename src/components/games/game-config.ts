@@ -33,9 +33,10 @@ export const GAME_CONFIG: Record<string, GameConfig> = {
     accentBg: 'bg-brand-600/10',
     accentText: 'text-brand-600 dark:text-brand-400',
     rules: [
-      'Take turns placing your mark (X or O)',
+      'X (the player who set the stake) moves first, then you take turns',
       'Get three in a row: horizontal, vertical, or diagonal',
-      'First to connect three wins the round',
+      'First to connect three wins the match',
+      'A full board with no line is a draw: the pot, less the fee, is split equally',
     ],
     preview: TicTacToePreview,
     roleA: {
@@ -52,14 +53,16 @@ export const GAME_CONFIG: Record<string, GameConfig> = {
   cards: {
     key: 'cards',
     name: 'Higher / Lower',
-    description: 'Guess whether the next card is higher or lower.',
+    description: 'One call: is the next card higher or lower?',
     icon: Layers,
     accentBg: 'bg-brand-600/10',
     accentText: 'text-brand-600 dark:text-brand-400',
     rules: [
-      'A card is dealt — guess if the next one is higher or lower',
-      'Correct guesses score a point',
-      'Most points after both players guess wins',
+      'A fresh 52-card deck is shuffled by PlayStake and the first card is shown to both players',
+      'The Guesser makes one call: will the next card be higher or lower?',
+      'Aces are high; suits do not count',
+      'A correct call wins for the Guesser. A wrong call wins for the Watcher',
+      'If the next card is the same rank, the call is wrong and the Watcher wins',
     ],
     preview: CardsPreview,
     roleA: {
@@ -76,16 +79,17 @@ export const GAME_CONFIG: Record<string, GameConfig> = {
   darts: {
     key: 'darts',
     name: 'Darts 301',
-    description: 'Start at 301, subtract your score each turn — first to zero wins.',
+    description: 'Three rounds from 301. Hit exactly zero, or finish lowest, to win.',
     icon: Target,
     accentBg: 'bg-brand-600/10',
     accentText: 'text-brand-600 dark:text-brand-400',
     rules: [
-      'Start at 301 — subtract your score each turn',
-      'Aim the moving crosshair and click to throw (3 darts per turn)',
-      'Treble = 3×, Double = 2×, Bull = 25, Bullseye = 50',
-      'Going below 0 is a BUST — score reverts, turn ends',
-      'First to reach exactly 0 wins',
+      'Both players start at 301. Home throws first; 3 darts per turn, 3 rounds each',
+      'Drag to aim and hold to steady: a steadier, more central aim lands closer, but every dart lands with some random scatter drawn by PlayStake',
+      'Treble = 3×, Double = 2×, Bull = 25, Bullseye = 50. Each dart is taken off your score',
+      'Going below 0 is a BUST: your score goes back to where the turn started and the turn ends',
+      'Reach exactly 0 to win at once. Otherwise, after 3 rounds the lower score wins',
+      'Equal scores after 3 rounds are a draw: the pot, less the fee, is split equally',
     ],
     preview: DartsPreview,
     roleA: {
