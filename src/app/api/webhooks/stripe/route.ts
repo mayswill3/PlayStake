@@ -8,12 +8,14 @@ import {
 import { recordChargeback } from "../../../../lib/compliance/chargebacks";
 import { prisma, withTransaction } from "../../../../lib/db/client";
 import {
+  emailAdminAlert,
   emailDepositFailed,
   emailDepositSucceeded,
   emailWithdrawalFailed,
   emailWithdrawalPaid,
 } from "../../../../lib/email/events";
 import { constructWebhookEvent } from "../../../../lib/payments/stripe";
+import { usesOnlyApprovedPaymentMethods } from "../../../../lib/payments/policy";
 import {
   getOrCreatePlayerAccount,
   getSystemAccount,
@@ -230,6 +232,29 @@ async function handlePaymentIntentSucceeded(
     console.error(
       `[Stripe Webhook] Transaction ${transaction.id} has no userId in metadata`
     );
+    return;
+  }
+
+  // Belt and braces behind the pinned list in createPaymentIntent: money that
+  // came in by a method not on the approved list is never credited. Staff
+  // review it and refund it through Stripe.
+  if (!usesOnlyApprovedPaymentMethods(paymentIntent.payment_method_types ?? [])) {
+    await prisma.transaction.update({
+      where: { id: transaction.id },
+      data: {
+        status: TransactionStatus.FAILED,
+        failureReason: `Unapproved payment method (${paymentIntent.payment_method_types.join(", ")}): not credited, refund required`,
+      },
+    });
+    console.error(
+      `[Stripe Webhook] PaymentIntent ${paymentIntent.id} used unapproved payment method types`,
+      paymentIntent.payment_method_types,
+    );
+    await emailAdminAlert({
+      key: `unapproved-payment-method-${paymentIntent.id}`,
+      title: "Deposit by an unapproved payment method was not credited",
+      detail: `PaymentIntent ${paymentIntent.id} (transaction ${transaction.id}) used ${paymentIntent.payment_method_types.join(", ")}. Refund it in Stripe and check the Dashboard's payment method settings.`,
+    });
     return;
   }
 

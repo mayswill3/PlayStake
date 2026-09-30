@@ -22,6 +22,7 @@ combined PDF of the whole set (`pdf/PlayStake-Compliance-Manual-complete.pdf`).
 | 13 | [Information Security Policy (ISO/IEC 27001:2022 mapping)](13-information-security.md) |
 | 14 | [Incident Response and Key Event Reporting](14-incident-response-and-key-events.md) |
 | 15 | [UAE (GCGRA) Certification Plan](15-uae-gcgra-certification-plan.md) — planning draft |
+| 16 | [Payment Services and Payment Methods](16-payment-services-and-methods.md) |
 
 **Before submission:**
 - Replace every `[PLACEHOLDER]`.
@@ -29,6 +30,6 @@ combined PDF of the whole set (`pdf/PlayStake-Compliance-Manual-complete.pdf`).
 - Have the set reviewed by a gambling-compliance adviser or solicitor. LCCP references and Commission thresholds must be confirmed against the current versions.
 
 **Keeping them in step with the code:**
-- The documents describe controls that exist in the code (mainly `src/lib/compliance`, `src/lib/responsible-play`, `src/lib/complaints`, `src/lib/games`, `src/lib/ledger`).
+- The documents describe controls that exist in the code (mainly `src/lib/compliance`, `src/lib/responsible-play`, `src/lib/complaints`, `src/lib/games`, `src/lib/ledger`, `src/lib/payments`).
 - Diagrams in 08–10 are Mermaid; the PDFs render them. Regenerate the PDFs with `make-pdfs.mjs` (instructions at the top of the file).
 - Update them whenever those controls change, then regenerate the PDFs from the Markdown.

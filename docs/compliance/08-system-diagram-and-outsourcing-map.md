@@ -100,7 +100,7 @@ flowchart TB
 | Function | Supplier | Status | What they do | Data shared | Where processed | Contract / assurance |
 |---|---|---|---|---|---|---|
 | **Hosting and storage** | Railway Corp. | Live | Runs the web and worker services, PostgreSQL and Redis; database backups (to be confirmed as enabled, Document 13) | All platform data (hosted, not accessed by Railway for its own purposes) | [RAILWAY REGION]. Confirm and record. | Railway terms and DPA. [CONFIRM SOC 2 REPORT] |
-| **Payment services** | Stripe Payments Europe / Stripe, Inc. | Live, **test mode** | Card deposits (Payment Intents), withdrawals via Stripe Connect Express, Radar fraud screening (to configure) | Customer name, email, amount; card data handled by Stripe only | Stripe (EU/US) | Stripe Services Agreement; PCI DSS Level 1 |
+| **Payment services** | Stripe Payments Europe / Stripe, Inc. | Live, **test mode** | Card deposits (Payment Intents), withdrawals via Stripe Connect Express, Radar fraud screening (to configure) | Customer name, email, amount; card data handled by Stripe only | Stripe (EU/US) | Stripe Services Agreement; PCI DSS Level 1; PSR authorisation and approved methods in Policy 16 |
 | **Age and identity verification** | In-house | Live | Customers upload an identity document; staff review it before any deposit or gambling | — | PlayStake (Railway) | — |
 | | [eIDV PROVIDER] | Planned | Electronic identity, age, liveness and document checks | Name, date of birth, address, document images | [TBC] | To contract (Master Manual §8 item 4) |
 | **Sanctions and PEP screening** | [SCREENING PROVIDER] | Planned | Screening at verification and on list updates | Name, date of birth, nationality | [TBC] | To contract (Master Manual §8 item 5) |

@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { prisma } from "../db/client";
+import { APPROVED_PAYMENT_METHOD_TYPES } from "./policy";
 
 // ---------------------------------------------------------------------------
 // Singleton Stripe instance
@@ -49,7 +50,9 @@ export async function createPaymentIntent(
       currency: currency.toLowerCase(),
       customer: customerId,
       metadata,
-      automatic_payment_methods: { enabled: true },
+      // Pinned here rather than left to the Stripe Dashboard: only methods on
+      // the approved list (all via an authorised PSP) can be offered.
+      payment_method_types: [...APPROVED_PAYMENT_METHOD_TYPES],
     },
     { idempotencyKey }
   );

@@ -98,6 +98,7 @@ The application's technical documents:
 | 13 | [Information Security Policy](13-information-security.md) | ISO/IEC 27001:2022 control mapping for the RTS security requirements, residual risks and gaps |
 | 14 | [Incident Response and Key Event Reporting](14-incident-response-and-key-events.md) | Triage, response, customer and ICO notification, LCCP 15.2.1 key events within 5 working days |
 | 15 | [UAE (GCGRA) Certification Plan](15-uae-gcgra-certification-plan.md) | Route to GCGRA licensing and GLI-19 / GLI-33 certification with GLI or BMM (planning draft, unverified) |
+| 16 | [Payment Services and Payment Methods](16-payment-services-and-methods.md) | Payments only through PSR-authorised providers; approved methods fixed in code; provider register and onboarding checklist |
 
 Each policy states its owner, its review date, the LCCP provisions it addresses, and exactly how the platform carries it out.
 
@@ -215,6 +216,8 @@ These must be done before the application is submitted, or before real-money lau
 | 21 | Close the information security gaps in Document 13 §6 (log retention, written staff security rules, supplier assurance, key rotation, `timestamptz`) | As marked there | Head of Compliance / engineering |
 | 22 | Review the 12 January 2026 update to RTS 14 against Policies 03 and 04 (Document 12 §4) | Application | Head of Compliance |
 | 23 | Build the monthly game-fairness statistical check from the game event log (Document 11 §6) | Launch | Engineering |
+| 24 | Get Stripe's written approval for gambling (or appoint a gambling-approved PSP) and confirm its FCA reference number (Policy 16) | Launch | Head of Compliance |
+| 25 | Block credit-funded cards on deposits (Policy 16 §7) | Launch | Head of Compliance / engineering |
 
 ## 9. Version history
 
