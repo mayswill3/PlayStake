@@ -11,7 +11,7 @@ const NAV_LINKS = [
   { href: '/how-it-works', label: 'How It Works' },
   { href: '#games', label: 'Games' },
   { href: '#trust', label: 'Trust & Safety' },
-  { href: '#faq', label: 'FAQ' },
+  { href: '/faq', label: 'FAQ' },
   { href: '#for-referees', label: 'Referees' },
 ];
 
