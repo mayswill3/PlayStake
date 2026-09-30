@@ -1,5 +1,6 @@
-import { EyebrowPill, MatchPreview, PhoneMockup, PSButton } from '@/components/ui/playstake';
+import { EyebrowPill, PSButton } from '@/components/ui/playstake';
 import { TrustStrip } from '@/components/ui/TrustStrip';
+import { HeroFeature, HeroMobilePreview } from './hero-live-match';
 
 export function Hero() {
   return (
@@ -41,9 +42,10 @@ export function Hero() {
               </h1>
 
               {/* Product preview — sits between headline and sub-headline on mobile.
-                  Device frame lives in its own column from lg up. */}
+                  Device frame lives in its own column from lg up. Both show the
+                  most-watched live match when one is in progress. */}
               <div className="mt-6 w-full max-w-sm mx-auto lg:hidden">
-                <MatchPreview variant="bare" />
+                <HeroMobilePreview />
               </div>
 
               {/* Sub-headline */}
@@ -89,10 +91,11 @@ export function Hero() {
               </div>
             </div>
 
-            {/* Device frame column — lg and up only. The mobile preview is inlined
-                in the text column above, between the headline and sub-headline. */}
-            <div className="order-2 hidden lg:flex lg:justify-end">
-              <PhoneMockup />
+            {/* Preview column — lg and up only: the live match card when one is on,
+                else the device frame. The mobile preview is inlined in the text
+                column above, between the headline and sub-headline. */}
+            <div className="order-2 hidden lg:flex lg:items-center lg:justify-end lg:self-stretch">
+              <HeroFeature />
             </div>
           </div>
         </div>

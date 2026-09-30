@@ -23,6 +23,8 @@ export interface SpectatorParticipant {
   profilePicture: string | null;
   /** Kick's live thumbnail — list endpoint only, when Kick's API answers. */
   thumbnail: string | null;
+  /** Kick's live viewer count — list endpoint only, when Kick's API answers. */
+  viewerCount: number | null;
 }
 
 export interface SpectatorMatch {
@@ -66,27 +68,32 @@ const spectatorInclude = {
 type SpectatorBetRow = Prisma.BetGetPayload<{ include: typeof spectatorInclude }>;
 type ParticipantRow = Prisma.UserGetPayload<{ select: typeof participantSelect }>;
 
-function toParticipant(user: ParticipantRow, thumbnails: Map<string, string>): SpectatorParticipant {
+/** Live stats per lower-cased Kick channel slug, from Kick's public API. */
+type ChannelStats = Map<string, { thumbnail: string | null; viewerCount: number | null }>;
+
+function toParticipant(user: ParticipantRow, stats: ChannelStats): SpectatorParticipant {
   const slug = user.kickAccount?.channelSlug ?? null;
+  const live = slug ? stats.get(slug.toLowerCase()) : undefined;
   return {
     displayName: user.displayName,
     channelSlug: slug,
     isLive: user.kickAccount?.isLive ?? false,
     profilePicture: user.kickAccount?.profilePicture ?? null,
-    thumbnail: slug ? thumbnails.get(slug.toLowerCase()) ?? null : null,
+    thumbnail: live?.thumbnail ?? null,
+    viewerCount: live?.viewerCount ?? null,
   };
 }
 
-function toSpectatorMatch(bet: SpectatorBetRow, thumbnails = new Map<string, string>()): SpectatorMatch {
+function toSpectatorMatch(bet: SpectatorBetRow, stats: ChannelStats = new Map()): SpectatorMatch {
   const refereeUser = bet.refereeAssignment?.refereeProfile?.user ?? null;
   return {
     betId: bet.id,
     gameName: bet.game.name,
     phase: spectatorPhase(bet.status, bet.refereeAssignment?.status ?? null),
     potCents: dollarsToCents(bet.amount) * 2,
-    playerA: toParticipant(bet.playerA, thumbnails),
-    playerB: bet.playerB ? toParticipant(bet.playerB, thumbnails) : null,
-    referee: refereeUser ? toParticipant(refereeUser, thumbnails) : null,
+    playerA: toParticipant(bet.playerA, stats),
+    playerB: bet.playerB ? toParticipant(bet.playerB, stats) : null,
+    referee: refereeUser ? toParticipant(refereeUser, stats) : null,
     outcome: bet.outcome,
     matchedAt: bet.matchedAt?.toISOString() ?? null,
   };
@@ -94,8 +101,9 @@ function toSpectatorMatch(bet: SpectatorBetRow, thumbnails = new Map<string, str
 
 /**
  * Refereed stream matches in progress, most exciting first (live before
- * starting before finding a referee). Enriched with Kick live thumbnails when
- * Kick's public API is reachable; the list still works without them.
+ * starting before finding a referee). Enriched with Kick live thumbnails and
+ * viewer counts when Kick's public API is reachable; the list still works
+ * without them.
  */
 export async function listLiveMatches(limit = 12): Promise<SpectatorMatch[]> {
   const bets = await prisma.bet.findMany({
@@ -115,24 +123,47 @@ export async function listLiveMatches(limit = 12): Promise<SpectatorMatch[]> {
       if (user?.kickAccount?.channelSlug) slugs.add(user.kickAccount.channelSlug);
     }
   }
-  const thumbnails = new Map<string, string>();
+  const stats: ChannelStats = new Map();
   if (slugs.size > 0) {
     try {
       for (const channel of await fetchPublicChannels([...slugs])) {
-        // Kick returns "" until the live thumbnail is generated; treat as none.
-        if (channel.stream?.thumbnail) {
-          thumbnails.set(channel.slug.toLowerCase(), channel.stream.thumbnail);
-        }
+        if (!channel.stream?.is_live) continue;
+        stats.set(channel.slug.toLowerCase(), {
+          // Kick returns "" until the live thumbnail is generated; treat as none.
+          thumbnail: channel.stream.thumbnail || null,
+          viewerCount: channel.stream.viewer_count ?? null,
+        });
       }
     } catch (err) {
-      console.error("Live match thumbnail enrichment failed:", err);
+      console.error("Live match enrichment failed:", err);
     }
   }
 
   return bets
-    .map((bet) => toSpectatorMatch(bet, thumbnails))
+    .map((bet) => toSpectatorMatch(bet, stats))
     .filter((match) => LIVE_PHASES.includes(match.phase))
     .sort((a, b) => LIVE_PHASES.indexOf(a.phase) - LIVE_PHASES.indexOf(b.phase));
+}
+
+/** Everyone watching a match: both players' streams plus the referee cam. */
+export function matchViewerCount(match: SpectatorMatch): number {
+  return [match.playerA, match.playerB, match.referee].reduce(
+    (total, participant) => total + (participant?.viewerCount ?? 0),
+    0,
+  );
+}
+
+/**
+ * The match to feature on the homepage: the in-progress (LIVE) match with the
+ * most viewers. Matches still starting or finding a referee don't qualify.
+ */
+export function pickFeaturedMatch(matches: SpectatorMatch[]): SpectatorMatch | null {
+  let best: SpectatorMatch | null = null;
+  for (const match of matches) {
+    if (match.phase !== "LIVE") continue;
+    if (!best || matchViewerCount(match) > matchViewerCount(best)) best = match;
+  }
+  return best;
 }
 
 /** One refereed stream match for the spectator page, in any phase. */
