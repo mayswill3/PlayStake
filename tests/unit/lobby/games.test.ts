@@ -29,7 +29,8 @@ describe("lobbyGameTypeForSlug", () => {
   });
 
   it("maps the known demo slugs", () => {
-    expect(lobbyGameTypeForSlug("higher-lower")).toBe("cards");
+    // Higher / Lower was withdrawn: its slug no longer maps to a lobby game.
+    expect(lobbyGameTypeForSlug("higher-lower")).toBeNull();
     expect(lobbyGameTypeForSlug("tic-tac-toe")).toBe("tictactoe");
     expect(lobbyGameTypeForSlug("darts-301")).toBe("darts");
   });
@@ -61,6 +62,6 @@ describe("stream game catalogue", () => {
     expect(isRefereedStreamGame("call-of-duty")).toBe(true);
     expect(isRefereedStreamGame("grand-theft-auto-v")).toBe(true);
     expect(isRefereedStreamGame("ea-sports-fc-26")).toBe(true);
-    expect(isRefereedStreamGame("cards")).toBe(false);
+    expect(isRefereedStreamGame("darts")).toBe(false);
   });
 });

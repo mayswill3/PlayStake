@@ -37,19 +37,15 @@ export default function FairPlayPage() {
       <LegalSection id="results" number="01" title="How results are decided">
         <p>
           Every game on <Link href="/play">/play</Link> runs on PlayStake&apos;s servers, not in
-          your browser. Your device sends what you did (a move, a higher or lower call, where you
-          aimed a dart). Our server applies the rules, makes any random draw, and decides the
+          your browser. Your device sends what you did (a move, or where you aimed a dart). Our
+          server applies the rules, makes any random draw, and decides the
           result. Neither player, and no one at PlayStake, can choose or change a result.
         </p>
         <ul>
           <li>
-            <strong>Random draws</strong> (the order of the cards, the scatter on a dart) come
-            from a cryptographically secure random number generator. Nothing you or your
+            <strong>Random draws</strong> (the scatter on a dart) come from a cryptographically
+            secure random number generator. Nothing you or your
             opponent does can predict or influence them.
-          </li>
-          <li>
-            <strong>Hidden information stays hidden.</strong> The shuffled deck is never sent to
-            anyone&apos;s device, so no one can read the next card from their browser.
           </li>
           <li>
             <strong>Everything is recorded.</strong> Each move, each random draw and each result
@@ -70,7 +66,6 @@ export default function FairPlayPage() {
           headers={['Game', 'How you win', 'Draws']}
           rows={[
             ['Tic-Tac-Toe', 'Three in a row. X (the player who set the stake) moves first.', 'A full board with no line is a draw.'],
-            ['Higher / Lower', 'The Guesser makes one call on the next card. Right, the Guesser wins; wrong, the Watcher wins. Aces are high. A card of the same rank counts as a wrong call.', 'No draws.'],
             ['Darts 301', 'Start on 301, three rounds of three darts each. Reach exactly zero to win at once; otherwise the lower score after three rounds wins. Going below zero is a bust and the turn’s score is cancelled.', 'Equal scores after three rounds are a draw.'],
           ]}
         />

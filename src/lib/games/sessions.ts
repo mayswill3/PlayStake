@@ -5,9 +5,8 @@
 // or a second web instance, and every draw and result is on the record.
 //
 // The server is the only thing that decides an outcome. Clients send what the
-// player did — a cell, a higher/lower call, an aim point — and get back the
-// state the server computed. The undealt deck (`secretState`) never leaves
-// the server. Each change is written with a matching row in the append-only
+// player did — a cell, an aim point — and get back the state the server
+// computed. Any hidden state (`secretState`) never leaves the server. Each change is written with a matching row in the append-only
 // `game_events` log, in the same transaction.
 // =============================================================================
 
@@ -16,13 +15,12 @@ import { Prisma, type GameSession } from "../../../generated/prisma/client";
 import { prisma, withTransaction, type TxClient } from "../db/client";
 import { AuthorizationError, NotFoundError, ValidationError } from "../errors";
 import { sideOf } from "../demo/access";
-import { dealCards, initialCards, isGuess, resolveGuess, type CardsPublicState, type CardsSecretState } from "./cards";
 import { advanceDarts, initialDarts, throwDart } from "./darts";
 import type { DartsState } from "./darts-board";
 import { applyMove, initialTicTacToe, type TicTacToeState } from "./tictactoe";
 
-export type GameType = "tictactoe" | "cards" | "darts";
-export const GAME_TYPES: GameType[] = ["tictactoe", "cards", "darts"];
+export type GameType = "tictactoe" | "darts";
+export const GAME_TYPES: GameType[] = ["tictactoe", "darts"];
 
 export type SessionStatus = "waiting" | "playing" | "finished";
 export type Winner = "A" | "B" | "draw";
@@ -74,7 +72,6 @@ export function toView(row: GameSession, now = Date.now()): GameSessionView {
 
 function initialState(gameType: GameType): { publicState: unknown; secretState: unknown } {
   if (gameType === "tictactoe") return { publicState: initialTicTacToe(), secretState: {} };
-  if (gameType === "cards") return initialCards();
   return { publicState: initialDarts(), secretState: {} };
 }
 
@@ -198,35 +195,16 @@ export async function joinGameSession(
     }
     await opts.beforeJoin?.(toView(row));
 
-    // Both players are in: this is where the cards are shuffled and dealt.
-    let publicState = row.publicState as unknown;
-    let secretState = row.secretState as unknown;
-    if (row.gameType === "cards") {
-      const dealt = dealCards();
-      publicState = dealt.publicState;
-      secretState = dealt.secretState;
-    }
-
     const updated = await tx.gameSession.update({
       where: { id },
       data: {
         playerBId: userId,
         betId: opts.betId ?? row.betId,
         status: "playing",
-        publicState: json(publicState),
-        secretState: json(secretState),
         lastActivityAt: new Date(),
       },
     });
     await appendEvent(tx, id, userId, "joined", { playerBId: userId, betId: updated.betId });
-    if (row.gameType === "cards") {
-      const dealt = secretState as CardsSecretState;
-      await appendEvent(tx, id, null, "deck_shuffled", {
-        // The whole order, so the result can be checked after the match.
-        faceUp: (publicState as CardsPublicState).currentCard,
-        deck: dealt.deck,
-      });
-    }
     return toView(updated);
   });
 }
@@ -257,7 +235,7 @@ export async function playAction(
 
     const now = Date.now();
     let publicState: unknown;
-    let secretState: unknown = row.secretState;
+    const secretState: unknown = row.secretState;
     let winner: Winner | null = null;
     let event: { type: string; data: Record<string, unknown> };
 
@@ -268,27 +246,6 @@ export async function playAction(
         publicState = result.state;
         winner = result.winner;
         event = { type: "move", data: { player, cell } };
-      } else if (row.gameType === "cards" && body.action === "guess") {
-        if (player !== "A") throw new Error("Only Player A makes the call");
-        if (!isGuess(body.direction)) throw new Error("direction must be higher or lower");
-        const result = resolveGuess(
-          row.publicState as unknown as CardsPublicState,
-          row.secretState as unknown as CardsSecretState,
-          body.direction,
-        );
-        publicState = result.publicState;
-        secretState = result.secretState;
-        winner = result.winner;
-        event = {
-          type: "guess",
-          data: {
-            player,
-            direction: body.direction,
-            currentCard: result.publicState.currentCard,
-            nextCard: result.publicState.nextCard,
-            result: result.publicState.result,
-          },
-        };
       } else if (row.gameType === "darts" && body.action === "throw") {
         const aimX = Number(body.aimX);
         const aimY = Number(body.aimY);
@@ -367,7 +324,9 @@ function sideToMove(row: GameSession, now: number): "A" | "B" {
   if (row.gameType === "darts") {
     return advanceDarts(row.publicState as unknown as DartsState, now).currentTurn;
   }
-  return "A"; // Higher / Lower: only the Guesser acts.
+  // Sessions of a retired game type (Higher / Lower, where only Player A
+  // acted) can still exist in the database.
+  return "A";
 }
 
 /**

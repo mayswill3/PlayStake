@@ -29,6 +29,11 @@ const nextConfig: NextConfig = {
       // Old /demo route migrated to /play
       { source: '/demo', destination: '/play', permanent: true },
       { source: '/demo/:path*', destination: '/play/:path*', permanent: true },
+
+      // Higher / Lower was withdrawn (it is mostly chance, outside the
+      // betting intermediary licence we're applying for). Not permanent, in
+      // case it comes back under a different licence.
+      { source: '/play/cards', destination: '/play', permanent: false },
     ];
   },
   async headers() {

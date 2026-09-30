@@ -78,7 +78,7 @@ Cheating is an offence under s.42 of the Gambling Act 2005. PlayStake prevents a
 - **Head-to-head cap.** The same two customers can play each other at most **5 times in any hour**. Repeated head-to-heads are how value is passed between colluding accounts.
 - **Results for PlayStake's own games:**
   - the server decides every result: it holds the game state, applies each move, and makes every random draw with a cryptographically secure generator; the browser only sends the player's move, call or aim
-  - no request can declare a winner, and hidden information (the shuffled deck) is never sent to a browser
+  - no request can declare a winner
   - every move, draw and result is written to an append-only game event log that the database protects from edits or deletion
   - settlement checks that the game session belongs to that bet and the same two players (hardened against a previously identified exploit chain)
   - a player cannot move for their opponent

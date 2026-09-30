@@ -32,7 +32,7 @@ PlayStake is a peer-to-peer platform where adult customers wager against each ot
 
 - **Opponents are other customers.** PlayStake never takes the other side of a bet. It holds both stakes in escrow and pays the winner. It earns a platform fee (a percentage of the pot) on settled matches.
 - **Match types.**
-  - *Lobby matches* are played in PlayStake's own games (darts, cards, tic-tac-toe). The game reports the result.
+  - *Lobby matches* are played in PlayStake's own games (darts, tic-tac-toe). The server decides the result.
   - *Streamed matches* are played in third-party games while both players broadcast on Kick. An independent, approved human referee watches both streams and records the result, and every referee action is written to a tamper-evident, hash-chained audit trail.
 - **Money.** All money moves through a double-entry ledger with a per-match escrow account. The ledger is audited automatically every night.
 - **Disputes.** Either player can dispute a result before it pays out. Payout pauses while the dispute is reviewed.
@@ -211,7 +211,7 @@ These must be done before the application is submitted, or before real-money lau
 | 16 | Confirm the current Commission thresholds and rules on: financial vulnerability and affordability checks, consumer-set financial limit prompts, and marketing consent. Adjust the platform settings to match. | Application | Head of Compliance |
 | 17 | Record the Railway region and backup location; confirm backups are enabled and test a restore | Application | Engineering |
 | 18 | Decide permitted jurisdictions and add IP geolocation blocking plus a residency restriction at verification (Document 08 §6) | Launch | Head of Compliance / engineering |
-| 19 | Engage a Commission-approved test house for RNG and game certification (Document 11 §3.1); confirm with the Commission the in-house/third-party split for peer-to-peer games and which licence covers Higher / Lower | Application | Head of Compliance |
+| 19 | Engage a Commission-approved test house for RNG and game certification (Document 11 §3.1); confirm with the Commission the in-house/third-party split for peer-to-peer games (Higher / Lower withdrawn 30 Sep 2026 as mostly chance) | Application | Head of Compliance |
 | 20 | Commission an independent penetration test; appoint the annual security auditor (first audit within 6 months of grant) | Launch / grant + 6 months | Head of Compliance |
 | 21 | Close the information security gaps in Document 13 §6 (log retention, written staff security rules, supplier assurance, key rotation, `timestamptz`) | As marked there | Head of Compliance / engineering |
 | 22 | Review the 12 January 2026 update to RTS 14 against Policies 03 and 04 (Document 12 §4) | Application | Head of Compliance |

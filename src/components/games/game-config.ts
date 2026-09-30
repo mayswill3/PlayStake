@@ -1,7 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
-import { Grid3x3, Layers, Target } from 'lucide-react';
+import { Grid3x3, Target } from 'lucide-react';
 import { TicTacToePreview } from './previews/tictactoe-preview';
-import { CardsPreview } from './previews/cards-preview';
 import { DartsPreview } from './previews/darts-preview';
 
 export interface RoleMeta {
@@ -48,32 +47,6 @@ export const GAME_CONFIG: Record<string, GameConfig> = {
       title: 'Player O',
       subtitle: 'Waits for an invite',
       description: 'Join the lobby and accept the first invite you like',
-    },
-  },
-  cards: {
-    key: 'cards',
-    name: 'Higher / Lower',
-    description: 'One call: is the next card higher or lower?',
-    icon: Layers,
-    accentBg: 'bg-brand-600/10',
-    accentText: 'text-brand-600 dark:text-brand-400',
-    rules: [
-      'A fresh 52-card deck is shuffled by PlayStake and the first card is shown to both players',
-      'The Guesser makes one call: will the next card be higher or lower?',
-      'Aces are high; suits do not count',
-      'A correct call wins for the Guesser. A wrong call wins for the Watcher',
-      'If the next card is the same rank, the call is wrong and the Watcher wins',
-    ],
-    preview: CardsPreview,
-    roleA: {
-      title: 'Guesser',
-      subtitle: 'Sets the stake',
-      description: 'Pick your wager and invite a waiting watcher',
-    },
-    roleB: {
-      title: 'Watcher',
-      subtitle: 'Waits for an invite',
-      description: 'Join the lobby and accept a guesser invite',
     },
   },
   darts: {

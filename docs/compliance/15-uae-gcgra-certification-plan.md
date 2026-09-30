@@ -31,7 +31,7 @@ To set out what PlayStake would need to do to have its gambling system assessed 
 |---|---|---|
 | **GLI-19** Interactive Gaming Systems | PlayStake is an online platform with player accounts, a wallet and server-side games | Player account management, KYC and geolocation, wallet and financial transactions, responsible gaming tools, game fairness and RNG, game recall and interrupted games, logging and reporting, security and change management |
 | **GLI-33** Event Wagering Systems | Stream matches are wagers on the outcome of an external event (a live game), settled on a referee's result | Wager acceptance, event and result management, settlement, voids and cancellations |
-| GLI RNG requirements (within GLI-19) | Higher / Lower and Darts use server-side random draws | RNG source, scaling, seeding, statistical testing |
+| GLI RNG requirements (within GLI-19) | Darts uses server-side random draws | RNG source, scaling, seeding, statistical testing |
 | **GCGRA-specific requirements** | Local rules on responsible gaming, AML, data and reporting | [TO OBTAIN] |
 
 ## 4. Plan
@@ -61,7 +61,6 @@ To set out what PlayStake would need to do to have its gambling system assessed 
 | Licence route | The biggest uncertainty; everything else depends on it |
 | Data residency | If UAE hosting is required, PlayStake needs a second deployment in a UAE region, not just configuration. This changes Documents 08–10. |
 | Choice of lab | Choosing the same lab for the UK and UAE (GLI or BMM are on both lists) may reduce cost and time |
-| Higher / Lower | Near-pure chance; may be treated as casino gaming in the UAE and need a different licence category or removal |
 
 ## 7. Next actions
 

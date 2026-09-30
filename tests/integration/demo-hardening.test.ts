@@ -103,12 +103,26 @@ async function matchedBet(amount = "10.00") {
   });
 }
 
+/** Play tic-tac-toe to a win for side A (top row). Returns the final state. */
+async function playToWinForA(id: string, sideA: string, sideB: string) {
+  let state: Record<string, unknown> = {};
+  for (const [token, cell] of [[sideA, 0], [sideB, 3], [sideA, 1], [sideB, 4], [sideA, 2]] as const) {
+    const res = await callApi("PATCH", `/api/demo/game/${id}`, {
+      sessionToken: token,
+      body: { action: "move", cell },
+    });
+    expect(res.status).toBe(200);
+    state = res.body;
+  }
+  return state;
+}
+
 /** Session id the lobby handoff derives, so both players meet on one session. */
 const derivedSessionId = (betId: string) => betId.slice(0, 8).toUpperCase();
 
 describe("Demo hardening: the exploit chain is closed", () => {
   it("rejects anyone without a session", async () => {
-    const res = await callApi("POST", "/api/demo/game", { body: { gameType: "cards" } });
+    const res = await callApi("POST", "/api/demo/game", { body: { gameType: "tictactoe" } });
     expect(res.status).toBe(401);
   });
 
@@ -132,14 +146,14 @@ describe("Demo hardening: the exploit chain is closed", () => {
     // and declares side A the winner. This is the exact chain that used to work.
     const created = await callApi("POST", "/api/demo/game", {
       sessionToken: tokenStranger,
-      body: { gameType: "cards" },
+      body: { gameType: "tictactoe" },
     });
     expect(created.status).toBe(201);
     const forgedId = created.body.id as string;
 
     const joined = await callApi("PATCH", `/api/demo/game/${forgedId}`, {
       sessionToken: tokenAccomplice,
-      body: { action: "join", gameType: "cards" },
+      body: { action: "join", gameType: "tictactoe" },
     });
     expect(joined.status).toBe(200);
     expect(joined.body.status).toBe("playing");
@@ -150,12 +164,8 @@ describe("Demo hardening: the exploit chain is closed", () => {
       body: { action: "resolve", winner: "A" },
     });
     expect(declared.status).toBe(422);
-    const played = await callApi("PATCH", `/api/demo/game/${forgedId}`, {
-      sessionToken: tokenStranger,
-      body: { action: "guess", direction: "higher" },
-    });
-    expect(played.status).toBe(200);
-    expect(played.body.status).toBe("finished");
+    const played = await playToWinForA(forgedId, tokenStranger, tokenAccomplice);
+    expect(played.status).toBe("finished");
 
     // The stranger is not in the bet: refused outright.
     const byStranger = await callApi("POST", "/api/demo/settle-bet", {
@@ -183,14 +193,14 @@ describe("Demo hardening: the exploit chain is closed", () => {
     // Neither at creation...
     const created = await callApi("POST", "/api/demo/game", {
       sessionToken: tokenStranger,
-      body: { betId: bet.id, gameType: "cards", sessionId: derivedSessionId(bet.id) },
+      body: { betId: bet.id, gameType: "tictactoe", sessionId: derivedSessionId(bet.id) },
     });
     expect(created.status).toBe(403);
 
     // ...nor afterwards, on a session the stranger does own.
     const own = await callApi("POST", "/api/demo/game", {
       sessionToken: tokenStranger,
-      body: { gameType: "cards" },
+      body: { gameType: "tictactoe" },
     });
     const bound = await callApi("PATCH", `/api/demo/game/${own.body.id}`, {
       sessionToken: tokenStranger,
@@ -199,10 +209,18 @@ describe("Demo hardening: the exploit chain is closed", () => {
     expect(bound.status).toBe(403);
   });
 
+  it("refuses a withdrawn game instead of starting a different one", async () => {
+    const res = await callApi("POST", "/api/demo/game", {
+      sessionToken: tokenA,
+      body: { gameType: "cards" },
+    });
+    expect(res.status).toBe(422);
+  });
+
   it("an explicit session id needs a bet to be checked against", async () => {
     const res = await callApi("POST", "/api/demo/game", {
       sessionToken: tokenStranger,
-      body: { gameType: "cards", sessionId: "GUESSED1" },
+      body: { gameType: "tictactoe", sessionId: "GUESSED1" },
     });
     expect(res.status).toBe(422);
   });
@@ -264,7 +282,7 @@ describe("Demo hardening: identity comes from the session", () => {
   it("joins as the caller, whatever playerBId the body claims", async () => {
     const created = await callApi("POST", "/api/demo/game", {
       sessionToken: tokenA,
-      body: { gameType: "cards" },
+      body: { gameType: "tictactoe" },
     });
     const joined = await callApi("PATCH", `/api/demo/game/${created.body.id}`, {
       sessionToken: tokenStranger,
@@ -284,7 +302,7 @@ describe("Demo hardening: the real /play flow still works", () => {
     // bet's player A — the creator does not become A by arriving early.
     const created = await callApi("POST", "/api/demo/game", {
       sessionToken: tokenB,
-      body: { betId: bet.id, gameType: "cards", sessionId },
+      body: { betId: bet.id, gameType: "tictactoe", sessionId },
     });
     expect(created.status).toBe(201);
     expect(created.body.playerAId).toBe(scenario.playerA.id);
@@ -292,25 +310,20 @@ describe("Demo hardening: the real /play flow still works", () => {
     // Player A arrives; idempotent create returns the same session.
     const again = await callApi("POST", "/api/demo/game", {
       sessionToken: tokenA,
-      body: { betId: bet.id, gameType: "cards", sessionId },
+      body: { betId: bet.id, gameType: "tictactoe", sessionId },
     });
     expect(again.body.id).toBe(sessionId);
 
     const joined = await callApi("PATCH", `/api/demo/game/${sessionId}`, {
       sessionToken: tokenB,
-      body: { action: "join", betId: bet.id, gameType: "cards" },
+      body: { action: "join", betId: bet.id, gameType: "tictactoe" },
     });
     expect(joined.status).toBe(200);
     expect(joined.body.playerBId).toBe(scenario.playerB.id);
 
-    const guessed = await callApi("PATCH", `/api/demo/game/${sessionId}`, {
-      sessionToken: tokenA,
-      body: { action: "guess", direction: "lower" },
-    });
-    expect(guessed.status).toBe(200);
-    expect(guessed.body.status).toBe("finished");
-    const expected =
-      guessed.body.winner === "A" ? BetOutcome.PLAYER_A_WIN : BetOutcome.PLAYER_B_WIN;
+    const played = await playToWinForA(sessionId, tokenA, tokenB);
+    expect(played.status).toBe("finished");
+    const expected = BetOutcome.PLAYER_A_WIN;
 
     const settled = await callApi("POST", "/api/demo/settle-bet", {
       sessionToken: tokenB,

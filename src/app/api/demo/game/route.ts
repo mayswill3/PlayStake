@@ -28,9 +28,12 @@ export const POST = withSessionAuth(async (request, _context, auth) => {
       sessionId?: unknown;
     };
 
-    const type: GameType = GAME_TYPES.includes(gameType as GameType)
-      ? (gameType as GameType)
-      : "tictactoe";
+    // An unknown or withdrawn game (e.g. Higher / Lower) is refused rather
+    // than quietly turned into a different game.
+    if (gameType !== undefined && !GAME_TYPES.includes(gameType as GameType)) {
+      throw new ValidationError("That game is not available");
+    }
+    const type: GameType = (gameType as GameType | undefined) ?? "tictactoe";
     const explicitId =
       typeof sessionId === "string" && sessionId.length > 0 ? sessionId : undefined;
 

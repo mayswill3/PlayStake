@@ -30,7 +30,7 @@ const FAQS = [
   },
   {
     q: 'What games will support AI refereeing?',
-    a: 'The validator is being built first for the PlayStake-built games (Darts 501, Tic-Tac-Toe, Higher/Lower, and others), where we control the full event stream. Games built on the PlayStake SDK that emit the standard event format will follow.',
+    a: 'The validator is being built first for the PlayStake-built games (Darts 301, Tic-Tac-Toe and others), where we control the full event stream. Games built on the PlayStake SDK that emit the standard event format will follow.',
   },
   {
     q: 'What happens if there is a dispute after AI settlement?',

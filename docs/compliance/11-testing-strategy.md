@@ -19,13 +19,12 @@ This strategy explains how PlayStake makes sure its gambling system meets the RT
 | Product | Type | Random element | Outcome decided by |
 |---|---|---|---|
 | Tic-Tac-Toe | Peer-to-peer, pure skill | None | Server applies moves; first line of three wins |
-| Higher / Lower | Peer-to-peer | Shuffled 52-card deck (server CSPRNG) | Server: one call against the next card |
 | Darts 301 | Peer-to-peer, skill with chance | Scatter of each dart around the aim point (server CSPRNG, Gaussian) | Server: board scoring, 301 rules, three rounds |
 | Live stream matches | Peer-to-peer, skill, external game | None in PlayStake | Independent human referee, with dispute window |
 
 PlayStake does not offer house-banked games; players stake against each other and PlayStake takes a disclosed fee. All game logic and random number generation run on PlayStake's servers (Document 08 §3.1).
 
-> **Note for the application:** Higher / Lower is almost entirely chance. Confirm with legal advisers and the Commission which licence activity covers it (betting intermediary or a casino/peer-to-peer licence), and whether its RNG and rules need third-party testing under that activity.
+> **Note for the application:** Higher / Lower, a card game that was almost entirely chance, was withdrawn on 30 September 2026 so that everything offered fits a betting intermediary licence. Its past match records are kept; no new match can be started.
 
 ## 3. Approach
 
@@ -35,8 +34,7 @@ We will engage a Commission-approved test house to test and certify, before real
 
 | Item | What the test house checks | RTS |
 |---|---|---|
-| Random number generation | `src/lib/games/rng.ts`: Node.js `crypto.randomInt` (OS CSPRNG); unbiased integer draws; the uniform-to-Gaussian conversion (Box–Muller) used for dart scatter; Fisher–Yates shuffle; no reuse or predictability; scaling free of modulo bias | RTS 7 (generation of random outcomes) |
-| Higher / Lower rules and maths | Deck composition, deal, tie rule, winner determination match the published rules | RTS 3, 6, 7 |
+| Random number generation | `src/lib/games/rng.ts`: Node.js `crypto.randomInt` (OS CSPRNG); unbiased integer draws; the uniform-to-Gaussian conversion (Box–Muller) used for dart scatter; no reuse or predictability; scaling free of modulo bias | RTS 7 (generation of random outcomes) |
 | Darts rules and maths | Board geometry and scoring match the drawn board; scatter model; bust, checkout, three-round and draw rules match the published rules | RTS 3, 6, 7 |
 | Game records | Each move, draw and result is logged immutably and can be replayed | RTS 7 |
 
@@ -67,7 +65,7 @@ PlayStake tests everything else itself, under this strategy, with results record
 - The suite (368 tests on 30 September 2026) includes, among others:
   - `tests/unit/ledger/` — double-entry transfers, escrow, audit invariants
   - `tests/unit/games/darts.test.ts` — board scoring matches the drawn board, bust, checkout, three-round result, draws
-  - `tests/integration/game-integrity.test.ts` — deck never exposed, only the server decides, event log is complete and append-only, darts scoring, sweep forfeits and settles correctly
+  - `tests/integration/game-integrity.test.ts` — only the server decides, declared results refused, event log is complete and append-only, darts scoring, sweep forfeits and settles correctly
   - `tests/integration/demo-hardening.test.ts` — no player can forge a session or settle someone else's bet
   - `tests/integration/compliance-gates.test.ts`, `limit-review.test.ts`, `session-idle.test.ts`, and the responsible-play, KYC, AML and complaints suites
 
@@ -75,7 +73,7 @@ PlayStake tests everything else itself, under this strategy, with results record
 
 | Change class | Examples | Testing before release | Sign-off |
 |---|---|---|---|
-| **Major** | New game; any change to `rng.ts`, card or darts rules, board geometry, the scatter model; change to fee or settlement arithmetic | Full automated suite; test-house re-test and new certificate for game/RNG changes; update rules shown to customers | Engineering lead + Head of Compliance; test-house certificate on file |
+| **Major** | New game; any change to `rng.ts`, tic-tac-toe or darts rules, board geometry, the scatter model; change to fee or settlement arithmetic | Full automated suite; test-house re-test and new certificate for game/RNG changes; update rules shown to customers | Engineering lead + Head of Compliance; test-house certificate on file |
 | **Standard** | Changes to safer-gambling tools, limits, eligibility, payments, ledger | Full automated suite plus new tests for the change; manual check of customer-facing text | Engineering lead + Head of Compliance |
 | **Minor** | Copy, styling, non-gambling pages | Full automated suite | Engineering lead |
 | **Emergency** | Security fix | Full automated suite; retrospective review within 5 working days | Engineering lead; Head of Compliance informed same day |
@@ -84,7 +82,7 @@ Each release records: the commit, the CI run, the change class, any test-house r
 
 ## 6. Monitoring in production
 
-- **Game fairness:** every draw is in `game_events`. A monthly statistical check (card frequency and dart-scatter distribution against expectation) is to be run and recorded. [TO BUILD — outstanding item.]
+- **Game fairness:** every draw is in `game_events`. A monthly statistical check (dart-scatter distribution against expectation) is to be run and recorded. [TO BUILD — outstanding item.]
 - **Ledger:** the ledger-audit worker verifies every account, every transaction and system-wide conservation daily and alerts on any failure.
 - **Results:** the anomaly worker flags skewed win rates, single-winner patterns, fast settlements and volume spikes.
 

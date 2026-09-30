@@ -3,12 +3,6 @@
  * Database lookups and challenge rules live in the lobby layer.
  */
 export const STREAM_GAME_CATALOGUE = {
-  cards: {
-    slug: "higher-lower",
-    name: "Higher / Lower",
-    category: "PlayStake games",
-    mode: "integrated",
-  },
   tictactoe: {
     slug: "tic-tac-toe",
     name: "Tic-Tac-Toe",
@@ -74,7 +68,6 @@ export const STREAM_GAME_CATALOGUE = {
 export type StreamGameType = keyof typeof STREAM_GAME_CATALOGUE;
 
 export const STREAM_GAME_TYPES = [
-  "cards",
   "tictactoe",
   "darts",
   "call-of-duty",

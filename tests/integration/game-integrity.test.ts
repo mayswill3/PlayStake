@@ -1,9 +1,9 @@
 // =============================================================================
 // Integration Tests: /play game integrity
 // =============================================================================
-// Outcomes of real-money games are decided on the server: the deck is shuffled
-// and dealt there and never sent to a browser, every dart's landing is drawn
-// there, and no request can declare a winner. Every draw and result is kept in
+// Outcomes of real-money games are decided on the server: every move is
+// applied there, every dart's landing is drawn there, and no request can
+// declare a winner. Every draw and result is kept in
 // an append-only event log. The no-show sweep leaves matches in play alone and
 // pays out matches that finished but were never settled.
 // =============================================================================
@@ -19,7 +19,6 @@ import {
 } from "./helpers.js";
 import { holdEscrow } from "../../src/lib/ledger/escrow.js";
 import { hitTest } from "../../src/lib/games/darts-board.js";
-import { rank, type PlayingCard } from "../../src/lib/games/cards.js";
 import { processBetExpiryScan } from "../../src/workers/bet-expiry.worker.js";
 import { BetMatchType, BetOutcome, BetStatus } from "../../generated/prisma/client.js";
 
@@ -72,7 +71,7 @@ async function matchedBet(amount = "10.00") {
 }
 
 /** Start a lobby match for the bet, as both players' clients do. */
-async function startMatch(betId: string, gameType: "cards" | "darts") {
+async function startMatch(betId: string, gameType: "tictactoe" | "darts") {
   const sessionId = betId.slice(0, 8).toUpperCase();
   await callApi("POST", "/api/demo/game", { sessionToken: tokenA, body: { betId, gameType, sessionId } });
   const joined = await callApi("PATCH", `/api/demo/game/${sessionId}`, {
@@ -88,53 +87,46 @@ async function ageBet(betId: string) {
   await prisma.$executeRaw`UPDATE bets SET updated_at = NOW() - INTERVAL '1 hour' WHERE id = ${betId}::uuid`;
 }
 
-describe("Higher / Lower is dealt and decided by the server", () => {
-  it("deals on join, never exposes the deck, and decides the call", async () => {
-    const bet = await matchedBet();
-    const { sessionId, joined } = await startMatch(bet.id, "cards");
-
-    const current = joined.body.gameData.currentCard as PlayingCard;
-    expect(current).toBeTruthy();
-    expect(joined.body.gameData.nextCard).toBeNull();
-    expect(JSON.stringify(joined.body)).not.toMatch(/deck|secret/i);
-
-    // Only Player A calls; nobody can name the winner.
-    const byB = await callApi("PATCH", `/api/demo/game/${sessionId}`, {
-      sessionToken: tokenB,
-      body: { action: "guess", direction: "higher" },
+/** Play tic-tac-toe to a win for side A (top row). Returns the final state. */
+async function playToWinForA(sessionId: string) {
+  let state: Record<string, unknown> = {};
+  for (const [token, cell] of [[tokenA, 0], [tokenB, 3], [tokenA, 1], [tokenB, 4], [tokenA, 2]] as const) {
+    const res = await callApi("PATCH", `/api/demo/game/${sessionId}`, {
+      sessionToken: token,
+      body: { action: "move", cell },
     });
-    expect(byB.status).toBe(422);
-    for (const action of ["resolve", "setGameData"]) {
+    expect(res.status).toBe(200);
+    state = res.body;
+  }
+  return state;
+}
+
+describe("Tic-Tac-Toe is decided by the server", () => {
+  it("applies moves, decides the winner, and refuses any declared result", async () => {
+    const bet = await matchedBet();
+    const { sessionId } = await startMatch(bet.id, "tictactoe");
+
+    for (const action of ["resolve", "setGameData", "guess"]) {
       const res = await callApi("PATCH", `/api/demo/game/${sessionId}`, {
         sessionToken: tokenA,
-        body: { action, winner: "A", data: { nextCard: current, result: "correct" } },
+        body: { action, winner: "A", data: { winner: "A" }, direction: "higher" },
       });
       expect(res.status).toBe(422);
     }
 
-    const guessed = await callApi("PATCH", `/api/demo/game/${sessionId}`, {
-      sessionToken: tokenA,
-      body: { action: "guess", direction: "higher" },
-    });
-    expect(guessed.status).toBe(200);
-    const next = guessed.body.gameData.nextCard as PlayingCard;
-    const expectedWinner = rank(next) > rank(current) ? "A" : "B";
-    expect(guessed.body.winner).toBe(expectedWinner);
-    expect(guessed.body.status).toBe("finished");
+    const finished = await playToWinForA(sessionId);
+    expect(finished.status).toBe("finished");
+    expect(finished.winner).toBe("A");
 
-    // The event log holds the full shuffled order, and the card turned over
-    // is the next one in it.
     const events = await prisma.gameEvent.findMany({ where: { sessionId }, orderBy: { seq: "asc" } });
-    expect(events.map((event) => event.type)).toEqual(["created", "joined", "deck_shuffled", "guess", "finished"]);
-    const shuffled = events[2].data as unknown as { faceUp: PlayingCard; deck: PlayingCard[] };
-    expect(shuffled.faceUp).toEqual(current);
-    expect(shuffled.deck).toHaveLength(51);
-    expect(shuffled.deck[0]).toEqual(next);
+    expect(events.map((event) => event.type)).toEqual([
+      "created", "joined", "move", "move", "move", "move", "move", "finished",
+    ]);
 
-    // Played once, finished: a second call changes nothing.
+    // Finished: no more moves.
     const again = await callApi("PATCH", `/api/demo/game/${sessionId}`, {
-      sessionToken: tokenA,
-      body: { action: "guess", direction: "lower" },
+      sessionToken: tokenB,
+      body: { action: "move", cell: 8 },
     });
     expect(again.status).toBe(422);
   });
@@ -224,11 +216,8 @@ describe("The no-show sweep respects play", () => {
 
   it("pays out a finished match that nobody settled", async () => {
     const bet = await matchedBet();
-    const { sessionId } = await startMatch(bet.id, "cards");
-    const guessed = await callApi("PATCH", `/api/demo/game/${sessionId}`, {
-      sessionToken: tokenA,
-      body: { action: "guess", direction: "higher" },
-    });
+    const { sessionId } = await startMatch(bet.id, "tictactoe");
+    await playToWinForA(sessionId);
     await ageBet(bet.id);
     await prisma.$executeRaw`UPDATE game_sessions SET last_activity_at = NOW() - INTERVAL '1 hour' WHERE id = ${sessionId}`;
 
@@ -236,9 +225,7 @@ describe("The no-show sweep respects play", () => {
 
     const after = await prisma.bet.findUniqueOrThrow({ where: { id: bet.id } });
     expect(after.status).toBe(BetStatus.SETTLED);
-    expect(after.outcome).toBe(
-      guessed.body.winner === "A" ? BetOutcome.PLAYER_A_WIN : BetOutcome.PLAYER_B_WIN,
-    );
+    expect(after.outcome).toBe(BetOutcome.PLAYER_A_WIN);
   });
 
   it("a player who walks away mid-match forfeits it", async () => {

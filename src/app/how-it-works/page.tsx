@@ -27,7 +27,7 @@ const STEPS_BEFORE_FORK = [
     accent: '#22c55e',
     accentBg: 'rgba(34,197,94,0.12)',
     description:
-      'Challenge a friend or another player to a match on any supported game including EAFC 26, Tic-Tac-Toe, Higher/Lower, and more. Pick your game and set the stake amount.',
+      'Challenge a friend or another player to a match on any supported game including EAFC 26, Tic-Tac-Toe, Darts 301, and more. Pick your game and set the stake amount.',
     chips: ['Choose the game', 'Set the stake amount', 'Opponent gets notified'],
   },
   {

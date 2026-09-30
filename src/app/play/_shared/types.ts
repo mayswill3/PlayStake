@@ -1,6 +1,6 @@
 export type PlayerRole = 'A' | 'B';
 export type DemoPhase = 'role-select' | 'setup' | 'lobby' | 'playing' | 'finished';
-export type GameType = 'tictactoe' | 'cards' | 'darts';
+export type GameType = 'tictactoe' | 'darts';
 
 export interface DemoAuthState {
   playerId: string;

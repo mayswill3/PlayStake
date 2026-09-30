@@ -10,14 +10,9 @@ import { UserRole, LedgerAccountType } from "../../../../../generated/prisma/cli
 
 const DEMO_DEV_EMAIL = "system-demo@playstake.internal";
 
-type DemoGameType = 'cards' | 'tictactoe' | 'darts';
+type DemoGameType = 'tictactoe' | 'darts';
 
 const DEMO_GAMES: Record<DemoGameType, { slug: string; name: string; description: string }> = {
-  cards: {
-    slug: "higher-lower",
-    name: "Higher / Lower",
-    description: "Classic card game with turn-based wagering and score tracking.",
-  },
   tictactoe: {
     slug: "tic-tac-toe",
     name: "Tic-Tac-Toe",
