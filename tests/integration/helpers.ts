@@ -767,6 +767,14 @@ async function resolveRouteHandler(
     );
     return { handler: mod.GET };
   }
+  const amlCaseMatch = path.match(/^\/api\/admin\/aml\/([^/?]+)$/);
+  if (amlCaseMatch) {
+    const mod = await import("../../src/app/api/admin/aml/[id]/route.js");
+    return {
+      handler: method === "POST" ? mod.POST : mod.GET,
+      params: { id: decodeURIComponent(amlCaseMatch[1]) },
+    };
+  }
   if (path === "/api/complaints") {
     const mod = await import("../../src/app/api/complaints/route.js");
     return { handler: method === "GET" ? mod.GET : mod.POST };

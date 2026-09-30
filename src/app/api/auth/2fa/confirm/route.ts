@@ -2,6 +2,7 @@ import { withSessionAuth } from "@/lib/middleware/auth";
 import { emailTwoFactorChanged } from "@/lib/email/events";
 import { withTransaction } from "@/lib/db/client";
 import { confirm2FASchema } from "@/lib/validation/schemas";
+import { twoFactorRateLimit } from "@/lib/middleware/rate-limit";
 import * as OTPAuth from "otpauth";
 import {
   decryptTwoFactorSecret,
@@ -10,6 +11,9 @@ import {
 } from "@/lib/auth/two-factor";
 
 export const POST = withSessionAuth(async (req, _context, auth) => {
+  const rateLimited = twoFactorRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   // Must have a pending secret
   if (!auth.user.twoFactorSecret) {
     return Response.json(

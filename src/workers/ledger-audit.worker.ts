@@ -7,6 +7,8 @@
 // =============================================================================
 
 import { Worker, type Job } from "bullmq";
+import * as Sentry from "@sentry/node";
+import { emailAdminAlert } from "../lib/email/events";
 import { Decimal } from "@prisma/client/runtime/client";
 import { BetStatus } from "../../generated/prisma/client";
 import { getRedisConnection } from "../lib/jobs/queue";
@@ -169,13 +171,24 @@ async function processLedgerAudit(
       });
     }
 
-    // In production, this is where we would fire PagerDuty / alert
     log("error", "CRITICAL_ledger_audit_failed", {
       durationMs,
       accountDiscrepancies: auditReport.accountDiscrepancies.length,
       transactionImbalances: auditReport.transactionImbalances.length,
       conservationViolated: !auditReport.systemConservation.isConserved,
       escrowLimitDiscrepancies: escrowDiscrepancies.length,
+    });
+
+    // Customer money may not reconcile: a person must look today.
+    Sentry.captureMessage("Ledger audit failed", "fatal");
+    await emailAdminAlert({
+      key: `ledger-audit-failed-${new Date().toISOString().slice(0, 10)}`,
+      title: "CRITICAL: nightly ledger audit failed",
+      detail:
+        `Account discrepancies: ${auditReport.accountDiscrepancies.length}. ` +
+        `Transaction imbalances: ${auditReport.transactionImbalances.length}. ` +
+        `System conservation ${auditReport.systemConservation.isConserved ? "held" : "VIOLATED"}. ` +
+        `Escrow limit discrepancies: ${escrowDiscrepancies.length}. See the worker logs for detail.`,
     });
   }
 }

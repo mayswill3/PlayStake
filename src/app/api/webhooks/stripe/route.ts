@@ -5,6 +5,7 @@ import {
   TransactionStatus,
   LedgerAccountType,
 } from "../../../../../generated/prisma/client";
+import { recordChargeback } from "../../../../lib/compliance/chargebacks";
 import { prisma, withTransaction } from "../../../../lib/db/client";
 import {
   emailDepositFailed,
@@ -125,6 +126,10 @@ export async function POST(request: NextRequest) {
         );
         break;
 
+      case "charge.dispute.created":
+        await handleChargeback(stripeEvent.data.object as Stripe.Dispute);
+        break;
+
       default:
         // Unhandled event type -- log and move on
         console.log(
@@ -149,6 +154,25 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ received: true });
+}
+
+/**
+ * charge.dispute.created — a customer disputed a deposit with their card
+ * issuer. See compliance/chargebacks.
+ */
+async function handleChargeback(dispute: Stripe.Dispute): Promise<void> {
+  const paymentIntentId =
+    typeof dispute.payment_intent === "string" ? dispute.payment_intent : dispute.payment_intent?.id;
+  if (!paymentIntentId) return;
+  const userId = await recordChargeback({
+    disputeId: dispute.id,
+    paymentIntentId,
+    amountCents: dispute.amount,
+    reason: dispute.reason,
+  });
+  if (!userId) {
+    console.warn(`[Stripe Webhook] Chargeback ${dispute.id} matches no known deposit`);
+  }
 }
 
 async function handleConnectAccountUpdated(account: Stripe.Account) {

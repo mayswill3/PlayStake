@@ -23,9 +23,15 @@ import {
 } from "../../../../lib/payments/connect";
 import { assertTestPaymentsEnabled } from "../../../../lib/payments/policy";
 import { assertKycVerified } from "../../../../lib/kyc/policy";
+import { assertAccountUsable } from "../../../../lib/compliance/eligibility";
+import { assessWithdrawal } from "../../../../lib/compliance/aml-monitoring";
+import { withdrawRateLimit } from "../../../../lib/middleware/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimited = withdrawRateLimit(request);
+    if (rateLimited) return rateLimited;
+
     const token = getSessionToken(request);
     if (!token) throw new AuthenticationError();
 
@@ -42,6 +48,10 @@ export async function POST(request: NextRequest) {
     }
 
     assertKycVerified(session.user);
+
+    // A suspended account (e.g. under AML review) can't move money out.
+    // Self-exclusion and GAMSTOP deliberately don't block withdrawals.
+    assertAccountUsable(session.user);
 
     const connectStatus = await syncConnectStatus(session.userId);
     if (
@@ -80,6 +90,12 @@ export async function POST(request: NextRequest) {
           ).toISOString(),
         });
       }
+    }
+
+    // A fresh request (not a resumed one) is assessed for AML: an open case,
+    // a large amount, or deposit-and-withdraw-without-play holds it for review.
+    if (!idempotencyResult.exists) {
+      await assessWithdrawal(session.userId, input.amount);
     }
 
     const amountDollars = centsToDollars(input.amount);

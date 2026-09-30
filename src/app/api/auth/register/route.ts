@@ -9,9 +9,13 @@ import { AuthTokenType } from "../../../../../generated/prisma/client";
 import { issueAuthToken } from "../../../../lib/auth/tokens";
 import { sendVerificationEmail } from "../../../../lib/email/resend";
 import { MINIMUM_AGE_YEARS, ageInYears } from "../../../../lib/kyc/constants";
+import { registerRateLimit } from "../../../../lib/middleware/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimited = registerRateLimit(request);
+    if (rateLimited) return rateLimited;
+
     const body = await request.json();
     const input = validateBody(registerSchema, body);
 

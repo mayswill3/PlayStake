@@ -13,6 +13,10 @@ import { _resetStore } from "../../src/lib/auth/login-protection.js";
 /** Sign-up requires a date of birth showing 18+ and an explicit confirmation. */
 const ADULT = { dateOfBirth: "1990-01-01", confirmAge: true };
 
+// Sign-up is rate-limited per IP, so each registration comes from its own.
+let ipCounter = 0;
+const nextIp = () => `10.44.${Math.floor(++ipCounter / 250)}.${ipCounter % 250}`;
+
 afterAll(async () => {
   await disconnectTestPrisma();
 });
@@ -22,6 +26,7 @@ describe("Auth: Registration", () => {
     const email = `reg-test-${Date.now()}@playstake-test.com`;
 
     const res = await callApi("POST", "/api/auth/register", {
+      headers: { "x-forwarded-for": nextIp() },
       body: {
         ...ADULT,
         email,
@@ -43,6 +48,7 @@ describe("Auth: Registration", () => {
 
     // First registration
     const res1 = await callApi("POST", "/api/auth/register", {
+      headers: { "x-forwarded-for": nextIp() },
       body: {
         ...ADULT,
         email,
@@ -54,6 +60,7 @@ describe("Auth: Registration", () => {
 
     // Duplicate registration
     const res2 = await callApi("POST", "/api/auth/register", {
+      headers: { "x-forwarded-for": nextIp() },
       body: {
         ...ADULT,
         email,
@@ -67,6 +74,7 @@ describe("Auth: Registration", () => {
 
   it("should return 422 for a weak password", async () => {
     const res = await callApi("POST", "/api/auth/register", {
+      headers: { "x-forwarded-for": nextIp() },
       body: {
         ...ADULT,
         email: `weak-${Date.now()}@playstake-test.com`,
@@ -81,6 +89,7 @@ describe("Auth: Registration", () => {
 
   it("should return 422 for missing display name", async () => {
     const res = await callApi("POST", "/api/auth/register", {
+      headers: { "x-forwarded-for": nextIp() },
       body: {
         ...ADULT,
         email: `nodisplay-${Date.now()}@playstake-test.com`,
@@ -97,6 +106,7 @@ describe("Auth: Registration age checks", () => {
     const lastYear = new Date();
     lastYear.setUTCFullYear(lastYear.getUTCFullYear() - 17);
     const res = await callApi("POST", "/api/auth/register", {
+      headers: { "x-forwarded-for": nextIp() },
       body: {
         email: `minor-${Date.now()}@playstake-test.com`,
         password: "SecurePass1!",
@@ -111,6 +121,7 @@ describe("Auth: Registration age checks", () => {
 
   it("requires the 18+ confirmation", async () => {
     const res = await callApi("POST", "/api/auth/register", {
+      headers: { "x-forwarded-for": nextIp() },
       body: {
         email: `noconfirm-${Date.now()}@playstake-test.com`,
         password: "SecurePass1!",
@@ -124,6 +135,7 @@ describe("Auth: Registration age checks", () => {
   it("records DOB and leaves marketing off unless opted in", async () => {
     const email = `consent-${Date.now()}@playstake-test.com`;
     const res = await callApi("POST", "/api/auth/register", {
+      headers: { "x-forwarded-for": nextIp() },
       body: { email, password: "SecurePass1!", displayName: "Consent", ...ADULT },
     });
     expect(res.status).toBe(201);
@@ -139,6 +151,7 @@ describe("Auth: Closed accounts", () => {
     const email = `closed-${Date.now()}@playstake-test.com`;
     const password = "SecurePass1!";
     await callApi("POST", "/api/auth/register", {
+      headers: { "x-forwarded-for": nextIp() },
       body: { email, password, displayName: "Closed", ...ADULT },
     });
     _resetStore();
@@ -167,6 +180,7 @@ describe("Auth: Login", () => {
 
     // Register first
     await callApi("POST", "/api/auth/register", {
+      headers: { "x-forwarded-for": nextIp() },
       body: { email, password, displayName: "LoginTest", ...ADULT },
     });
 
@@ -191,6 +205,7 @@ describe("Auth: Login", () => {
     const password = "SecurePass1!";
 
     await callApi("POST", "/api/auth/register", {
+      headers: { "x-forwarded-for": nextIp() },
       body: { email, password, displayName: "WrongPw", ...ADULT },
     });
 
@@ -221,6 +236,7 @@ describe("Auth: Login", () => {
     const password = "SecurePass1!";
 
     await callApi("POST", "/api/auth/register", {
+      headers: { "x-forwarded-for": nextIp() },
       body: { email, password, displayName: "RateLimit", ...ADULT },
     });
 
@@ -252,6 +268,7 @@ describe("Auth: Logout", () => {
     const password = "SecurePass1!";
 
     await callApi("POST", "/api/auth/register", {
+      headers: { "x-forwarded-for": nextIp() },
       body: { email, password, displayName: "LogoutTest", ...ADULT },
     });
 

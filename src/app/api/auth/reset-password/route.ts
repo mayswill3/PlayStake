@@ -6,9 +6,13 @@ import { validateBody } from "../../../../lib/middleware/validate";
 import { errorResponse, AppError, ValidationError } from "../../../../lib/errors/index";
 import { AuthTokenType } from "../../../../../generated/prisma/client";
 import { consumeAuthToken } from "../../../../lib/auth/tokens";
+import { passwordRecoveryRateLimit } from "../../../../lib/middleware/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimited = passwordRecoveryRateLimit(request);
+    if (rateLimited) return rateLimited;
+
     const body = await request.json();
     const input = validateBody(resetPasswordSchema, body);
 

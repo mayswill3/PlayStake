@@ -13,7 +13,9 @@ import {
   AmlCaseType,
   type Prisma,
 } from "../../../generated/prisma/client";
-import { prisma, type TxClient } from "../db/client";
+import { prisma, withTransaction, type TxClient } from "../db/client";
+import { ConflictError, NotFoundError, ValidationError } from "../errors";
+import { recordAdminAction } from "../admin/audit";
 import { emailAdminAlert } from "../email/events";
 import { appUrl } from "../email/layout";
 
@@ -76,4 +78,145 @@ export async function hasOpenAmlCase(userId: string, types: AmlCaseType[]): Prom
     where: { userId, type: { in: types }, status: { in: OPEN_AML_STATUSES } },
   });
   return count > 0;
+}
+
+// ---------------------------------------------------------------------------
+// Staff handling (the MLRO's queue)
+// ---------------------------------------------------------------------------
+
+export type StaffAmlAction =
+  | { kind: "assign" }
+  | { kind: "note"; body: string }
+  | { kind: "escalate"; decision: string }
+  | { kind: "sar"; sarReference: string; decision: string }
+  | { kind: "close"; outcome: "CLOSED_NO_ACTION" | "CLOSED_ACTION_TAKEN"; decision: string };
+
+export async function listAmlCasesForStaff(scope: "open" | "closed" | "all") {
+  return prisma.amlCase.findMany({
+    where:
+      scope === "open"
+        ? { status: { in: OPEN_AML_STATUSES } }
+        : scope === "closed"
+          ? { status: { notIn: OPEN_AML_STATUSES } }
+          : {},
+    orderBy: { createdAt: "desc" },
+    take: 200,
+    include: {
+      user: { select: { id: true, displayName: true, email: true, accountStatus: true } },
+      relatedUser: { select: { id: true, displayName: true } },
+      assignedTo: { select: { displayName: true } },
+    },
+  });
+}
+
+export async function getAmlCaseForStaff(caseId: string) {
+  const amlCase = await prisma.amlCase.findUnique({
+    where: { id: caseId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          displayName: true,
+          email: true,
+          accountStatus: true,
+          kycStatus: true,
+          createdAt: true,
+          kycSubmissions: {
+            where: { status: "APPROVED" },
+            orderBy: { reviewedAt: "desc" },
+            take: 1,
+            select: { legalFirstName: true, legalLastName: true, dateOfBirth: true, country: true },
+          },
+        },
+      },
+      relatedUser: { select: { id: true, displayName: true, email: true, accountStatus: true } },
+      assignedTo: { select: { displayName: true } },
+      notes: { orderBy: { createdAt: "asc" }, include: { author: { select: { displayName: true } } } },
+    },
+  });
+  if (!amlCase) return null;
+
+  const otherCases = await prisma.amlCase.findMany({
+    where: { userId: amlCase.userId, id: { not: amlCase.id } },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+    select: { id: true, type: true, status: true, severity: true, createdAt: true },
+  });
+  return { ...amlCase, otherCases };
+}
+
+/** Everything the MLRO or an investigator does on a case, audited. */
+export async function actOnAmlCase(
+  caseId: string,
+  actorId: string,
+  action: StaffAmlAction,
+  request?: Request | null,
+): Promise<void> {
+  const amlCase = await prisma.amlCase.findUnique({ where: { id: caseId } });
+  if (!amlCase) throw new NotFoundError("Case not found");
+  if (!OPEN_AML_STATUSES.includes(amlCase.status) && action.kind !== "note") {
+    throw new ConflictError("This case is closed");
+  }
+  const decision = "decision" in action ? action.decision.trim() : "";
+  if ("decision" in action && decision.length < 10) {
+    throw new ValidationError("Record the reasoning for this decision (at least 10 characters)");
+  }
+  const withDecision = (previous: string | null) =>
+    [previous, `${new Date().toISOString().slice(0, 10)}: ${decision}`].filter(Boolean).join("\n");
+
+  await withTransaction(async (tx) => {
+    switch (action.kind) {
+      case "assign":
+        await tx.amlCase.update({
+          where: { id: caseId },
+          data: {
+            assignedToId: actorId,
+            status: amlCase.status === AmlCaseStatus.OPEN ? AmlCaseStatus.INVESTIGATING : amlCase.status,
+          },
+        });
+        break;
+      case "note":
+        if (action.body.trim().length < 3) throw new ValidationError("Write a note");
+        await tx.amlCaseNote.create({ data: { caseId, authorId: actorId, body: action.body.trim() } });
+        break;
+      case "escalate":
+        await tx.amlCase.update({
+          where: { id: caseId },
+          data: { status: AmlCaseStatus.ESCALATED_TO_MLRO, mlroDecision: withDecision(amlCase.mlroDecision) },
+        });
+        break;
+      case "sar":
+        if (action.sarReference.trim().length < 3) throw new ValidationError("Enter the NCA SAR reference");
+        await tx.amlCase.update({
+          where: { id: caseId },
+          data: {
+            status: AmlCaseStatus.SAR_SUBMITTED,
+            sarReference: action.sarReference.trim(),
+            mlroDecision: withDecision(amlCase.mlroDecision),
+          },
+        });
+        break;
+      case "close":
+        await tx.amlCase.update({
+          where: { id: caseId },
+          data: {
+            status: action.outcome as AmlCaseStatus,
+            closedAt: new Date(),
+            mlroDecision: withDecision(amlCase.mlroDecision),
+          },
+        });
+        break;
+    }
+    await recordAdminAction(
+      {
+        actorId,
+        action: `aml_case.${action.kind}`,
+        targetType: "aml_case",
+        targetId: caseId,
+        details: { userId: amlCase.userId, ...action } as Record<string, string>,
+        request,
+      },
+      tx,
+    );
+  });
 }

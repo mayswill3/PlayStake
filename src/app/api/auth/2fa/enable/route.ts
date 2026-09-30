@@ -2,8 +2,12 @@ import { withSessionAuth } from "@/lib/middleware/auth";
 import { prisma } from "@/lib/db/client";
 import * as OTPAuth from "otpauth";
 import { encryptTwoFactorSecret } from "@/lib/auth/two-factor";
+import { twoFactorRateLimit } from "@/lib/middleware/rate-limit";
 
-export const POST = withSessionAuth(async (_req, _context, auth) => {
+export const POST = withSessionAuth(async (req, _context, auth) => {
+  const rateLimited = twoFactorRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   // Don't re-enable if already enabled
   if (auth.user.twoFactorEnabled) {
     return Response.json(

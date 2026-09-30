@@ -179,6 +179,34 @@ export const apiRateLimit = rateLimit({
   },
 });
 
+/** Account registration: 10 per hour per IP. */
+export const registerRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 10,
+  keyFn: (req) => `register:${getClientIp(req)}`,
+});
+
+/** Two-factor setup and confirmation: 10 per 15 minutes per IP. */
+export const twoFactorRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 10,
+  keyFn: (req) => `two-factor:${getClientIp(req)}`,
+});
+
+/** Withdrawal requests: 5 per hour per IP. */
+export const withdrawRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 5,
+  keyFn: (req) => `withdraw:${getClientIp(req)}`,
+});
+
+/** Filing bet disputes: 10 per hour per IP. */
+export const disputeRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 10,
+  keyFn: (req) => `dispute:${getClientIp(req)}`,
+});
+
 /** Complaint form: 5 submissions per hour per IP. */
 export const complaintRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000,

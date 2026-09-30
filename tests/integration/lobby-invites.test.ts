@@ -270,6 +270,41 @@ describe("Challenge inbox", () => {
     expect(await balanceCents(streamer.id)).toBe(5000);
   });
 
+  it("caps how often the same two players can play each other in an hour", async () => {
+    const slug = `pair-${crypto.randomUUID().substring(0, 8)}`;
+    const streamer = await makeLiveStreamer(slug);
+    const viewer = await makeUser("Viewer");
+    await fundUser(viewer.id, 50);
+    await fundUser(streamer.id, 50);
+    for (let i = 0; i < 5; i++) {
+      await prisma.bet.create({
+        data: {
+          gameId,
+          playerAId: viewer.id,
+          playerBId: streamer.id,
+          amount: new Decimal("1.00"),
+          status: "SETTLED",
+          platformFeePercent: 0,
+          expiresAt: new Date(),
+        },
+      });
+    }
+
+    const challenge = await createChallenge({
+      challengerUserId: viewer.id,
+      streamerChannelSlug: slug,
+      stakeAmount: 500,
+    });
+    const res = await callApi("POST", "/api/lobby/respond", {
+      sessionToken: await sessionFor(streamer.id),
+      body: { lobbyEntryId: challenge.streamerLobbyEntryId, response: "ACCEPT" },
+    });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toMatch(/5 times in the last hour/);
+    expect(await balanceCents(viewer.id)).toBe(5000);
+  });
+
   it("a declined challenge no longer surfaces in the inbox", async () => {
     const slug = `decline-${crypto.randomUUID().substring(0, 8)}`;
     const streamer = await makeLiveStreamer(slug);

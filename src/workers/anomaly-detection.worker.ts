@@ -19,8 +19,11 @@ import {
 } from "../lib/jobs/types";
 import { prisma } from "../lib/db/client";
 import { reportJobFailure } from "../lib/observability/job-failure";
+import { emailAdminAlert } from "../lib/email/events";
+import { appUrl } from "../lib/email/layout";
 import { scanForLossChasing } from "../lib/responsible-play/risk";
 import { evaluateDueInteractions } from "../lib/responsible-play/interaction";
+import { runAmlScan } from "../lib/compliance/aml-monitoring";
 
 // ---------------------------------------------------------------------------
 // Logging helper
@@ -41,6 +44,23 @@ interface DeveloperForAnalysis {
   userId: string;
   games: { id: string; isActive: boolean }[];
   escrowLimit: { id: string; maxTotalEscrow: Decimal } | null;
+  user?: { email: string };
+}
+
+/** The system account that owns every PlayStake-run game (see /api/demo/setup). */
+const PLATFORM_DEVELOPER_EMAIL = "system-demo@playstake.internal";
+
+/**
+ * Automatic cap cuts and freezes are for third-party developers. On the
+ * platform's own developer they would take every PlayStake game offline —
+ * something any two colluding players could trigger by feeding each other
+ * wins. Player-level collusion is handled by the AML scan instead, so here we
+ * only alert.
+ */
+async function isPlatformDeveloper(developer: DeveloperForAnalysis): Promise<boolean> {
+  if (developer.user) return developer.user.email === PLATFORM_DEVELOPER_EMAIL;
+  const user = await prisma.user.findUnique({ where: { id: developer.userId }, select: { email: true } });
+  return user?.email === PLATFORM_DEVELOPER_EMAIL;
 }
 
 // ---------------------------------------------------------------------------
@@ -397,6 +417,10 @@ async function reduceEscrowCap(
   developer: DeveloperForAnalysis
 ): Promise<void> {
   if (!developer.escrowLimit) return;
+  if (await isPlatformDeveloper(developer)) {
+    await alertInsteadOfAutoAction(developer, "escrow cap reduction");
+    return;
+  }
 
   const newMax = new Decimal(developer.escrowLimit.maxTotalEscrow.toString())
     .mul(0.5)
@@ -414,9 +438,26 @@ async function reduceEscrowCap(
   });
 }
 
+async function alertInsteadOfAutoAction(
+  developer: DeveloperForAnalysis,
+  action: string,
+): Promise<void> {
+  log("warn", "platform_auto_action_skipped", { developerProfileId: developer.id, action });
+  await emailAdminAlert({
+    key: `platform-anomaly-${action.replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 13)}`,
+    title: "Anomaly on PlayStake's own games",
+    detail: `The anomaly scan would have applied an automatic ${action} to the platform's games. It was skipped so the site stays up; check the anomaly queue and the AML queue for the players involved.`,
+    url: appUrl("/admin/anomalies"),
+  });
+}
+
 async function freezeDeveloper(
   developer: DeveloperForAnalysis
 ): Promise<void> {
+  if (await isPlatformDeveloper(developer)) {
+    await alertInsteadOfAutoAction(developer, "freeze");
+    return;
+  }
   // Deactivate all games
   const activeGameIds = developer.games
     .filter((g) => g.isActive)
@@ -475,6 +516,7 @@ async function processAnomalyDetectionScan(
       escrowLimit: {
         select: { id: true, maxTotalEscrow: true },
       },
+      user: { select: { email: true } },
     },
   });
 
@@ -522,6 +564,18 @@ async function processPlayerRiskScan(): Promise<void> {
   } catch (error) {
     // Never let a welfare scan take down fraud detection.
     log("error", "player_risk_scan_failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  // AML: chip dumping, shared IPs, deposit-and-withdraw-without-play, and
+  // deposits over the source-of-funds threshold. Cases go to the MLRO queue.
+  try {
+    const cases = await runAmlScan();
+    const opened = Object.values(cases).reduce((sum, count) => sum + count, 0);
+    log(opened > 0 ? "warn" : "info", "aml_scan_completed", cases);
+  } catch (error) {
+    log("error", "aml_scan_failed", {
       error: error instanceof Error ? error.message : String(error),
     });
   }

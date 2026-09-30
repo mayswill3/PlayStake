@@ -60,6 +60,10 @@ const BET_TTL_MS = 30 * 60 * 1000;
 /** How long Player A/B have to consent to the bet. */
 const BET_CONSENT_TTL_MS = 10 * 60 * 1000;
 
+/** At most this many matches between the same two players per window. */
+export const MAX_MATCHES_PER_PAIR_PER_WINDOW = 5;
+const PAIR_WINDOW_MS = 60 * 60 * 1000;
+
 // ---------------------------------------------------------------------------
 // join
 // ---------------------------------------------------------------------------
@@ -788,6 +792,26 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
         throw new ConflictError("That player isn't available to play right now.");
       }
       throw err;
+    }
+  }
+
+  // Cap how often the same two accounts can play each other: repeated
+  // head-to-heads are how value is passed between colluding accounts.
+  if (opponentUserId) {
+    const recentBetweenPair = await prisma.bet.count({
+      where: {
+        createdAt: { gte: new Date(now.getTime() - PAIR_WINDOW_MS) },
+        status: { notIn: [BetStatus.CANCELLED] },
+        OR: [
+          { playerAId: opponentUserId, playerBId: input.callerUserId },
+          { playerAId: input.callerUserId, playerBId: opponentUserId },
+        ],
+      },
+    });
+    if (recentBetweenPair >= MAX_MATCHES_PER_PAIR_PER_WINDOW) {
+      throw new ConflictError(
+        `You've played this opponent ${MAX_MATCHES_PER_PAIR_PER_WINDOW} times in the last hour. Try someone else, or come back later.`,
+      );
     }
   }
 

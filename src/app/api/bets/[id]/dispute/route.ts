@@ -21,12 +21,16 @@ import {
   appendRefereeAudit,
   auditContextFromRequest,
 } from "@/lib/referees/audit";
+import { disputeRateLimit } from "@/lib/middleware/rate-limit";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const rateLimited = disputeRateLimit(request);
+    if (rateLimited) return rateLimited;
+
     const token = getSessionToken(request);
     if (!token) throw new AuthenticationError();
 
