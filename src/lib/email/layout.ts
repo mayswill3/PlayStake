@@ -71,7 +71,8 @@ export function renderText(input: EmailLayoutInput): string {
   }
   if (input.callout) lines.push(input.callout, '');
   if (input.cta) lines.push(`${input.cta.label}: ${input.cta.url}`, '');
-  lines.push('— PlayStake');
+  lines.push('— PlayStake · playstake.org · 18+ only');
+  lines.push('Need support with gambling? Call GamCare free on 0808 8020 133.');
   if (input.optional) {
     lines.push('', `Manage which emails you receive: ${appUrl('/settings')}`);
   }
@@ -163,8 +164,8 @@ export function renderHtml(input: EmailLayoutInput): string {
           <tr>
             <td style="padding:16px 24px 24px;border-top:1px solid ${BRAND.border};">
               <p style="margin:0;font:400 12px/1.5 Arial,Helvetica,sans-serif;color:${BRAND.muted};">
-                PlayStake · <a href="${appUrl('/')}" style="color:${BRAND.muted};">playstake.org</a><br>
-                Questions? Reply to this email and we'll help.
+                PlayStake · <a href="${appUrl('/')}" style="color:${BRAND.muted};">playstake.org</a> · 18+ only<br>
+                Questions? Reply to this email and we'll help. Need support with gambling? Call GamCare free on 0808 8020 133.
               </p>
               ${preferences}
             </td>
