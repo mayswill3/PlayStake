@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Grid3x3, Layers, Target } from 'lucide-react';
+import { Grid3x3, Target } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { GlowCard } from '@/components/ui/playstake/GlowCard';
 import { IconTile } from '@/components/ui/playstake/IconTile';
@@ -18,13 +18,6 @@ interface DemoCardProps {
 }
 
 const DEMOS: DemoCardProps[] = [
-  {
-    href: '/play/cards',
-    icon: Layers,
-    title: 'Higher / Lower',
-    description: 'Classic card game with turn-based wagering and score tracking.',
-    status: 'live',
-  },
   {
     href: '/play/tictactoe',
     icon: Grid3x3,
