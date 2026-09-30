@@ -49,7 +49,7 @@
     "@prisma/pg-worker": "^6.9.0",
     "@sentry/nextjs": "^10.75.0",
     "@sentry/node": "^10.75.0",
-    "@stripe/react-stripe-js": "^5.6.1",
+    "@stripe/react-stripe-js": "^6.12.0",
     "@stripe/stripe-js": "^8.9.0",
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/postcss": "^4.2.1",
