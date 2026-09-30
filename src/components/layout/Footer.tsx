@@ -99,6 +99,16 @@ export function Footer() {
                   BeGambleAware ↗
                 </a>
               </li>
+              <li>
+                <a
+                  href="https://www.gamstop.co.uk"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors"
+                >
+                  GAMSTOP ↗
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -116,6 +126,11 @@ export function Footer() {
               <li>
                 <Link href="/privacy" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/complaints" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                  Complaints
                 </Link>
               </li>
               <li>

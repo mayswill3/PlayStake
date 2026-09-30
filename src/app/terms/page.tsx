@@ -267,6 +267,19 @@ export default function TermsPage() {
           section removes any mandatory complaint or consumer rights available
           under applicable law.
         </p>
+        <p>
+          If you are unhappy with a result decision, or with anything else about
+          PlayStake, you can make a complaint under our{' '}
+          <Link href="/complaints">Complaints Procedure</Link>. We acknowledge
+          every complaint straight away and send a final response within eight
+          weeks. If you are not satisfied with it, you can refer the complaint,
+          free of charge, to our independent alternative dispute resolution
+          provider, IBAS (the Independent Betting Adjudication Service,{' '}
+          <a href="https://www.ibas-uk.com" target="_blank" rel="noreferrer">
+            ibas-uk.com
+          </a>
+          ).
+        </p>
       </LegalSection>
 
       <LegalSection
@@ -434,9 +447,10 @@ export default function TermsPage() {
 
       <LegalSection id="contact" number="17" title="Contact us">
         <p>
-          Questions, complaints or notices about these Terms can be sent to
-          PlayStake Ltd at{' '}
-          <a href="mailto:support@playstake.org">support@playstake.org</a>.
+          Questions or notices about these Terms can be sent to PlayStake Ltd
+          at <a href="mailto:support@playstake.org">support@playstake.org</a>.
+          To make a complaint, see our{' '}
+          <Link href="/complaints">Complaints Procedure</Link>.
         </p>
       </LegalSection>
     </LegalPage>

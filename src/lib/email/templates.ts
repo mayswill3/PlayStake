@@ -86,6 +86,15 @@ type Payloads = {
   };
   'responsible.break-started': { name: string; kind: string; endsAt: string | null };
   'responsible.break-ended': { name: string; kind: string };
+  // --- Complaints ---------------------------------------------------------
+  'complaint.received': { name: string; reference: string; dueBy: string };
+  'complaint.update': { name: string; reference: string; message: string };
+  'complaint.final-response': {
+    name: string;
+    reference: string;
+    outcome: string;
+    response: string;
+  };
   // --- Other --------------------------------------------------------------
   'kick.connection-changed': { name: string; channel: string; connected: boolean };
   'beta.signup-received': { name: string };
@@ -511,6 +520,47 @@ const TEMPLATES: { [N in EmailTemplateName]: TemplateDefinition<Payloads[N]> } =
             ],
             cta: { label: 'Review your settings', url: appUrl('/responsible-play') },
           },
+  },
+  // -------------------------------------------------------------- complaints
+  'complaint.received': {
+    essential: true,
+    subject: (p) => `We've received your complaint (${p.reference})`,
+    content: (p) => ({
+      eyebrow: 'Complaints',
+      heading: 'Your complaint has been received',
+      name: p.name,
+      paragraphs: [
+        `Your reference is ${p.reference}. Please quote it if you contact us about this complaint.`,
+        `We will look into it and send you our final response by ${p.dueBy} at the latest — usually much sooner. If we need more information we will email you.`,
+        'If you are not happy with our final response, or we have not sent one within eight weeks, you can take your complaint to IBAS (the Independent Betting Adjudication Service), free of charge, at www.ibas-uk.com.',
+      ],
+      cta: { label: 'Our complaints procedure', url: appUrl('/complaints') },
+    }),
+  },
+  'complaint.update': {
+    essential: true,
+    subject: (p) => `An update on your complaint (${p.reference})`,
+    content: (p) => ({
+      eyebrow: 'Complaints',
+      heading: `Update on ${p.reference}`,
+      name: p.name,
+      paragraphs: [p.message, 'You can reply to this email if you have anything to add.'],
+    }),
+  },
+  'complaint.final-response': {
+    essential: true,
+    subject: (p) => `Our final response to your complaint (${p.reference})`,
+    content: (p) => ({
+      eyebrow: 'Complaints',
+      heading: 'Our final response',
+      name: p.name,
+      paragraphs: [
+        `Complaint ${p.reference}: ${p.outcome}.`,
+        p.response,
+        'This is our final response under our complaints procedure. If you are not satisfied with it, you can refer your complaint to IBAS, the Independent Betting Adjudication Service. IBAS is independent of PlayStake and its service is free for you to use. Visit www.ibas-uk.com to start a referral, and please do so within six months of the date of this email.',
+      ],
+      cta: { label: 'Refer to IBAS', url: 'https://www.ibas-uk.com' },
+    }),
   },
   // ------------------------------------------------------------------- other
   'kick.connection-changed': {

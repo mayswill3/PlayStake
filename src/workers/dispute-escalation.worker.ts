@@ -4,12 +4,19 @@
 // Handles automatic escalation of unresolved disputes:
 //   - After 48 hours: OPEN -> UNDER_REVIEW
 //   - After 7 days with no admin action: auto-resolve as VOID and refund
-//     both players via refundEscrow().
+//     both players via refundEscrow(), and tell them.
+//
+// Also alerts staff to customer complaints approaching (and past) their
+// 8-week final-response deadline.
 // =============================================================================
 
 import { Worker, type Job } from "bullmq";
 import { Decimal } from "@prisma/client/runtime/client";
-import { DisputeStatus, BetStatus } from "../../generated/prisma/client";
+import {
+  DisputeStatus,
+  BetStatus,
+  RefereeAssignmentStatus,
+} from "../../generated/prisma/client";
 import { getRedisConnection } from "../lib/jobs/queue";
 import {
   QUEUE_NAMES,
@@ -18,6 +25,9 @@ import {
 import { prisma, withTransaction, type TxClient } from "../lib/db/client";
 import { refundEscrow } from "../lib/ledger/escrow";
 import { reportJobFailure } from "../lib/observability/job-failure";
+import { emailAdminAlert, emailDisputeResolved } from "../lib/email/events";
+import { appUrl } from "../lib/email/layout";
+import { findComplaintsNearDeadline } from "../lib/complaints/service";
 
 // ---------------------------------------------------------------------------
 // Logging helper
@@ -104,7 +114,13 @@ async function autoVoidStaleDisputes(): Promise<void> {
 
   for (const dispute of staleDisputes) {
     try {
-      await autoVoidDispute(dispute.id, dispute.betId);
+      const voided = await autoVoidDispute(dispute.id, dispute.betId);
+      if (voided) {
+        await emailDisputeResolved(
+          dispute.betId,
+          "Match voided — both stakes refunded, as no decision was reached within 7 days",
+        );
+      }
     } catch (error) {
       log("error", "auto_void_failed", {
         disputeId: dispute.id,
@@ -115,11 +131,12 @@ async function autoVoidStaleDisputes(): Promise<void> {
   }
 }
 
+/** Returns true when the bet was voided and both stakes refunded. */
 async function autoVoidDispute(
   disputeId: string,
   betId: string
-): Promise<void> {
-  await withTransaction(async (tx: TxClient) => {
+): Promise<boolean> {
+  return withTransaction(async (tx: TxClient) => {
     // Acquire advisory lock on the bet
     const lockResult: { locked: boolean }[] = await tx.$queryRaw`
       SELECT pg_try_advisory_xact_lock(hashtext(${betId})) as locked
@@ -127,7 +144,7 @@ async function autoVoidDispute(
 
     if (!lockResult[0]?.locked) {
       log("info", "skip_locked_dispute_void", { disputeId, betId });
-      return;
+      return false;
     }
 
     // Re-read dispute under lock
@@ -136,7 +153,7 @@ async function autoVoidDispute(
     });
 
     if (!dispute || dispute.status !== DisputeStatus.UNDER_REVIEW) {
-      return; // Already resolved by admin
+      return false; // Already resolved by admin
     }
 
     // Re-read bet
@@ -155,7 +172,7 @@ async function autoVoidDispute(
 
     if (!bet) {
       log("warn", "bet_not_found_for_void", { disputeId, betId });
-      return;
+      return false;
     }
 
     // Only void bets that are still holding escrow
@@ -179,7 +196,7 @@ async function autoVoidDispute(
           resolvedAt: new Date(),
         },
       });
-      return;
+      return false;
     }
 
     // Transition bet to VOIDED first (refundEscrow checks status)
@@ -210,6 +227,17 @@ async function autoVoidDispute(
       });
     }
 
+    // A referee left holding the match could never claim another one.
+    await tx.refereeAssignment.updateMany({
+      where: {
+        betId,
+        status: {
+          notIn: [RefereeAssignmentStatus.COMPLETED, RefereeAssignmentStatus.CANCELLED],
+        },
+      },
+      data: { status: RefereeAssignmentStatus.CANCELLED, cancelledAt: new Date() },
+    });
+
     // Resolve the dispute
     await tx.dispute.update({
       where: { id: disputeId },
@@ -227,7 +255,31 @@ async function autoVoidDispute(
       playerARefunded: playerAAmount.toString(),
       playerBRefunded: bet.playerBId ? playerAAmount.toString() : "0",
     });
+    return true;
   });
+}
+
+// ---------------------------------------------------------------------------
+// Complaint deadlines
+// ---------------------------------------------------------------------------
+
+/**
+ * Warn staff once when a complaint is within two weeks of its 8-week
+ * final-response deadline, and again once it is overdue.
+ */
+async function alertComplaintDeadlines(): Promise<void> {
+  const now = new Date();
+  for (const complaint of await findComplaintsNearDeadline(now)) {
+    const overdue = complaint.finalResponseDueAt <= now;
+    await emailAdminAlert({
+      key: `complaint-${overdue ? "overdue" : "due-soon"}-${complaint.id}`,
+      title: overdue
+        ? `Complaint ${complaint.reference} is past its 8-week deadline`
+        : `Complaint ${complaint.reference} is due within two weeks`,
+      detail: `A final response is due by ${complaint.finalResponseDueAt.toISOString().slice(0, 10)}. The customer can take it to IBAS once the deadline passes.`,
+      url: appUrl(`/admin/complaints/${complaint.id}`),
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -239,6 +291,7 @@ async function processDisputeEscalationScan(
 ): Promise<void> {
   await escalateOpenDisputes();
   await autoVoidStaleDisputes();
+  await alertComplaintDeadlines();
 }
 
 // ---------------------------------------------------------------------------

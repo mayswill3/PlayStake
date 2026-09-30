@@ -14,6 +14,7 @@ import {
   createTestSession,
   disconnectTestPrisma,
   getTestPrisma,
+  purgeComplianceRecords,
 } from "./helpers.js";
 import {
   BetOutcome,
@@ -120,6 +121,7 @@ afterAll(async () => {
   await prisma.developerProfile.deleteMany({
     where: { userId: { in: userIds } },
   });
+  await purgeComplianceRecords(prisma, userIds);
   await prisma.user.deleteMany({ where: { id: { in: userIds } } });
   await disconnectTestPrisma();
 });

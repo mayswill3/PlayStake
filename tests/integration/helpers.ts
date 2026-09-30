@@ -746,6 +746,22 @@ async function resolveRouteHandler(
     );
     return { handler: mod.GET };
   }
+  if (path === "/api/complaints") {
+    const mod = await import("../../src/app/api/complaints/route.js");
+    return { handler: method === "GET" ? mod.GET : mod.POST };
+  }
+  if (path.startsWith("/api/admin/complaints?") || path === "/api/admin/complaints") {
+    const mod = await import("../../src/app/api/admin/complaints/route.js");
+    return { handler: mod.GET };
+  }
+  const adminComplaintMatch = path.match(/^\/api\/admin\/complaints\/([^/?]+)$/);
+  if (adminComplaintMatch) {
+    const mod = await import("../../src/app/api/admin/complaints/[id]/route.js");
+    return {
+      handler: method === "POST" ? mod.POST : mod.GET,
+      params: { id: decodeURIComponent(adminComplaintMatch[1]) },
+    };
+  }
   const accountStatusMatch = path.match(/^\/api\/admin\/users\/([^/?]+)\/account-status$/);
   if (accountStatusMatch) {
     const mod = await import(

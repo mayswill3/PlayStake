@@ -11,6 +11,7 @@ import { appendRefereeAudit, auditContextFromRequest } from "@/lib/referees/audi
 import { refundEscrow } from "@/lib/ledger/escrow";
 import { emailDisputeResolved } from "@/lib/email/events";
 import { getAssignmentForBetForAdmin } from "@/lib/referees/admin-history";
+import { recordAdminAction } from "@/lib/admin/audit";
 
 /** Human-readable outcome for the players' resolution email. */
 const DISPUTE_OUTCOME_LABELS: Record<string, string> = {
@@ -196,7 +197,61 @@ export const PATCH = withRoleGuard([UserRole.ADMIN], async (req, context, auth) 
         },
         context: auditContextFromRequest(req),
       });
+    } else if (dispute.bet.status === BetStatus.DISPUTED) {
+      // No referee: the admin's decision becomes the result. Previously only
+      // the Dispute row changed, leaving the bet DISPUTED and both stakes in
+      // escrow indefinitely while the email said funds had been paid.
+      if (parsed.data.status === "RESOLVED_VOID") {
+        await tx.bet.update({
+          where: { id: dispute.betId },
+          data: { status: BetStatus.VOIDED, cancelledAt: now },
+        });
+        await refundEscrow(tx, {
+          betId: dispute.betId,
+          playerId: dispute.bet.playerAId,
+          amount: dispute.bet.amount,
+          idempotencyKey: `dispute:${id}:refund:a`,
+        });
+        if (dispute.bet.playerBId) {
+          await refundEscrow(tx, {
+            betId: dispute.betId,
+            playerId: dispute.bet.playerBId,
+            amount: dispute.bet.amount,
+            idempotencyKey: `dispute:${id}:refund:b`,
+          });
+        }
+      } else if (outcome) {
+        // A verified result: the settlement worker pays it out.
+        await tx.bet.update({
+          where: { id: dispute.betId },
+          data: {
+            status: BetStatus.RESULT_REPORTED,
+            outcome,
+            resultVerified: true,
+            resultReportedAt: now,
+          },
+        });
+      }
     }
+
+    await recordAdminAction(
+      {
+        actorId: auth.userId,
+        action: "dispute.resolve",
+        targetType: "dispute",
+        targetId: id,
+        details: {
+          betId: dispute.betId,
+          betStatusBefore: dispute.bet.status,
+          resolution: parsed.data.status,
+          outcome: outcome ?? null,
+          refereed: Boolean(dispute.bet.refereeAssignment),
+          note: parsed.data.resolution,
+        },
+        request: req,
+      },
+      tx,
+    );
     return resolved;
   });
 

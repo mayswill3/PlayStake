@@ -179,6 +179,13 @@ export const apiRateLimit = rateLimit({
   },
 });
 
+/** Complaint form: 5 submissions per hour per IP. */
+export const complaintRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 5,
+  keyFn: (req) => `complaint:${getClientIp(req)}`,
+});
+
 /** Public beta form: 10 submissions per hour per IP. */
 export const betaSignupRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000,

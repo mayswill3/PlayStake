@@ -7,11 +7,11 @@ const FAQS = [
   },
   {
     q: 'How are results verified?',
-    a: 'PlayStake captures results from two independent sources: the game platform\'s API and our in-game tracking widget. If both sources agree, the result settles instantly. If they disagree, a dispute is automatically opened.',
+    a: 'Games played on PlayStake report their own result. Streamed matches are officiated by an independent, approved referee who watches both players\' live streams and records the result, with every step written to a tamper-evident audit trail. Either player can dispute a result before it pays out.',
   },
   {
     q: 'What happens in a dispute?',
-    a: 'Either player can raise a dispute within 24 hours of a result. Our team reviews game logs, screenshots, and any referee reports. We aim to resolve all disputes within 24 hours.',
+    a: 'Either player can dispute a result from the bet page within the time shown there — 24 hours for most games, or the 15-minute window after a referee\'s decision. Payout pauses and our team reviews game logs, stream footage and referee evidence. If you are unhappy with the outcome, you can make a complaint and, after our final response, take it to IBAS, our independent adjudicator.',
   },
   {
     q: 'When will real-money play launch?',
@@ -19,11 +19,11 @@ const FAQS = [
   },
   {
     q: 'How does responsible play work?',
-    a: 'PlayStake is being built with responsible play at its core. When real-money play launches, the platform will include configurable stake limits, cool-down periods, self-exclusion options, and direct links to gambling support organisations.',
+    a: 'You can set daily, weekly and monthly deposit limits, take a cool-off break, self-exclude for six months to five years, and turn on session reminders — all from Responsible Play. We check every account against GAMSTOP, the national self-exclusion scheme, and reach out if your play shows signs of harm. Free support is available from GamCare on 0808 8020 133.',
   },
   {
     q: 'How are payouts handled?',
-    a: "When real-money play is live, winners receive instant transfers to their PlayStake wallet. From there, funds can be withdrawn to a linked bank account or payment method. No withdrawal request forms, no manual review delays.",
+    a: "When real-money play is live, winnings are credited to your PlayStake wallet as soon as a result settles. From there you can withdraw to your verified bank account. Most withdrawals are processed automatically; occasionally we may need to review one for security or legal reasons before it is paid.",
   },
 ] as const;
 

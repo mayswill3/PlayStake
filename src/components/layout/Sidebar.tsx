@@ -18,6 +18,10 @@ import {
   LifeBuoy,
   AlertTriangle,
   Bell,
+  HeartPulse,
+  Landmark,
+  MessageSquareWarning,
+  ScrollText,
   Menu,
   Tv,
   X,
@@ -58,6 +62,10 @@ const adminNav: NavItem[] = [
   { label: 'Referees', href: '/admin/referees', icon: Scale },
   { label: 'Disputes', href: '/admin/disputes', icon: Scale },
   { label: 'Anomalies', href: '/admin/anomalies', icon: AlertTriangle },
+  { label: 'Complaints', href: '/admin/complaints', icon: MessageSquareWarning },
+  { label: 'Harm Signals', href: '/admin/harm-signals', icon: HeartPulse },
+  { label: 'AML Cases', href: '/admin/aml', icon: Landmark },
+  { label: 'Audit Log', href: '/admin/audit-log', icon: ScrollText },
 ];
 
 export function Sidebar({ userRole }: SidebarProps) {
