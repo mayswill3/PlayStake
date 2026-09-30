@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { withSessionAuth } from "@/lib/middleware/auth";
+import { assertEligibleToGamble } from "@/lib/compliance/eligibility";
 import { prisma } from "@/lib/db/client";
 import { errorResponse, NotFoundError, ValidationError } from "@/lib/errors";
 import { assertParticipant } from "@/lib/demo/access";
@@ -33,6 +34,12 @@ export const POST = withSessionAuth(async (request, _context, auth) => {
 
     let playerAId = auth.userId;
     let boundBetId: string | null = null;
+
+    // A game with no bet is free play, which still needs a verified adult who
+    // may gamble. A game for an agreed bet was cleared when it was accepted.
+    if (!(typeof betId === "string" && betId.length > 0)) {
+      await assertEligibleToGamble(auth.userId);
+    }
 
     if (typeof betId === "string" && betId.length > 0) {
       const bet = await prisma.bet.findUnique({

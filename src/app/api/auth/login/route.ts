@@ -12,6 +12,8 @@ import { loginSchema } from "../../../../lib/validation/schemas";
 import { validateBody } from "../../../../lib/middleware/validate";
 import { sessionCookieValue } from "../../../../lib/auth/helpers";
 import { verifySecondFactor } from "../../../../lib/auth/two-factor";
+import { refreshGamstopStatusQuietly } from "../../../../lib/compliance/gamstop";
+import { AccountStatus } from "../../../../../generated/prisma/client";
 import {
   errorResponse,
   AuthenticationError,
@@ -47,6 +49,15 @@ export async function POST(request: NextRequest) {
     if (!user || user.deletedAt !== null) {
       await recordFailedAttempt(ip);
       throw new AuthenticationError("Invalid credentials");
+    }
+
+    if (
+      user.accountStatus === AccountStatus.CLOSED ||
+      user.accountStatus === AccountStatus.CLOSED_UNDERAGE
+    ) {
+      throw new AuthenticationError(
+        "This account is closed. Contact support@playstake.org if you need help with it.",
+      );
     }
 
     // Google-only accounts have no password
@@ -98,6 +109,10 @@ export async function POST(request: NextRequest) {
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
     });
+
+    // Re-check GAMSTOP on every login. A failure here must not block sign-in
+    // (they may need to withdraw); the gambling gate re-checks and fails closed.
+    await refreshGamstopStatusQuietly(user.id);
 
     // Create session
     const userAgent = request.headers.get("user-agent") ?? undefined;

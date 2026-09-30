@@ -82,6 +82,16 @@ describe("Eligibility gate", () => {
     await expect(assertCanDeposit(player.id, 1000)).rejects.toMatchObject({ code: "KYC_REQUIRED" });
   });
 
+  it("refuses free play on /play until age and identity are verified", async () => {
+    const player = await makePlayer(KycStatus.NOT_STARTED);
+    const res = await callApi("POST", "/api/demo/game", {
+      ...player.auth,
+      body: { gameType: "tictactoe" },
+    });
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe("KYC_REQUIRED");
+  });
+
   it("refuses a suspended account", async () => {
     const player = await makePlayer();
     await prisma.user.update({

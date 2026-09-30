@@ -4,6 +4,8 @@ import Image from 'next/image';
 import { ArrowLeft } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { ChallengesProvider } from '@/components/lobby/ChallengesProvider';
+import { EligibilityNotice } from '@/components/compliance/EligibilityNotice';
+import { SessionReminder } from '@/components/responsible-play/SessionReminder';
 
 export const metadata: Metadata = {
   title: 'Play',
@@ -57,7 +59,10 @@ export default function PlayLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
         </nav>
+        <EligibilityNotice />
         <main>{children}</main>
+        {/* Reality checks run where the games are played, not only on the dashboard. */}
+        <SessionReminder />
       </div>
     </ChallengesProvider>
   );

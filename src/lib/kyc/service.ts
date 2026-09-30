@@ -7,6 +7,8 @@ import {
 import { prisma, withTransaction } from "../db/client";
 import { ConflictError, NotFoundError, ValidationError } from "../errors";
 import { decryptDocument, encryptDocument, hashDocument } from "./crypto";
+import { recordAdminAction } from "../admin/audit";
+import { hasBlockingIdentityCase, screenKycSubmission } from "../compliance/identity-checks";
 import {
   MAX_DOCUMENT_BYTES,
   MINIMUM_AGE_YEARS,
@@ -126,7 +128,7 @@ export async function submitKyc(
     };
   });
 
-  return withTransaction(async (tx) => {
+  const submission = await withTransaction(async (tx) => {
     const submission = await tx.kycSubmission.create({
       data: {
         userId,
@@ -153,6 +155,15 @@ export async function submitKyc(
 
     return submission;
   });
+
+  // Screening must not lose the submission if it fails; a reviewer sees the
+  // submission either way, and approval re-checks for open identity cases.
+  try {
+    await screenKycSubmission(submission.id);
+  } catch (err) {
+    console.error("[KYC] identity screening failed", { submissionId: submission.id, err });
+  }
+  return submission;
 }
 
 /** Everything the player's verification screen needs to render. */
@@ -217,6 +228,7 @@ export async function reviewSubmission(input: ReviewSubmissionInput) {
         id: true,
         status: true,
         userId: true,
+        dateOfBirth: true,
         user: { select: { email: true, displayName: true } },
       },
     });
@@ -229,6 +241,20 @@ export async function reviewSubmission(input: ReviewSubmissionInput) {
     }
     if (!input.approve && !input.reviewNotes?.trim()) {
       throw new ValidationError("A rejection must include a reason");
+    }
+    if (input.approve) {
+      // The document date of birth is what counts; re-check it here rather
+      // than trusting the check made when the form was submitted.
+      if (ageInYears(submission.dateOfBirth) < MINIMUM_AGE_YEARS) {
+        throw new ConflictError(
+          "The document shows this customer is under 18. Reject the submission and close the account as under-18.",
+        );
+      }
+      if (await hasBlockingIdentityCase(submission.userId)) {
+        throw new ConflictError(
+          "This customer has an open identity case (date of birth mismatch or the same identity on another account). Resolve it in the AML queue before approving.",
+        );
+      }
     }
 
     const updated = await tx.kycSubmission.update({
@@ -250,6 +276,17 @@ export async function reviewSubmission(input: ReviewSubmissionInput) {
         kycStatus: input.approve ? KycStatus.VERIFIED : KycStatus.REJECTED,
       },
     });
+
+    await recordAdminAction(
+      {
+        actorId: input.reviewerId,
+        action: input.approve ? "kyc.approve" : "kyc.reject",
+        targetType: "kyc_submission",
+        targetId: submission.id,
+        details: { userId: submission.userId, reviewNotes: input.reviewNotes?.trim() || null },
+      },
+      tx,
+    );
 
     return { ...updated, user: submission.user };
   });

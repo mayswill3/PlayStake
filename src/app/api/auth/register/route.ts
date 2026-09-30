@@ -8,6 +8,7 @@ import { errorResponse, ValidationError, ConflictError } from "../../../../lib/e
 import { AuthTokenType } from "../../../../../generated/prisma/client";
 import { issueAuthToken } from "../../../../lib/auth/tokens";
 import { sendVerificationEmail } from "../../../../lib/email/resend";
+import { MINIMUM_AGE_YEARS, ageInYears } from "../../../../lib/kyc/constants";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,6 +19,14 @@ export async function POST(request: NextRequest) {
     const strength = validatePasswordStrength(input.password);
     if (!strength.valid) {
       throw new ValidationError("Password too weak", strength.errors);
+    }
+
+    // Under-18s cannot hold an account. Their age is verified properly
+    // against an identity document before any deposit or gambling; this
+    // stops an admitted under-18 before an account exists at all.
+    const dateOfBirth = new Date(`${input.dateOfBirth}T00:00:00Z`);
+    if (ageInYears(dateOfBirth) < MINIMUM_AGE_YEARS) {
+      throw new ValidationError("You must be 18 or over to use PlayStake");
     }
 
     // Check email uniqueness
@@ -38,6 +47,10 @@ export async function POST(request: NextRequest) {
           email: input.email,
           passwordHash,
           displayName: input.displayName,
+          dateOfBirth,
+          ageConfirmedAt: new Date(),
+          marketingConsent: input.marketingConsent,
+          marketingConsentAt: input.marketingConsent ? new Date() : null,
         },
       });
 

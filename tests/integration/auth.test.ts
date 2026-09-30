@@ -6,8 +6,12 @@ import { describe, it, expect, afterAll } from "vitest";
 import {
   callApi,
   disconnectTestPrisma,
+  getTestPrisma,
 } from "./helpers.js";
 import { _resetStore } from "../../src/lib/auth/login-protection.js";
+
+/** Sign-up requires a date of birth showing 18+ and an explicit confirmation. */
+const ADULT = { dateOfBirth: "1990-01-01", confirmAge: true };
 
 afterAll(async () => {
   await disconnectTestPrisma();
@@ -19,6 +23,7 @@ describe("Auth: Registration", () => {
 
     const res = await callApi("POST", "/api/auth/register", {
       body: {
+        ...ADULT,
         email,
         password: "SecurePass1!",
         displayName: "NewTestPlayer",
@@ -39,6 +44,7 @@ describe("Auth: Registration", () => {
     // First registration
     const res1 = await callApi("POST", "/api/auth/register", {
       body: {
+        ...ADULT,
         email,
         password: "SecurePass1!",
         displayName: "First",
@@ -49,6 +55,7 @@ describe("Auth: Registration", () => {
     // Duplicate registration
     const res2 = await callApi("POST", "/api/auth/register", {
       body: {
+        ...ADULT,
         email,
         password: "SecurePass1!",
         displayName: "Second",
@@ -61,6 +68,7 @@ describe("Auth: Registration", () => {
   it("should return 422 for a weak password", async () => {
     const res = await callApi("POST", "/api/auth/register", {
       body: {
+        ...ADULT,
         email: `weak-${Date.now()}@playstake-test.com`,
         password: "short",
         displayName: "WeakPw",
@@ -74,12 +82,81 @@ describe("Auth: Registration", () => {
   it("should return 422 for missing display name", async () => {
     const res = await callApi("POST", "/api/auth/register", {
       body: {
+        ...ADULT,
         email: `nodisplay-${Date.now()}@playstake-test.com`,
         password: "SecurePass1!",
       },
     });
 
     expect(res.status).toBe(422);
+  });
+});
+
+describe("Auth: Registration age checks", () => {
+  it("refuses anyone under 18", async () => {
+    const lastYear = new Date();
+    lastYear.setUTCFullYear(lastYear.getUTCFullYear() - 17);
+    const res = await callApi("POST", "/api/auth/register", {
+      body: {
+        email: `minor-${Date.now()}@playstake-test.com`,
+        password: "SecurePass1!",
+        displayName: "TooYoung",
+        dateOfBirth: lastYear.toISOString().slice(0, 10),
+        confirmAge: true,
+      },
+    });
+    expect(res.status).toBe(422);
+    expect(res.body.error).toMatch(/18 or over/);
+  });
+
+  it("requires the 18+ confirmation", async () => {
+    const res = await callApi("POST", "/api/auth/register", {
+      body: {
+        email: `noconfirm-${Date.now()}@playstake-test.com`,
+        password: "SecurePass1!",
+        displayName: "NoConfirm",
+        dateOfBirth: "1990-01-01",
+      },
+    });
+    expect(res.status).toBe(422);
+  });
+
+  it("records DOB and leaves marketing off unless opted in", async () => {
+    const email = `consent-${Date.now()}@playstake-test.com`;
+    const res = await callApi("POST", "/api/auth/register", {
+      body: { email, password: "SecurePass1!", displayName: "Consent", ...ADULT },
+    });
+    expect(res.status).toBe(201);
+    const user = await getTestPrisma().user.findUniqueOrThrow({ where: { email } });
+    expect(user.dateOfBirth?.toISOString().slice(0, 10)).toBe("1990-01-01");
+    expect(user.ageConfirmedAt).not.toBeNull();
+    expect(user.marketingConsent).toBe(false);
+  });
+});
+
+describe("Auth: Closed accounts", () => {
+  it("can't sign in, and existing sessions stop working", async () => {
+    const email = `closed-${Date.now()}@playstake-test.com`;
+    const password = "SecurePass1!";
+    await callApi("POST", "/api/auth/register", {
+      body: { email, password, displayName: "Closed", ...ADULT },
+    });
+    _resetStore();
+    const login = await callApi("POST", "/api/auth/login", { body: { email, password } });
+    expect(login.status).toBe(200);
+    const sessionToken = /playstake_session=([^;]+)/.exec(login.headers.get("set-cookie") ?? "")?.[1];
+    expect(sessionToken).toBeDefined();
+
+    await getTestPrisma().user.update({
+      where: { email },
+      data: { accountStatus: "CLOSED_UNDERAGE" },
+    });
+
+    const again = await callApi("POST", "/api/auth/login", { body: { email, password } });
+    expect(again.status).toBe(401);
+    expect(again.body.error).toMatch(/closed/);
+    const balance = await callApi("GET", "/api/wallet/balance", { sessionToken });
+    expect(balance.status).toBe(401);
   });
 });
 
@@ -90,7 +167,7 @@ describe("Auth: Login", () => {
 
     // Register first
     await callApi("POST", "/api/auth/register", {
-      body: { email, password, displayName: "LoginTest" },
+      body: { email, password, displayName: "LoginTest", ...ADULT },
     });
 
     // Login
@@ -114,7 +191,7 @@ describe("Auth: Login", () => {
     const password = "SecurePass1!";
 
     await callApi("POST", "/api/auth/register", {
-      body: { email, password, displayName: "WrongPw" },
+      body: { email, password, displayName: "WrongPw", ...ADULT },
     });
 
     const res = await callApi("POST", "/api/auth/login", {
@@ -144,7 +221,7 @@ describe("Auth: Login", () => {
     const password = "SecurePass1!";
 
     await callApi("POST", "/api/auth/register", {
-      body: { email, password, displayName: "RateLimit" },
+      body: { email, password, displayName: "RateLimit", ...ADULT },
     });
 
     // Make 10 failed attempts with the same IP
@@ -175,7 +252,7 @@ describe("Auth: Logout", () => {
     const password = "SecurePass1!";
 
     await callApi("POST", "/api/auth/register", {
-      body: { email, password, displayName: "LogoutTest" },
+      body: { email, password, displayName: "LogoutTest", ...ADULT },
     });
 
     // Login to get session

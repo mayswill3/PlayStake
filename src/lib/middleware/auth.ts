@@ -1,4 +1,4 @@
-import type { User, UserRole } from "../../../generated/prisma/client";
+import { UserRole, type User } from "../../../generated/prisma/client";
 import { validateSession } from "../auth/session";
 
 // ---------------------------------------------------------------------------
@@ -148,6 +148,27 @@ export function withRoleGuard(
       );
     }
 
+    // Staff accounts can move money and see identity documents, so they must
+    // sign in with a second factor.
+    if (
+      auth.user.role === UserRole.ADMIN &&
+      !auth.user.twoFactorEnabled &&
+      adminTwoFactorRequired()
+    ) {
+      return Response.json(
+        {
+          error: "Turn on two-factor authentication in Settings to use admin tools.",
+          code: "ADMIN_2FA_REQUIRED",
+        },
+        { status: 403 }
+      );
+    }
+
     return handler(req, context, auth);
   });
+}
+
+/** Enforced in production; ADMIN_2FA_REQUIRED=true turns it on elsewhere. */
+export function adminTwoFactorRequired(): boolean {
+  return process.env.NODE_ENV === "production" || process.env.ADMIN_2FA_REQUIRED === "true";
 }

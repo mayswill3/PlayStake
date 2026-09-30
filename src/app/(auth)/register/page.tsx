@@ -27,6 +27,9 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [confirmAge, setConfirmAge] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -43,7 +46,7 @@ export default function RegisterPage() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, displayName }),
+        body: JSON.stringify({ email, password, displayName, dateOfBirth, confirmAge, marketingConsent }),
       });
 
       const data = await res.json();
@@ -127,7 +130,43 @@ export default function RegisterPage() {
           )}
         </div>
 
-        <Button type="submit" loading={loading} className="w-full">
+        <Input
+          label="Date of birth"
+          type="date"
+          value={dateOfBirth}
+          onChange={(e) => setDateOfBirth(e.target.value)}
+          required
+          autoComplete="bday"
+          max={new Date().toISOString().slice(0, 10)}
+        />
+
+        <label className="flex items-start gap-2.5 text-sm text-fg">
+          <input
+            type="checkbox"
+            checked={confirmAge}
+            onChange={(e) => setConfirmAge(e.target.checked)}
+            required
+            className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--ps-lime)]"
+          />
+          <span>
+            I am 18 or over and agree to the{' '}
+            <Link href="/terms" className="underline">Terms</Link> and{' '}
+            <Link href="/privacy" className="underline">Privacy Policy</Link>. I understand my age
+            and identity will be verified before I can deposit or play.
+          </span>
+        </label>
+
+        <label className="flex items-start gap-2.5 text-sm text-fg-secondary">
+          <input
+            type="checkbox"
+            checked={marketingConsent}
+            onChange={(e) => setMarketingConsent(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--ps-lime)]"
+          />
+          <span>Send me news and offers by email (optional — you can change this at any time).</span>
+        </label>
+
+        <Button type="submit" loading={loading} className="w-full" disabled={!confirmAge}>
           Create Account
         </Button>
       </form>

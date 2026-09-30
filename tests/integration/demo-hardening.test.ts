@@ -53,6 +53,13 @@ beforeAll(async () => {
   strangerId = stranger.id;
   tokenStranger = (await createTestSession(tx, stranger.id)).sessionToken;
   tokenAccomplice = (await createTestSession(tx, accomplice.id)).sessionToken;
+
+  // Every actor is a verified adult allowed to play, so these tests exercise
+  // the exploit protections rather than stopping at the identity gate.
+  await prisma.user.updateMany({
+    where: { id: { in: [scenario.playerA.id, scenario.playerB.id, stranger.id, accomplice.id] } },
+    data: { kycStatus: "VERIFIED" },
+  });
 });
 
 afterAll(async () => {

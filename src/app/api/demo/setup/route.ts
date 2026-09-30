@@ -5,6 +5,7 @@ import { getSessionToken } from "../../../../lib/auth/helpers";
 import { generateWidgetToken } from "../../../../lib/auth/widget-token";
 import { generateRandomToken, sha256Hash } from "../../../../lib/utils/crypto";
 import { errorResponse, AuthenticationError } from "../../../../lib/errors/index";
+import { assertEligibleToGamble } from "../../../../lib/compliance/eligibility";
 import { UserRole, LedgerAccountType } from "../../../../../generated/prisma/client";
 
 const DEMO_DEV_EMAIL = "system-demo@playstake.internal";
@@ -50,6 +51,10 @@ export async function POST(request: NextRequest) {
     if (!session) throw new AuthenticationError("Session expired — please log in again");
 
     const playerId = session.userId;
+
+    // Real-money and free-to-play games alike need a verified adult who may
+    // gamble (age verified, not excluded, account active).
+    await assertEligibleToGamble(playerId);
 
     // 2. Parse gameType from request body
     const body = await request.json().catch(() => ({}));

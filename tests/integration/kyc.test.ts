@@ -21,7 +21,10 @@ const prisma = getTestPrisma();
 const JPEG_HEADER = [0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46];
 
 function jpegFile(name: string): File {
-  const bytes = new Uint8Array([...JPEG_HEADER, ...new Array(64).fill(0x41)]);
+  // Random body: identical images on two accounts would (rightly) be flagged
+  // as the same identity document.
+  const body = Array.from({ length: 64 }, () => Math.floor(Math.random() * 256));
+  const bytes = new Uint8Array([...JPEG_HEADER, ...body]);
   return new File([bytes], name, { type: "image/jpeg" });
 }
 
@@ -29,7 +32,9 @@ function submissionForm(overrides: Record<string, string> = {}): FormData {
   const form = new FormData();
   const fields: Record<string, string> = {
     legalFirstName: "Ada",
-    legalLastName: "Lovelace",
+    // Unique per submission: the same name and date of birth on two accounts
+    // is flagged as a shared identity.
+    legalLastName: `Lovelace-${Math.random().toString(36).slice(2, 8)}`,
     dateOfBirth: "1990-12-10",
     addressLine1: "12 Analytical Way",
     city: "London",
@@ -344,5 +349,111 @@ describe("KYC: admin review", () => {
     );
 
     expect(reviewed.status).toBe(403);
+  });
+});
+
+describe("KYC: identity screening", () => {
+  it("flags a document date of birth that differs from registration and blocks approval", async () => {
+    const player = await makePlayer();
+    const admin = await makePlayer({ role: "ADMIN" });
+    await prisma.user.update({
+      where: { id: player.user.id },
+      data: { dateOfBirth: new Date("1991-01-01") },
+    });
+
+    const submitted = await callApi("POST", "/api/kyc", {
+      ...as(player),
+      formData: submissionForm({ dateOfBirth: "1990-12-10" }),
+    });
+    expect(submitted.status).toBe(201);
+
+    const amlCase = await prisma.amlCase.findFirst({
+      where: { userId: player.user.id, type: "DOB_MISMATCH" },
+    });
+    expect(amlCase?.details).toMatchObject({
+      declaredAtRegistration: "1991-01-01",
+      onDocument: "1990-12-10",
+    });
+
+    const reviewed = await callApi("PATCH", `/api/admin/kyc/${submitted.body.id}`, {
+      ...as(admin),
+      body: { decision: "APPROVE" },
+    });
+    expect(reviewed.status).toBe(409);
+    expect(reviewed.body.error).toMatch(/open identity case/);
+  });
+
+  it("flags the same person on a second account", async () => {
+    const first = await makePlayer();
+    const second = await makePlayer();
+    const identity = { legalLastName: `Twin-${Math.random().toString(36).slice(2, 8)}` };
+
+    await callApi("POST", "/api/kyc", { ...as(first), formData: submissionForm(identity) });
+    await callApi("POST", "/api/kyc", { ...as(second), formData: submissionForm(identity) });
+
+    const amlCase = await prisma.amlCase.findFirst({
+      where: { userId: second.user.id, type: "SHARED_IDENTITY" },
+    });
+    expect(amlCase?.relatedUserId).toBe(first.user.id);
+  });
+
+  it("records every review decision in the admin audit log", async () => {
+    const player = await makePlayer();
+    const admin = await makePlayer({ role: "ADMIN" });
+    const submitted = await callApi("POST", "/api/kyc", { ...as(player), formData: submissionForm() });
+    await callApi("PATCH", `/api/admin/kyc/${submitted.body.id}`, {
+      ...as(admin),
+      body: { decision: "APPROVE" },
+    });
+
+    const entry = await prisma.adminAuditLog.findFirst({
+      where: { actorId: admin.user.id, action: "kyc.approve", targetId: submitted.body.id },
+    });
+    expect(entry).not.toBeNull();
+  });
+});
+
+describe("KYC: admin overrides", () => {
+  it("won't mark someone verified without an approved adult identity document", async () => {
+    const player = await makePlayer();
+    const admin = await makePlayer({ role: "ADMIN" });
+
+    const res = await callApi("PATCH", `/api/admin/users/${player.user.id}`, {
+      ...as(admin),
+      body: { kycStatus: "VERIFIED", reason: "Verified over a video call" },
+    });
+    expect(res.status).toBe(409);
+    const stored = await prisma.user.findUniqueOrThrow({ where: { id: player.user.id } });
+    expect(stored.kycStatus).not.toBe("VERIFIED");
+  });
+
+  it("requires a reason and audits the change", async () => {
+    const player = await makePlayer();
+    const admin = await makePlayer({ role: "ADMIN" });
+
+    const noReason = await callApi("PATCH", `/api/admin/users/${player.user.id}`, {
+      ...as(admin),
+      body: { kycStatus: "REJECTED" },
+    });
+    expect(noReason.status).toBe(400);
+
+    const ok = await callApi("PATCH", `/api/admin/users/${player.user.id}`, {
+      ...as(admin),
+      body: { kycStatus: "REJECTED", reason: "Document appears altered" },
+    });
+    expect(ok.status).toBe(200);
+    const entry = await prisma.adminAuditLog.findFirst({
+      where: { actorId: admin.user.id, action: "user.update", targetId: player.user.id },
+    });
+    expect(entry?.details).toMatchObject({ reason: "Document appears altered" });
+  });
+
+  it("stops an admin changing their own role", async () => {
+    const admin = await makePlayer({ role: "ADMIN" });
+    const res = await callApi("PATCH", `/api/admin/users/${admin.user.id}`, {
+      ...as(admin),
+      body: { role: "PLAYER", reason: "Testing self-demotion is refused" },
+    });
+    expect(res.status).toBe(409);
   });
 });

@@ -47,6 +47,15 @@ export const registerSchema = z.object({
     .min(2, "Display name must be at least 2 characters")
     .max(100, "Display name must be at most 100 characters")
     .trim(),
+  /** YYYY-MM-DD. Checked for 18+ here and against the ID document at KYC. */
+  dateOfBirth: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Enter your date of birth")
+    .refine((value) => !Number.isNaN(new Date(`${value}T00:00:00Z`).getTime()), "Enter a valid date"),
+  /** The customer must actively confirm they are 18 or over. */
+  confirmAge: z.literal(true, { message: "You must confirm you are 18 or over" }),
+  /** Promotional email is opt-in: never pre-ticked, never required. */
+  marketingConsent: z.boolean().optional().default(false),
 });
 
 export const loginSchema = z.object({
@@ -530,6 +539,13 @@ export const adminUpdateUserSchema = z.object({
   kycStatus: z
     .enum(["NOT_STARTED", "PENDING", "VERIFIED", "REJECTED"])
     .optional(),
+  /** Recorded in the admin audit log. */
+  reason: z.string().trim().min(10, "Give a reason of at least 10 characters").max(500),
+});
+
+export const adminAccountStatusSchema = z.object({
+  status: z.enum(["ACTIVE", "SUSPENDED", "CLOSED", "CLOSED_UNDERAGE"]),
+  reason: z.string().trim().min(10, "Give a reason of at least 10 characters").max(500),
 });
 
 export const adminDisputeListQuerySchema = z.object({

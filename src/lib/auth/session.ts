@@ -1,4 +1,4 @@
-import type { User } from "../../../generated/prisma/client";
+import { AccountStatus, type User } from "../../../generated/prisma/client";
 import { prisma } from "../db/client";
 import { generateRandomToken, sha256Hash } from "../utils/crypto";
 
@@ -66,6 +66,16 @@ export async function validateSession(
 
   // Check user is not soft-deleted
   if (session.user.deletedAt !== null) {
+    return null;
+  }
+
+  // Closed accounts (including under-18 closures) cannot be used at all.
+  // Suspended ones can still sign in — to see their balance and contact
+  // support — but the eligibility gate blocks deposits and gambling.
+  if (
+    session.user.accountStatus === AccountStatus.CLOSED ||
+    session.user.accountStatus === AccountStatus.CLOSED_UNDERAGE
+  ) {
     return null;
   }
 

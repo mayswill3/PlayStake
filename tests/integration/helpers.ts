@@ -75,6 +75,19 @@ export async function purgeComplianceRecords(
     where: { caseId: { in: cases.map((amlCase) => amlCase.id) } },
   });
   await prisma.amlCase.deleteMany({ where: { id: { in: cases.map((amlCase) => amlCase.id) } } });
+
+  // The admin audit log is append-only by trigger; suspend it for this table
+  // only, long enough to remove rows written by these test users.
+  await prisma.$executeRawUnsafe(
+    'ALTER TABLE "admin_audit_logs" DISABLE TRIGGER "admin_audit_logs_immutable"',
+  );
+  try {
+    await prisma.adminAuditLog.deleteMany({ where: { actorId: users } });
+  } finally {
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "admin_audit_logs" ENABLE TRIGGER "admin_audit_logs_immutable"',
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -732,6 +745,21 @@ async function resolveRouteHandler(
       "../../src/app/api/admin/referees/operations/route.js"
     );
     return { handler: mod.GET };
+  }
+  const accountStatusMatch = path.match(/^\/api\/admin\/users\/([^/?]+)\/account-status$/);
+  if (accountStatusMatch) {
+    const mod = await import(
+      "../../src/app/api/admin/users/[id]/account-status/route.js"
+    );
+    return { handler: mod.POST, params: { id: decodeURIComponent(accountStatusMatch[1]) } };
+  }
+  const adminUserMatch = path.match(/^\/api\/admin\/users\/([^/?]+)$/);
+  if (adminUserMatch) {
+    const mod = await import("../../src/app/api/admin/users/[id]/route.js");
+    return {
+      handler: method === "PATCH" ? mod.PATCH : mod.GET,
+      params: { id: decodeURIComponent(adminUserMatch[1]) },
+    };
   }
   const refereeHistoryMatch = path.match(/^\/api\/admin\/referees\/([^/?]+)\/assignments$/);
   if (refereeHistoryMatch) {
