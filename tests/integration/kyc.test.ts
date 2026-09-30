@@ -12,6 +12,7 @@ import {
   createTestUser,
   disconnectTestPrisma,
   getTestPrisma,
+  purgeComplianceRecords,
 } from "./helpers.js";
 import type { TxClient } from "../../src/lib/db/client.js";
 
@@ -92,14 +93,15 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // KYC submissions and their documents cascade with the user; sessions and
-  // ledger accounts do not, so clear those first.
+  // Compliance records (KYC, breaks) are kept when a user row goes, so clear
+  // them, sessions and ledger accounts first.
   await prisma.session.deleteMany({
     where: { userId: { in: createdUserIds } },
   });
   await prisma.ledgerAccount.deleteMany({
     where: { userId: { in: createdUserIds } },
   });
+  await purgeComplianceRecords(prisma, createdUserIds);
   await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
   await disconnectTestPrisma();
 });

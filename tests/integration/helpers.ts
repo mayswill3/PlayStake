@@ -44,6 +44,39 @@ export async function disconnectTestPrisma(): Promise<void> {
   }
 }
 
+/**
+ * Remove the compliance records hanging off test users. In production these
+ * are deliberately kept when a user row goes (RESTRICT, not CASCADE), so a
+ * test that creates them has to clear them before deleting its users.
+ */
+export async function purgeComplianceRecords(
+  prisma: PrismaClient,
+  userIds: string[],
+): Promise<void> {
+  if (userIds.length === 0) return;
+  const users = { in: userIds };
+  await prisma.customerInteraction.deleteMany({ where: { userId: users } });
+  await prisma.playerRiskSignal.deleteMany({ where: { userId: users } });
+  await prisma.playBreak.deleteMany({ where: { userId: users } });
+  await prisma.kycSubmission.deleteMany({ where: { userId: users } });
+  const complaints = await prisma.complaint.findMany({
+    where: { userId: users },
+    select: { id: true },
+  });
+  await prisma.complaintEvent.deleteMany({
+    where: { complaintId: { in: complaints.map((complaint) => complaint.id) } },
+  });
+  await prisma.complaint.deleteMany({ where: { userId: users } });
+  const cases = await prisma.amlCase.findMany({
+    where: { OR: [{ userId: users }, { relatedUserId: users }] },
+    select: { id: true },
+  });
+  await prisma.amlCaseNote.deleteMany({
+    where: { caseId: { in: cases.map((amlCase) => amlCase.id) } },
+  });
+  await prisma.amlCase.deleteMany({ where: { id: { in: cases.map((amlCase) => amlCase.id) } } });
+}
+
 // ---------------------------------------------------------------------------
 // Rollback transaction wrapper (reuse pattern from unit tests)
 // ---------------------------------------------------------------------------
@@ -671,6 +704,12 @@ async function resolveRouteHandler(
       "../../src/app/api/responsible-play/deposit-limits/route.js"
     );
     return { handler: method === "PUT" ? mod.PUT : mod.DELETE };
+  }
+  if (path === "/api/responsible-play/break/return") {
+    const mod = await import(
+      "../../src/app/api/responsible-play/break/return/route.js"
+    );
+    return { handler: mod.POST };
   }
   if (path === "/api/responsible-play/break") {
     const mod = await import(

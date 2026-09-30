@@ -1,7 +1,8 @@
 // =============================================================================
 // PlayStake — Deposit Limit Activation Worker
 // =============================================================================
-// Folds matured deposit-limit increases into the active limit.
+// Folds matured deposit-limit increases into the active limit, and deletes
+// limits whose staged removal has matured.
 //
 // This worker is a tidying pass, not a control. A staged increase whose
 // effective time has passed is already treated as active by
@@ -32,6 +33,13 @@ async function processActivationScan(
   const now = new Date();
 
   await notifyEndedBreaks(now);
+
+  const removed = await prisma.depositLimit.deleteMany({
+    where: { pendingRemoval: true, pendingEffectiveAt: { lte: now } },
+  });
+  if (removed.count > 0) {
+    log("info", "deposit_limit_removals_applied", { count: removed.count });
+  }
 
   const matured = await prisma.depositLimit.findMany({
     where: {

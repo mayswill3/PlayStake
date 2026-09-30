@@ -94,6 +94,8 @@ async function makeUser(displayName: string): Promise<{ id: string }> {
       displayName,
       role: "PLAYER",
       emailVerified: true,
+      // Age and identity verified: the gate for any stake.
+      kycStatus: "VERIFIED",
     },
   });
   createdUserIds.push(user.id);

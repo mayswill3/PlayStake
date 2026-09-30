@@ -67,12 +67,114 @@ enum PlayerRiskType {
   LOSS_CHASING_STAKES
   /// Repeatedly topping up immediately after losing.
   LOSS_CHASING_DEPOSITS
+  /// Many deposits in a short window.
+  DEPOSIT_VELOCITY
+  /// Deposits over a rolling 30 days above the affordability-review threshold.
+  HIGH_DEPOSIT_VOLUME
+  /// Sustained wagering in the small hours (UK time).
+  LATE_NIGHT_PLAY
 }
 
 enum PlayerRiskStatus {
   OPEN
   REVIEWED
   DISMISSED
+}
+
+/// Whether an account may be used. Anything other than ACTIVE blocks
+/// wagering and deposits; CLOSED states also block login.
+enum AccountStatus {
+  ACTIVE
+  /// Temporarily restricted pending review (AML, fraud, affordability).
+  SUSPENDED
+  /// Closed at the customer's or operator's request.
+  CLOSED
+  /// Closed because the customer was found to be under 18.
+  CLOSED_UNDERAGE
+}
+
+/// Result of the latest GAMSTOP (national self-exclusion) lookup.
+enum GamstopStatus {
+  NOT_EXCLUDED
+  EXCLUDED
+  /// Was registered with GAMSTOP; the exclusion has lapsed.
+  PREVIOUSLY_EXCLUDED
+}
+
+/// How the business reached out after a marker of harm.
+enum InteractionType {
+  /// Shown in-app until the customer acknowledges it.
+  AUTOMATED_MESSAGE
+  EMAIL
+  PHONE_CALL
+  DEPOSIT_LIMIT_APPLIED
+  COOL_OFF_APPLIED
+  ACCOUNT_RESTRICTED
+  NOTE
+}
+
+/// What happened after an interaction — the "evaluate" step.
+enum InteractionOutcome {
+  PENDING
+  ACKNOWLEDGED
+  CUSTOMER_SET_LIMIT
+  CUSTOMER_TOOK_BREAK
+  BEHAVIOUR_IMPROVED
+  BEHAVIOUR_UNCHANGED
+  ESCALATED
+  NO_RESPONSE
+}
+
+enum ComplaintCategory {
+  ACCOUNT
+  PAYMENTS
+  WITHDRAWALS
+  BET_OR_RESULT
+  REFEREE
+  RESPONSIBLE_GAMBLING
+  TECHNICAL
+  OTHER
+}
+
+enum ComplaintStatus {
+  OPEN
+  INVESTIGATING
+  AWAITING_CUSTOMER
+  /// A final response has been issued; the customer may now go to ADR.
+  FINAL_RESPONSE_ISSUED
+}
+
+enum ComplaintOutcome {
+  UPHELD
+  PARTIALLY_UPHELD
+  NOT_UPHELD
+}
+
+enum AmlCaseType {
+  /// Value passed between the same accounts through repeated one-sided results.
+  CHIP_DUMPING
+  /// Money deposited and withdrawn with little or no play in between.
+  DEPOSIT_WITHDRAW_NO_PLAY
+  /// Deposits over the enhanced-due-diligence threshold (source of funds).
+  HIGH_DEPOSIT_VOLUME
+  /// The same identity document or name + date of birth on another account.
+  SHARED_IDENTITY
+  /// Accounts repeatedly signing in from the same IP address.
+  SHARED_IP
+  CHARGEBACK
+  /// Registration date of birth doesn't match the identity document.
+  DOB_MISMATCH
+  MANUAL
+}
+
+enum AmlCaseStatus {
+  OPEN
+  INVESTIGATING
+  ESCALATED_TO_MLRO
+  /// MLRO filed a Suspicious Activity Report with the NCA.
+  SAR_SUBMITTED
+  CLOSED_NO_ACTION
+  CLOSED_ACTION_TAKEN
 }
 
 enum AuthTokenType {
@@ -226,6 +328,18 @@ model User {
   twoFactorSecret               String?   @map("two_factor_secret") @db.VarChar(512)
   twoFactorLastUsedStep         Int?      @map("two_factor_last_used_step")
   lastLoginAt                   DateTime? @map("last_login_at")
+  /// Date of birth declared at registration; checked against the ID document.
+  dateOfBirth                   DateTime? @map("date_of_birth") @db.Date
+  /// When the customer confirmed they are 18 or over.
+  ageConfirmedAt                DateTime? @map("age_confirmed_at")
+  /// Opt-in to promotional email. Never sent while self-excluded.
+  marketingConsent              Boolean   @default(false) @map("marketing_consent")
+  marketingConsentAt            DateTime? @map("marketing_consent_at")
+  accountStatus                 AccountStatus @default(ACTIVE) @map("account_status")
+  accountStatusReason           String?   @map("account_status_reason") @db.VarChar(500)
+  accountStatusChangedAt        DateTime? @map("account_status_changed_at")
+  gamstopStatus                 GamstopStatus? @map("gamstop_status")
+  gamstopCheckedAt              DateTime? @map("gamstop_checked_at")
   createdAt                     DateTime  @default(now()) @map("created_at")
   updatedAt                     DateTime  @updatedAt @map("updated_at")
   deletedAt                     DateTime? @map("deleted_at")
@@ -259,12 +373,23 @@ model User {
   emailOutbox          EmailOutbox[]
   chatMessages         MatchChatMessage[]       @relation("ChatAuthor")
   chatModerations      MatchChatMessage[]       @relation("ChatModerator")
+  interactions         CustomerInteraction[]    @relation("InteractionSubject")
+  interactionsAuthored CustomerInteraction[]    @relation("InteractionAuthor")
+  complaints           Complaint[]              @relation("ComplaintCustomer")
+  complaintsHandled    Complaint[]              @relation("ComplaintHandler")
+  complaintEvents      ComplaintEvent[]
+  amlCases             AmlCase[]                @relation("AmlSubject")
+  amlCasesRelated      AmlCase[]                @relation("AmlRelated")
+  amlCasesAssigned     AmlCase[]                @relation("AmlAssignee")
+  amlCaseNotes         AmlCaseNote[]
+  adminAuditActions    AdminAuditLog[]
 
   @@index([email], map: "idx_user_email")
   @@index([stripeCustomerId], map: "idx_user_stripe_customer")
   @@index([stripeConnectAccountId], map: "idx_user_stripe_connect_account")
   @@index([role], map: "idx_user_role")
   @@index([createdAt], map: "idx_user_created_at")
+  @@index([accountStatus], map: "idx_user_account_status")
   @@map("users")
 }
 
@@ -789,6 +914,8 @@ model BetaSignup {
   playerType  String   @map("player_type") @db.VarChar(50)
   isDemo      Boolean  @default(false) @map("is_demo")
   consentedAt DateTime @map("consented_at")
+  /// Set when they opt out; no further updates are sent.
+  unsubscribedAt DateTime? @map("unsubscribed_at")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -939,7 +1066,7 @@ model KycSubmission {
   createdAt      DateTime            @default(now()) @map("created_at")
   updatedAt      DateTime            @updatedAt @map("updated_at")
 
-  user       User          @relation("KycSubject", fields: [userId], references: [id], onDelete: Cascade)
+  user       User          @relation("KycSubject", fields: [userId], references: [id], onDelete: Restrict)
   reviewedBy User?         @relation("KycReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   documents  KycDocument[]
 
@@ -985,6 +1112,9 @@ model DepositLimit {
   amount             Decimal            @db.Decimal(14, 2)
   pendingAmount      Decimal?           @map("pending_amount") @db.Decimal(14, 2)
   pendingEffectiveAt DateTime?          @map("pending_effective_at")
+  /// Removing a limit loosens it, so it is staged like an increase: the row
+  /// stays in force until pendingEffectiveAt, then goes.
+  pendingRemoval     Boolean            @default(false) @map("pending_removal")
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
 
@@ -995,17 +1125,23 @@ model DepositLimit {
   @@map("deposit_limits")
 }
 
-/// A cool-off or self-exclusion period. Rows are immutable once written: a
+/// A cool-off or self-exclusion period. The period itself is immutable: a
 /// break cannot be shortened or lifted early, which is the entire point.
+///
+/// A self-exclusion does not lapse on its own. Once `endsAt` passes the
+/// customer must ask to return (`returnRequestedAt`), and access resumes a
+/// cooling-off period later (`returnEffectiveAt`).
 model PlayBreak {
-  id        String        @id @default(uuid()) @db.Uuid
-  userId    String        @map("user_id") @db.Uuid
-  type      PlayBreakType
-  startsAt  DateTime      @map("starts_at")
-  endsAt    DateTime      @map("ends_at")
-  createdAt DateTime      @default(now()) @map("created_at")
+  id                String        @id @default(uuid()) @db.Uuid
+  userId            String        @map("user_id") @db.Uuid
+  type              PlayBreakType
+  startsAt          DateTime      @map("starts_at")
+  endsAt            DateTime      @map("ends_at")
+  returnRequestedAt DateTime?     @map("return_requested_at")
+  returnEffectiveAt DateTime?     @map("return_effective_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId, endsAt], map: "idx_play_break_user_active")
   @@map("play_breaks")
@@ -1029,11 +1165,14 @@ model PlayerRiskSignal {
   windowEnd    DateTime         @map("window_end")
   reviewedById String?          @map("reviewed_by_id") @db.Uuid
   reviewedAt   DateTime?        @map("reviewed_at")
+  /// What the reviewer concluded and why.
+  reviewNotes  String?          @map("review_notes") @db.Text
   createdAt    DateTime         @default(now()) @map("created_at")
   updatedAt    DateTime         @updatedAt @map("updated_at")
 
-  user       User  @relation("PlayerRiskSubject", fields: [userId], references: [id], onDelete: Cascade)
-  reviewedBy User? @relation("PlayerRiskReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  user         User                  @relation("PlayerRiskSubject", fields: [userId], references: [id], onDelete: Restrict)
+  reviewedBy   User?                 @relation("PlayerRiskReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  interactions CustomerInteraction[]
 
   @@index([status, createdAt], map: "idx_player_risk_status")
   @@index([userId, type, createdAt], map: "idx_player_risk_user_type")
@@ -1099,4 +1238,168 @@ model EmailOutbox {
   @@index([status, nextAttemptAt], map: "idx_email_outbox_due")
   @@index([userId, createdAt], map: "idx_email_outbox_user")
   @@map("email_outbox")
+}
+
+// =============================================================================
+// CUSTOMER INTERACTION (harm prevention: identify, act, evaluate)
+// =============================================================================
+
+/// One step taken with a customer after a marker of harm: an automated
+/// message, a call, an applied restriction. `outcome` records what followed,
+/// so the effectiveness of interactions can be evaluated.
+model CustomerInteraction {
+  id                String             @id @default(uuid()) @db.Uuid
+  userId            String             @map("user_id") @db.Uuid
+  riskSignalId      String?            @map("risk_signal_id") @db.Uuid
+  type              InteractionType
+  /// What the customer was told, or what was done.
+  message           String             @db.Text
+  /// Null when sent automatically.
+  createdById       String?            @map("created_by_id") @db.Uuid
+  /// For AUTOMATED_MESSAGE: when the customer dismissed it in-app.
+  acknowledgedAt    DateTime?          @map("acknowledged_at")
+  outcome           InteractionOutcome @default(PENDING)
+  outcomeNotes      String?            @map("outcome_notes") @db.Text
+  outcomeRecordedAt DateTime?          @map("outcome_recorded_at")
+  followUpAt        DateTime?          @map("follow_up_at")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  user       User              @relation("InteractionSubject", fields: [userId], references: [id], onDelete: Restrict)
+  createdBy  User?             @relation("InteractionAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  riskSignal PlayerRiskSignal? @relation(fields: [riskSignalId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt], map: "idx_interaction_user")
+  @@index([userId, type, acknowledgedAt], map: "idx_interaction_unacknowledged")
+  @@index([outcome, followUpAt], map: "idx_interaction_follow_up")
+  @@map("customer_interactions")
+}
+
+// =============================================================================
+// COMPLAINTS (with ADR escalation)
+// =============================================================================
+
+/// A customer complaint. Distinct from a bet Dispute: a complaint can be about
+/// anything, has a reference number, and must get a final response within
+/// eight weeks, after which the customer may take it to the ADR provider.
+model Complaint {
+  id                 String            @id @default(uuid()) @db.Uuid
+  /// Human-readable, quoted in every email: PS-C-2026-000123.
+  reference          String            @unique @db.VarChar(24)
+  userId             String?           @map("user_id") @db.Uuid
+  name               String            @db.VarChar(120)
+  email              String            @db.VarChar(255)
+  category           ComplaintCategory
+  description        String            @db.Text
+  betId              String?           @map("bet_id") @db.Uuid
+  status             ComplaintStatus   @default(OPEN)
+  receivedAt         DateTime          @default(now()) @map("received_at")
+  acknowledgedAt     DateTime?         @map("acknowledged_at")
+  /// receivedAt + 8 weeks.
+  finalResponseDueAt DateTime          @map("final_response_due_at")
+  finalResponse      String?           @map("final_response") @db.Text
+  finalResponseAt    DateTime?         @map("final_response_at")
+  outcome            ComplaintOutcome?
+  handledById        String?           @map("handled_by_id") @db.Uuid
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+
+  user      User?            @relation("ComplaintCustomer", fields: [userId], references: [id], onDelete: Restrict)
+  handledBy User?            @relation("ComplaintHandler", fields: [handledById], references: [id], onDelete: SetNull)
+  events    ComplaintEvent[]
+
+  @@index([status, finalResponseDueAt], map: "idx_complaint_status_due")
+  @@index([userId, createdAt], map: "idx_complaint_user")
+  @@index([email], map: "idx_complaint_email")
+  @@map("complaints")
+}
+
+/// The complaint's history: notes, status changes, messages to the customer.
+model ComplaintEvent {
+  id                String   @id @default(uuid()) @db.Uuid
+  complaintId       String   @map("complaint_id") @db.Uuid
+  actorId           String?  @map("actor_id") @db.Uuid
+  type              String   @db.VarChar(40)
+  body              String?  @db.Text
+  visibleToCustomer Boolean  @default(false) @map("visible_to_customer")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Restrict)
+  actor     User?     @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([complaintId, createdAt], map: "idx_complaint_event_thread")
+  @@map("complaint_events")
+}
+
+// =============================================================================
+// ANTI-MONEY LAUNDERING
+// =============================================================================
+
+/// A suspicion for the MLRO to look at. Raised automatically by the AML scan
+/// or by staff; escalations and SAR decisions are recorded here, the SAR
+/// itself is filed with the NCA outside the platform.
+model AmlCase {
+  id            String        @id @default(uuid()) @db.Uuid
+  userId        String        @map("user_id") @db.Uuid
+  /// The other account involved, e.g. the counterparty in chip dumping.
+  relatedUserId String?       @map("related_user_id") @db.Uuid
+  type          AmlCaseType
+  status        AmlCaseStatus @default(OPEN)
+  severity      String        @db.VarChar(20)
+  details       Json
+  assignedToId  String?       @map("assigned_to_id") @db.Uuid
+  /// The MLRO's reasoning for escalating, reporting or closing.
+  mlroDecision  String?       @map("mlro_decision") @db.Text
+  /// NCA reference once a SAR is submitted.
+  sarReference  String?       @map("sar_reference") @db.VarChar(100)
+  closedAt      DateTime?     @map("closed_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  user        User          @relation("AmlSubject", fields: [userId], references: [id], onDelete: Restrict)
+  relatedUser User?         @relation("AmlRelated", fields: [relatedUserId], references: [id], onDelete: Restrict)
+  assignedTo  User?         @relation("AmlAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  notes       AmlCaseNote[]
+
+  @@index([status, createdAt], map: "idx_aml_case_status")
+  @@index([userId, type, status], map: "idx_aml_case_user_type")
+  @@map("aml_cases")
+}
+
+model AmlCaseNote {
+  id        String   @id @default(uuid()) @db.Uuid
+  caseId    String   @map("case_id") @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  body      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  amlCase AmlCase @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  author  User    @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([caseId, createdAt], map: "idx_aml_note_case")
+  @@map("aml_case_notes")
+}
+
+// =============================================================================
+// ADMIN AUDIT LOG
+// =============================================================================
+
+/// Every privileged action taken by staff. Append-only: a database trigger
+/// rejects UPDATE and DELETE.
+model AdminAuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String   @map("actor_id") @db.Uuid
+  action     String   @db.VarChar(80)
+  targetType String   @map("target_type") @db.VarChar(40)
+  targetId   String?  @map("target_id") @db.VarChar(64)
+  details    Json
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([actorId, createdAt], map: "idx_admin_audit_actor")
+  @@index([targetType, targetId], map: "idx_admin_audit_target")
+  @@index([createdAt], map: "idx_admin_audit_created")
+  @@map("admin_audit_logs")
 }

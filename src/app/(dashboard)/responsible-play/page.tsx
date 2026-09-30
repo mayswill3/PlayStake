@@ -18,6 +18,7 @@ interface Limit {
   amountCents: number;
   pendingAmountCents: number | null;
   pendingEffectiveAt: string | null;
+  pendingRemoval: boolean;
   usedCents: number;
   remainingCents: number;
 }
@@ -30,7 +31,14 @@ interface BreakOption {
 
 interface State {
   limits: Limit[];
-  activeBreak: null | { type: BreakType; startsAt: string; endsAt: string };
+  activeBreak: null | {
+    type: BreakType;
+    startsAt: string;
+    endsAt: string;
+    /** A self-exclusion whose period has ended; the customer hasn't returned yet. */
+    awaitingReturn: boolean;
+    returnEffectiveAt: string | null;
+  };
   sessionReminderMinutes: number | null;
   options: {
     breaks: Record<BreakType, BreakOption[]>;
@@ -71,6 +79,7 @@ export default function ResponsiblePlayPage() {
     type: BreakType;
     option: BreakOption;
   } | null>(null);
+  const [confirmingReturn, setConfirmingReturn] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -132,11 +141,19 @@ export default function ResponsiblePlayPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ period, scope }),
       });
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        toast('error', 'Could not update that limit.');
+        toast('error', data.error ?? 'Could not update that limit.');
         return;
       }
-      toast('success', scope === 'pending' ? 'Pending increase cancelled.' : 'Limit removed.');
+      toast(
+        'success',
+        scope === 'pending'
+          ? 'Pending change cancelled.'
+          : data.effectiveAt
+            ? `Your limit will be removed on ${formatDateTime(data.effectiveAt)}. It stays in force until then.`
+            : 'Limit removed.',
+      );
       await load();
     } finally {
       setBusy(false);
@@ -165,6 +182,27 @@ export default function ResponsiblePlayPage() {
 
       setBreakDraft(null);
       toast('success', 'Your break has started.');
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function requestReturn() {
+    setBusy(true);
+    try {
+      const response = await fetch('/api/responsible-play/break/return', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ acknowledged: true }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        toast('error', data.error ?? 'Could not process that request.');
+        return;
+      }
+      setConfirmingReturn(false);
+      toast('success', `Your account reopens on ${formatDateTime(data.returnEffectiveAt)}.`);
       await load();
     } finally {
       setBusy(false);
@@ -218,15 +256,44 @@ export default function ResponsiblePlayPage() {
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[var(--ps-warning)]" />
             <div>
               <CardTitle>
-                {state.activeBreak.type === 'SELF_EXCLUSION'
-                  ? 'You are self-excluded'
-                  : 'You are on a cool-off break'}
+                {state.activeBreak.type === 'COOL_OFF'
+                  ? 'You are on a cool-off break'
+                  : state.activeBreak.awaitingReturn
+                    ? 'Your self-exclusion period has ended'
+                    : 'You are self-excluded'}
               </CardTitle>
-              <p className="mt-1 text-sm text-fg-secondary">
-                Deposits and betting are blocked until{' '}
-                <strong>{formatDateTime(state.activeBreak.endsAt)}</strong>. You can
-                still withdraw your balance. This cannot be lifted early.
-              </p>
+              {state.activeBreak.returnEffectiveAt ? (
+                <p className="mt-1 text-sm text-fg-secondary">
+                  You asked to return. Deposits and betting reopen on{' '}
+                  <strong>{formatDateTime(state.activeBreak.returnEffectiveAt)}</strong>, after a
+                  24-hour cooling-off period.
+                </p>
+              ) : state.activeBreak.awaitingReturn ? (
+                <>
+                  <p className="mt-1 text-sm text-fg-secondary">
+                    Your account stays closed to gambling until you choose to come back. If you
+                    ask to return, deposits and betting reopen 24 hours later. You can still
+                    withdraw your balance.
+                  </p>
+                  <PSButton
+                    size="sm"
+                    variant="secondary"
+                    className="mt-3"
+                    disabled={busy}
+                    onClick={() => setConfirmingReturn(true)}
+                  >
+                    Return to PlayStake
+                  </PSButton>
+                </>
+              ) : (
+                <p className="mt-1 text-sm text-fg-secondary">
+                  Deposits and betting are blocked until{' '}
+                  <strong>{formatDateTime(state.activeBreak.endsAt)}</strong>. You can still
+                  withdraw your balance. This cannot be lifted early.
+                  {state.activeBreak.type === 'SELF_EXCLUSION' &&
+                    ' When it ends, your account stays closed until you ask to return.'}
+                </p>
+              )}
             </div>
           </div>
         </Card>
@@ -240,7 +307,7 @@ export default function ResponsiblePlayPage() {
             <CardTitle>Deposit limits</CardTitle>
             <CardDescription>
               Caps how much you can deposit in a rolling period. Lowering a limit
-              applies straight away; raising one takes 24 hours.
+              applies straight away; raising or removing one takes 24 hours.
             </CardDescription>
           </div>
         </div>
@@ -280,6 +347,22 @@ export default function ResponsiblePlayPage() {
                   </div>
                 )}
 
+                {limit?.pendingRemoval && limit.pendingEffectiveAt && (
+                  <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+                    <p className="text-[var(--ps-warning)]">
+                      This limit will be removed {formatDateTime(limit.pendingEffectiveAt)}.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => removeLimit(period, 'pending')}
+                      disabled={busy}
+                      className="underline text-fg-secondary"
+                    >
+                      Keep my limit
+                    </button>
+                  </div>
+                )}
+
                 {limit?.pendingAmountCents && limit.pendingEffectiveAt && (
                   <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
                     <p className="text-[var(--ps-warning)]">
@@ -316,7 +399,7 @@ export default function ResponsiblePlayPage() {
                   <PSButton size="sm" onClick={() => saveLimit(period)} loading={busy}>
                     Save
                   </PSButton>
-                  {limit && (
+                  {limit && !limit.pendingRemoval && (
                     <PSButton
                       size="sm"
                       variant="ghost"
@@ -370,7 +453,8 @@ export default function ResponsiblePlayPage() {
           <div>
             <h3 className="text-sm font-semibold text-fg">Self-exclusion</h3>
             <p className="mb-2 text-sm text-fg-secondary">
-              A long-term block for when betting has stopped being fun.
+              A long-term block for when betting has stopped being fun. When it ends, your
+              account stays closed until you ask to return.
             </p>
             <div className="flex flex-wrap gap-2">
               {state.options.breaks.SELF_EXCLUSION.map((option) => (
@@ -385,6 +469,22 @@ export default function ResponsiblePlayPage() {
                 </PSButton>
               ))}
             </div>
+            <p className="mt-3 text-xs text-fg-secondary">
+              To block yourself from every UK-licensed gambling site at once, register free
+              with{' '}
+              <a href="https://www.gamstop.co.uk" target="_blank" rel="noreferrer" className="underline">
+                GAMSTOP
+              </a>
+              . For free, confidential support, contact{' '}
+              <a href="https://www.gamcare.org.uk" target="_blank" rel="noreferrer" className="underline">
+                GamCare
+              </a>{' '}
+              on 0808 8020 133 or visit{' '}
+              <a href="https://www.begambleaware.org" target="_blank" rel="noreferrer" className="underline">
+                BeGambleAware
+              </a>
+              .
+            </p>
           </div>
         </div>
       </Card>
@@ -455,7 +555,41 @@ export default function ResponsiblePlayPage() {
           </p>
           <p>
             You will still be able to sign in and withdraw your balance. Bets already
-            in play will settle as normal.
+            in play will settle as normal; anything you are waiting on in a lobby, and
+            challenges you have sent or received, will be withdrawn.
+          </p>
+          {breakDraft?.type === 'SELF_EXCLUSION' && (
+            <p>
+              When the period ends your account stays closed to gambling until you ask to
+              return, and then reopens 24 hours later.
+            </p>
+          )}
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={confirmingReturn}
+        onClose={() => setConfirmingReturn(false)}
+        title="Return to PlayStake?"
+        actions={
+          <div className="flex flex-wrap gap-3">
+            <PSButton onClick={requestReturn} loading={busy}>
+              Yes, reopen my account
+            </PSButton>
+            <PSButton variant="ghost" onClick={() => setConfirmingReturn(false)}>
+              Stay excluded
+            </PSButton>
+          </div>
+        }
+      >
+        <div className="space-y-2 text-sm text-fg-secondary">
+          <p>
+            Your account will reopen for deposits and betting <strong className="text-fg">24 hours</strong>{' '}
+            after you confirm. You can set deposit limits before then.
+          </p>
+          <p>
+            If you are not sure, it is fine to stay excluded. Free, confidential support is
+            available from GamCare on 0808 8020 133.
           </p>
         </div>
       </Dialog>

@@ -53,15 +53,20 @@ export const DELETE = withSessionAuth(async (request, _context, auth) => {
     }
 
     const period = parsed.data.period as DepositLimitPeriod;
+    let effectiveAt: Date | null = null;
     if (parsed.data.scope === "pending") {
       await cancelPendingIncrease(auth.userId, period);
     } else {
       // Dropping a limit loosens things, so it goes through the same staged
       // path as a raise rather than taking effect at once.
-      await removeDepositLimit(auth.userId, period);
+      effectiveAt = (await removeDepositLimit(auth.userId, period))?.effectiveAt ?? null;
     }
 
-    return Response.json({ period, scope: parsed.data.scope });
+    return Response.json({
+      period,
+      scope: parsed.data.scope,
+      effectiveAt: effectiveAt?.toISOString() ?? null,
+    });
   } catch (error) {
     return errorResponse(error);
   }

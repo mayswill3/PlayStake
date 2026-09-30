@@ -13,9 +13,12 @@
 import { EmailOutboxStatus, type Prisma } from "../../../generated/prisma/client";
 import { prisma } from "@/lib/db/client";
 import type { TxClient } from "@/lib/db/client";
+import { AccountStatus, GamstopStatus } from "../../../generated/prisma/client";
+import { getActiveBreak } from "@/lib/responsible-play/service";
 import {
   isEssential,
   isKnownTemplate,
+  isMarketing,
   renderEmail,
   type EmailPayload,
   type EmailTemplateName,
@@ -38,9 +41,10 @@ export interface QueueEmailInput<N extends EmailTemplateName> {
 /**
  * Queue an email. Pass `tx` to write it in the same transaction as the event.
  *
- * Skips silently when the user has turned off optional emails, or when there's
- * no address to send to. Duplicate dedupeKeys are ignored, so a retried worker
- * job never sends twice.
+ * Skips silently when there's no address to send to, and for any
+ * non-essential email when the user has turned optional emails off or must
+ * not be contacted (see mayReceiveOptionalEmail). Duplicate dedupeKeys are
+ * ignored, so a retried worker job never sends twice.
  */
 export async function queueEmail<N extends EmailTemplateName>(
   input: QueueEmailInput<N>,
@@ -52,10 +56,19 @@ export async function queueEmail<N extends EmailTemplateName>(
   if (!toEmail && input.userId) {
     const user = await client.user.findUnique({
       where: { id: input.userId },
-      select: { email: true, emailNotifications: true },
+      select: {
+        email: true,
+        emailNotifications: true,
+        marketingConsent: true,
+        accountStatus: true,
+        gamstopStatus: true,
+      },
     });
     if (!user) return;
-    if (!isEssential(input.template) && !user.emailNotifications) return;
+    if (!isEssential(input.template) && !(await mayReceiveOptionalEmail(input.userId, user))) {
+      return;
+    }
+    if (isMarketing(input.template) && !user.marketingConsent) return;
     toEmail = user.email;
   }
   if (!toEmail) return;
@@ -75,6 +88,25 @@ export async function queueEmail<N extends EmailTemplateName>(
     if ((error as { code?: string }).code === "P2002") return;
     throw error;
   }
+}
+
+/**
+ * Whether a user may receive non-essential email. Self-excluded customers,
+ * anyone on a cool-off, anyone registered with GAMSTOP and restricted
+ * accounts get only essential (security, money, responsible-play) email.
+ */
+async function mayReceiveOptionalEmail(
+  userId: string,
+  user: {
+    emailNotifications: boolean;
+    accountStatus: AccountStatus;
+    gamstopStatus: GamstopStatus | null;
+  },
+): Promise<boolean> {
+  if (!user.emailNotifications) return false;
+  if (user.accountStatus !== AccountStatus.ACTIVE) return false;
+  if (user.gamstopStatus === GamstopStatus.EXCLUDED) return false;
+  return (await getActiveBreak(userId)) === null;
 }
 
 /**

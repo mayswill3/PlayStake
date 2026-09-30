@@ -13,6 +13,7 @@ import {
   createTestUser,
   disconnectTestPrisma,
   getTestPrisma,
+  purgeComplianceRecords,
 } from "./helpers.js";
 import type { TxClient } from "../../src/lib/db/client.js";
 import {
@@ -77,6 +78,7 @@ afterAll(async () => {
   await prisma.ledgerAccount.deleteMany({
     where: { userId: { in: createdUserIds } },
   });
+  await purgeComplianceRecords(prisma, createdUserIds);
   await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
   await disconnectTestPrisma();
 });

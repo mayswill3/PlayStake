@@ -11,7 +11,13 @@
 import { describe, it, expect, afterEach, afterAll, beforeAll } from "vitest";
 import * as crypto from "crypto";
 import { Decimal } from "@prisma/client/runtime/client";
-import { getTestPrisma, disconnectTestPrisma, createTestSession, callApi } from "./helpers.js";
+import {
+  getTestPrisma,
+  disconnectTestPrisma,
+  createTestSession,
+  callApi,
+  purgeComplianceRecords,
+} from "./helpers.js";
 import {
   createChallenge,
   runLobbyExpiryScan,
@@ -88,6 +94,7 @@ afterEach(async () => {
   await prisma.session.deleteMany({ where: { userId: { in: createdUserIds } } });
   await prisma.kickAccount.deleteMany({ where: { userId: { in: createdUserIds } } });
   await prisma.bet.deleteMany({ where: { id: { in: betIds } } });
+  await purgeComplianceRecords(prisma, createdUserIds);
   await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
   createdUserIds.length = 0;
 });
@@ -104,6 +111,8 @@ async function makeUser(displayName: string): Promise<{ id: string }> {
       displayName,
       role: "PLAYER",
       emailVerified: true,
+      // Age and identity verified: the gate for any stake.
+      kycStatus: "VERIFIED",
     },
   });
   createdUserIds.push(user.id);
@@ -223,6 +232,42 @@ describe("Challenge inbox", () => {
     // Invite is consumed — inbox is now empty for the streamer.
     const inbox = await callApi("GET", "/api/lobby/invites", { sessionToken: streamerToken });
     expect(inbox.body.invites).toHaveLength(0);
+  });
+
+  it("won't lock the challenger's stake if they have self-excluded since challenging", async () => {
+    const slug = `excluded-${crypto.randomUUID().substring(0, 8)}`;
+    const streamer = await makeLiveStreamer(slug);
+    const viewer = await makeUser("Viewer");
+    await fundUser(viewer.id, 50);
+    await fundUser(streamer.id, 50);
+
+    const challenge = await createChallenge({
+      challengerUserId: viewer.id,
+      streamerChannelSlug: slug,
+      stakeAmount: 500,
+    });
+    // Recorded directly so the challenge survives: starting a break through
+    // the service would also withdraw it.
+    await prisma.playBreak.create({
+      data: {
+        userId: viewer.id,
+        type: "SELF_EXCLUSION",
+        startsAt: new Date(),
+        endsAt: new Date(Date.now() + 182 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    const res = await callApi("POST", "/api/lobby/respond", {
+      sessionToken: await sessionFor(streamer.id),
+      body: { lobbyEntryId: challenge.streamerLobbyEntryId, response: "ACCEPT" },
+    });
+
+    expect(res.status).toBe(409);
+    // The reason is the challenger's business, not the streamer's.
+    expect(res.body.error).toMatch(/isn't available/);
+    expect(res.body.error).not.toMatch(/exclu/i);
+    expect(await balanceCents(viewer.id)).toBe(5000);
+    expect(await balanceCents(streamer.id)).toBe(5000);
   });
 
   it("a declined challenge no longer surfaces in the inbox", async () => {

@@ -279,6 +279,8 @@ export interface InviteResult {
 
 export async function inviteLobbyPlayer(input: InviteInput): Promise<InviteResult> {
   const now = new Date();
+  // Inviting commits the caller's stake if the invite is accepted.
+  await assertCanWager(input.callerUserId, now);
   const inviteExpiresAt = new Date(now.getTime() + LOBBY_INVITE_TTL_MS);
 
   const result = await prisma.$transaction(async (tx) => {
@@ -772,6 +774,22 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
     where: { id: resolvedGameId },
     select: { platformFeePercent: true },
   });
+
+  // The opponent's stake is locked on acceptance too, so they must still be
+  // allowed to gamble — they may have self-excluded, been suspended, or
+  // turned up on GAMSTOP since they joined or challenged. Why they can't play
+  // is theirs to know, not the accepter's.
+  const opponentUserId = streamChallengePreview?.challengerUserId ?? entryPreview.invitedById;
+  if (opponentUserId) {
+    try {
+      await assertCanWager(opponentUserId, now);
+    } catch (err) {
+      if (err instanceof AppError && err.statusCode < 500) {
+        throw new ConflictError("That player isn't available to play right now.");
+      }
+      throw err;
+    }
+  }
 
   // Stream challenges are accepted only while both connected Kick channels are
   // still live on the same game. This is repeated inside the consent handoff so
@@ -1568,5 +1586,3 @@ export function parseLobbyRole(value: unknown): LobbyRole {
 // Re-export for routes
 export { LobbyRole, LobbyStatus } from "../../../generated/prisma/client";
 
-// Silence unused AppError in case the file grows
-void AppError;

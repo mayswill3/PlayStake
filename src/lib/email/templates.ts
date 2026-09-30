@@ -7,7 +7,12 @@
 //
 // `essential: true` means the email always sends — security, money and
 // responsible-play messages. Everything else respects the user's
-// emailNotifications preference.
+// emailNotifications preference, and is never sent to anyone self-excluded,
+// on a break, registered with GAMSTOP, or with a restricted account.
+//
+// `marketing: true` marks promotional email. It additionally needs the
+// user's explicit marketing consent. (No template is marketing today; the
+// flag exists so one can never be added without those protections.)
 // =============================================================================
 
 import { appUrl, renderHtml, renderText, type EmailLayoutInput } from './layout';
@@ -20,6 +25,7 @@ export interface RenderedEmail {
 
 interface TemplateDefinition<P> {
   essential: boolean;
+  marketing?: boolean;
   subject: (payload: P) => string;
   content: (payload: P) => EmailLayoutInput;
 }
@@ -479,17 +485,32 @@ const TEMPLATES: { [N in EmailTemplateName]: TemplateDefinition<Payloads[N]> } =
   },
   'responsible.break-ended': {
     essential: true,
-    subject: () => 'Your PlayStake break has ended',
-    content: (p) => ({
-      eyebrow: 'Responsible play',
-      heading: 'Your account is active again',
-      name: p.name,
-      paragraphs: [
-        `Your ${p.kind.toLowerCase()} has ended, and you can deposit and play again.`,
-        'You can start another break or set deposit limits at any time.',
-      ],
-      cta: { label: 'Review your settings', url: appUrl('/responsible-play') },
-    }),
+    subject: (p) =>
+      p.kind.toLowerCase() === 'self exclusion'
+        ? 'Your PlayStake self-exclusion period has ended'
+        : 'Your PlayStake break has ended',
+    content: (p) =>
+      p.kind.toLowerCase() === 'self exclusion'
+        ? {
+            eyebrow: 'Responsible play',
+            heading: 'Your self-exclusion period has ended',
+            name: p.name,
+            paragraphs: [
+              'Your account stays closed to gambling. Nothing changes unless you choose to come back.',
+              'If you do want to return, you can ask to from Responsible play. Your account reopens 24 hours after you ask.',
+              'If you would rather stay excluded, you can start a new self-exclusion at any time. Free, confidential support is available from GamCare on 0808 8020 133 or at gamcare.org.uk.',
+            ],
+          }
+        : {
+            eyebrow: 'Responsible play',
+            heading: 'Your account is active again',
+            name: p.name,
+            paragraphs: [
+              `Your ${p.kind.toLowerCase()} has ended, and you can deposit and play again.`,
+              'You can start another break or set deposit limits at any time.',
+            ],
+            cta: { label: 'Review your settings', url: appUrl('/responsible-play') },
+          },
   },
   // ------------------------------------------------------------------- other
   'kick.connection-changed': {
@@ -540,6 +561,10 @@ const TEMPLATES: { [N in EmailTemplateName]: TemplateDefinition<Payloads[N]> } =
 /** Whether a template always sends, regardless of the user's preference. */
 export function isEssential(template: EmailTemplateName): boolean {
   return TEMPLATES[template].essential;
+}
+
+export function isMarketing(template: EmailTemplateName): boolean {
+  return TEMPLATES[template].marketing === true;
 }
 
 export function isKnownTemplate(template: string): template is EmailTemplateName {
