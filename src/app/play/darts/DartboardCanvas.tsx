@@ -2,25 +2,30 @@
 
 import { useRef, useEffect, useCallback } from 'react';
 
-// ── Board geometry ──────────────────────────────────────────────────────────
-const W = 900;
-const H = 550;
-const BOARD_CX = 450;
-const BOARD_CY = 272;
+import {
+  BOARD_W as W,
+  BOARD_H as H,
+  BOARD_CX,
+  BOARD_CY,
+  R_BULLSEYE,
+  R_BULL,
+  R_TREBLE_IN,
+  R_TREBLE_OUT,
+  R_DOUBLE_IN,
+  R_DOUBLE_OUT,
+  SEGMENTS,
+  MAX_HOLD_MS,
+  type DartThrow,
+  type DartsState,
+} from '@/lib/games/darts-board';
 
-// All radii scaled up ~1.2× for a larger, more imposing board
-const R_BULLSEYE  = 10;
-const R_BULL      = 20;
-const R_TREBLE_IN = 115;
-const R_TREBLE_OUT = 130;
-const R_DOUBLE_IN  = 190;
-const R_DOUBLE_OUT = 204;
+export type { DartThrow, DartsState };
+
+// ── Board geometry ──────────────────────────────────────────────────────────
+// Scoring geometry is shared with the server, which scores every dart.
 const R_WIRE       = 210; // outer wire / scoring boundary
 const R_NUMBERS    = 228; // number labels sit in the dark surround
 const R_SURROUND   = 242; // outer edge of the dark number surround
-
-// Clockwise from top: standard dartboard segment order
-const SEGMENTS = [20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5];
 
 // Realistic sisal colours: warm cream / dark black
 const SEG_COLORS: [string, string][] = [
@@ -30,81 +35,14 @@ const SEG_COLORS: [string, string][] = [
 const RED   = '#b81a1a';
 const GREEN = '#1a6622';
 
-// ── Types ────────────────────────────────────────────────────────────────────
-export interface DartThrow {
-  segment: number;
-  multiplier: 1 | 2 | 3;
-  score: number;
-  x: number; // canvas coords
-  y: number;
-}
-
-export interface DartsState {
-  scoreA: number;
-  scoreB: number;
-  currentTurn: 'A' | 'B';
-  dartsThrown: number;       // 0–2 within current turn
-  turnStartScore: number;
-  currentDarts: DartThrow[];
-  lastTurnResult: { player: 'A' | 'B'; total: number; wasBust: boolean } | null;
-  turnHistory: Array<{ player: 'A' | 'B'; total: number; wasBust: boolean; scoreAfter: number }>;
-  phase: 'aiming' | 'throwing' | 'showing' | 'bust' | 'finished';
-  winner: 'A' | 'B' | null;
-  message: string;
-  roundFlash: { label: string; timeMs: number } | null;
-}
-
 interface Props {
   gs: DartsState;
   role: 'A' | 'B' | null;
   isMyTurn: boolean;
-  onThrow: (landX: number, landY: number) => void;
+  /** Send the aim to the server; resolves with where the dart landed. */
+  onThrow: (aimX: number, aimY: number, holdMs: number) => Promise<{ x: number; y: number } | null>;
   displayNameA?: string;
   displayNameB?: string;
-}
-
-// ── Hit test ─────────────────────────────────────────────────────────────────
-export function hitTest(cx: number, cy: number, landX: number, landY: number): { segment: number; multiplier: 1 | 2 | 3; score: number } {
-  const dx = landX - cx;
-  const dy = landY - cy;
-  const r = Math.sqrt(dx * dx + dy * dy);
-
-  if (r < R_BULLSEYE) return { segment: 0, multiplier: 2, score: 50 };
-  if (r < R_BULL)     return { segment: 0, multiplier: 1, score: 25 };
-  if (r > R_DOUBLE_OUT) return { segment: 0, multiplier: 1, score: 0 }; // miss
-
-  // Angle from top, clockwise
-  const raw = Math.atan2(dy, dx); // -π to π, 0=right
-  // Rotate so 0=top, offset by half-segment so segment 20 is centered at top
-  const SEG_ANG = (2 * Math.PI) / 20;
-  const normalized = ((raw + Math.PI / 2 - SEG_ANG / 2) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
-  const segIdx = Math.floor(normalized / SEG_ANG);
-  const segment = SEGMENTS[segIdx % 20];
-
-  let multiplier: 1 | 2 | 3 = 1;
-  if (r >= R_TREBLE_IN && r < R_TREBLE_OUT) multiplier = 3;
-  else if (r >= R_DOUBLE_IN && r < R_DOUBLE_OUT) multiplier = 2;
-
-  return { segment, multiplier, score: segment * multiplier };
-}
-
-// ── Gaussian deviation (Box-Muller) ──────────────────────────────────────────
-function gaussianRand(): number {
-  let u = 0, v = 0;
-  while (u === 0) u = Math.random();
-  while (v === 0) v = Math.random();
-  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
-}
-
-export function applyDeviation(crossX: number, crossY: number): { x: number; y: number } {
-  const dx = crossX - BOARD_CX;
-  const dy = crossY - BOARD_CY;
-  const distFromCenter = Math.sqrt(dx * dx + dy * dy);
-  const sigma = 14 + (distFromCenter / R_DOUBLE_OUT) * 14;
-  return {
-    x: crossX + gaussianRand() * sigma,
-    y: crossY + gaussianRand() * sigma,
-  };
 }
 
 // ── Canvas component ──────────────────────────────────────────────────────────
@@ -1212,43 +1150,33 @@ export function DartboardCanvas({ gs, role, isMyTurn, onThrow, displayNameA = 'P
     // Require minimum drag — short tap cancels
     if (dist < 15) return;
 
-    // Steadiness: how long the player held before releasing (capped at 800ms)
-    const holdMs = Math.min(Date.now() - drag.startMs, 800);
-    const steadiness = holdMs / 800; // 0 = instant tap, 1 = fully steady
+    // Steadiness: how long the player held before releasing (capped)
+    const holdMs = Math.min(Date.now() - drag.startMs, MAX_HOLD_MS);
+    const steadiness = holdMs / MAX_HOLD_MS; // 0 = instant tap, 1 = fully steady
 
     // Wobble offset at the moment of release — matches what was shown on screen
     const t = startTimeRef.current !== null ? (performance.now() - startTimeRef.current) / 1000 : 0;
     const wobbleAmp = 18 * (1 - steadiness);
-    const curX = drag.curX + Math.sin(t * 3.1 + 0.4) * wobbleAmp;
-    const curY = drag.curY + Math.cos(t * 2.3 + 1.1) * wobbleAmp;
+    const aimX = drag.curX + Math.sin(t * 3.1 + 0.4) * wobbleAmp;
+    const aimY = drag.curY + Math.cos(t * 2.3 + 1.1) * wobbleAmp;
 
-    // Deviation: reduced by up to 70% at full steadiness
-    const dxB = curX - BOARD_CX;
-    const dyB = curY - BOARD_CY;
-    const distFromCenter = Math.sqrt(dxB * dxB + dyB * dyB);
-    const baseSigma = 8 + (distFromCenter / R_DOUBLE_OUT) * 10;
-    const sigma = baseSigma * (1 - steadiness * 0.7);
-    const landX = curX + gaussianRand() * sigma;
-    const landY = curY + gaussianRand() * sigma;
-
-    // Near-miss: landed just outside a double or treble ring boundary
-    const rLand = Math.sqrt((landX - BOARD_CX) ** 2 + (landY - BOARD_CY) ** 2);
-    const nearestRingDist = Math.min(
-      ...[R_TREBLE_IN, R_TREBLE_OUT, R_DOUBLE_IN, R_DOUBLE_OUT].map(rb => Math.abs(rLand - rb))
-    );
-    nearMissRef.current = nearestRingDist < 5;
-
-    // Flight animation from press point to landing
-    flightRef.current = {
-      fromX: drag.startX,
-      fromY: drag.startY,
-      toX: landX,
-      toY: landY,
-      progress: 0,
-      active: true,
-    };
-
-    setTimeout(() => onThrow(landX, landY), 380);
+    // Where it lands is drawn by the server; animate once we know.
+    void onThrow(aimX, aimY, holdMs).then((landing) => {
+      if (!landing) return;
+      const rLand = Math.hypot(landing.x - BOARD_CX, landing.y - BOARD_CY);
+      const nearestRingDist = Math.min(
+        ...[R_TREBLE_IN, R_TREBLE_OUT, R_DOUBLE_IN, R_DOUBLE_OUT].map(rb => Math.abs(rLand - rb))
+      );
+      nearMissRef.current = nearestRingDist < 5;
+      flightRef.current = {
+        fromX: drag.startX,
+        fromY: drag.startY,
+        toX: landing.x,
+        toY: landing.y,
+        progress: 0,
+        active: true,
+      };
+    });
   }, [toCanvasCoords, onThrow]);
 
   return (

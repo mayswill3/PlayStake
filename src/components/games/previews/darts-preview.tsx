@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { DartboardCanvas, type DartsState, type DartThrow, hitTest } from '@/app/play/darts/DartboardCanvas';
+import { DartboardCanvas, type DartsState, type DartThrow } from '@/app/play/darts/DartboardCanvas';
+import { hitTest } from '@/lib/games/darts-board';
 
 const BOARD_CX = 450;
 const BOARD_CY = 272;
@@ -57,7 +58,7 @@ export function DartsPreview() {
     stepRef.current += 1;
     const landX = BOARD_CX + ox;
     const landY = BOARD_CY + oy;
-    const hit   = hitTest(BOARD_CX, BOARD_CY, landX, landY);
+    const hit   = hitTest(landX, landY);
 
     const newDart: DartThrow = { ...hit, x: landX, y: landY };
     const newDarts = [...state.currentDarts, newDart];
@@ -142,7 +143,7 @@ export function DartsPreview() {
       gs={gs}
       role={null}
       isMyTurn={false}
-      onThrow={() => {}}
+      onThrow={async () => null}
       displayNameA="Player A"
       displayNameB="Player B"
     />

@@ -246,29 +246,24 @@ export function useGameSession(
     return result;
   }, [sessionId, log, stopPolling]);
 
-  const resolveGame = useCallback(async (winner: 'A' | 'B' | 'draw') => {
+  /**
+   * Send what the player did (a higher/lower call, a dart's aim). The server
+   * decides what happened — draws, scores, winner — and returns the new state.
+   */
+  const act = useCallback(async (body: Record<string, unknown>): Promise<GameSessionState | null> => {
     if (!sessionId) return null;
-    const result = await apiPatch(`/api/demo/game/${sessionId}`, {
-      action: 'resolve',
-      winner,
-    });
+    const result = await apiPatch(`/api/demo/game/${sessionId}`, body);
     if (result.error) {
-      log(`Resolve failed: ${result.error}`, 'error');
+      log(`Action failed: ${result.error}`, 'error');
       return null;
     }
     setGameState(result);
-    stopPolling();
-    setPhase('finished');
+    if (result.status === 'finished') {
+      stopPolling();
+      setPhase('finished');
+    }
     return result;
   }, [sessionId, log, stopPolling]);
-
-  const setGameData = useCallback(async (data: Record<string, unknown>) => {
-    if (!sessionId) return null;
-    return apiPatch(`/api/demo/game/${sessionId}`, {
-      action: 'setGameData',
-      data,
-    });
-  }, [sessionId]);
 
   const setBetId = useCallback(async (betId: string) => {
     if (!sessionId) return;
@@ -329,8 +324,7 @@ export function useGameSession(
     joinFromLobby,
     startPlayingPoll,
     makeMove,
-    resolveGame,
-    setGameData,
+    act,
     setBetId,
     reportAndSettle,
     stopPolling,

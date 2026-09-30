@@ -23,11 +23,6 @@ import type { LobbyMatchResult } from '@/components/lobby/LobbyContainer';
 import { useResumeMatch } from '../_shared/use-resume-match';
 import type { PlayerRole } from '../_shared/types';
 
-const SUITS = ['Spades', 'Hearts', 'Diamonds', 'Clubs'] as const;
-const VALUES = [
-  '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A',
-] as const;
-
 function suitSymbol(suit: string) {
   const map: Record<string, string> = {
     Spades: '\u2660',
@@ -44,19 +39,22 @@ function suitColor(suit: string) {
     : 'text-text-primary';
 }
 
-function randomCard() {
-  const value = VALUES[Math.floor(Math.random() * VALUES.length)];
-  const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
-  return { value, suit, numericValue: VALUES.indexOf(value) };
+interface CardData {
+  value: string;
+  suit: string;
 }
 
-type CardData = ReturnType<typeof randomCard>;
+/** The server's view of the hand. The deck itself never reaches the browser. */
+interface CardsGameData {
+  currentCard?: CardData | null;
+  nextCard?: CardData | null;
+  guess?: 'higher' | 'lower' | null;
+  result?: 'correct' | 'wrong' | null;
+}
 
 export default function CardsDemoPage() {
   const [role, setRole] = useState<PlayerRole | null>(null);
-  const [currentCard, _setCurrentCard] = useState<CardData>(() => randomCard());
-  const [nextCard, setNextCard] = useState<CardData | null>(null);
-  const [roundResult, setRoundResult] = useState<'correct' | 'wrong' | null>(null);
+  const [guessing, setGuessing] = useState(false);
   const [settlementResult, setSettlementResult] = useState<SettlementResult | null>(null);
   const [betAmountCents, setBetAmountCents] = useState(0);
   const betIdRef = useRef<string | null>(null);
@@ -71,8 +69,7 @@ export default function CardsDemoPage() {
     phase,
     setPhase,
     joinFromLobby,
-    resolveGame,
-    setGameData,
+    act,
     setBetId,
     reportAndSettle,
   } = useGameSession(log);
@@ -120,36 +117,23 @@ export default function CardsDemoPage() {
   }, [setup, joinFromLobby]);
   useResumeMatch(handleResume);
 
+  // Player A makes the call; the server turns the next card and decides.
   const handleGuess = useCallback(async (direction: 'higher' | 'lower') => {
-    if (role !== 'A' || !authState) return; // Only Player A guesses
+    if (role !== 'A' || !authState || guessing) return;
+    setGuessing(true);
+    const state = await act({ action: 'guess', direction });
+    setGuessing(false);
+    if (!state) return;
 
-    const next = randomCard();
-    setNextCard(next);
+    const data = state.gameData as CardsGameData | undefined;
+    if (data?.nextCard) {
+      log(`Called ${direction} — next card is ${data.nextCard.value} of ${data.nextCard.suit}`, 'info');
+      log(data.result === 'correct' ? 'Correct!' : 'Wrong!', data.result === 'correct' ? 'success' : 'error');
+    }
 
-    const isHigher = next.numericValue > currentCard.numericValue;
-    const isCorrect =
-      (direction === 'higher' && isHigher) ||
-      (direction === 'lower' && !isHigher);
-    const result = next.numericValue === currentCard.numericValue ? 'wrong' : isCorrect ? 'correct' : 'wrong';
-    setRoundResult(result);
-
-    const winner: 'A' | 'B' = result === 'correct' ? 'A' : 'B';
-
-    log(`Guessed ${direction} — next card is ${next.value} of ${next.suit}`, 'info');
-    log(result === 'correct' ? 'Correct!' : 'Wrong!', result === 'correct' ? 'success' : 'error');
-
-    // Sync card state to server for Player B to see
-    await setGameData({
-      currentCard: { value: currentCard.value, suit: currentCard.suit },
-      nextCard: { value: next.value, suit: next.suit },
-      guess: direction,
-      result,
-    });
-
-    const resolved = await resolveGame(winner);
-    if (resolved && !settledRef.current) {
+    if (state.status === 'finished' && !settledRef.current) {
       settledRef.current = true;
-      const activeBetId = resolved.betId || betIdRef.current;
+      const activeBetId = state.betId || betIdRef.current;
       if (activeBetId) {
         const settle = await reportAndSettle(authState.apiKey, activeBetId);
         if (settle) {
@@ -158,7 +142,7 @@ export default function CardsDemoPage() {
         }
       }
     }
-  }, [role, authState, currentCard, resolveGame, setGameData, reportAndSettle, log]);
+  }, [role, authState, guessing, act, reportAndSettle, log]);
 
   const handleBetCreated = useCallback(async (bet: { betId: string; amount: number }) => {
     log(`Bet created: ${bet.betId} ($${(bet.amount / 100).toFixed(2)})`, 'bet');
@@ -184,24 +168,11 @@ export default function CardsDemoPage() {
 
   const isFinished = phase === 'finished' || gameState?.status === 'finished';
 
-  // Player B reads card state from gameData via polling
-  const gameData = gameState?.gameData as {
-    currentCard?: { value: string; suit: string };
-    nextCard?: { value: string; suit: string };
-    guess?: string;
-    result?: string;
-  } | undefined;
-
-  // Sync card display for Player B
-  const displayCurrent = role === 'B' && gameData?.currentCard
-    ? gameData.currentCard
-    : currentCard;
-  const displayNext = role === 'B' && gameData?.nextCard
-    ? gameData.nextCard
-    : nextCard;
-  const displayResult = role === 'B' && gameData?.result
-    ? (gameData.result as 'correct' | 'wrong')
-    : roundResult;
+  // Both players render the server's state.
+  const gameData = gameState?.gameData as CardsGameData | undefined;
+  const displayCurrent = gameData?.currentCard ?? null;
+  const displayNext = gameData?.nextCard ?? null;
+  const displayResult = gameData?.result ?? null;
 
   // Auto-settle when we detect finish via polling (for Player B)
   if (isFinished && !settledRef.current && gameState?.betId && authState) {
@@ -293,11 +264,17 @@ export default function CardsDemoPage() {
 
               {/* Card display */}
               <div className="grid gap-4 md:grid-cols-2">
-                <PlayingCard
-                  label="Current Card"
-                  value={displayCurrent.value}
-                  suit={displayCurrent.suit}
-                />
+                {displayCurrent ? (
+                  <PlayingCard
+                    label="Current Card"
+                    value={displayCurrent.value}
+                    suit={displayCurrent.suit}
+                  />
+                ) : (
+                  <Card className="flex items-center justify-center min-h-[220px]">
+                    <p className="font-mono text-xs text-text-muted uppercase tracking-widest">Dealing…</p>
+                  </Card>
+                )}
 
                 {displayNext ? (
                   <PlayingCard
@@ -356,11 +333,12 @@ export default function CardsDemoPage() {
               )}
 
               {/* Guess buttons (Player A only, while game is in progress) */}
-              {role === 'A' && gameState?.status === 'playing' && !nextCard && (
+              {role === 'A' && gameState?.status === 'playing' && displayCurrent && !displayNext && (
                 <div className="grid grid-cols-2 gap-4">
                   <Button
                     size="lg"
                     className="w-full"
+                    disabled={guessing}
                     onClick={() => handleGuess('higher')}
                   >
                     <ChevronUp className="h-5 w-5" />
@@ -370,6 +348,7 @@ export default function CardsDemoPage() {
                     size="lg"
                     variant="danger"
                     className="w-full"
+                    disabled={guessing}
                     onClick={() => handleGuess('lower')}
                   >
                     <ChevronDown className="h-5 w-5" />

@@ -1,31 +1,18 @@
 import { NextResponse } from "next/server";
-import { Decimal } from "@prisma/client/runtime/client";
 import { withSessionAuth } from "@/lib/middleware/auth";
 import { isParticipant, sameParticipants } from "@/lib/demo/access";
-import {
-  BetMatchType,
-  BetStatus,
-  BetOutcome,
-} from "../../../../../generated/prisma/client";
+import { settleBetFromSession, SettleError } from "@/lib/demo/settle";
+import { getGameSession } from "@/lib/games/sessions";
+import { BetMatchType } from "../../../../../generated/prisma/client";
 import { prisma, withTransaction, type TxClient } from "@/lib/db/client";
 import { validateApiKey } from "@/lib/auth/api-key";
-import {
-  collectFee,
-  releaseEscrow,
-  distributeDevShare,
-} from "@/lib/ledger/escrow";
-import {
-  getEscrowAccountForBet,
-  getAccountBalance,
-} from "@/lib/ledger/accounts";
-import { getSession } from "../game/store";
 
 /**
  * POST /api/demo/settle-bet
  *
- * Demo-only endpoint that settles a bet in a single step, bypassing the
- * widget confirm/dispute flow and the settlement worker. This makes the
- * demo self-contained — no background workers required.
+ * Settles a /play match in a single step once the server has decided it,
+ * bypassing the widget confirm/dispute flow and the settlement worker. The
+ * outcome comes from the persisted game session, never from the caller.
  */
 export const POST = withSessionAuth(async (request, _context, auth) => {
   const body = await request.json();
@@ -47,14 +34,11 @@ export const POST = withSessionAuth(async (request, _context, auth) => {
   // Load the bet
   const bet = await prisma.bet.findUnique({
     where: { id: betId },
-    include: {
-      game: {
-        include: {
-          developerProfile: {
-            include: { escrowLimit: true },
-          },
-        },
-      },
+    select: {
+      playerAId: true,
+      playerBId: true,
+      matchType: true,
+      game: { select: { developerProfileId: true } },
     },
   });
 
@@ -91,239 +75,28 @@ export const POST = withSessionAuth(async (request, _context, auth) => {
     );
   }
 
-  // Accept MATCHED (report result inline) or RESULT_REPORTED (already reported)
-  if (bet.status === BetStatus.MATCHED) {
-    // Bet hasn't had result reported yet — do it inline
-    // Look up game session to determine outcome
-    const session = sessionId ? getSession(sessionId) : null;
-    if (!session || !session.winner) {
-      console.error("[SETTLE] Cannot settle MATCHED bet without game session", { betId, sessionId });
-      return NextResponse.json(
-        { error: "Bet is MATCHED but game session not found — cannot determine outcome" },
-        { status: 400 }
-      );
-    }
-
-    // The session must be the one that mirrors this bet: same bet id, same
-    // two players on the same sides. Without this, a session forged with a
-    // chosen winner could settle any matched bet in the system.
-    if (session.betId !== betId || !sameParticipants(session, bet)) {
+  // A session named in the body must be this bet's own session: same bet,
+  // same two players on the same sides. The winner itself is never taken from
+  // the request; it is read from the server-decided session below.
+  if (typeof sessionId === "string" && sessionId) {
+    const session = await getGameSession(sessionId);
+    if (session && (session.betId !== betId || !sameParticipants(session, bet))) {
       return NextResponse.json(
         { error: "That game session does not belong to this bet", code: "FORBIDDEN" },
         { status: 403 },
       );
     }
+  }
 
-    let outcome: BetOutcome;
-    if (session.winner === "A") outcome = BetOutcome.PLAYER_A_WIN;
-    else if (session.winner === "B") outcome = BetOutcome.PLAYER_B_WIN;
-    else outcome = BetOutcome.DRAW;
-
-    console.log("[SETTLE] Reporting result inline for MATCHED bet", { betId, outcome });
-
-    await prisma.bet.update({
-      where: { id: betId },
-      data: {
-        status: BetStatus.RESULT_REPORTED,
-        outcome,
-        resultReportedAt: new Date(),
-        resultIdempotencyKey: `demo_settle_inline_${betId}`,
-      },
+  try {
+    const result = await withTransaction((tx: TxClient) => settleBetFromSession(tx, betId), {
+      timeout: 30_000,
     });
-
-    // Re-fetch bet with updated status
-    const updatedBet = await prisma.bet.findUnique({
-      where: { id: betId },
-      include: {
-        game: {
-          include: {
-            developerProfile: {
-              include: { escrowLimit: true },
-            },
-          },
-        },
-      },
-    });
-
-    if (!updatedBet) {
-      return NextResponse.json({ error: "Bet not found after update" }, { status: 500 });
+    return NextResponse.json({ success: true, betId, ...result });
+  } catch (error) {
+    if (error instanceof SettleError) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
     }
-
-    // Replace bet reference for rest of function
-    Object.assign(bet, updatedBet);
-  } else if (bet.status === BetStatus.SETTLED) {
-    // Already settled — return success
-    return NextResponse.json({
-      success: true,
-      betId,
-      outcome: bet.outcome,
-      winnerPayout: 0,
-      alreadySettled: true,
-    });
-  } else if (bet.status !== BetStatus.RESULT_REPORTED) {
-    return NextResponse.json(
-      { error: `Bet is in ${bet.status} status, cannot settle` },
-      { status: 400 }
-    );
+    throw error;
   }
-
-  if (!bet.outcome) {
-    return NextResponse.json(
-      { error: "Bet has no outcome set" },
-      { status: 400 }
-    );
-  }
-
-  if (!bet.playerBId) {
-    return NextResponse.json(
-      { error: "Bet has no player B" },
-      { status: 400 }
-    );
-  }
-
-  const playerBId: string = bet.playerBId;
-  let winnerPayout = 0;
-
-  await withTransaction(
-    async (tx: TxClient) => {
-      // 1. Mark result as verified (skip widget confirm step for demo)
-      await tx.bet.update({
-        where: { id: betId },
-        data: { resultVerified: true },
-      });
-
-      // 2. Read escrow balance and verify it equals pot
-      const escrowAccount = await getEscrowAccountForBet(tx, betId);
-      const escrowBalance = await getAccountBalance(tx, escrowAccount.id);
-      const pot = new Decimal(bet.amount.toString()).mul(2);
-
-      if (!escrowBalance.eq(pot)) {
-        throw new Error(
-          `Escrow balance mismatch: expected ${pot}, got ${escrowBalance}`
-        );
-      }
-
-      const feePercent = new Decimal(bet.platformFeePercent.toString());
-
-      // 3. Calculate and collect platform fee
-      const feeAmount = pot
-        .mul(feePercent)
-        .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-
-      if (feeAmount.gt(0)) {
-        await collectFee(tx, {
-          betId,
-          feeAmount,
-          idempotencyKey: `demo_settle_${betId}_fee`,
-        });
-      }
-
-      // 4. Developer revenue share
-      const revSharePercent = new Decimal(
-        bet.game.developerProfile.revSharePercent.toString()
-      );
-
-      if (revSharePercent.gt(0) && feeAmount.gt(0)) {
-        const devShareAmount = feeAmount
-          .mul(revSharePercent)
-          .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-
-        if (devShareAmount.gt(0)) {
-          await distributeDevShare(tx, {
-            developerUserId: bet.game.developerProfile.userId,
-            amount: devShareAmount,
-            idempotencyKey: `demo_settle_${betId}_devshare`,
-          });
-        }
-      }
-
-      // 5. Release escrow to winner(s)
-      const remainingEscrow = pot.sub(feeAmount);
-      const outcome = bet.outcome as BetOutcome;
-
-      if (outcome === BetOutcome.DRAW) {
-        const halfPayout = remainingEscrow
-          .div(2)
-          .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-        const playerAPayout = halfPayout;
-        const playerBPayout = remainingEscrow.sub(playerAPayout);
-
-        await releaseEscrow(tx, {
-          betId,
-          winnerId: bet.playerAId,
-          amount: playerAPayout,
-          idempotencyKey: `demo_settle_${betId}_release_a`,
-        });
-
-        await releaseEscrow(tx, {
-          betId,
-          winnerId: playerBId,
-          amount: playerBPayout,
-          idempotencyKey: `demo_settle_${betId}_release_b`,
-        });
-
-        winnerPayout = playerAPayout.toNumber();
-      } else {
-        const winnerId =
-          outcome === BetOutcome.PLAYER_A_WIN
-            ? bet.playerAId
-            : playerBId;
-
-        console.log("[PAYOUT]", {
-          betId,
-          outcome,
-          winnerId,
-          loserId: winnerId === bet.playerAId ? playerBId : bet.playerAId,
-          playerAId: bet.playerAId,
-          playerBId,
-          amount: remainingEscrow.toString(),
-        });
-
-        await releaseEscrow(tx, {
-          betId,
-          winnerId,
-          amount: remainingEscrow,
-          idempotencyKey: `demo_settle_${betId}_release`,
-        });
-
-        winnerPayout = remainingEscrow.toNumber();
-      }
-
-      // 6. Verify escrow is drained
-      const finalBalance = await getAccountBalance(tx, escrowAccount.id);
-      if (!finalBalance.eq(0)) {
-        throw new Error(
-          `INVARIANT VIOLATION: Escrow balance is ${finalBalance} after settlement, expected 0`
-        );
-      }
-
-      // 7. Update bet status to SETTLED
-      await tx.bet.update({
-        where: { id: betId },
-        data: {
-          status: BetStatus.SETTLED,
-          settledAt: new Date(),
-          platformFeeAmount: feeAmount,
-        },
-      });
-
-      // 8. Decrement developer escrow limit
-      if (bet.game.developerProfile.escrowLimit) {
-        await tx.$executeRaw`
-          UPDATE developer_escrow_limits
-          SET current_escrow = GREATEST(current_escrow - ${pot}::decimal, 0),
-              updated_at = NOW()
-          WHERE id = ${bet.game.developerProfile.escrowLimit.id}::uuid
-        `;
-      }
-    },
-    { timeout: 30_000 }
-  );
-
-  return NextResponse.json({
-    success: true,
-    betId,
-    outcome: bet.outcome,
-    winnerPayout,
-  });
 });

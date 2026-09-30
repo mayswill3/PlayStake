@@ -16,11 +16,10 @@ import { GameLobbyLayout } from '@/components/games/game-lobby-layout';
 import type { LobbyMatchResult } from '@/components/lobby/LobbyContainer';
 import { useResumeMatch } from '../_shared/use-resume-match';
 import type { PlayerRole } from '../_shared/types';
-import { DartboardCanvas, hitTest, type DartsState, type DartThrow } from './DartboardCanvas';
+import { DartboardCanvas, type DartsState } from './DartboardCanvas';
+import { STARTING_SCORE } from '@/lib/games/darts-board';
 import { DartsAudio } from './darts-audio';
 
-const STARTING_SCORE = 301;
-const MAX_ROUNDS = 3;
 
 const INITIAL: DartsState = {
   scoreA: STARTING_SCORE,
@@ -54,7 +53,7 @@ export default function DartsDemoPage() {
 
   const { entries, log } = useEventLog();
   const { authState, isSettingUp, setup } = useDemoAuth('darts', log);
-  const { sessionId, gameState, phase, setPhase, joinFromLobby, resolveGame, setGameData, setBetId, reportAndSettle } = useGameSession(log);
+  const { sessionId, gameState, phase, setPhase, joinFromLobby, act, setBetId, reportAndSettle } = useGameSession(log);
   useLandscapeLock(phase === 'playing' || phase === 'finished');
 
   // ── Standard lobby callbacks ───────────────────────────────────────────────
@@ -97,276 +96,74 @@ export default function DartsDemoPage() {
   const handleBetSettled = useCallback((bet: { outcome: string }) => { log(`Bet settled: ${bet.outcome}`, 'bet'); }, [log]);
   const handlePlayAgain = useCallback(() => window.location.reload(), []);
 
-  // ── Sync from polling ─────────────────────────────────────────────────────
+  // ── Sync from the server ──────────────────────────────────────────────────
+  // Everything on the board is the server's state: it draws where each dart
+  // lands, keeps score, passes the turn and decides the winner.
+  const settleIfFinished = useCallback(async (betId: string | null) => {
+    if (settledRef.current || !authState) return;
+    const bid = betId || betIdRef.current;
+    if (!bid) return;
+    settledRef.current = true;
+    const s = await reportAndSettle(authState.apiKey, bid);
+    if (s) { setSettlementResult(s as SettlementResult); widgetHandleRef.current?.refreshBalance(); }
+  }, [authState, reportAndSettle]);
+
   useEffect(() => {
     if (!gameState?.gameData || !role) return;
     const gd = gameState.gameData as unknown as DartsState;
     if (gd.scoreA === undefined) return;
-    setGs(gd);
-    if (gd.winner && !settledRef.current && gameState.betId && authState) {
-      settledRef.current = true;
-      const bid = gameState.betId || betIdRef.current;
-      if (bid) {
-        reportAndSettle(authState.apiKey, bid).then(s => {
-          if (s) { setSettlementResult(s as SettlementResult); widgetHandleRef.current?.refreshBalance(); }
-        });
-      }
+    const prev = gsRef.current;
+    if (gd.roundFlash && gd.roundFlash.timeMs !== prev.roundFlash?.timeMs) {
+      audio.playRoundStart(parseInt(gd.roundFlash.label.replace(/\D/g, ''), 10) || 1);
+    } else if (gd.currentTurn !== prev.currentTurn && gd.phase === 'aiming') {
+      audio.playTurnChange();
     }
-  }, [gameState?.gameData, role, authState, reportAndSettle]);
+    setGs(gd);
+    if (gameState.status === 'finished') void settleIfFinished(gameState.betId);
+  }, [gameState?.gameData, gameState?.status, gameState?.betId, role, audio, settleIfFinished]);
 
-  // ── Throw handler ─────────────────────────────────────────────────────────
-  const handleThrow = useCallback(async (landX: number, landY: number) => {
+  // ── Throw: send the aim, get back where it landed ─────────────────────────
+  const handleThrow = useCallback(async (aimX: number, aimY: number, holdMs: number) => {
     audio.ensureContext();
     const cur = gsRef.current;
-    if (!role || cur.currentTurn !== role || cur.phase === 'finished') return;
+    if (!role || cur.currentTurn !== role || cur.phase !== 'aiming') return null;
     audio.playThrow();
 
-    const hit = hitTest(450, 275, landX, landY); // BOARD_CX=450, BOARD_CY=275
+    const state = await act({ action: 'throw', aimX, aimY, holdMs });
+    if (!state) return null;
+    const next = state.gameData as unknown as DartsState;
+    const hit = next.currentDarts[next.currentDarts.length - 1];
+    if (!hit) return null;
 
-    // Play audio
-    if (hit.score === 0) {
-      // miss — play softer impact
-      audio.playDartImpact(0);
-    } else if (hit.segment === 0) {
-      // bull / bullseye
-      audio.playBullseye();
-    } else if (hit.multiplier > 1) {
-      audio.playDouble();
-    } else {
-      audio.playDartImpact(1 - Math.min(Math.sqrt((landX - 450) ** 2 + (landY - 275) ** 2) / 170, 1));
-    }
+    if (hit.score === 0) audio.playDartImpact(0);
+    else if (hit.segment === 0) audio.playBullseye();
+    else if (hit.multiplier > 1) audio.playDouble();
+    else audio.playDartImpact(1 - Math.min(Math.hypot(hit.x - 450, hit.y - 272) / 170, 1));
 
-    const newDart: DartThrow = {
-      segment: hit.segment,
-      multiplier: hit.multiplier,
-      score: hit.score,
-      x: landX,
-      y: landY,
-    };
-
-    const currentScore = cur.currentTurn === 'A' ? cur.scoreA : cur.scoreB;
-    const newScore = currentScore - hit.score;
-    const newDartsThrown = cur.dartsThrown + 1;
-    const newCurrentDarts = [...cur.currentDarts, newDart];
-
-    // Log throw
     const label = hit.score === 0 ? 'Miss!'
       : hit.segment === 0 && hit.multiplier === 2 ? 'BULLSEYE! (50)'
       : hit.segment === 0 ? 'Bull! (25)'
       : hit.multiplier === 3 ? `Treble ${hit.segment} (${hit.score})`
       : hit.multiplier === 2 ? `Double ${hit.segment} (${hit.score})`
       : `${hit.segment} (${hit.score})`;
-    log(`Dart ${newDartsThrown}: ${label}`, 'info');
+    log(`Dart ${next.dartsThrown}: ${label}`, 'info');
 
-    // Bust check
-    if (newScore < 0) {
+    if (next.phase === 'bust') {
       audio.playBust();
-      const bustResult = { player: cur.currentTurn, total: hit.score, wasBust: true };
-      const revertedScore = cur.turnStartScore;
-
-      const next: DartsState = {
-        ...cur,
-        ...(cur.currentTurn === 'A' ? { scoreA: revertedScore } : { scoreB: revertedScore }),
-        currentDarts: newCurrentDarts,
-        lastTurnResult: bustResult,
-        turnHistory: [...cur.turnHistory, { ...bustResult, scoreAfter: revertedScore }],
-        phase: 'bust',
-        message: 'BUST! Score reverted.',
-        dartsThrown: newDartsThrown,
-      };
-      setGs(next);
-      await setGameData(next as unknown as Record<string, unknown>);
       log('BUST! Score reverted.', 'error');
-
-      // Advance turn after delay
-      setTimeout(async () => {
-        const bustTurnsA = next.turnHistory.filter(t => t.player === 'A').length;
-        const bustTurnsB = next.turnHistory.filter(t => t.player === 'B').length;
-        const allRoundsDone = bustTurnsA >= MAX_ROUNDS && bustTurnsB >= MAX_ROUNDS;
-
-        if (allRoundsDone) {
-          const gameWinner: 'A' | 'B' | null = next.scoreA < next.scoreB ? 'A' : next.scoreB < next.scoreA ? 'B' : null;
-          const resultMsg = gameWinner === null
-            ? "It's a draw! Equal scores 🎯"
-            : `${(gameWinner === 'A' ? playerNamesRef.current.A || 'Player A' : playerNamesRef.current.B || 'Player B')} wins — lowest score wins! 🎯`;
-          audio.playWin();
-          const finalState: DartsState = { ...next, phase: 'finished', winner: gameWinner, message: resultMsg };
-          setGs(finalState);
-          await setGameData(finalState as unknown as Record<string, unknown>);
-          log(resultMsg, 'success');
-          if (gameWinner && !settledRef.current) {
-            settledRef.current = true;
-            const resolved = await resolveGame(gameWinner);
-            if (resolved) {
-              const bid = resolved.betId || betIdRef.current;
-              if (bid && authState) {
-                if (!resolved.betId && betIdRef.current) await setBetId(betIdRef.current);
-                const s = await reportAndSettle(authState.apiKey, bid);
-                if (s) { setSettlementResult(s as SettlementResult); widgetHandleRef.current?.refreshBalance(); }
-              }
-            }
-          }
-          return;
-        }
-
-        const nextTurn = cur.currentTurn === 'A' ? 'B' : 'A';
-        const correctedStartScore = nextTurn === 'A' ? next.scoreA : next.scoreB;
-        const bustTurnsEqualAfter = bustTurnsA === bustTurnsB;
-        const bustUpcomingRound = bustTurnsA + 1;
-        const nextState: DartsState = {
-          ...next,
-          currentTurn: nextTurn,
-          dartsThrown: 0,
-          turnStartScore: correctedStartScore,
-          currentDarts: [],
-          phase: 'aiming',
-          message: '',
-          roundFlash: bustTurnsEqualAfter
-            ? { label: `ROUND ${bustUpcomingRound}`, timeMs: Date.now() }
-            : next.roundFlash,
-        };
-        if (bustTurnsEqualAfter) {
-          audio.playRoundStart(bustUpcomingRound);
-        } else {
-          audio.playTurnChange();
-        }
-        setGs(nextState);
-        await setGameData(nextState as unknown as Record<string, unknown>);
-      }, 1400);
-      return;
-    }
-
-    // Win check
-    if (newScore === 0) {
+    } else if (next.phase === 'showing' && next.lastTurnResult) {
+      log(`Turn ended — scored ${next.lastTurnResult.total}`, 'info');
+    } else if (next.phase === 'finished') {
       audio.playWin();
-      const winResult = { player: cur.currentTurn, total: hit.score, wasBust: false };
-      const next: DartsState = {
-        ...cur,
-        ...(cur.currentTurn === 'A' ? { scoreA: 0 } : { scoreB: 0 }),
-        currentDarts: newCurrentDarts,
-        dartsThrown: newDartsThrown,
-        lastTurnResult: winResult,
-        turnHistory: [...cur.turnHistory, { ...winResult, scoreAfter: 0 }],
-        phase: 'finished',
-        winner: cur.currentTurn,
-        message: `${cur.currentTurn === role ? 'You win' : `${cur.currentTurn === 'A' ? 'Home' : 'Away'} wins`}! 🎯`,
-      };
-      setGs(next);
-      await setGameData(next as unknown as Record<string, unknown>);
-      log(`${cur.currentTurn === 'A' ? 'Home' : 'Away'} wins!`, 'success');
-
-      if (!settledRef.current) {
-        settledRef.current = true;
-        const resolved = await resolveGame(cur.currentTurn);
-        if (resolved) {
-          const bid = resolved.betId || betIdRef.current;
-          if (bid && authState) {
-            if (!resolved.betId && betIdRef.current) await setBetId(betIdRef.current);
-            const s = await reportAndSettle(authState.apiKey, bid);
-            if (s) { setSettlementResult(s as SettlementResult); widgetHandleRef.current?.refreshBalance(); }
-          }
-        }
-      }
-      return;
+      const w = state.winner;
+      const name = (side: 'A' | 'B') => (side === 'A' ? playerNamesRef.current.A || 'Player A' : playerNamesRef.current.B || 'Player B');
+      log(w === 'draw' ? "It's a draw — equal scores" : w ? `${name(w)} wins!` : 'Match over', 'success');
     }
 
-    // Normal dart — check if last dart of turn
-    const isLastDart = newDartsThrown >= 3;
-    const _turnTotal = (cur.turnStartScore - currentScore) + hit.score; // scored this turn so far
-    // Actually: total scored this turn = turn start - new remaining
-    const totalThisTurn = cur.turnStartScore - newScore;
-
-    if (isLastDart) {
-      const turnResult = { player: cur.currentTurn, total: totalThisTurn, wasBust: false };
-      const nextTurn = cur.currentTurn === 'A' ? 'B' : 'A';
-      const correctedStartScore = nextTurn === 'A' ? (cur.currentTurn === 'A' ? newScore : cur.scoreA) : (cur.currentTurn === 'B' ? newScore : cur.scoreB);
-      const newHistory = [...cur.turnHistory, { ...turnResult, scoreAfter: newScore }];
-
-      const showing: DartsState = {
-        ...cur,
-        ...(cur.currentTurn === 'A' ? { scoreA: newScore } : { scoreB: newScore }),
-        currentDarts: newCurrentDarts,
-        dartsThrown: newDartsThrown,
-        lastTurnResult: turnResult,
-        turnHistory: newHistory,
-        phase: 'showing',
-        message: `Turn: −${totalThisTurn}`,
-      };
-      setGs(showing);
-      await setGameData(showing as unknown as Record<string, unknown>);
-      log(`Turn ended — scored ${totalThisTurn}, remaining: ${newScore}`, 'info');
-
-      // Check if all rounds are done
-      const newTurnsA = newHistory.filter(t => t.player === 'A').length;
-      const newTurnsB = newHistory.filter(t => t.player === 'B').length;
-      const allRoundsDone = newTurnsA >= MAX_ROUNDS && newTurnsB >= MAX_ROUNDS;
-
-      if (allRoundsDone) {
-        const finalScoreA = cur.currentTurn === 'A' ? newScore : cur.scoreA;
-        const finalScoreB = cur.currentTurn === 'B' ? newScore : cur.scoreB;
-        const gameWinner: 'A' | 'B' | null = finalScoreA < finalScoreB ? 'A' : finalScoreB < finalScoreA ? 'B' : null;
-        const resultMsg = gameWinner === null
-          ? "It's a draw! Equal scores 🎯"
-          : `${(gameWinner === 'A' ? playerNamesRef.current.A || 'Player A' : playerNamesRef.current.B || 'Player B')} wins — lowest score wins! 🎯`;
-        audio.playWin();
-        const finalState: DartsState = { ...showing, phase: 'finished', winner: gameWinner, message: resultMsg };
-        setTimeout(async () => {
-          setGs(finalState);
-          await setGameData(finalState as unknown as Record<string, unknown>);
-          log(resultMsg, 'success');
-          if (gameWinner && !settledRef.current) {
-            settledRef.current = true;
-            const resolved = await resolveGame(gameWinner);
-            if (resolved) {
-              const bid = resolved.betId || betIdRef.current;
-              if (bid && authState) {
-                if (!resolved.betId && betIdRef.current) await setBetId(betIdRef.current);
-                const s = await reportAndSettle(authState.apiKey, bid);
-                if (s) { setSettlementResult(s as SettlementResult); widgetHandleRef.current?.refreshBalance(); }
-              }
-            }
-          }
-        }, 1400);
-      } else {
-        // Detect round boundary: both players have equal completed turns → new round starting
-        const isRoundBoundary = newTurnsA === newTurnsB;
-        const upcomingRound = newTurnsA + 1;
-
-        setTimeout(async () => {
-          const nextState: DartsState = {
-            ...showing,
-            currentTurn: nextTurn,
-            dartsThrown: 0,
-            turnStartScore: correctedStartScore,
-            currentDarts: [],
-            phase: 'aiming',
-            message: '',
-            roundFlash: isRoundBoundary
-              ? { label: `ROUND ${upcomingRound}`, timeMs: Date.now() }
-              : showing.roundFlash,
-          };
-          if (isRoundBoundary) {
-            audio.playRoundStart(upcomingRound);
-          } else {
-            audio.playTurnChange();
-          }
-          setGs(nextState);
-          await setGameData(nextState as unknown as Record<string, unknown>);
-        }, 1400);
-      }
-    } else {
-      const next: DartsState = {
-        ...cur,
-        ...(cur.currentTurn === 'A' ? { scoreA: newScore } : { scoreB: newScore }),
-        currentDarts: newCurrentDarts,
-        dartsThrown: newDartsThrown,
-        phase: 'aiming',
-        message: '',
-      };
-      setGs(next);
-      await setGameData(next as unknown as Record<string, unknown>);
-    }
-  }, [role, audio, authState, setGameData, resolveGame, setBetId, reportAndSettle, log]);
+    setGs(next);
+    if (state.status === 'finished') void settleIfFinished(state.betId);
+    return { x: hit.x, y: hit.y };
+  }, [role, audio, act, settleIfFinished, log]);
 
   // ── Derived state ─────────────────────────────────────────────────────────
   const isFinished = phase === 'finished' || gameState?.status === 'finished' || gs.phase === 'finished';
@@ -379,8 +176,8 @@ export default function DartsDemoPage() {
   let statusText = '';
   let statusColor = 'text-text-secondary';
   if (gs.phase === 'finished') {
-    statusText = gs.winner === role ? 'You win! 🎯' : 'Opponent wins!';
-    statusColor = gs.winner === role ? 'text-brand-400' : 'text-danger-400';
+    statusText = !gs.winner ? "It's a draw — equal scores" : gs.winner === role ? 'You win! 🎯' : 'Opponent wins!';
+    statusColor = !gs.winner ? 'text-yellow-400' : gs.winner === role ? 'text-brand-400' : 'text-danger-400';
   } else if (gs.message) {
     statusText = gs.message;
     statusColor = gs.phase === 'bust' ? 'text-danger-400' : 'text-text-secondary';

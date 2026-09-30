@@ -4,10 +4,12 @@ import { assertEligibleToGamble } from "@/lib/compliance/eligibility";
 import { prisma } from "@/lib/db/client";
 import { errorResponse, NotFoundError, ValidationError } from "@/lib/errors";
 import { assertParticipant } from "@/lib/demo/access";
-import { createSession, listWaitingSessions } from "./store";
-import type { GameType } from "./store";
-
-const VALID_TYPES: GameType[] = ["tictactoe", "cards", "darts"];
+import {
+  GAME_TYPES,
+  createGameSession,
+  listWaitingSessions,
+  type GameType,
+} from "@/lib/games/sessions";
 
 /**
  * POST /api/demo/game — create a game session.
@@ -26,7 +28,7 @@ export const POST = withSessionAuth(async (request, _context, auth) => {
       sessionId?: unknown;
     };
 
-    const type: GameType = VALID_TYPES.includes(gameType as GameType)
+    const type: GameType = GAME_TYPES.includes(gameType as GameType)
       ? (gameType as GameType)
       : "tictactoe";
     const explicitId =
@@ -50,6 +52,11 @@ export const POST = withSessionAuth(async (request, _context, auth) => {
       assertParticipant(auth.userId, bet, "this bet");
       playerAId = bet.playerAId;
       boundBetId = betId;
+      // The shared id is always derived from the bet, so an explicit id can
+      // only ever land on this bet's own session.
+      if (explicitId && explicitId !== betId.slice(0, 8).toUpperCase()) {
+        throw new ValidationError("sessionId does not match this bet");
+      }
     } else if (explicitId) {
       // Explicit ids exist only so lobby-matched players can meet on one
       // session. Without a bet to check against, an explicit id would let a
@@ -57,7 +64,12 @@ export const POST = withSessionAuth(async (request, _context, auth) => {
       throw new ValidationError("sessionId may only be used with a betId");
     }
 
-    const session = createSession(playerAId, boundBetId, type, explicitId);
+    const session = await createGameSession({
+      playerAId,
+      betId: boundBetId,
+      gameType: type,
+      explicitId,
+    });
     return NextResponse.json(session, { status: 201 });
   } catch (error) {
     return errorResponse(error);
@@ -66,5 +78,5 @@ export const POST = withSessionAuth(async (request, _context, auth) => {
 
 /** GET /api/demo/game — list sessions waiting for an opponent. */
 export const GET = withSessionAuth(async () => {
-  return NextResponse.json({ sessions: listWaitingSessions() });
+  return NextResponse.json({ sessions: await listWaitingSessions() });
 });

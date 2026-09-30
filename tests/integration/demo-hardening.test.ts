@@ -144,12 +144,18 @@ describe("Demo hardening: the exploit chain is closed", () => {
     expect(joined.status).toBe(200);
     expect(joined.body.status).toBe("playing");
 
-    const resolved = await callApi("PATCH", `/api/demo/game/${forgedId}`, {
+    // The winner can no longer be declared; the stranger plays the hand out.
+    const declared = await callApi("PATCH", `/api/demo/game/${forgedId}`, {
       sessionToken: tokenStranger,
       body: { action: "resolve", winner: "A" },
     });
-    expect(resolved.status).toBe(200);
-    expect(resolved.body.winner).toBe("A");
+    expect(declared.status).toBe(422);
+    const played = await callApi("PATCH", `/api/demo/game/${forgedId}`, {
+      sessionToken: tokenStranger,
+      body: { action: "guess", direction: "higher" },
+    });
+    expect(played.status).toBe(200);
+    expect(played.body.status).toBe("finished");
 
     // The stranger is not in the bet: refused outright.
     const byStranger = await callApi("POST", "/api/demo/settle-bet", {
@@ -250,7 +256,7 @@ describe("Demo hardening: identity comes from the session", () => {
     expect(peek.status).toBe(200);
     const poke = await callApi("PATCH", `/api/demo/game/${id}`, {
       sessionToken: tokenStranger,
-      body: { action: "setGameData", data: { hacked: true } },
+      body: { action: "move", cell: 4 },
     });
     expect(poke.status).toBe(403);
   });
@@ -297,11 +303,14 @@ describe("Demo hardening: the real /play flow still works", () => {
     expect(joined.status).toBe(200);
     expect(joined.body.playerBId).toBe(scenario.playerB.id);
 
-    const resolved = await callApi("PATCH", `/api/demo/game/${sessionId}`, {
+    const guessed = await callApi("PATCH", `/api/demo/game/${sessionId}`, {
       sessionToken: tokenA,
-      body: { action: "resolve", winner: "B" },
+      body: { action: "guess", direction: "lower" },
     });
-    expect(resolved.status).toBe(200);
+    expect(guessed.status).toBe(200);
+    expect(guessed.body.status).toBe("finished");
+    const expected =
+      guessed.body.winner === "A" ? BetOutcome.PLAYER_A_WIN : BetOutcome.PLAYER_B_WIN;
 
     const settled = await callApi("POST", "/api/demo/settle-bet", {
       sessionToken: tokenB,
@@ -309,7 +318,7 @@ describe("Demo hardening: the real /play flow still works", () => {
     });
     expect(settled.status).toBe(200);
     expect(settled.body.success).toBe(true);
-    expect(settled.body.outcome).toBe(BetOutcome.PLAYER_B_WIN);
+    expect(settled.body.outcome).toBe(expected);
     // The whole $40 pot: this scenario runs with no platform fee.
     expect(settled.body.winnerPayout).toBeCloseTo(40, 2);
 
@@ -320,7 +329,7 @@ describe("Demo hardening: the real /play flow still works", () => {
     // The other player can read the result; a stranger cannot.
     const mine = await callApi("GET", `/api/demo/bet-result/${bet.id}`, { sessionToken: tokenA });
     expect(mine.status).toBe(200);
-    expect(mine.body.outcome).toBe(BetOutcome.PLAYER_B_WIN);
+    expect(mine.body.outcome).toBe(expected);
     const theirs = await callApi("GET", `/api/demo/bet-result/${bet.id}`, { sessionToken: tokenStranger });
     expect(theirs.status).toBe(403);
   });
