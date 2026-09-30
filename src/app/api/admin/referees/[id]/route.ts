@@ -2,8 +2,9 @@ import { RefereeProfileStatus, UserRole } from "@/../generated/prisma/client";
 import { prisma } from "@/lib/db/client";
 import { withRoleGuard } from "@/lib/middleware/auth";
 import { emailRefereeApplicationDecided } from "@/lib/email/events";
+import { recordAdminAction } from "@/lib/admin/audit";
 
-export const PATCH = withRoleGuard([UserRole.ADMIN], async (request, context) => {
+export const PATCH = withRoleGuard([UserRole.ADMIN], async (request, context, auth) => {
   const id = context.params?.id;
   if (!id) return Response.json({ error: "Referee profile ID required" }, { status: 400 });
   const body = await request.json().catch(() => ({}));
@@ -40,6 +41,7 @@ export const PATCH = withRoleGuard([UserRole.ADMIN], async (request, context) =>
     }
   }
   const now = new Date();
+  const before = await prisma.refereeProfile.findUnique({ where: { id }, select: { status: true } });
   const profile = await prisma.refereeProfile.update({
     where: { id },
     data: {
@@ -51,6 +53,14 @@ export const PATCH = withRoleGuard([UserRole.ADMIN], async (request, context) =>
       suspendedAt:
         body.status === RefereeProfileStatus.SUSPENDED ? now : null,
     },
+  });
+  await recordAdminAction({
+    actorId: auth.userId,
+    action: "referee.status",
+    targetType: "referee_profile",
+    targetId: id,
+    details: { userId: profile.userId, from: before?.status ?? null, to: body.status },
+    request,
   });
   await emailRefereeApplicationDecided({
     userId: profile.userId,
