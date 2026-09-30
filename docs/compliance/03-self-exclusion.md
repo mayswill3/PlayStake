@@ -32,7 +32,7 @@ The minimum self-exclusion is six months.
 
 ## 3. How customers self-exclude
 
-- **Self-service:** from **Responsible Play** in their account, available from every page in the account area.
+- **Self-service:** from **Safer Gambling** in their account, available from every page in the account area.
   - The customer picks a period.
   - A confirmation screen explains in plain English:
     - what happens
@@ -47,7 +47,7 @@ The minimum self-exclusion is six months.
   - This is audited, and the same rules apply as for self-service.
   - Staff must never try to talk a customer out of self-excluding.
 - **Confirmation:** the customer gets an email confirming the exclusion and its end date, with GamCare's details.
-- **Signposting:** the Responsible Play page tells customers about GAMSTOP, so they can exclude from every UK-licensed online operator at once, and gives the contact details for GamCare (0808 8020 133) and BeGambleAware.
+- **Signposting:** the Safer Gambling page tells customers about GAMSTOP, so they can exclude from every UK-licensed online operator at once, and gives the contact details for GamCare (0808 8020 133) and BeGambleAware.
 
 ## 4. What happens during self-exclusion
 
@@ -78,7 +78,7 @@ From the moment a self-exclusion starts:
 A self-exclusion does **not** lapse on its own:
 
 1. When the period ends, the customer is emailed. The email explains that their account **stays closed to gambling**, that nothing changes unless they choose to come back, how to return if they want to, and where to get support.
-2. To return, the customer must take a **positive action**: asking to return from Responsible Play and confirming it.
+2. To return, the customer must take a **positive action**: asking to return from Safer Gambling and confirming it.
 3. Access then resumes after a **24-hour cooling-off period**. During that time the account stays closed, and the page shows when it reopens. The customer is encouraged to set deposit limits first.
 
 A cool-off ends automatically at the end of its period, and the customer is emailed when it does.

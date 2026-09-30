@@ -81,7 +81,7 @@ export function Footer() {
             <ul className="space-y-3">
               <li>
                 <Link href="/#trust" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
-                  Responsible Play
+                  Safer Gambling
                 </Link>
               </li>
               <li>

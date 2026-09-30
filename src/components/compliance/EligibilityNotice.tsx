@@ -12,7 +12,7 @@ interface Eligibility {
 
 const NEXT_STEP: Record<string, { label: string; href: string }> = {
   KYC_REQUIRED: { label: 'Verify your identity', href: '/verification' },
-  PLAY_BREAK_ACTIVE: { label: 'Responsible play', href: '/responsible-play' },
+  PLAY_BREAK_ACTIVE: { label: 'Safer gambling', href: '/responsible-play' },
   GAMSTOP_EXCLUDED: { label: 'Withdraw your balance', href: '/wallet' },
 };
 

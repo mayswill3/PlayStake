@@ -5,7 +5,7 @@ const BADGES = [
   { icon: SlidersHorizontal, label: 'Stake Controls' },
   { icon: UserCheck, label: 'KYC Ready' },
   { icon: Lock, label: 'Secure Wallet' },
-  { icon: HeartHandshake, label: 'Responsible Play' },
+  { icon: HeartHandshake, label: 'Safer Gambling' },
 ] as const;
 
 interface TrustStripProps {

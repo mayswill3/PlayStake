@@ -24,7 +24,7 @@ const toc = [
   { id: 'referees', label: 'Referees and evidence' },
   { id: 'payments', label: 'Payments, fees and withdrawals' },
   { id: 'disputes', label: 'Results and disputes' },
-  { id: 'responsible-play', label: 'Responsible play' },
+  { id: 'responsible-play', label: 'Safer gambling' },
   { id: 'prohibited-use', label: 'Prohibited conduct' },
   { id: 'suspension', label: 'Suspension and closure' },
   { id: 'intellectual-property', label: 'Intellectual property' },
@@ -285,7 +285,7 @@ export default function TermsPage() {
       <LegalSection
         id="responsible-play"
         number="10"
-        title="Responsible play"
+        title="Safer gambling"
       >
         <p>
           Only participate with money you can afford to lose. Do not use borrowed

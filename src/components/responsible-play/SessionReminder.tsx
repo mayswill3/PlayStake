@@ -178,7 +178,7 @@ export function SessionReminder() {
         <p className="text-ps-muted dark:text-ps-muted-on-dark">
           Set your own deposit limits or take a break any time from{' '}
           <strong className="text-ps-text dark:text-ps-text-on-dark">
-            Responsible Play
+            Safer Gambling
           </strong>
           .
         </p>

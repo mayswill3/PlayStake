@@ -39,7 +39,7 @@ The check needs the customer's identity. PlayStake uses the details from their i
 
 ## 4. Other controls that work alongside GAMSTOP
 
-- **Signposting.** The Responsible Play page, and the site footer on every public page, tell customers about GAMSTOP and link to it.
+- **Signposting.** The Safer Gambling page, and the site footer on every public page, tell customers about GAMSTOP and link to it.
 - **Our own exclusion.** PlayStake's own self-exclusion (Policy 03) works independently of GAMSTOP, and applies to a person across all of their accounts.
 
 ## 5. Records

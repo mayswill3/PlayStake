@@ -18,7 +18,7 @@ PlayStake must spot customers who may be experiencing, or be at risk of, gamblin
 
 ## 2. Tools every customer has
 
-These tools are available to every customer, from **Responsible Play** in their account:
+These tools are available to every customer, from **Safer Gambling** in their account:
 
 - **Deposit limits:**
   - daily, weekly and monthly, over rolling periods
@@ -29,7 +29,7 @@ These tools are available to every customer, from **Responsible Play** in their 
 - **Reality checks:**
   - optional reminders every 15, 30, 60 or 120 minutes
   - each one shows how long the customer has been playing, how many bets they have placed, how much they have staked, and their net result
-  - each one offers to take them to Responsible Play
+  - each one offers to take them to Safer Gambling
   - they run on the dashboard and on the game pages
 - **Support information** from GamCare and BeGambleAware, and GAMSTOP signposting.
 
@@ -77,7 +77,7 @@ When a marker is raised, three things happen straight away:
 
 1. **The customer is contacted.** The next time they are on the site (dashboard or games), they see a supportive message suited to the marker. For example, for loss chasing: *"We noticed your stakes have been going up after a run of losses. Chasing losses is one of the most common ways gambling stops being fun…"*. Every message includes GamCare's free 24/7 number.
    - The message stays until the customer responds. They can:
-     - set a deposit limit (taken straight to Responsible Play)
+     - set a deposit limit (taken straight to Safer Gambling)
      - take a break
      - say they're OK
    - Their response is recorded.

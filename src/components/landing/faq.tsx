@@ -19,7 +19,7 @@ const FAQS = [
   },
   {
     q: 'How does responsible play work?',
-    a: 'You can set daily, weekly and monthly deposit limits, take a cool-off break, self-exclude for six months to five years, and turn on session reminders — all from Responsible Play. We check every account against GAMSTOP, the national self-exclusion scheme, and reach out if your play shows signs of harm. Free support is available from GamCare on 0808 8020 133.',
+    a: 'You can set daily, weekly and monthly deposit limits, take a cool-off break, self-exclude for six months to five years, and turn on session reminders — all from Safer Gambling in your account. We check every account against GAMSTOP, the national self-exclusion scheme, and reach out if your play shows signs of harm. Free support is available from GamCare on 0808 8020 133.',
   },
   {
     q: 'How are payouts handled?',

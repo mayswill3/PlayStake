@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -18,6 +18,8 @@ import {
   LifeBuoy,
   AlertTriangle,
   Bell,
+  ChevronDown,
+  Gavel,
   HeartPulse,
   Landmark,
   MessageSquareWarning,
@@ -33,6 +35,7 @@ import { PlayerRefereeSidebarCard } from '@/components/referees/PlayerRefereePan
 
 interface SidebarProps {
   userRole?: string;
+  kycStatus?: string;
 }
 
 interface NavItem {
@@ -41,16 +44,21 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-const playerNav: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+// What players use every visit.
+const playNav: NavItem[] = [
+  { label: 'Home', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Play', href: '/play', icon: Gamepad2 },
-  { label: 'Watch', href: '/watch', icon: Tv },
-  { label: 'Referee', href: '/referee', icon: Scale },
-  { label: 'Wallet', href: '/wallet', icon: Wallet },
-  { label: 'Verification', href: '/verification', icon: ShieldCheck },
-  { label: 'Responsible Play', href: '/responsible-play', icon: LifeBuoy },
-  { label: 'Bets', href: '/bets', icon: Swords },
+  { label: 'Watch Live', href: '/watch', icon: Tv },
   { label: 'Challenges', href: '/challenges', icon: Bell },
+  { label: 'My Bets', href: '/bets', icon: Swords },
+  { label: 'Wallet', href: '/wallet', icon: Wallet },
+];
+
+// Account and occasional pages. Verify ID drops out once the player is verified.
+const accountNav: NavItem[] = [
+  { label: 'Referee Hub', href: '/referee', icon: Scale },
+  { label: 'Safer Gambling', href: '/responsible-play', icon: LifeBuoy },
+  { label: 'Verify ID', href: '/verification', icon: ShieldCheck },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -60,17 +68,29 @@ const adminNav: NavItem[] = [
   { label: 'Beta Signups', href: '/admin/beta-signups', icon: UserPlus },
   { label: 'KYC Review', href: '/admin/kyc', icon: ShieldCheck },
   { label: 'Referees', href: '/admin/referees', icon: Scale },
-  { label: 'Disputes', href: '/admin/disputes', icon: Scale },
-  { label: 'Anomalies', href: '/admin/anomalies', icon: AlertTriangle },
+  { label: 'Disputes', href: '/admin/disputes', icon: Gavel },
+  { label: 'Fraud Alerts', href: '/admin/anomalies', icon: AlertTriangle },
   { label: 'Complaints', href: '/admin/complaints', icon: MessageSquareWarning },
   { label: 'Harm Signals', href: '/admin/harm-signals', icon: HeartPulse },
   { label: 'AML Cases', href: '/admin/aml', icon: Landmark },
   { label: 'Audit Log', href: '/admin/audit-log', icon: ScrollText },
 ];
 
-export function Sidebar({ userRole }: SidebarProps) {
+export function Sidebar({ userRole, kycStatus }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Admin tools stay folded away unless you're using them.
+  const onAdminPage = pathname.startsWith('/admin');
+  const [adminOpen, setAdminOpen] = useState(onAdminPage);
+  useEffect(() => {
+    if (onAdminPage) setAdminOpen(true);
+  }, [onAdminPage]);
+
+  const account = accountNav.filter(
+    (item) => item.href !== '/verification' || kycStatus !== 'VERIFIED',
+  );
+  const badgeFor = (href: string) =>
+    href === '/challenges' ? pendingCount : href === '/referee' ? refereeOpenCount : undefined;
   const pendingCount = usePendingChallengeCount();
   const refereeOpenCount = useOpenRefereeCount();
 
@@ -97,7 +117,7 @@ export function Sidebar({ userRole }: SidebarProps) {
       <aside
         className={`
           fixed top-0 left-0 z-40 h-full w-[75vw] max-w-64 bg-ps-paper dark:bg-ps-ink border-r border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]
-          flex flex-col
+          flex flex-col pb-16 lg:pb-0
           transition-transform duration-200 ease-in-out
           lg:translate-x-0 lg:static lg:z-auto
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -116,50 +136,65 @@ export function Sidebar({ userRole }: SidebarProps) {
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-ps-muted dark:text-ps-muted-on-dark">
-            Player
-          </div>
-          {playerNav.map((item) => (
+          {playNav.map((item) => (
             <NavLink
               key={item.href}
               item={item}
               active={isActive(pathname, item.href)}
-              badge={
-                item.href === '/challenges'
-                  ? pendingCount
-                  : item.href === '/referee'
-                    ? refereeOpenCount
-                    : undefined
-              }
+              badge={badgeFor(item.href)}
+              onClick={() => setMobileOpen(false)}
+            />
+          ))}
+
+          <SectionLabel>Account</SectionLabel>
+          {account.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              active={isActive(pathname, item.href)}
+              badge={badgeFor(item.href)}
               onClick={() => setMobileOpen(false)}
             />
           ))}
 
           {userRole === 'ADMIN' && (
             <>
-              <div className="mt-6 mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-ps-muted dark:text-ps-muted-on-dark">
+              <button
+                type="button"
+                onClick={() => setAdminOpen((open) => !open)}
+                aria-expanded={adminOpen}
+                className="mt-6 mb-2 flex w-full items-center justify-between px-3 text-[10px] font-semibold uppercase tracking-widest text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-text dark:hover:text-ps-text-on-dark"
+              >
                 Admin
-              </div>
-              {adminNav.map((item) => (
-                <NavLink
-                  key={item.href}
-                  item={item}
-                  active={isActive(pathname, item.href)}
-                  onClick={() => setMobileOpen(false)}
+                <ChevronDown
+                  className={`h-3.5 w-3.5 transition-transform ${adminOpen ? 'rotate-180' : ''}`}
+                  aria-hidden="true"
                 />
-              ))}
+              </button>
+              {adminOpen &&
+                adminNav.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    item={item}
+                    active={isActive(pathname, item.href)}
+                    onClick={() => setMobileOpen(false)}
+                  />
+                ))}
             </>
           )}
         </nav>
 
         <KickConnectionCard />
-
-        {/* Bottom */}
-        <div className="px-4 py-4 border-t border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">
-          <p className="text-[10px] text-ps-muted dark:text-ps-muted-on-dark text-center uppercase tracking-widest">PlayStake v1.0</p>
-        </div>
       </aside>
     </>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-6 mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-ps-muted dark:text-ps-muted-on-dark">
+      {children}
+    </div>
   );
 }
 

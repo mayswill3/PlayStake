@@ -27,7 +27,7 @@ function messageFor(activeBreak: ActiveBreak): string {
     return "Your return from self-exclusion is being processed. You can deposit and play again once the 24-hour cooling-off period ends.";
   }
   if (activeBreak.awaitingReturn) {
-    return "Your self-exclusion period has ended, but your account stays closed to gambling until you ask to return from Responsible play.";
+    return "Your self-exclusion period has ended, but your account stays closed to gambling until you ask to return from Safer gambling in your account.";
   }
   return "Your account is self-excluded. You can still withdraw your balance, but you cannot deposit or place bets.";
 }

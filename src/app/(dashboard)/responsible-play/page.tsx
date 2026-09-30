@@ -244,7 +244,7 @@ export default function ResponsiblePlayPage() {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-fg">Responsible play</h1>
+        <h1 className="text-2xl font-bold text-fg">Safer gambling</h1>
         <p className="mt-1 text-sm text-fg-secondary">
           Set your own limits, take a break, and get reminders while you play.
         </p>

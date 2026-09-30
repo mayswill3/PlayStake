@@ -81,7 +81,7 @@ export default function AdminAnomaliesPage() {
   return (
     <FadeIn>
       <div className="max-w-6xl mx-auto space-y-6">
-        <h1 className="text-2xl font-display font-bold text-text-primary">Anomaly Alerts</h1>
+        <h1 className="text-2xl font-display font-bold text-text-primary">Fraud Alerts</h1>
 
         <div className="flex flex-wrap gap-2">
           {STATUS_OPTIONS.map((opt) => (

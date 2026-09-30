@@ -465,7 +465,7 @@ const TEMPLATES: { [N in EmailTemplateName]: TemplateDefinition<Payloads[N]> } =
     essential: true,
     subject: (p) => `Your ${p.period.toLowerCase()} deposit limit is now ${p.amount}`,
     content: (p) => ({
-      eyebrow: 'Responsible play',
+      eyebrow: 'Safer gambling',
       heading: 'Your deposit limit has changed',
       name: p.name,
       paragraphs: [
@@ -480,7 +480,7 @@ const TEMPLATES: { [N in EmailTemplateName]: TemplateDefinition<Payloads[N]> } =
     essential: true,
     subject: (p) => `Your ${p.kind.toLowerCase()} has started`,
     content: (p) => ({
-      eyebrow: 'Responsible play',
+      eyebrow: 'Safer gambling',
       heading: `Your ${p.kind.toLowerCase()} is active`,
       name: p.name,
       paragraphs: [
@@ -501,17 +501,17 @@ const TEMPLATES: { [N in EmailTemplateName]: TemplateDefinition<Payloads[N]> } =
     content: (p) =>
       p.kind.toLowerCase() === 'self exclusion'
         ? {
-            eyebrow: 'Responsible play',
+            eyebrow: 'Safer gambling',
             heading: 'Your self-exclusion period has ended',
             name: p.name,
             paragraphs: [
               'Your account stays closed to gambling. Nothing changes unless you choose to come back.',
-              'If you do want to return, you can ask to from Responsible play. Your account reopens 24 hours after you ask.',
+              'If you do want to return, you can ask to from Safer gambling in your account. Your account reopens 24 hours after you ask.',
               'If you would rather stay excluded, you can start a new self-exclusion at any time. Free, confidential support is available from GamCare on 0808 8020 133 or at gamcare.org.uk.',
             ],
           }
         : {
-            eyebrow: 'Responsible play',
+            eyebrow: 'Safer gambling',
             heading: 'Your account is active again',
             name: p.name,
             paragraphs: [

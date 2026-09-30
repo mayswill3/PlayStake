@@ -21,7 +21,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen flex">
-      <Sidebar userRole={user?.role} />
+      <Sidebar userRole={user?.role} kycStatus={user?.kycStatus} />
       <div className="flex-1 flex flex-col min-w-0">
         <Header user={user} balance={balance} />
         <main className="flex-1 p-4 lg:p-6">

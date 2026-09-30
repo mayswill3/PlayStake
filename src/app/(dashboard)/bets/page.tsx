@@ -67,7 +67,7 @@ export default function BetsPage() {
   return (
     <FadeIn>
       <div className="max-w-5xl mx-auto space-y-6">
-        <h1 className="text-2xl font-display font-bold text-ps-text dark:text-ps-text-on-dark">Bet History</h1>
+        <h1 className="text-2xl font-display font-bold text-ps-text dark:text-ps-text-on-dark">My Bets</h1>
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2">
