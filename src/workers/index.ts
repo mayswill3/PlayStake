@@ -26,6 +26,7 @@ import { createLedgerAuditWorker } from "./ledger-audit.worker";
 import { createLobbyExpiryWorker } from "./lobby-expiry.worker";
 import { createDepositLimitActivationWorker } from "./deposit-limit-activation.worker";
 import { createKickLiveSyncWorker } from "./kick-live-sync.worker";
+import { createSessionCleanupWorker } from "./session-cleanup.worker";
 
 // ---------------------------------------------------------------------------
 // Logging
@@ -62,6 +63,7 @@ async function start(): Promise<void> {
   workers.push(createLobbyExpiryWorker());
   workers.push(createDepositLimitActivationWorker());
   workers.push(createKickLiveSyncWorker());
+  workers.push(createSessionCleanupWorker());
 
   log("info", "workers_created", { count: workers.length });
 

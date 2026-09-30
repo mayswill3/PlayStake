@@ -94,6 +94,11 @@ export interface KickLiveSyncPayload {
   triggeredAt: string;
 }
 
+/** Deletes expired and idle-timed-out login sessions. */
+export interface SessionCleanupPayload {
+  triggeredAt: string;
+}
+
 // ---------------------------------------------------------------------------
 // Queue name constants
 // ---------------------------------------------------------------------------
@@ -111,6 +116,7 @@ export const QUEUE_NAMES = {
   DEPOSIT_LIMIT_ACTIVATION: "deposit-limit-activation",
   EMAIL_DELIVERY: "email-delivery",
   KICK_LIVE_SYNC: "kick-live-sync",
+  SESSION_CLEANUP: "session-cleanup",
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];

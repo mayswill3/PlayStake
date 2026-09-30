@@ -9,7 +9,13 @@
 import { describe, it, expect, afterEach, afterAll, beforeAll } from "vitest";
 import * as crypto from "crypto";
 import { Decimal } from "@prisma/client/runtime/client";
-import { getTestPrisma, disconnectTestPrisma, createTestSession, callApi } from "./helpers.js";
+import {
+  getTestPrisma,
+  disconnectTestPrisma,
+  createTestSession,
+  callApi,
+  withLedgerMutationsAllowed,
+} from "./helpers.js";
 import { createChallenge } from "../../src/lib/lobby/service.js";
 import { voidNoShowMatch } from "../../src/lib/lobby/match-lifecycle.js";
 import { LedgerAccountType, BetStatus } from "../../generated/prisma/client.js";
@@ -62,14 +68,16 @@ afterEach(async () => {
     select: { id: true },
   });
   const betIds = bets.map((b) => b.id);
-  await prisma.ledgerEntry.deleteMany({
-    where: {
-      OR: [
-        { ledgerAccount: { userId: { in: createdUserIds } } },
-        { ledgerAccount: { betId: { in: betIds } } },
-      ],
-    },
-  });
+  await withLedgerMutationsAllowed(prisma, () =>
+    prisma.ledgerEntry.deleteMany({
+      where: {
+        OR: [
+          { ledgerAccount: { userId: { in: createdUserIds } } },
+          { ledgerAccount: { betId: { in: betIds } } },
+        ],
+      },
+    }),
+  );
   await prisma.transaction.deleteMany({ where: { betId: { in: betIds } } });
   await prisma.ledgerAccount.deleteMany({
     where: { OR: [{ userId: { in: createdUserIds } }, { betId: { in: betIds } }] },

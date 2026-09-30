@@ -1,15 +1,18 @@
 import { withRoleGuard } from "@/lib/middleware/auth";
 import { errorResponse } from "@/lib/errors";
 import { loadDocumentForReview } from "@/lib/kyc/service";
+import { recordAdminAction } from "@/lib/admin/audit";
 import { UserRole } from "../../../../../../../../generated/prisma/client";
 
 /**
  * Stream a decrypted identity document to an admin reviewer.
  *
  * Never cached and never proxied through a CDN — the bytes are only ever
- * decrypted for the length of this response.
+ * decrypted for the length of this response. Every view is written to the
+ * admin audit log before the bytes are sent, so there is a record of who
+ * looked at whose identity document and when.
  */
-export const GET = withRoleGuard([UserRole.ADMIN], async (_req, context) => {
+export const GET = withRoleGuard([UserRole.ADMIN], async (req, context, auth) => {
   try {
     const submissionId = context?.params?.id;
     const documentId = context?.params?.documentId;
@@ -21,6 +24,15 @@ export const GET = withRoleGuard([UserRole.ADMIN], async (_req, context) => {
       submissionId,
       documentId,
     );
+
+    await recordAdminAction({
+      actorId: auth.userId,
+      action: "kyc.document_viewed",
+      targetType: "kyc_submission",
+      targetId: submissionId,
+      details: { documentId },
+      request: req,
+    });
 
     return new Response(new Uint8Array(bytes), {
       headers: {

@@ -39,6 +39,28 @@ const nextConfig: NextConfig = {
       },
     ];
 
+    // Content Security Policy. Next.js App Router emits inline bootstrap
+    // scripts, so script-src needs 'unsafe-inline' until we move to per-request
+    // nonces; everything else is pinned to the origins we actually use.
+    const isDev = process.env.NODE_ENV !== 'production';
+    const csp = (frameAncestors: string) =>
+      [
+        "default-src 'self'",
+        `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://js.stripe.com`,
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' data: https://fonts.gstatic.com",
+        // Kick thumbnails and avatars come from several CDNs.
+        "img-src 'self' data: blob: https:",
+        "media-src 'self' blob: https:",
+        `connect-src 'self' https://api.stripe.com https://*.sentry.io${isDev ? ' ws: wss:' : ''}`,
+        'frame-src https://js.stripe.com https://hooks.stripe.com https://player.kick.com',
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        `frame-ancestors ${frameAncestors}`,
+        ...(isDev ? [] : ['upgrade-insecure-requests']),
+      ].join('; ');
+
     const securityHeaders = [
       { key: 'X-Content-Type-Options', value: 'nosniff' },
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
@@ -54,6 +76,17 @@ const nextConfig: NextConfig = {
 
     return [
       { source: '/:path*', headers: securityHeaders },
+      // Nothing may frame PlayStake (clickjacking)...
+      {
+        source: '/((?!widget).*)',
+        headers: [
+          { key: 'Content-Security-Policy', value: csp("'none'") },
+          { key: 'X-Frame-Options', value: 'DENY' },
+        ],
+      },
+      // ...except the in-game widget, which game developers embed by design.
+      { source: '/widget', headers: [{ key: 'Content-Security-Policy', value: csp('*') }] },
+      { source: '/widget/:path*', headers: [{ key: 'Content-Security-Policy', value: csp('*') }] },
       { source: '/api/:path*', headers: noIndexHeaders },
       { source: '/admin/:path*', headers: noIndexHeaders },
       { source: '/dashboard/:path*', headers: noIndexHeaders },

@@ -83,6 +83,11 @@ const SCHEDULES: ScheduleEntry[] = [
     jobName: "kick-live-sync",
     every: 15_000, // every 15 seconds (webhook backstop for live status)
   },
+  {
+    queueName: QUEUE_NAMES.SESSION_CLEANUP,
+    jobName: "session-cleanup",
+    every: 60 * 60_000, // hourly
+  },
 ];
 
 // ---------------------------------------------------------------------------

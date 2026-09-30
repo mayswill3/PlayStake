@@ -90,6 +90,27 @@ export async function purgeComplianceRecords(
   }
 }
 
+/**
+ * Run test teardown that deletes ledger entries. The table is append-only by
+ * trigger in every environment; tests that create throwaway money movements
+ * suspend it for the cleanup only.
+ */
+export async function withLedgerMutationsAllowed(
+  prisma: PrismaClient,
+  fn: () => Promise<unknown>,
+): Promise<void> {
+  await prisma.$executeRawUnsafe(
+    'ALTER TABLE "ledger_entries" DISABLE TRIGGER "ledger_entries_immutable"',
+  );
+  try {
+    await fn();
+  } finally {
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "ledger_entries" ENABLE TRIGGER "ledger_entries_immutable"',
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Rollback transaction wrapper (reuse pattern from unit tests)
 // ---------------------------------------------------------------------------

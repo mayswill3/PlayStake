@@ -42,6 +42,14 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Known-vulnerable runtime dependencies. The report always prints; the
+      # build fails on anything critical. Remaining high findings are tracked
+      # in docs/compliance/13-information-security.md (Prisma CLI chain).
+      - name: Dependency audit
+        run: |
+          npm audit --omit=dev || true
+          npm audit --omit=dev --audit-level=critical
+
       - name: Type-check
         run: npx tsc --noEmit
 

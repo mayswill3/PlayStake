@@ -183,6 +183,11 @@ describe("verifyTransactionBalance", () => {
       const creditEntry = result.entries.find((e) =>
         new Decimal(e.amount.toString()).gt(0)
       );
+      // The table is append-only by trigger; lift it inside this rolled-back
+      // transaction to simulate corruption the audit must catch.
+      await tx.$executeRawUnsafe(
+        'ALTER TABLE "ledger_entries" DISABLE TRIGGER "ledger_entries_immutable"',
+      );
       await tx.$executeRaw`
         UPDATE ledger_entries
         SET amount = 200.00

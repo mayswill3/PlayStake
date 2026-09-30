@@ -3,6 +3,10 @@ import { prisma } from "../db/client";
 import { generateRandomToken, sha256Hash } from "../utils/crypto";
 
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+/** A session nobody has used for this long is signed out. */
+export const SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+/** Don't rewrite lastSeenAt on every request; once a minute is plenty. */
+const LAST_SEEN_RESOLUTION_MS = 60 * 1000;
 
 /**
  * Create a new session for a user.
@@ -55,8 +59,14 @@ export async function validateSession(
     return null;
   }
 
-  // Check expiry
-  if (session.expiresAt < new Date()) {
+  const now = new Date();
+
+  // Check expiry: absolute lifetime, or left idle too long (an unattended
+  // device should not stay signed in to a real-money account).
+  if (
+    session.expiresAt < now ||
+    now.getTime() - session.lastSeenAt.getTime() > SESSION_IDLE_TIMEOUT_MS
+  ) {
     // Expired — clean it up and return null
     await prisma.session
       .delete({ where: { id: session.id } })
@@ -77,6 +87,12 @@ export async function validateSession(
     session.user.accountStatus === AccountStatus.CLOSED_UNDERAGE
   ) {
     return null;
+  }
+
+  if (now.getTime() - session.lastSeenAt.getTime() > LAST_SEEN_RESOLUTION_MS) {
+    await prisma.session
+      .update({ where: { id: session.id }, data: { lastSeenAt: now } })
+      .catch(() => {});
   }
 
   return { userId: session.userId, user: session.user };
@@ -105,14 +121,19 @@ export async function destroyAllUserSessions(userId: string): Promise<void> {
 }
 
 /**
- * Delete all expired sessions from the database.
+ * Delete all expired or idle-timed-out sessions from the database.
  *
  * Returns the number of sessions deleted. Intended to be called
  * periodically by a background job.
  */
-export async function cleanExpiredSessions(): Promise<number> {
+export async function cleanExpiredSessions(now: Date = new Date()): Promise<number> {
   const result = await prisma.session.deleteMany({
-    where: { expiresAt: { lt: new Date() } },
+    where: {
+      OR: [
+        { expiresAt: { lt: now } },
+        { lastSeenAt: { lt: new Date(now.getTime() - SESSION_IDLE_TIMEOUT_MS) } },
+      ],
+    },
   });
   return result.count;
 }

@@ -46,7 +46,9 @@ export default function PlayLayout({ children }: { children: React.ReactNode }) 
               >
                 <span className="inline-flex items-center gap-2">
                   <Image src="/logo.png" alt="" width={32} height={32} className="h-8 w-8" />
-                  <span>PlayStake</span>
+                  {/* Room for the clock on phones: the mark alone carries the brand. */}
+                  <span className="hidden sm:inline">PlayStake</span>
+                  <span className="sr-only sm:hidden">PlayStake</span>
                 </span>
               </Link>
               <div className="flex items-center gap-2">

@@ -21,6 +21,7 @@ import {
   disconnectTestPrisma,
   createTestSession,
   callApi,
+  withLedgerMutationsAllowed,
 } from "./helpers.js";
 import { createChallenge, respondToInvite } from "../../src/lib/lobby/service.js";
 import {
@@ -92,14 +93,16 @@ afterEach(async () => {
   });
   const betIds = bets.map((b) => b.id);
 
-  await prisma.ledgerEntry.deleteMany({
-    where: {
-      OR: [
-        { ledgerAccount: { userId: { in: createdUserIds } } },
-        { ledgerAccount: { betId: { in: betIds } } },
-      ],
-    },
-  });
+  await withLedgerMutationsAllowed(prisma, () =>
+    prisma.ledgerEntry.deleteMany({
+      where: {
+        OR: [
+          { ledgerAccount: { userId: { in: createdUserIds } } },
+          { ledgerAccount: { betId: { in: betIds } } },
+        ],
+      },
+    }),
+  );
   await prisma.transaction.deleteMany({ where: { betId: { in: betIds } } });
   await prisma.ledgerAccount.deleteMany({
     where: {
