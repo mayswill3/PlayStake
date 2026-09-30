@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
+import { Dialog } from '@/components/ui/Dialog';
 import { formatCents } from '@/lib/utils/format';
 
 // ---------------------------------------------------------------------------
@@ -127,10 +128,48 @@ export default function DepositPage() {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [transactionId, setTransactionId] = useState<string | null>(null);
 
+  // Before a first deposit the customer is offered a deposit limit (set one
+  // or decline); the server refuses the deposit until they have answered.
+  const [limitPromptOpen, setLimitPromptOpen] = useState(false);
+  const [limitPeriod, setLimitPeriod] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('WEEKLY');
+  const [limitAmount, setLimitAmount] = useState('');
+  const [limitBusy, setLimitBusy] = useState(false);
+
   const amountCents = Math.round(parseFloat(amount || '0') * 100);
+
+  async function answerLimitPrompt(setOne: boolean) {
+    setLimitBusy(true);
+    try {
+      const res = setOne
+        ? await fetch('/api/responsible-play/deposit-limits', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ period: limitPeriod, amount: Math.round(parseFloat(limitAmount) * 100) }),
+          })
+        : await fetch('/api/responsible-play/deposit-limit-prompt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ decision: 'declined' }),
+          });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast('error', data.error ?? 'Could not save that.');
+        return;
+      }
+      if (setOne) toast('success', 'Deposit limit set.');
+      setLimitPromptOpen(false);
+      await submitDeposit();
+    } finally {
+      setLimitBusy(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    await submitDeposit();
+  }
+
+  async function submitDeposit() {
     setError('');
 
     if (amountCents < 500) {
@@ -155,6 +194,12 @@ export default function DepositPage() {
       });
 
       const data = await res.json();
+
+      if (res.status === 409 && data.code === 'DEPOSIT_LIMIT_PROMPT') {
+        setLimitPromptOpen(true);
+        setLoading(false);
+        return;
+      }
 
       if (!res.ok) {
         setError(data.error || 'Deposit failed. Please try again.');
@@ -277,6 +322,59 @@ export default function DepositPage() {
       <Button variant="ghost" onClick={() => router.back()} className="w-full">
         Cancel
       </Button>
+
+      <Dialog
+        open={limitPromptOpen}
+        onClose={() => setLimitPromptOpen(false)}
+        title="Set a deposit limit?"
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button
+              loading={limitBusy}
+              disabled={!(parseFloat(limitAmount) > 0)}
+              onClick={() => answerLimitPrompt(true)}
+            >
+              Set limit and continue
+            </Button>
+            <Button variant="ghost" disabled={limitBusy} onClick={() => answerLimitPrompt(false)}>
+              No limit for now
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4 text-sm text-text-secondary">
+          <p>
+            A deposit limit caps how much you can add in a day, week or month. You can lower
+            it any time; raising or removing it takes 24 hours. We recommend setting one now.
+          </p>
+          <div className="flex gap-2">
+            {(['DAILY', 'WEEKLY', 'MONTHLY'] as const).map((period) => (
+              <button
+                key={period}
+                type="button"
+                onClick={() => setLimitPeriod(period)}
+                className={`rounded-sm border px-3 py-1.5 text-sm ${
+                  limitPeriod === period
+                    ? 'border-brand-500 bg-brand-500/15 text-brand-400'
+                    : 'border-surface-700 text-text-secondary'
+                }`}
+              >
+                {period.charAt(0) + period.slice(1).toLowerCase()}
+              </button>
+            ))}
+          </div>
+          <Input
+            label="Limit"
+            type="number"
+            step="0.01"
+            min="1"
+            value={limitAmount}
+            onChange={(e) => setLimitAmount(e.target.value)}
+            placeholder="100.00"
+            prefix={<span className="text-sm font-medium">$</span>}
+          />
+        </div>
+      </Dialog>
     </div>
   );
 }

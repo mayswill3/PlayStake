@@ -718,6 +718,27 @@ async function resolveRouteHandler(
     );
     return { handler: method === "PUT" ? mod.PUT : mod.DELETE };
   }
+  if (path === "/api/responsible-play/interactions") {
+    const mod = await import("../../src/app/api/responsible-play/interactions/route.js");
+    return { handler: mod.GET };
+  }
+  const promptMatch = path.match(/^\/api\/responsible-play\/interactions\/([^/?]+)$/);
+  if (promptMatch) {
+    const mod = await import("../../src/app/api/responsible-play/interactions/[id]/route.js");
+    return { handler: mod.POST, params: { id: decodeURIComponent(promptMatch[1]) } };
+  }
+  if (path === "/api/responsible-play/deposit-limit-prompt") {
+    const mod = await import("../../src/app/api/responsible-play/deposit-limit-prompt/route.js");
+    return { handler: mod.POST };
+  }
+  const harmSignalMatch = path.match(/^\/api\/admin\/harm-signals\/([^/?]+)$/);
+  if (harmSignalMatch) {
+    const mod = await import("../../src/app/api/admin/harm-signals/[id]/route.js");
+    return {
+      handler: method === "POST" ? mod.POST : mod.GET,
+      params: { id: decodeURIComponent(harmSignalMatch[1]) },
+    };
+  }
   if (path === "/api/responsible-play/break/return") {
     const mod = await import(
       "../../src/app/api/responsible-play/break/return/route.js"

@@ -1,8 +1,38 @@
 import { assertEligibleToGamble } from "../compliance/eligibility";
+import { prisma } from "../db/client";
+import { AppError } from "../errors";
 import { getDepositLimits, getDepositUsage } from "./service";
 import { DepositLimitError } from "./errors";
 
 export { DepositLimitError, PlayBreakError } from "./errors";
+
+/** The customer hasn't yet been offered a deposit limit before depositing. */
+export class DepositLimitPromptError extends AppError {
+  constructor() {
+    super(
+      "Before your first deposit, choose whether to set a deposit limit.",
+      409,
+      "DEPOSIT_LIMIT_PROMPT",
+    );
+    this.name = "DepositLimitPromptError";
+  }
+}
+
+/**
+ * Every customer is offered a deposit limit before they first deposit. They
+ * can set one or decline, but they must answer; either answer is recorded.
+ */
+export async function assertDepositLimitPromptAnswered(userId: string): Promise<void> {
+  const [settings, limits] = await Promise.all([
+    prisma.responsiblePlaySettings.findUnique({
+      where: { userId },
+      select: { depositLimitPromptedAt: true },
+    }),
+    prisma.depositLimit.count({ where: { userId } }),
+  ]);
+  if (settings?.depositLimitPromptedAt || limits > 0) return;
+  throw new DepositLimitPromptError();
+}
 
 /**
  * Block wagering unless the customer may gamble: active account, verified

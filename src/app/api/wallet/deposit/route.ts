@@ -21,7 +21,10 @@ import {
 } from "../../../../lib/payments/stripe";
 import { assertTestPaymentsEnabled } from "../../../../lib/payments/policy";
 import { assertKycVerified } from "../../../../lib/kyc/policy";
-import { assertCanDeposit } from "../../../../lib/responsible-play/policy";
+import {
+  assertCanDeposit,
+  assertDepositLimitPromptAnswered,
+} from "../../../../lib/responsible-play/policy";
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,6 +50,7 @@ export async function POST(request: NextRequest) {
     // Responsible-play gates: an active break blocks deposits outright, and a
     // self-set limit caps how much can arrive in the rolling window.
     await assertCanDeposit(session.userId, input.amount);
+    await assertDepositLimitPromptAnswered(session.userId);
 
     // Convert cents to dollars for database storage
     const amountDollars = centsToDollars(input.amount);

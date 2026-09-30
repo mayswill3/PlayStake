@@ -20,6 +20,7 @@ import {
 import { prisma } from "../lib/db/client";
 import { reportJobFailure } from "../lib/observability/job-failure";
 import { scanForLossChasing } from "../lib/responsible-play/risk";
+import { evaluateDueInteractions } from "../lib/responsible-play/interaction";
 
 // ---------------------------------------------------------------------------
 // Logging helper
@@ -521,6 +522,17 @@ async function processPlayerRiskScan(): Promise<void> {
   } catch (error) {
     // Never let a welfare scan take down fraud detection.
     log("error", "player_risk_scan_failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  // The "evaluate" step: settle the outcome of interactions whose follow-up
+  // date has passed.
+  try {
+    const evaluated = await evaluateDueInteractions();
+    if (evaluated > 0) log("info", "customer_interactions_evaluated", { evaluated });
+  } catch (error) {
+    log("error", "interaction_evaluation_failed", {
       error: error instanceof Error ? error.message : String(error),
     });
   }

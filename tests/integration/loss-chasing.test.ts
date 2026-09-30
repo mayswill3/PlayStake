@@ -10,7 +10,7 @@
 import { describe, it, expect, afterAll, beforeEach, vi } from "vitest";
 import * as crypto from "crypto";
 import { Decimal } from "@prisma/client/runtime/client";
-import { disconnectTestPrisma, getTestPrisma } from "./helpers.js";
+import { disconnectTestPrisma, getTestPrisma, purgeComplianceRecords } from "./helpers.js";
 import {
   BetMatchType,
   BetOutcome,
@@ -113,7 +113,7 @@ afterAll(async () => {
     select: { id: true },
   });
   const ids = users.map((u) => u.id);
-  await prisma.playerRiskSignal.deleteMany({ where: { userId: { in: ids } } });
+  await purgeComplianceRecords(prisma, ids);
   await prisma.transaction.deleteMany({
     where: { idempotencyKey: { startsWith: "chase-dep-" } },
   });

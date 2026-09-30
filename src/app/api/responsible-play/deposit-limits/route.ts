@@ -11,6 +11,7 @@ import {
 } from "@/lib/validation/schemas";
 import { DepositLimitPeriod } from "../../../../../generated/prisma/client";
 import { emailDepositLimitChanged } from "@/lib/email/events";
+import { recordDepositLimitPrompt } from "@/lib/responsible-play/interaction";
 
 export const PUT = withSessionAuth(async (request, _context, auth) => {
   try {
@@ -27,6 +28,8 @@ export const PUT = withSessionAuth(async (request, _context, auth) => {
       parsed.data.period as DepositLimitPeriod,
       parsed.data.amount,
     );
+    // Setting a limit answers the before-first-deposit prompt.
+    await recordDepositLimitPrompt(auth.userId);
 
     await emailDepositLimitChanged({
       userId: auth.userId,

@@ -6,6 +6,7 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { ChallengesProvider } from '@/components/lobby/ChallengesProvider';
 import { EligibilityNotice } from '@/components/compliance/EligibilityNotice';
 import { SessionReminder } from '@/components/responsible-play/SessionReminder';
+import { InteractionPrompt } from '@/components/responsible-play/InteractionPrompt';
 
 export const metadata: Metadata = {
   title: 'Play',
@@ -63,6 +64,7 @@ export default function PlayLayout({ children }: { children: React.ReactNode }) 
         <main>{children}</main>
         {/* Reality checks run where the games are played, not only on the dashboard. */}
         <SessionReminder />
+        <InteractionPrompt />
       </div>
     </ChallengesProvider>
   );
