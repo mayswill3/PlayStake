@@ -40,7 +40,7 @@ This policy sets out how PlayStake stops its service being used to commit crime.
 - **Sessions:**
   - random 256-bit tokens, stored only as hashes
   - cookies are HttpOnly, Secure and SameSite=Lax
-  - sessions expire after 7 days
+  - sessions expire after 7 days, or after 30 minutes without use
   - every session is revoked on a password change or reset
   - closed accounts are signed out everywhere and cannot sign in again
 - **Two-factor authentication (TOTP):**
@@ -77,9 +77,12 @@ Cheating is an offence under s.42 of the Gambling Act 2005. PlayStake prevents a
   - the lobby and challenge flows refuse it before that point
 - **Head-to-head cap.** The same two customers can play each other at most **5 times in any hour**. Repeated head-to-heads are how value is passed between colluding accounts.
 - **Results for PlayStake's own games:**
-  - the game itself reports the result
-  - the reporting routes check that the caller is a player in that match and that the game session belongs to that bet (hardened against a previously identified exploit chain)
-  - a player cannot move for, or report for, their opponent
+  - the server decides every result: it holds the game state, applies each move, and makes every random draw with a cryptographically secure generator; the browser only sends the player's move, call or aim
+  - no request can declare a winner, and hidden information (the shuffled deck) is never sent to a browser
+  - every move, draw and result is written to an append-only game event log that the database protects from edits or deletion
+  - settlement checks that the game session belongs to that bet and the same two players (hardened against a previously identified exploit chain)
+  - a player cannot move for their opponent
+  - a player who abandons a started match forfeits it, so leaving a losing position can't turn into a refund (see the Fair Play page)
 - **Results for streamed matches** are decided by an independent human referee:
   - referees apply, are verified (identity and age), and are approved by staff for specific games
   - a referee cannot officiate a match they are playing in, and can hold only one match at a time

@@ -86,6 +86,19 @@ PlayStake is a small operator at launch. One person currently holds all the key 
 | 06 | [Age Verification](06-age-verification.md) | Keeping under-18s out | Date of birth and 18+ confirmation at sign-up, document KYC before any deposit, free-to-play access or gambling, under-18 closure process |
 | 07 | [AML Risk Assessment and Controls](07-aml-risk-assessment-and-controls.md) | Money laundering and terrorist financing | Risk assessment, KYC, transaction monitoring (chip dumping, shared IPs, deposit-and-withdraw-without-play, EDD threshold), withdrawal holds, case management, SAR process |
 
+The application's technical documents:
+
+| No. | Document | What it covers |
+|---|---|---|
+| 08 | [System Diagram and Outsourcing Map](08-system-diagram-and-outsourcing-map.md) | Every component and supplier, with commentary: payments, identity, geolocation, marketing, customer service, fraud detection, hosting |
+| 09 | [End-to-End Customer and System Flow](09-end-to-end-flow.md) | Registration to gambling to payout, with the checks at each step and where the equipment is |
+| 10 | [Operational Model Map](10-operational-model-map.md) | Location, provider and operator of every system and activity, including key equipment |
+| 11 | [Testing Strategy](11-testing-strategy.md) | Test-house scope (RNG, game rules), in-house testing, CI, change control, annual security audit |
+| 12 | [RTS Compliance Statement and Change Register](12-rts-compliance-and-change-register.md) | How each applicable RTS is met, RTS 12 phase 1 and 2, and how RTS changes are tracked |
+| 13 | [Information Security Policy](13-information-security.md) | ISO/IEC 27001:2022 control mapping for the RTS security requirements, residual risks and gaps |
+| 14 | [Incident Response and Key Event Reporting](14-incident-response-and-key-events.md) | Triage, response, customer and ICO notification, LCCP 15.2.1 key events within 5 working days |
+| 15 | [UAE (GCGRA) Certification Plan](15-uae-gcgra-certification-plan.md) | Route to GCGRA licensing and GLI-19 / GLI-33 certification with GLI or BMM (planning draft, unverified) |
+
 Each policy states its owner, its review date, the LCCP provisions it addresses, and exactly how the platform carries it out.
 
 ## 5. Cross-cutting controls
@@ -190,11 +203,18 @@ These must be done before the application is submitted, or before real-money lau
 | 9 | Set the AML and affordability thresholds (`AML_*`, `AFFORDABILITY_REVIEW_THRESHOLD_CENTS`) to the values in the approved risk assessment, in GBP pence once currency changes | Launch | MLRO |
 | 10 | Build automated data-retention purges matching the Privacy Policy | Within 3 months of launch | Engineering |
 | 11 | Move rate limiting from per-process memory to Redis before running more than one web instance | Before scaling | Engineering |
-| 12 | Add a Content-Security-Policy and frame-ancestors headers | Launch | Engineering |
+| 12 | ~~Add a Content-Security-Policy and frame-ancestors headers~~ Done 30 September 2026. Remaining: move to nonce-based CSP (Document 13). | Launch | Engineering |
 | 13 | Update the website's licensing statement ("does not currently hold a gambling licence") to show the licence number once granted | On grant | Head of Compliance |
 | 14 | Staff training programme and records | Launch | Head of Compliance |
 | 15 | Engage the external compliance adviser for quarterly independent review | Launch | Board |
 | 16 | Confirm the current Commission thresholds and rules on: financial vulnerability and affordability checks, consumer-set financial limit prompts, and marketing consent. Adjust the platform settings to match. | Application | Head of Compliance |
+| 17 | Record the Railway region and backup location; confirm backups are enabled and test a restore | Application | Engineering |
+| 18 | Decide permitted jurisdictions and add IP geolocation blocking plus a residency restriction at verification (Document 08 §6) | Launch | Head of Compliance / engineering |
+| 19 | Engage a Commission-approved test house for RNG and game certification (Document 11 §3.1); confirm with the Commission the in-house/third-party split for peer-to-peer games and which licence covers Higher / Lower | Application | Head of Compliance |
+| 20 | Commission an independent penetration test; appoint the annual security auditor (first audit within 6 months of grant) | Launch / grant + 6 months | Head of Compliance |
+| 21 | Close the information security gaps in Document 13 §6 (log retention, written staff security rules, supplier assurance, key rotation, `timestamptz`) | As marked there | Head of Compliance / engineering |
+| 22 | Review the 12 January 2026 update to RTS 14 against Policies 03 and 04 (Document 12 §4) | Application | Head of Compliance |
+| 23 | Build the monthly game-fairness statistical check from the game event log (Document 11 §6) | Launch | Engineering |
 
 ## 9. Version history
 
