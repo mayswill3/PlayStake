@@ -112,6 +112,8 @@ export const confirm2FASchema = z.object({
 export const updateProfileSchema = z.object({
   /** Optional emails (match results, referee alerts). Essential mail always sends. */
   emailNotifications: z.boolean().optional(),
+  /** Promotional email. Opt-in only; never sent while excluded. */
+  marketingConsent: z.boolean().optional(),
   displayName: z
     .string()
     .min(2, "Display name must be at least 2 characters")

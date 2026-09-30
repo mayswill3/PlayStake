@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
       kycStatus: user.kycStatus,
       emailVerified: user.emailVerified,
       emailNotifications: user.emailNotifications,
+      marketingConsent: user.marketingConsent,
       twoFactorEnabled: user.twoFactorEnabled,
       createdAt: user.createdAt.toISOString(),
     });
@@ -51,6 +52,10 @@ export async function PATCH(request: NextRequest) {
     if (input.emailNotifications !== undefined) {
       updateData.emailNotifications = input.emailNotifications;
     }
+    if (input.marketingConsent !== undefined) {
+      updateData.marketingConsent = input.marketingConsent;
+      updateData.marketingConsentAt = input.marketingConsent ? new Date() : null;
+    }
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(sanitizeUser(session.user as any));
@@ -70,6 +75,7 @@ export async function PATCH(request: NextRequest) {
       kycStatus: updated.kycStatus,
       emailVerified: updated.emailVerified,
       emailNotifications: updated.emailNotifications,
+      marketingConsent: updated.marketingConsent,
       twoFactorEnabled: updated.twoFactorEnabled,
       createdAt: updated.createdAt.toISOString(),
     });
