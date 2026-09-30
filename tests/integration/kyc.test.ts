@@ -397,6 +397,24 @@ describe("KYC: identity screening", () => {
     expect(amlCase?.relatedUserId).toBe(first.user.id);
   });
 
+  it("carries a self-exclusion over to a new account for the same person", async () => {
+    const excluded = await makePlayer();
+    const newAccount = await makePlayer();
+    const identity = { legalLastName: `Returner-${Math.random().toString(36).slice(2, 8)}` };
+    await callApi("POST", "/api/kyc", { ...as(excluded), formData: submissionForm(identity) });
+    const endsAt = new Date(Date.now() + 200 * 24 * 60 * 60 * 1000);
+    await prisma.playBreak.create({
+      data: { userId: excluded.user.id, type: "SELF_EXCLUSION", startsAt: new Date(), endsAt },
+    });
+
+    await callApi("POST", "/api/kyc", { ...as(newAccount), formData: submissionForm(identity) });
+
+    const carried = await prisma.playBreak.findFirst({
+      where: { userId: newAccount.user.id, type: "SELF_EXCLUSION" },
+    });
+    expect(carried?.endsAt.getTime()).toBe(endsAt.getTime());
+  });
+
   it("records every review decision in the admin audit log", async () => {
     const player = await makePlayer();
     const admin = await makePlayer({ role: "ADMIN" });
