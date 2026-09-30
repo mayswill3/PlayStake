@@ -136,6 +136,21 @@ describe("Account status: suspension", () => {
   });
 });
 
+describe("Self-exclusion on request", () => {
+  it("lets staff self-exclude a customer who asked by email, audited", async () => {
+    const player = await createTestUser(tx, { displayName: "Asked by email" });
+    createdUserIds.push(player.id);
+    const res = await callApi("POST", `/api/admin/users/${player.id}/self-exclusion`, {
+      sessionToken: adminToken,
+      body: { optionId: "1y", reason: "Customer emailed support asking to self-exclude for a year" },
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.type).toBe("SELF_EXCLUSION");
+    const entry = await prisma.adminAuditLog.findFirst({ where: { action: "user.self_exclusion", targetId: player.id } });
+    expect(entry).not.toBeNull();
+  });
+});
+
 describe("Admin tools", () => {
   it("require two-factor authentication when enforced", async () => {
     vi.stubEnv("ADMIN_2FA_REQUIRED", "true");

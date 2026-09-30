@@ -791,6 +791,11 @@ async function resolveRouteHandler(
       params: { id: decodeURIComponent(adminComplaintMatch[1]) },
     };
   }
+  const selfExclusionMatch = path.match(/^\/api\/admin\/users\/([^/?]+)\/self-exclusion$/);
+  if (selfExclusionMatch) {
+    const mod = await import("../../src/app/api/admin/users/[id]/self-exclusion/route.js");
+    return { handler: mod.POST, params: { id: decodeURIComponent(selfExclusionMatch[1]) } };
+  }
   const accountStatusMatch = path.match(/^\/api\/admin\/users\/([^/?]+)\/account-status$/);
   if (accountStatusMatch) {
     const mod = await import(

@@ -41,7 +41,8 @@ interface UserDetail {
 type PendingChange =
   | { kind: 'role'; value: string }
   | { kind: 'kyc'; value: string }
-  | { kind: 'status'; value: string };
+  | { kind: 'status'; value: string }
+  | { kind: 'self_exclusion'; value: string };
 
 const STATUS_ACTIONS: { value: string; label: string; danger?: boolean }[] = [
   { value: 'ACTIVE', label: 'Reinstate' },
@@ -54,7 +55,15 @@ const CHANGE_TITLE: Record<PendingChange['kind'], string> = {
   role: 'Change role',
   kyc: 'Change KYC status',
   status: 'Change account status',
+  self_exclusion: 'Self-exclude for',
 };
+
+const SELF_EXCLUSION_OPTIONS = [
+  { value: '6mo', label: '6 months' },
+  { value: '1y', label: '1 year' },
+  { value: '2y', label: '2 years' },
+  { value: '5y', label: '5 years' },
+];
 
 export default function AdminUserDetailPage() {
   const params = useParams();
@@ -91,7 +100,13 @@ export default function AdminUserDetailPage() {
     setSaving(true);
     try {
       const res =
-        pending.kind === 'status'
+        pending.kind === 'self_exclusion'
+          ? await fetch(`/api/admin/users/${params.id}/self-exclusion`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ optionId: pending.value, reason }),
+            })
+          : pending.kind === 'status'
           ? await fetch(`/api/admin/users/${params.id}/account-status`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -251,6 +266,22 @@ export default function AdminUserDetailPage() {
         </div>
       </Card>
 
+      {/* Self-exclusion on request */}
+      <Card>
+        <CardTitle>Self-exclude on the customer&apos;s behalf</CardTitle>
+        <p className="mt-1 text-sm text-text-secondary">
+          For customers who ask by email or phone. It takes effect at once, withdraws their open
+          lobby activity, and can&apos;t be shortened or lifted early by anyone.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {SELF_EXCLUSION_OPTIONS.map((option) => (
+            <Button key={option.value} variant="danger" size="sm" onClick={() => begin({ kind: 'self_exclusion', value: option.value })}>
+              {option.label}
+            </Button>
+          ))}
+        </div>
+      </Card>
+
       {/* Role Management */}
       <Card>
         <CardTitle>Role</CardTitle>
@@ -300,7 +331,13 @@ export default function AdminUserDetailPage() {
       <Dialog
         open={pending !== null}
         onClose={() => setPending(null)}
-        title={pending ? `${CHANGE_TITLE[pending.kind]} to ${pending.value.replace(/_/g, ' ')}` : undefined}
+        title={
+          pending
+            ? pending.kind === 'self_exclusion'
+              ? `${CHANGE_TITLE.self_exclusion} ${SELF_EXCLUSION_OPTIONS.find((option) => option.value === pending.value)?.label}`
+              : `${CHANGE_TITLE[pending.kind]} to ${pending.value.replace(/_/g, ' ')}`
+            : undefined
+        }
         actions={
           <div className="flex gap-2">
             <Button variant="ghost" onClick={() => setPending(null)}>Cancel</Button>
@@ -323,7 +360,11 @@ export default function AdminUserDetailPage() {
             </p>
           )}
           <label className="block">
-            <span className="mb-1 block text-text-primary">Reason (recorded in the audit log)</span>
+            <span className="mb-1 block text-text-primary">
+              {pending?.kind === 'self_exclusion'
+                ? 'How did the customer ask? (recorded in the audit log)'
+                : 'Reason (recorded in the audit log)'}
+            </span>
             <textarea
               className="w-full min-h-[90px] resize-y rounded-sm border border-surface-700 bg-surface-800 p-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-500"
               value={reason}
