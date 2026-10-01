@@ -87,7 +87,7 @@ Cheating is an offence under s.42 of the Gambling Act 2005. PlayStake prevents a
   - players must accept the Match Rules before sending or accepting their first stream challenge
   - referees must accept the Referee Code of Conduct when they apply, and before going available or claiming a match
   - the accepted version and time are recorded for each person, so a disputed match is judged against the rules that applied; changing a rule in substance bumps the version and everyone must accept again
-  - the rules cover cheating, fixing, bots, stream-watching ("ghosting"), staying live, conduct, disconnects, disputes and sanctions; the Code covers independence and conflicts, no betting or gifts, officiating live, deciding only on what the streams show, written notes and confidentiality
+  - the rules cover cheating, fixing, bots, staying live, conduct, disconnects, disputes and sanctions; the Code covers independence and conflicts, no betting or gifts, officiating live, deciding only on what the streams show, written notes and confidentiality
 - **Results for streamed matches** are decided by an independent human referee:
   - referees apply, are verified (identity and age), and are approved by staff for specific games
   - a referee cannot officiate a match they are playing in, and can hold only one match at a time

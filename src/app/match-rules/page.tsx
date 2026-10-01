@@ -94,10 +94,6 @@ export default function MatchRulesPage() {
             with your opponent or anyone else about the outcome.
           </li>
           <li>
-            <strong>Don&apos;t watch your opponent&apos;s stream</strong> during the match, or have anyone
-            pass on what it shows.
-          </li>
-          <li>
             <strong>Stay live</strong> on the declared game until the referee records the result.
           </li>
           <li>

@@ -18,7 +18,6 @@ export const REFEREE_CODE_VERSION = '2026-10-01';
 export const KEY_PLAYER_RULES = [
   'Stay live on Kick, playing the declared game, for the whole match.',
   'Play the match yourself — no cheats, mods, macros or bots, and no agreeing results.',
-  "Don't watch your opponent's stream during the match.",
   "The referee decides from what both streams show. You have 15 minutes to dispute.",
   'Be respectful to your opponent and the referee.',
 ] as const;
