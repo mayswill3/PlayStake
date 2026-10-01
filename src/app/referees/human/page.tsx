@@ -14,8 +14,8 @@ export const metadata: Metadata = createPublicMetadata({
 const STEPS = [
   { n: '01', label: 'Sign up as a referee', desc: 'Create your PlayStake account, connect Kick, complete identity verification, and apply from the Referee Hub.' },
   { n: '02', label: 'Receive a match notification', desc: 'When a staked match starts that needs a human referee, all opted-in referees get a notification. The first to accept takes the match.' },
-  { n: '03', label: 'Open the spectator view', desc: 'You are given read-only access to the live game. Watch every move, score, and event as it happens in real time.' },
-  { n: '04', label: 'Confirm the result', desc: 'When the match ends, confirm the winner. If something looks wrong — a disconnect, a rule dispute, suspicious behaviour — flag it instead.' },
+  { n: '03', label: 'Watch both streams', desc: 'Go live on your own Kick channel, check both players are live on the declared game, then start the match and watch both of their streams until it ends.' },
+  { n: '04', label: 'Record the result', desc: 'Record the winner, or a draw if the streams don’t show who won, with notes on what decided it. Players then have 15 minutes to dispute your call.' },
   { n: '05', label: 'Get paid', desc: 'Your referee fee is automatically credited to your PlayStake wallet after settlement. Withdraw it any time through the standard process.' },
 ];
 
@@ -26,7 +26,7 @@ const FAQS = [
   },
   {
     q: 'Can I referee any game?',
-    a: 'You can referee any game you have a working knowledge of. When you sign up, you select which games you are comfortable officiating. You will only be offered matches for those games.',
+    a: 'When you apply, you choose the games you know well. PlayStake reviews your application and approves you game by game, and you are only offered matches in games you are approved for.',
   },
   {
     q: 'What if I make a wrong call?',
@@ -34,7 +34,7 @@ const FAQS = [
   },
   {
     q: 'How many matches can I referee?',
-    a: 'There is no minimum or maximum. You can accept as many or as few matches as you like. You are never penalised for not accepting a match.',
+    a: 'There is no minimum. You officiate one match at a time, and only claim a match when you can start it within 5 minutes. You are never penalised for not claiming a match.',
   },
 ];
 
@@ -125,17 +125,17 @@ export default function HumanRefereePage() {
         {/* What you do */}
         <Section icon={<Eye size={20} />} color="green" title="What you actually do">
           <p>
-            Once you accept a match, you are given a spectator link. Open it and you will see the game in real time, exactly as the players see it, but without any controls. You watch. You do not interfere.
+            Once you claim a match, the Referee Hub shows both players&apos; Kick streams side by side. Go live on your own Kick channel so the call is made in the open, confirm both players are live on the declared game, and start the match. You watch. You do not interfere.
           </p>
           <p>
-            When the match ends, a confirmation prompt appears. If the result looks correct, confirm it. The system will immediately process settlement. If something does not look right, you flag the match. A full review is triggered and funds remain in escrow until it is resolved.
+            When the match ends, record the result with notes on what decided it. Players then have 15 minutes to dispute your call, and the stakes stay in escrow until that time has passed.
           </p>
           <ul className="mt-3 space-y-2">
             {[
-              'Read-only spectator view — you cannot affect the game',
-              'One-tap confirm or flag when match ends',
-              'Optional notes field if you flag a dispute',
-              'Full match replay available for review',
+              'Both players’ live streams side by side',
+              'Your call is made live on your own Kick stream',
+              'Written notes with every decision: the score and any key moments',
+              'A tamper-evident record of every step you take',
             ].map((f) => (
               <li key={f} className="flex items-center gap-2.5 text-sm text-fg-secondary">
                 <CheckCircle2 size={14} style={{ color: '#4ade80', flexShrink: 0 }} />
@@ -161,30 +161,34 @@ export default function HumanRefereePage() {
         {/* Disputes */}
         <Section icon={<AlertTriangle size={20} />} color="green" title="Handling disputes">
           <p>
-            If something looks wrong during a match — a suspicious disconnect, a player claiming a rule was broken, an outcome that does not match what you saw — flag it immediately. Do not guess or feel pressured to confirm.
+            If something looks wrong during a match — a suspicious disconnect, a player claiming a rule was broken, behaviour that looks like cheating — write down what you saw, with the time on stream, in your decision notes. Do not guess or feel pressured by either player.
           </p>
           <p>
-            When you flag a match, it enters formal dispute review. The PlayStake team reviews the full event log, replay footage, and your notes. Both players are notified. The match is held until a decision is made.
+            If you cannot tell from the streams who won, record a draw and explain why. Either player can dispute your call within 15 minutes; the PlayStake team then reviews both streams, match chat and your notes, and either upholds or corrects the result.
           </p>
           <p>
-            Your flag is taken seriously. You are the last line of defence before settlement. If in doubt, flag it.
+            Every referee follows the{' '}
+            <Link href="/match-rules#referees" className="font-semibold text-fg underline underline-offset-2">
+              Referee Code of Conduct
+            </Link>
+            , which you accept when you apply.
           </p>
         </Section>
 
         {/* How to qualify */}
         <Section icon={<Star size={20} />} color="green" title="How to qualify">
           <p>
-            Any verified PlayStake user can apply to become a referee. There are no formal qualifications, no equipment requirements beyond a stable internet connection, and no minimum hours.
+            Any PlayStake user aged 18 or over can apply. There are no formal qualifications and no minimum hours. PlayStake reviews every application before you can officiate.
           </p>
           <p>
-            The only requirements are a completed identity verification, a working knowledge of the games you want to referee, and a good standing on the platform (no active bans or unresolved disputes).
+            You need a verified identity, a connected Kick account you can go live on, a good knowledge of the games you want to referee, and good standing on the platform. You must be independent of the players in any match you officiate.
           </p>
           <ul className="mt-3 space-y-2">
             {[
               'Completed PlayStake identity verification',
-              'Familiarity with the game rules',
-              'Stable internet connection',
-              'Good platform standing',
+              'A connected Kick account',
+              'Approval for each game you officiate',
+              'Acceptance of the Referee Code of Conduct',
             ].map((f) => (
               <li key={f} className="flex items-center gap-2.5 text-sm text-fg-secondary">
                 <CheckCircle2 size={14} style={{ color: '#4ade80', flexShrink: 0 }} />

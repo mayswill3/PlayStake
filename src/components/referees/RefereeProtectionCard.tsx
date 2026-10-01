@@ -328,14 +328,22 @@ function Step({ state, label }: { state: 'done' | 'active' | 'upcoming'; label: 
 
 function AuditLink({ assignmentId }: { assignmentId: string }) {
   return (
-    <a
-      href={`/api/referees/assignments/${assignmentId}/audit`}
-      target="_blank"
-      rel="noreferrer"
-      className="relative mt-4 inline-block text-xs font-semibold text-ps-lime hover:underline"
-    >
-      Verify immutable audit trail
-    </a>
+    <div className="relative mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold">
+      <a
+        href={`/api/referees/assignments/${assignmentId}/audit`}
+        target="_blank"
+        rel="noreferrer"
+        className="text-ps-lime hover:underline"
+      >
+        Verify immutable audit trail
+      </a>
+      <a href="/match-rules" target="_blank" className="text-ps-lime hover:underline">
+        Match Rules
+      </a>
+      <a href="/match-rules#results" target="_blank" className="text-ps-lime hover:underline">
+        How disputes work
+      </a>
+    </div>
   );
 }
 

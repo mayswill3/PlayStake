@@ -13,6 +13,7 @@
 //      challenge-created invite is equivalent to a normal invite).
 // =============================================================================
 
+import { MATCH_RULES_VERSION } from "../../src/lib/rules.js";
 import { describe, it, expect, afterEach, afterAll, beforeAll } from "vitest";
 import * as crypto from "crypto";
 import { Decimal } from "@prisma/client/runtime/client";
@@ -135,6 +136,8 @@ async function makeUser(displayName: string): Promise<{ id: string }> {
       emailVerified: true,
       // Age and identity verified: the gate for any stake.
       kycStatus: "VERIFIED",
+      // Has accepted the current Match Rules, as every stream player must.
+      matchRulesVersion: MATCH_RULES_VERSION,
     },
   });
   createdUserIds.push(user.id);
@@ -363,5 +366,73 @@ describe("challenge -> respondToInvite(ACCEPT)", () => {
       select: { balance: true },
     });
     expect(dollarsToCents(escrow.balance)).toBe(2 * STAKE_CENTS);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// tests: Match Rules must be accepted before a stream match
+// ---------------------------------------------------------------------------
+
+describe("Match Rules acceptance", () => {
+  /** A player who has never accepted the Match Rules. */
+  async function newcomer(displayName: string) {
+    const user = await makeUser(displayName);
+    await prisma.user.update({ where: { id: user.id }, data: { matchRulesVersion: null } });
+    return user;
+  }
+
+  it("won't send a challenge until the challenger accepts, then records the version", async () => {
+    const slug = `rules-${crypto.randomUUID().substring(0, 8)}`;
+    await makeStreamer({ channelSlug: slug, isLive: true, declared: true });
+    const viewer = await newcomer("New viewer");
+    await fundUser(viewer.id, 50);
+    const token = await sessionFor(viewer.id);
+
+    const refused = await callApi("POST", `/api/streamers/${slug}/challenge`, {
+      sessionToken: token,
+      body: { amount: 500 },
+    });
+    expect(refused.status).toBe(409);
+    expect(refused.body.code).toBe("MATCH_RULES_REQUIRED");
+
+    const sent = await callApi("POST", `/api/streamers/${slug}/challenge`, {
+      sessionToken: token,
+      body: { amount: 500, acceptMatchRules: true },
+    });
+    expect(sent.status).toBe(200);
+    const after = await prisma.user.findUniqueOrThrow({ where: { id: viewer.id } });
+    expect(after.matchRulesVersion).toBe(MATCH_RULES_VERSION);
+    expect(after.matchRulesAcceptedAt).not.toBeNull();
+  });
+
+  it("won't let a streamer accept until they accept, and locks nothing meanwhile", async () => {
+    const slug = `rules-acc-${crypto.randomUUID().substring(0, 8)}`;
+    const streamer = await makeStreamer({ channelSlug: slug, isLive: true, declared: true });
+    await prisma.user.update({ where: { id: streamer.id }, data: { matchRulesVersion: null } });
+    const viewer = await makeUser("Viewer");
+    await fundUser(viewer.id, 50);
+    await fundUser(streamer.id, 50);
+    const challenge = await createChallenge({
+      challengerUserId: viewer.id,
+      streamerChannelSlug: slug,
+      stakeAmount: 500,
+    });
+
+    await expect(
+      respondToInvite({
+        callerUserId: streamer.id,
+        lobbyEntryId: challenge.streamerLobbyEntryId,
+        response: "ACCEPT",
+      }),
+    ).rejects.toMatchObject({ code: "MATCH_RULES_REQUIRED" });
+    expect(await balanceCents(streamer.id)).toBe(5000);
+
+    const accepted = await respondToInvite({
+      callerUserId: streamer.id,
+      lobbyEntryId: challenge.streamerLobbyEntryId,
+      response: "ACCEPT",
+      acceptMatchRules: true,
+    });
+    expect(accepted.status).toBe("MATCHED");
   });
 });

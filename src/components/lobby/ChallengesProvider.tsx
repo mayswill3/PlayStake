@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
+import { RulesConsentDialog } from '@/components/rules/RulesConsent';
 import { useToast } from '@/components/ui/Toast';
 import { type MyInvite } from './ChallengeItem';
 import { ChallengeModal } from './ChallengeModal';
@@ -56,7 +57,11 @@ interface ChallengesContextValue {
   refereeOpenCount: number;
   busyId: string | null;
   busyOutgoingId: string | null;
-  respond: (lobbyEntryId: string, action: 'ACCEPT' | 'DECLINE') => Promise<void>;
+  respond: (
+    lobbyEntryId: string,
+    action: 'ACCEPT' | 'DECLINE',
+    acceptMatchRules?: boolean,
+  ) => Promise<void>;
   cancelOutgoing: (challengeId: string) => Promise<void>;
   resumeMatch: (match: MyMatch) => void;
   refresh: () => Promise<void>;
@@ -111,6 +116,8 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
   const [outgoing, setOutgoing] = useState<MyOutgoingChallenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Set when accepting needs the Match Rules accepted first.
+  const [rulesPromptId, setRulesPromptId] = useState<string | null>(null);
   const [busyOutgoingId, setBusyOutgoingId] = useState<string | null>(null);
   const [modalInvite, setModalInvite] = useState<MyInvite | null>(null);
   const [sseEnabled, setSseEnabled] = useState(false);
@@ -195,15 +202,22 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
   }, [sseEnabled]);
 
   const respond = useCallback(
-    async (lobbyEntryId: string, action: 'ACCEPT' | 'DECLINE') => {
+    async (lobbyEntryId: string, action: 'ACCEPT' | 'DECLINE', acceptMatchRules = false) => {
       setBusyId(lobbyEntryId);
       try {
         const res = await fetch('/api/lobby/respond', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lobbyEntryId, response: action }),
+          body: JSON.stringify({ lobbyEntryId, response: action, acceptMatchRules }),
         });
         if (!res.ok) {
+          const errorBody = await res.clone().json().catch(() => ({}));
+          if (errorBody?.code === 'MATCH_RULES_REQUIRED') {
+            // First stream match (or the rules changed): ask, then accept again.
+            setModalInvite(null);
+            setRulesPromptId(lobbyEntryId);
+            return;
+          }
           // Expired / already-gone races: entry vanished or is no longer INVITED.
           if (res.status === 404 || res.status === 409) {
             toast('info', 'That challenge is no longer available — it may have expired.');
@@ -318,6 +332,19 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
           </Button>
         </div>
       )}
+      <RulesConsentDialog
+        open={rulesPromptId !== null}
+        kind="player"
+        busy={rulesPromptId !== null && busyId === rulesPromptId}
+        acceptLabel="Accept rules and challenge"
+        onAccept={async () => {
+          const id = rulesPromptId;
+          if (!id) return;
+          await respond(id, 'ACCEPT', true);
+          setRulesPromptId(null);
+        }}
+        onClose={() => setRulesPromptId(null)}
+      />
       <ChallengeModal
         invite={modalInvite}
         busy={modalInvite !== null && busyId === modalInvite.lobbyEntryId}

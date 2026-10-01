@@ -16,6 +16,11 @@ import {
 import { appendRefereeAudit, type AuditContext } from "./audit";
 import { voidNoShowMatch } from "@/lib/lobby/match-lifecycle";
 import {
+  RefereeCodeRequiredError,
+  hasAcceptedRefereeCode,
+  refereeCodeAcceptance,
+} from "@/lib/compliance/rules-acceptance";
+import {
   emailRefereeApplicationReceived,
   emailRefereeDecision,
 } from "@/lib/email/events";
@@ -63,6 +68,8 @@ export async function getRefereeProfile(userId: string) {
   return {
     profile,
     games,
+    /** False when the referee must (re-)accept the current Code of Conduct. */
+    codeAccepted: profile ? hasAcceptedRefereeCode(profile) : false,
     requirements: {
       kickConnected: Boolean(account.kickAccount?.channelSlug),
       kycVerified: account.kycStatus === KycStatus.VERIFIED,
@@ -102,12 +109,15 @@ export async function applyToReferee(input: {
   return prisma.$transaction(async (tx) => {
     const profile = await tx.refereeProfile.upsert({
       where: { userId: input.userId },
+      // Applying means accepting the current Referee Code of Conduct.
       create: {
         userId: input.userId,
         bio: input.bio?.trim() || null,
+        ...refereeCodeAcceptance(),
       },
       update: {
         bio: input.bio?.trim() || null,
+        ...refereeCodeAcceptance(),
         // Any qualification change requires a fresh administrator review.
         status: RefereeProfileStatus.PENDING,
         isAvailable: false,
@@ -130,7 +140,11 @@ export async function applyToReferee(input: {
   });
 }
 
-export async function setRefereeAvailability(userId: string, isAvailable: boolean) {
+export async function setRefereeAvailability(
+  userId: string,
+  isAvailable: boolean,
+  acceptCode = false,
+) {
   const profile = await prisma.refereeProfile.findUnique({
     where: { userId },
     include: {
@@ -152,10 +166,14 @@ export async function setRefereeAvailability(userId: string, isAvailable: boolea
   if (!profile.user.kickAccount?.channelSlug) {
     throw new AuthorizationError("A connected Kick account is required to referee");
   }
+  // Going available means taking matches: the current Code must be accepted.
+  if (isAvailable && !acceptCode && !hasAcceptedRefereeCode(profile)) {
+    throw new RefereeCodeRequiredError();
+  }
 
   return prisma.refereeProfile.update({
     where: { id: profile.id },
-    data: { isAvailable },
+    data: { isAvailable, ...(acceptCode ? refereeCodeAcceptance() : {}) },
   });
 }
 
@@ -286,6 +304,7 @@ export async function claimAssignment(
       throw new AuthorizationError("Only approved referees can claim matches");
     }
     if (!profile.isAvailable) throw new ConflictError("Set yourself available first");
+    if (!hasAcceptedRefereeCode(profile)) throw new RefereeCodeRequiredError();
     if (
       profile.user.kycStatus !== KycStatus.VERIFIED ||
       !profile.user.kickAccount?.channelSlug

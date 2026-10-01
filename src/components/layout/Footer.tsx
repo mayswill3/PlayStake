@@ -139,6 +139,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/match-rules" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                  Match Rules
+                </Link>
+              </li>
+              <li>
                 <a href="mailto:support@playstake.org" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   Contact
                 </a>

@@ -26,6 +26,7 @@ import {
 import { centsToDollars } from "@/lib/utils/money";
 import { holdEscrow } from "@/lib/ledger/escrow";
 import { assertCanWager } from "@/lib/responsible-play/policy";
+import { assertMatchRulesAccepted } from "@/lib/compliance/rules-acceptance";
 import {
   isLobbyGameType,
   getDemoGameId,
@@ -375,6 +376,8 @@ export interface CreateChallengeInput {
   streamerChannelSlug: string;
   /** Stake the viewer is putting up, in cents. Both sides lock this amount. */
   stakeAmount: number;
+  /** The viewer ticked "I accept the Match Rules" with this challenge. */
+  acceptMatchRules?: boolean;
 }
 
 export interface CreateChallengeResult {
@@ -411,6 +414,7 @@ export async function createChallenge(
   }
 
   await assertCanWager(input.challengerUserId);
+  await assertMatchRulesAccepted(input.challengerUserId, input.acceptMatchRules === true);
 
   // Resolve the streamer from their Kick channel. Live status + declared game
   // both live on the KickAccount, so this is a single lookup.
@@ -649,6 +653,8 @@ export interface RespondInput {
   callerUserId: string;
   lobbyEntryId: string; // caller's own (Player B) entry
   response: "ACCEPT" | "DECLINE";
+  /** The streamer ticked "I accept the Match Rules" when accepting. */
+  acceptMatchRules?: boolean;
 }
 
 export type RespondResult =
@@ -761,6 +767,11 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
       requiresReferee: true,
     },
   });
+  // Stream matches are played under the Match Rules: the streamer must have
+  // accepted them before committing a stake.
+  if (streamChallengePreview) {
+    await assertMatchRulesAccepted(input.callerUserId, input.acceptMatchRules === true);
+  }
   if (
     streamChallengePreview
       ? !isStreamGameType(entryPreview.gameType)

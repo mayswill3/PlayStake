@@ -18,6 +18,8 @@ import { useOnKickStatusChanged } from '@/components/kick/kick-status';
 import { useLiveStatusEvents } from '@/hooks/useLiveStatusEvents';
 import { STREAM_GAME_CATALOGUE, type StreamGameType } from '@/lib/games/catalogue';
 import { formatCents } from '@/lib/utils/format';
+import { PayoutSummary } from '@/components/lobby/PayoutSummary';
+import { KeyRules, RulesCheckbox } from '@/components/rules/RulesConsent';
 
 const STAKE_OPTIONS_CENTS = [100, 500, 1000, 2500];
 
@@ -97,6 +99,9 @@ export default function StreamDetailPage() {
   const [stakeCents, setStakeCents] = useState(STAKE_OPTIONS_CENTS[1]);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  // Set once the server says this player hasn't accepted the Match Rules yet.
+  const [needsRules, setNeedsRules] = useState(false);
+  const [rulesChecked, setRulesChecked] = useState(false);
 
   async function sendChallenge() {
     setSending(true);
@@ -104,10 +109,15 @@ export default function StreamDetailPage() {
       const res = await fetch(`/api/streamers/${slug}/challenge`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: stakeCents }),
+        body: JSON.stringify({ amount: stakeCents, acceptMatchRules: needsRules && rulesChecked }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
+        if (body.code === 'MATCH_RULES_REQUIRED') {
+          setNeedsRules(true);
+          toast('info', 'Please accept the Match Rules to send your challenge.');
+          return;
+        }
         const msg =
           res.status === 429
             ? 'Slow down — too many challenges. Try again shortly.'
@@ -126,6 +136,7 @@ export default function StreamDetailPage() {
 
   function openChallenge() {
     setSent(false);
+    setRulesChecked(false);
     setStakeCents(STAKE_OPTIONS_CENTS[1]);
     setChallengeOpen(true);
   }
@@ -334,7 +345,12 @@ export default function StreamDetailPage() {
                 <PSButton variant="ghost" onClick={() => setChallengeOpen(false)}>
                   Cancel
                 </PSButton>
-                <PSButton loading={sending} icon={<Swords size={16} />} onClick={sendChallenge}>
+                <PSButton
+                  loading={sending}
+                  disabled={needsRules && !rulesChecked}
+                  icon={<Swords size={16} />}
+                  onClick={sendChallenge}
+                >
                   Send {formatCents(stakeCents)} challenge
                 </PSButton>
               </>
@@ -385,6 +401,13 @@ export default function StreamDetailPage() {
                   {formatCents(stakeCents * 2)}
                 </span>
               </p>
+              {streamer.declaredGame && (
+                <PayoutSummary gameType={streamer.declaredGame.gameType} stakeCents={stakeCents} />
+              )}
+              <KeyRules kind="player" />
+              {needsRules && (
+                <RulesCheckbox kind="player" checked={rulesChecked} onChange={setRulesChecked} />
+              )}
             </div>
           )}
         </Dialog>

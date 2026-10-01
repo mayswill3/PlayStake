@@ -56,7 +56,7 @@ export default function FairPlayPage() {
         <p>
           Live stream matches are decided differently: an independent human referee watches both
           streams, and the result can be disputed before any money moves. See{' '}
-          <Link href="/terms">our terms</Link>.
+          <Link href="/terms">our terms</Link> and the <Link href="/match-rules">Match Rules</Link>.
         </p>
       </LegalSection>
 

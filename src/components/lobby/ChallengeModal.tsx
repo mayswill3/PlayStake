@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { Clock, Scale, Swords } from 'lucide-react';
 import { Dialog } from '@/components/ui/Dialog';
@@ -99,7 +100,11 @@ function ChallengeBody({
           <Scale size={16} className="mt-0.5 shrink-0 text-ps-lime" aria-hidden="true" />
           <span>
             <span className="font-semibold">Live vs live.</span> Your stake locks when you accept, and the match
-            starts once an independent referee joins.
+            starts once an independent referee joins. The{' '}
+            <Link href="/match-rules" target="_blank" className="font-semibold underline underline-offset-2">
+              Match Rules
+            </Link>{' '}
+            apply.
           </span>
         </p>
       )}

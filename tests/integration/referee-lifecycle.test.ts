@@ -8,6 +8,7 @@
 // row locks and transaction boundaries.
 // =============================================================================
 
+import { REFEREE_CODE_VERSION } from "../../src/lib/rules.js";
 import { describe, it, expect, afterAll, beforeAll } from "vitest";
 import * as crypto from "crypto";
 import { Decimal } from "@prisma/client/runtime/client";
@@ -138,6 +139,7 @@ async function makeReferee(name: string) {
       status: RefereeProfileStatus.APPROVED,
       isAvailable: true,
       approvedAt: new Date(),
+      codeVersion: REFEREE_CODE_VERSION,
       qualifications: { create: { gameId } },
     },
   });

@@ -70,7 +70,8 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         id: 'stream-challenges',
         q: 'How do stream challenges work?',
-        a: "A streamer connects their Kick channel, goes live and picks the game they're playing. A viewer sends them a challenge with a stake. If the streamer accepts, both stakes are locked in and the match starts once an independent referee joins. Both players must be live on Kick so the referee can watch both feeds.",
+        a: "A streamer connects their Kick channel, goes live and picks the game they're playing. A viewer sends them a challenge with a stake. If the streamer accepts, both stakes are locked in and the match starts once an independent referee joins. Both players must be live on Kick so the referee can watch both feeds. Every stream match is played under our Match Rules, which you accept before your first challenge.",
+        links: [{ href: '/match-rules', label: 'Match Rules' }],
         featured: true,
       },
       {
@@ -90,13 +91,19 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         id: 'disputes',
         q: 'What happens in a dispute?',
         a: "For stream matches, either player can dispute the referee's decision within 15 minutes, and nothing is paid out until that time has passed. For other matches you can dispute a result within 24 hours of it being reported. We review the game record, stream footage and referee evidence, and correct the result if it was wrong. If you're unhappy with how we handle it, you can make a complaint.",
-        links: [{ href: '/complaints', label: 'Complaints procedure' }],
+        links: [
+          { href: '/match-rules#results', label: 'Disputes under the Match Rules' },
+          { href: '/complaints', label: 'Complaints procedure' },
+        ],
       },
       {
         id: 'referees',
         q: 'What is a referee, and can I become one?',
         a: "Referees are approved people who officiate stream matches. They must verify their identity, can't officiate a match they're playing in, and every decision they make is recorded. Referees earn 10% of the platform fee on each match they officiate. You can apply from the Referee Hub.",
-        links: [{ href: '/referees', label: 'Become a referee' }],
+        links: [
+          { href: '/referees/human', label: 'Become a referee' },
+          { href: '/match-rules#referees', label: 'Referee Code of Conduct' },
+        ],
       },
     ],
   },

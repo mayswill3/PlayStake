@@ -37,12 +37,13 @@ export async function POST(
     const { slug } = await params;
 
     const body = await request.json().catch(() => ({}));
-    const { amount } = validateBody(challengeSchema, body);
+    const { amount, acceptMatchRules } = validateBody(challengeSchema, body);
 
     const result = await createChallenge({
       challengerUserId: session.userId,
       streamerChannelSlug: slug,
       stakeAmount: amount,
+      acceptMatchRules,
     });
 
     return NextResponse.json({

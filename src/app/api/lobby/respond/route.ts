@@ -7,7 +7,8 @@ import { respondToInvite } from "@/lib/lobby/service";
 /**
  * POST /api/lobby/respond
  *
- * Body: { lobbyEntryId: string (caller, Player B), response: 'ACCEPT' | 'DECLINE' }
+ * Body: { lobbyEntryId: string (caller, Player B), response: 'ACCEPT' | 'DECLINE',
+ *         acceptMatchRules?: boolean }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
       callerUserId: session.userId,
       lobbyEntryId: body.lobbyEntryId,
       response: body.response,
+      acceptMatchRules: body?.acceptMatchRules === true,
     });
 
     return NextResponse.json(result);

@@ -225,6 +225,8 @@ export const challengeSchema = z.object({
     .int("Amount must be an integer (cents)")
     .min(100, "Minimum stake is $1.00 (100 cents)")
     .max(50_000, "Maximum stake is $500.00 (50000 cents)"),
+  /** Set when the player ticks "I accept the Match Rules" with this challenge. */
+  acceptMatchRules: z.boolean().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -248,10 +250,13 @@ export const refereeApplySchema = z.object({
   gameIds: z
     .array(z.string().uuid("Invalid game ID"))
     .min(1, "Select at least one game you can referee"),
+  acceptCode: z.literal(true, "You must accept the Referee Code of Conduct"),
 });
 
 export const refereeAvailabilitySchema = z.object({
   isAvailable: z.boolean("isAvailable must be a boolean"),
+  /** Set when the referee ticks the Code of Conduct box at the same time. */
+  acceptCode: z.boolean().optional(),
 });
 
 export const refereeActionSchema = z.object({

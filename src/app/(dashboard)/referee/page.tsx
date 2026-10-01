@@ -7,6 +7,7 @@ import { PSButton } from '@/components/ui/playstake/PSButton';
 import { KickPlayer } from '@/components/ui/playstake/KickPlayer';
 import { StatusPill } from '@/components/ui/playstake/StatusPill';
 import { useToast } from '@/components/ui/Toast';
+import { KeyRules, RulesCheckbox, RulesConsentDialog } from '@/components/rules/RulesConsent';
 import { useLiveStatusEvents } from '@/hooks/useLiveStatusEvents';
 import { AssignmentHistoryList } from '@/components/referees/AssignmentHistoryList';
 
@@ -20,6 +21,8 @@ interface ProfileResponse {
     qualifications: { game: Game }[];
   };
   games: Game[];
+  /** False when the current Referee Code of Conduct hasn't been accepted. */
+  codeAccepted: boolean;
   requirements: { kickConnected: boolean; kycVerified: boolean; kickLive: boolean };
 }
 interface Assignment {
@@ -58,6 +61,9 @@ export default function RefereeHubPage() {
   const [selectedGames, setSelectedGames] = useState<string[]>([]);
   const [bio, setBio] = useState('');
   const [busy, setBusy] = useState(false);
+  const [codeChecked, setCodeChecked] = useState(false);
+  // Open when an approved referee must accept the (updated) Code of Conduct.
+  const [codePrompt, setCodePrompt] = useState<null | { goAvailable: boolean }>(null);
   const notifiedIds = useRef(new Set<string>());
 
   const load = useCallback(async () => {
@@ -123,7 +129,7 @@ export default function RefereeHubPage() {
     const response = await fetch('/api/referees/profile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bio, gameIds: selectedGames }),
+      body: JSON.stringify({ bio, gameIds: selectedGames, acceptCode: codeChecked }),
     });
     const body = await response.json();
     if (!response.ok) toast('error', body.error ?? 'Application failed');
@@ -134,18 +140,28 @@ export default function RefereeHubPage() {
     setBusy(false);
   }
 
-  async function toggleAvailability() {
-    if (!profileData?.profile) return;
+  async function setAvailability(isAvailable: boolean, acceptCode = false) {
     setBusy(true);
     const response = await fetch('/api/referees/profile', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isAvailable: !profileData.profile.isAvailable }),
+      body: JSON.stringify({ isAvailable, acceptCode }),
     });
     const body = await response.json();
-    if (!response.ok) toast('error', body.error ?? 'Could not update availability');
-    else await load();
+    if (!response.ok && body.code === 'REFEREE_CODE_REQUIRED') {
+      setCodePrompt({ goAvailable: isAvailable });
+    } else if (!response.ok) {
+      toast('error', body.error ?? 'Could not update availability');
+    } else {
+      setCodePrompt(null);
+      await load();
+    }
     setBusy(false);
+  }
+
+  function toggleAvailability() {
+    if (!profileData?.profile) return;
+    void setAvailability(!profileData.profile.isAvailable);
   }
 
   async function assignmentAction(id: string, endpoint: string, body?: object) {
@@ -239,6 +255,8 @@ export default function RefereeHubPage() {
             current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
           )}
           onApply={apply}
+          codeChecked={codeChecked}
+          onCodeChecked={setCodeChecked}
         />
       ) : profileData.profile.status !== 'APPROVED' ? (
         <Card>
@@ -256,6 +274,24 @@ export default function RefereeHubPage() {
         </Card>
       ) : (
         <>
+          {!profileData.codeAccepted && (
+            <Card className="border-ps-warning/40">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold text-ps-text dark:text-white">Accept the Referee Code of Conduct</p>
+                  <p className="mt-1 text-sm text-ps-muted dark:text-ps-muted-on-dark">
+                    You need to accept the current Code before you can go available or claim a match.
+                  </p>
+                </div>
+                <PSButton
+                  size="sm"
+                  onClick={() => setCodePrompt({ goAvailable: profileData.profile?.isAvailable ?? false })}
+                >
+                  Read and accept
+                </PSButton>
+              </div>
+            </Card>
+          )}
           {!profileData.requirements.kycVerified && (
             <Card className="border-ps-warning/40">
               <p className="font-semibold text-ps-text dark:text-white">Identity verification required</p>
@@ -282,6 +318,14 @@ export default function RefereeHubPage() {
             />
           )}
           <AssignmentHistory assignments={mine} />
+          <RulesConsentDialog
+            open={codePrompt !== null}
+            kind="referee"
+            busy={busy}
+            acceptLabel={codePrompt?.goAvailable ? 'Accept and go available' : 'Accept the Code'}
+            onAccept={() => void setAvailability(codePrompt?.goAvailable ?? false, true)}
+            onClose={() => setCodePrompt(null)}
+          />
         </>
       )}
     </div>
@@ -297,6 +341,8 @@ function ApplicationCard(props: {
   onBio: (value: string) => void;
   onToggle: (id: string) => void;
   onApply: () => void;
+  codeChecked: boolean;
+  onCodeChecked: (checked: boolean) => void;
 }) {
   return (
     <Card>
@@ -327,19 +373,31 @@ function ApplicationCard(props: {
           <Requirement ok={props.requirements.kickConnected} label="Connected Kick account" />
           <Requirement ok={props.requirements.kycVerified} label="Verified identity before going available" />
           <Requirement ok label="Independent from both players" />
+          <KeyRules kind="referee" className="mt-4 bg-ps-paper dark:bg-ps-ink" />
+          <div className="mt-4">
+            <RulesCheckbox kind="referee" checked={props.codeChecked} onChange={props.onCodeChecked} />
+          </div>
           <PSButton
             className="mt-5 w-full"
-            disabled={props.busy || !props.requirements.kickConnected || props.selected.length === 0}
+            disabled={
+              props.busy ||
+              !props.requirements.kickConnected ||
+              props.selected.length === 0 ||
+              !props.codeChecked
+            }
             onClick={props.onApply}
           >
             Submit application
           </PSButton>
           {/* Say why the button is disabled rather than leaving it silently grey. */}
-          {!props.busy && (!props.requirements.kickConnected || props.selected.length === 0) && (
+          {!props.busy &&
+            (!props.requirements.kickConnected || props.selected.length === 0 || !props.codeChecked) && (
             <p className="mt-2 text-center text-xs text-ps-muted dark:text-ps-muted-on-dark" aria-live="polite">
               {!props.requirements.kickConnected
                 ? 'Connect your Kick account to apply'
-                : 'Select at least one game to apply'}
+                : props.selected.length === 0
+                  ? 'Select at least one game to apply'
+                  : 'Accept the Referee Code of Conduct to apply'}
             </p>
           )}
         </div>
@@ -513,6 +571,7 @@ function RefereeWorkbench({
           </p>
         )}
       </Card>
+      <KeyRules kind="referee" />
       {assignment.status === 'IN_PROGRESS' && (
         <Card>
           <CardTitle>Submit result</CardTitle>
@@ -535,7 +594,7 @@ function RefereeWorkbench({
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             rows={4}
-            placeholder="Describe the evidence you saw (required)…"
+            placeholder="Final score, what decided it, and the stream time of any key moment (required)…"
             className="mt-4 w-full rounded-lg border border-[var(--ps-border-light)] bg-transparent p-3 text-sm text-ps-text outline-none focus:border-ps-lime dark:border-[var(--ps-border-dark)] dark:text-white"
           />
           <PSButton

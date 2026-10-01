@@ -6,6 +6,7 @@
 // (bet voided, both refunded, no locked funds). Committed writes + teardown.
 // =============================================================================
 
+import { MATCH_RULES_VERSION } from "../../src/lib/rules.js";
 import { describe, it, expect, afterEach, afterAll, beforeAll } from "vitest";
 import * as crypto from "crypto";
 import { Decimal } from "@prisma/client/runtime/client";
@@ -104,6 +105,8 @@ async function makeUser(displayName: string): Promise<{ id: string }> {
       emailVerified: true,
       // Age and identity verified: the gate for any stake.
       kycStatus: "VERIFIED",
+      // Has accepted the current Match Rules, as every stream player must.
+      matchRulesVersion: MATCH_RULES_VERSION,
     },
   });
   createdUserIds.push(user.id);

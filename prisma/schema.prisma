@@ -315,6 +315,9 @@ model User {
   role                          UserRole  @default(PLAYER)
   displayName                   String    @map("display_name") @db.VarChar(100)
   avatarUrl                     String?   @map("avatar_url") @db.VarChar(500)
+  /// Version of the Match Rules (/match-rules) this user last accepted, and when.
+  matchRulesVersion             String?   @map("match_rules_version") @db.VarChar(20)
+  matchRulesAcceptedAt          DateTime? @map("match_rules_accepted_at")
   kycStatus                     KycStatus @default(NOT_STARTED) @map("kyc_status")
   stripeCustomerId              String?   @unique @map("stripe_customer_id") @db.VarChar(255)
   stripeConnectAccountId        String?   @unique @map("stripe_connect_account_id") @db.VarChar(255)
@@ -735,6 +738,9 @@ model RefereeProfile {
   disputesUpheld Int                  @default(0) @map("disputes_upheld")
   approvedAt     DateTime?            @map("approved_at")
   suspendedAt    DateTime?            @map("suspended_at")
+  /// Version of the Referee Code of Conduct this referee last accepted, and when.
+  codeVersion    String?              @map("code_version") @db.VarChar(20)
+  codeAcceptedAt DateTime?            @map("code_accepted_at")
   createdAt      DateTime             @default(now()) @map("created_at")
   updatedAt      DateTime             @updatedAt @map("updated_at")
 

@@ -182,7 +182,10 @@ export default function TermsPage() {
           Kick accounts, accurately declare the game being played, and ensure
           their streams give the assigned referee a reasonable view of the
           match. Stream delay, interruption, missing footage or a materially
-          different game may lead to a pause, void result or dispute.
+          different game may lead to a pause, void result or dispute. Every
+          stream match is played under the{' '}
+          <Link href="/match-rules">Match Rules</Link>, which form part of these
+          Terms and which you accept before your first stream challenge.
         </p>
         <p>
           Your use of Kick remains subject to Kick&rsquo;s own terms. PlayStake
@@ -201,7 +204,9 @@ export default function TermsPage() {
           human referee may watch both authorised streams, review relevant game
           information and submit a decision. Referees must be impartial, keep
           information confidential, disclose conflicts and avoid any financial
-          interest in the match.
+          interest in the match. Every referee agrees to the{' '}
+          <Link href="/match-rules#referees">Referee Code of Conduct</Link>{' '}
+          before officiating.
         </p>
         <p>
           Material referee actions are recorded in an audit trail. Players agree

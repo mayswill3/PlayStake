@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Clock3, Gamepad2, Swords } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardTitle, CardDescription } from '@/components/ui/Card';
@@ -39,6 +40,8 @@ export default function ChallengesPage() {
           <CardTitle>Incoming challenges</CardTitle>
           <CardDescription>
             Wagers viewers have sent you while you&apos;re live. Accept to lock the stake and start the match.
+            Stream matches are played under the{' '}
+            <Link href="/match-rules" className="underline underline-offset-2">Match Rules</Link>.
           </CardDescription>
 
           <div className="mt-4">

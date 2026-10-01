@@ -57,7 +57,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const input = validateBody(refereeAvailabilitySchema, body);
     return NextResponse.json(
-      await setRefereeAvailability(session.userId, input.isAvailable),
+      await setRefereeAvailability(session.userId, input.isAvailable, input.acceptCode === true),
     );
   } catch (error) {
     return errorResponse(error);
