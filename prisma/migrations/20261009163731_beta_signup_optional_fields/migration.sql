@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "beta_signups" ALTER COLUMN "name" DROP NOT NULL,
+ALTER COLUMN "game" DROP NOT NULL;

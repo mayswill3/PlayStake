@@ -10,19 +10,22 @@ import {
 // ---------------------------------------------------------------------------
 
 export const betaSignupSchema = z.object({
+  // Name and game are optional: the homepage form asks only for an email,
+  // an optional game and consent.
   name: z
     .string()
     .trim()
     .min(2, "Name must be at least 2 characters")
-    .max(100, "Name must be at most 100 characters"),
+    .max(100, "Name must be at most 100 characters")
+    .optional(),
   email: z
     .string()
     .trim()
     .toLowerCase()
     .email("Invalid email address")
     .max(255, "Email must be at most 255 characters"),
-  game: z.enum(BETA_FAVOURITE_GAMES),
-  playerType: z.enum(BETA_APPLICANT_TYPES),
+  game: z.enum(BETA_FAVOURITE_GAMES).optional(),
+  playerType: z.enum(BETA_APPLICANT_TYPES).default("Player"),
   consent: z
     .boolean()
     .refine((value) => value, "Consent is required to join the beta list"),

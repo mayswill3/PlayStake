@@ -916,9 +916,10 @@ model StripeEvent {
 
 model BetaSignup {
   id          String   @id @default(uuid()) @db.Uuid
-  name        String   @db.VarChar(100)
+  /// Optional: the homepage form asks only for an email.
+  name        String?  @db.VarChar(100)
   email       String   @unique @db.VarChar(255)
-  game        String   @db.VarChar(100)
+  game        String?  @db.VarChar(100)
   playerType  String   @map("player_type") @db.VarChar(50)
   isDemo      Boolean  @default(false) @map("is_demo")
   consentedAt DateTime @map("consented_at")

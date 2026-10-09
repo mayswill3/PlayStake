@@ -56,6 +56,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/investors" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                  Investors
+                </Link>
+              </li>
+              <li>
                 <Link href="/#games" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   Games
                 </Link>

@@ -7,7 +7,12 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { MobileMenu } from '@/components/ui/mobile-menu';
 import { PSButton } from '@/components/ui/playstake';
 
-const NAV_LINKS = [
+export interface NavLinkItem {
+  href: string;
+  label: string;
+}
+
+const NAV_LINKS: NavLinkItem[] = [
   { href: '/how-it-works', label: 'How It Works' },
   { href: '#games', label: 'Games' },
   { href: '#trust', label: 'Trust & Safety' },
@@ -15,7 +20,11 @@ const NAV_LINKS = [
   { href: '#for-referees', label: 'Referees' },
 ];
 
-export function LandingNav() {
+export function LandingNav({
+  links = NAV_LINKS,
+  ctaHref = '#beta-signup',
+  ctaLabel = 'Join Beta',
+}: { links?: NavLinkItem[]; ctaHref?: string; ctaLabel?: string } = {}) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -54,7 +63,7 @@ export function LandingNav() {
 
           {/* Desktop nav */}
           <nav className="hidden lg:flex items-center gap-7" aria-label="Main navigation">
-            {NAV_LINKS.map((link) => (
+            {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -74,10 +83,10 @@ export function LandingNav() {
             >
               Log in
             </Link>
-            <a href="#beta-signup" className="hidden lg:block">
-              <PSButton size="sm">Join Beta</PSButton>
+            <a href={ctaHref} className="hidden lg:block">
+              <PSButton size="sm">{ctaLabel}</PSButton>
             </a>
-            <MobileMenu links={NAV_LINKS} />
+            <MobileMenu links={links} />
           </div>
         </div>
       </div>

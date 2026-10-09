@@ -17,21 +17,22 @@ export async function POST(request: NextRequest) {
     const signup = await prisma.betaSignup.upsert({
       where: { email: input.email },
       create: {
-        name: input.name,
+        name: input.name ?? null,
         email: input.email,
-        game: input.game,
+        game: input.game ?? null,
         playerType: input.playerType,
         consentedAt,
       },
+      // Don't wipe details given earlier when the short form is used later.
       update: {
-        name: input.name,
-        game: input.game,
+        ...(input.name ? { name: input.name } : {}),
+        ...(input.game ? { game: input.game } : {}),
         playerType: input.playerType,
         consentedAt,
       },
     });
 
-    await emailBetaSignup(input.email, input.name, signup.id);
+    await emailBetaSignup(input.email, signup.name ?? '', signup.id);
 
     return NextResponse.json(
       { message: 'Beta access request saved' },

@@ -225,7 +225,7 @@ export default function AdminBetaSignupsPage() {
                       >
                         <td className="px-4 py-3">
                           <p className="font-mono font-medium text-surface-200">
-                            {signup.name}
+                            {signup.name ?? "—"}
                           </p>
                           {signup.isDemo ? (
                             <p className="font-mono text-xs text-text-muted">
@@ -246,7 +246,7 @@ export default function AdminBetaSignupsPage() {
                           </Badge>
                         </td>
                         <td className="px-4 py-3 font-mono text-sm text-text-secondary">
-                          {signup.game}
+                          {signup.game ?? "—"}
                         </td>
                         <td className="px-4 py-3 font-mono text-sm text-text-secondary">
                           {signup.isDemo
@@ -278,7 +278,7 @@ export default function AdminBetaSignupsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate font-mono text-sm font-medium text-surface-200">
-                        {signup.name}
+                        {signup.name ?? "—"}
                       </p>
                       <p className="mt-0.5 break-all font-mono text-xs text-text-muted">
                         {signup.email}
@@ -293,7 +293,7 @@ export default function AdminBetaSignupsPage() {
                   <dl className="mt-4 grid grid-cols-2 gap-3 font-mono text-xs">
                     <div className="col-span-2">
                       <dt className="text-text-muted">Favourite game</dt>
-                      <dd className="mt-0.5 text-text-secondary">{signup.game}</dd>
+                      <dd className="mt-0.5 text-text-secondary">{signup.game ?? "—"}</dd>
                     </div>
                     <div>
                       <dt className="text-text-muted">Consented</dt>
