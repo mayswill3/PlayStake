@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { CheckCircle2 } from 'lucide-react';
 import { FaqList } from '@/components/landing/faq';
@@ -16,7 +17,7 @@ const BEFORE_YOU_JOIN: FaqItem[] = [
   {
     id: 'beta-games',
     q: 'Which games are planned?',
-    a: 'Stream matches in EA SPORTS FC 26, Fortnite, Call of Duty, Rocket League, NBA 2K26, Apex Legends, Minecraft and GTA Online. Tell us your game when you sign up and we will use it to decide what comes next.',
+    a: 'Stream matches in EA SPORTS FC 26, Fortnite, Call of Duty, Rocket League, NBA 2K26, Apex Legends, Minecraft and GTA Online, with fighting games such as Tekken 8 to follow. Tell us your game when you sign up and we will use it to decide what comes next.',
   },
   {
     id: 'beta-real-money',
@@ -78,8 +79,16 @@ export function JoinBeta() {
     <section id="join" className="scroll-mt-20">
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-14 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:px-8">
         <div className="relative overflow-hidden rounded-[var(--ps-radius-lg)] border-2 border-[var(--ps-lime)] bg-ps-paper-elevated p-6 sm:p-8 dark:bg-ps-ink-2">
+          <Image
+            src="/home/photos/beta-controller.webp"
+            alt=""
+            fill
+            sizes="(min-width: 1024px) 55vw, 100vw"
+            className="object-cover object-right opacity-25 dark:opacity-70"
+          />
+          {/* Keeps the form readable over the photo. */}
           <div
-            className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[var(--ps-lime)]/20 blur-3xl"
+            className="absolute inset-0 bg-gradient-to-r from-ps-paper-elevated via-ps-paper-elevated/85 to-ps-paper-elevated/30 dark:from-ps-ink-2 dark:via-ps-ink-2/85 dark:to-ps-ink-2/20"
             aria-hidden="true"
           />
           <h2 className="relative font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Be part of the beta.</h2>

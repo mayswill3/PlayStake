@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   ChevronRight,
@@ -17,23 +18,18 @@ const sectionTitle = 'font-display text-3xl font-extrabold tracking-tight sm:tex
 
 // ── 02 Find your game ────────────────────────────────────────────────────────
 
-/** Artwork for each card until licensed game imagery is available. */
 const GAMES = [
   {
     name: 'EA SPORTS FC 26',
-    art: 'radial-gradient(60% 40% at 20% 10%, rgba(255,255,255,.55), transparent 60%), radial-gradient(60% 40% at 80% 10%, rgba(255,255,255,.45), transparent 60%), linear-gradient(180deg, #0b1a33 0%, #10325a 45%, #1f6b3a 72%, #2f8f45 100%)',
+    image: '/home/photos/game-football.webp',
+    alt: 'A floodlit football stadium at night',
+    status: 'In beta',
   },
   {
-    name: 'Rocket League',
-    art: 'radial-gradient(50% 60% at 15% 70%, rgba(249,115,22,.75), transparent 60%), radial-gradient(50% 60% at 85% 30%, rgba(59,130,246,.75), transparent 60%), linear-gradient(135deg, #0b1020, #141b38)',
-  },
-  {
-    name: 'Fortnite',
-    art: 'radial-gradient(60% 50% at 50% 0%, rgba(168,85,247,.7), transparent 65%), radial-gradient(70% 50% at 50% 100%, rgba(56,189,248,.55), transparent 65%), linear-gradient(180deg, #1e1b4b, #0f172a)',
-  },
-  {
-    name: 'Call of Duty',
-    art: 'radial-gradient(60% 50% at 70% 30%, rgba(234,88,12,.55), transparent 65%), linear-gradient(160deg, #1c1917 0%, #292524 50%, #3f3a1f 100%)',
+    name: 'Tekken 8',
+    image: '/home/photos/game-fighting.webp',
+    alt: 'A torch-lit fighting arena beneath snowy mountains',
+    status: 'Coming soon',
   },
 ];
 
@@ -48,18 +44,18 @@ export function FindYourGame() {
           </Link>
         </div>
         {/* A swipeable row on phones, a grid from tablet up. */}
-        <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4">
+        <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0">
           {GAMES.map((game) => (
             <div
               key={game.name}
-              className="relative flex aspect-[4/3] w-[80%] shrink-0 snap-start items-end overflow-hidden rounded-[var(--ps-radius-lg)] p-5 text-white shadow-md sm:w-auto"
-              style={{ background: game.art }}
+              className="relative flex aspect-[16/8] w-[85%] shrink-0 snap-start items-end overflow-hidden rounded-[var(--ps-radius-lg)] p-5 text-white shadow-md sm:w-auto sm:p-6"
             >
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" aria-hidden="true" />
+              <Image src={game.image} alt={game.alt} fill sizes="(min-width: 640px) 50vw, 85vw" className="object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" aria-hidden="true" />
               <div className="relative">
-                <p className="font-display text-2xl font-extrabold uppercase leading-tight tracking-tight">{game.name}</p>
+                <p className="font-display text-2xl font-extrabold uppercase leading-tight tracking-tight sm:text-3xl">{game.name}</p>
                 <span className="mt-2 inline-block rounded bg-[#C8F04B] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-ps-ink">
-                  In beta
+                  {game.status}
                 </span>
               </div>
             </div>
@@ -127,13 +123,14 @@ export function RefereeReview() {
         </h2>
         <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
           <div className="relative aspect-[16/10] overflow-hidden rounded-[var(--ps-radius-lg)] bg-black">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/home/clip-match.jpg"
-              alt="The Referee Hub showing both players' live streams side by side"
-              className="h-full w-full object-cover"
+            <Image
+              src="/home/photos/referee-review.webp"
+              alt="A referee in a headset watching both players' streams side by side"
+              fill
+              sizes="(min-width: 1024px) 58vw, 100vw"
+              className="object-cover"
             />
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-t from-black/85 via-black/60 to-black/40">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/25">
               <PlayButton video="match" label="Play the referee demo" />
               <p className="font-display text-lg font-bold uppercase tracking-wide text-white">Referee demo</p>
             </div>
@@ -254,9 +251,9 @@ export function CostsAndControl() {
 // ── 06 See the full match experience ─────────────────────────────────────────
 
 const CLIPS = [
-  { video: 'challenge' as const, poster: '/home/clip-challenge.jpg', title: 'Setting up a challenge' },
-  { video: 'match' as const, poster: '/home/clip-match.jpg', title: 'Playing the match' },
-  { video: 'result' as const, poster: '/home/clip-result.jpg', title: 'Reviewing the result' },
+  { video: 'challenge' as const, poster: '/home/photos/challenge-setup.webp', title: 'Setting up a challenge' },
+  { video: 'match' as const, poster: '/home/photos/head-to-head.webp', title: 'Playing the match' },
+  { video: 'result' as const, poster: '/home/photos/referee-result.webp', title: 'Reviewing the result' },
 ];
 
 export function MatchExperience() {
@@ -269,8 +266,7 @@ export function MatchExperience() {
           {CLIPS.map((clip) => (
             <figure key={clip.video} className="w-[85%] shrink-0 snap-start md:w-auto">
               <div className="relative aspect-[16/10] overflow-hidden rounded-[var(--ps-radius-lg)] bg-black">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={clip.poster} alt="" className="h-full w-full object-cover object-top" />
+                <Image src={clip.poster} alt="" fill sizes="(min-width: 768px) 33vw, 85vw" className="object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" aria-hidden="true" />
                 <div className="absolute bottom-3 left-3 flex items-center gap-2">
                   <PlayButton video={clip.video} label={`Play: ${clip.title}`} className="h-11 w-11" />
