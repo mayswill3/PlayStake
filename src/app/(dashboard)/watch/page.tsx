@@ -5,6 +5,7 @@ import { Radio } from 'lucide-react';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { PSButton } from '@/components/ui/playstake/PSButton';
 import { LiveMatchCard, useLiveMatches } from '@/components/matches/live-matches';
+import { FollowingList } from '@/components/follows/FollowingList';
 
 export default function WatchIndexPage() {
   const { matches, refreshKey } = useLiveMatches();
@@ -19,6 +20,8 @@ export default function WatchIndexPage() {
             Refereed stream matches happening right now — both players and the referee, live on Kick.
           </p>
         </div>
+
+        <FollowingList />
 
         {matches === null ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

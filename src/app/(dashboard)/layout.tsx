@@ -8,6 +8,7 @@ import { ChallengesProvider } from '@/components/lobby/ChallengesProvider';
 import { SessionReminder } from '@/components/responsible-play/SessionReminder';
 import { InteractionPrompt } from '@/components/responsible-play/InteractionPrompt';
 import { LimitReviewPrompt } from '@/components/responsible-play/LimitReviewPrompt';
+import { FollowLiveAlerts } from '@/components/follows/FollowLiveAlerts';
 import { useAuthLayout } from '@/hooks/useAuthLayout';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -35,6 +36,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <SessionReminder />
         <InteractionPrompt />
         <LimitReviewPrompt />
+        <FollowLiveAlerts />
       </div>
     </ChallengesProvider>
   );

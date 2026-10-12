@@ -11,8 +11,7 @@
 // on a break, registered with GAMSTOP, or with a restricted account.
 //
 // `marketing: true` marks promotional email. It additionally needs the
-// user's explicit marketing consent. (No template is marketing today; the
-// flag exists so one can never be added without those protections.)
+// user's explicit marketing consent. (Today only follow.streamer-live.)
 // =============================================================================
 
 import { appUrl, renderHtml, renderText, type EmailLayoutInput } from './layout';
@@ -98,6 +97,8 @@ type Payloads = {
   // --- Other --------------------------------------------------------------
   'kick.connection-changed': { name: string; channel: string; connected: boolean };
   'beta.signup-received': { name: string };
+  // --- Follows (marketing: needs consent) --------------------------------
+  'follow.streamer-live': { name: string; streamerName: string; gameName: string | null; channelSlug: string };
   // --- Admin (to the ops inbox, not players) ------------------------------
   'admin.alert': { title: string; detail: string; url?: string | null };
 };
@@ -580,6 +581,26 @@ const TEMPLATES: { [N in EmailTemplateName]: TemplateDefinition<Payloads[N]> } =
       callout: p.connected ? undefined : 'If this was not you, reconnect and change your password.',
       cta: { label: 'Open PlayStake', url: appUrl('/dashboard') },
       optional: true,
+    }),
+  },
+  'follow.streamer-live': {
+    essential: false,
+    // Promotional: an invitation to watch or challenge. Sent only with
+    // marketing consent, and never to anyone on a break, self-excluded, on
+    // GAMSTOP or recently flagged for harm (see queueEmail).
+    marketing: true,
+    subject: (p) => `${p.streamerName} is live on PlayStake`,
+    content: (p) => ({
+      eyebrow: 'Following',
+      heading: `${p.streamerName} is live`,
+      name: p.name,
+      paragraphs: [
+        p.gameName
+          ? `${p.streamerName} just went live playing ${p.gameName}.`
+          : `${p.streamerName} just went live.`,
+        'You get this because you follow them and have news and offers turned on. You can turn these emails off in Settings, or unfollow from their page.',
+      ],
+      cta: { label: 'Watch now', url: appUrl(`/streams/${p.channelSlug}`) },
     }),
   },
   'beta.signup-received': {

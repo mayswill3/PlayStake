@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
       emailVerified: user.emailVerified,
       emailNotifications: user.emailNotifications,
       marketingConsent: user.marketingConsent,
+      followLiveEmails: user.followLiveEmails,
       twoFactorEnabled: user.twoFactorEnabled,
       createdAt: user.createdAt.toISOString(),
     });
@@ -56,6 +57,7 @@ export async function PATCH(request: NextRequest) {
       updateData.marketingConsent = input.marketingConsent;
       updateData.marketingConsentAt = input.marketingConsent ? new Date() : null;
     }
+    if (input.followLiveEmails !== undefined) updateData.followLiveEmails = input.followLiveEmails;
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(sanitizeUser(session.user as any));
@@ -76,6 +78,7 @@ export async function PATCH(request: NextRequest) {
       emailVerified: updated.emailVerified,
       emailNotifications: updated.emailNotifications,
       marketingConsent: updated.marketingConsent,
+      followLiveEmails: updated.followLiveEmails,
       twoFactorEnabled: updated.twoFactorEnabled,
       createdAt: updated.createdAt.toISOString(),
     });

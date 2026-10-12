@@ -1,4 +1,5 @@
 import { prisma } from "../db/client";
+import { notifyFollowersWentLiveQuietly } from "../follows/service";
 import { fetchPublicChannels } from "./api";
 import { publishLiveStatusChanged } from "../realtime/live-events";
 
@@ -52,6 +53,7 @@ export async function refreshKickLiveStatus(): Promise<LiveStreamer[]> {
     where: { channelSlug: { not: null } },
     select: {
       id: true,
+      userId: true,
       channelSlug: true,
       displayName: true,
       profilePicture: true,
@@ -129,6 +131,11 @@ export async function refreshKickLiveStatus(): Promise<LiveStreamer[]> {
         await Promise.all(updates);
         await publishLiveStatusChanged();
       }
+      // Tell followers about streamers who have just gone live.
+      const newlyLiveUserIds = linkedChannels
+        .filter((channel) => newlyLiveIds.includes(channel.id))
+        .map((channel) => channel.userId);
+      notifyFollowersWentLiveQuietly(newlyLiveUserIds);
     } catch (err) {
       // Discovery should still succeed if persisting the refreshed flag fails.
       console.error("Kick live-state synchronization failed:", err);

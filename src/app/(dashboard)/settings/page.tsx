@@ -20,6 +20,7 @@ interface UserProfile {
   emailVerified: boolean;
   emailNotifications: boolean;
   marketingConsent?: boolean;
+  followLiveEmails?: boolean;
   twoFactorEnabled: boolean;
 }
 
@@ -76,6 +77,24 @@ export default function SettingsPage() {
     } catch {
       setProfile((current) => (current ? { ...current, emailNotifications: !enabled } : current));
       toast('error', 'Could not update your email preference.');
+    } finally {
+      setNotifSaving(false);
+    }
+  }
+
+  async function handleFollowEmailsChange(enabled: boolean) {
+    setNotifSaving(true);
+    setProfile((current) => (current ? { ...current, followLiveEmails: enabled } : current));
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ followLiveEmails: enabled }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setProfile((current) => (current ? { ...current, followLiveEmails: !enabled } : current));
+      toast('error', 'Could not update your email settings.');
     } finally {
       setNotifSaving(false);
     }
@@ -348,6 +367,29 @@ export default function SettingsPage() {
                 className="h-4 w-4 accent-[var(--ps-lime)]"
               />
               {profile?.marketingConsent ? 'On' : 'Off'}
+            </label>
+          </div>
+          <div className="mt-3 flex items-start justify-between gap-4 p-4 rounded-[var(--ps-radius-md)] bg-ps-paper dark:bg-ps-ink-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-ps-text dark:text-ps-text-on-dark">
+                Streamers you follow going live
+              </p>
+              <p className="mt-1 text-xs text-ps-muted dark:text-ps-muted-on-dark">
+                At most one email a day per streamer.
+                {profile?.marketingConsent
+                  ? ' Never sent while you are on a break, self-excluded or registered with GAMSTOP.'
+                  : ' These only send when News and offers is on.'}
+              </p>
+            </div>
+            <label className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-ps-text dark:text-ps-text-on-dark">
+              <input
+                type="checkbox"
+                checked={profile?.followLiveEmails ?? true}
+                disabled={notifSaving || !profile}
+                onChange={(event) => void handleFollowEmailsChange(event.target.checked)}
+                className="h-4 w-4 accent-[var(--ps-lime)]"
+              />
+              {profile?.followLiveEmails === false ? 'Off' : 'On'}
             </label>
           </div>
         </Card>

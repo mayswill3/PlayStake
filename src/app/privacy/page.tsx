@@ -34,7 +34,7 @@ const toc = [
 const dataRows = [
   [
     <strong key="account">Account and profile</strong>,
-    'Email address, display name, password hash, avatar, verification status, role, account settings and last-login time.',
+    'Email address, display name, password hash, avatar, verification status, role, account settings, last-login time, and the streamers you follow (private to you; a streamer sees only how many people follow them).',
   ],
   [
     <strong key="linked">Linked services</strong>,
@@ -98,7 +98,7 @@ const useRows = [
   ],
   [
     <strong key="optional">Optional marketing or analytics</strong>,
-    'Send marketing or use non-essential analytics only where introduced and permitted.',
+    'Send marketing, including emails when a streamer you follow goes live, or use non-essential analytics only where introduced and permitted.',
     'Consent where consent is required. You may withdraw it at any time.',
   ],
 ];

@@ -1,5 +1,6 @@
 'use client';
 
+import { FollowingList } from '@/components/follows/FollowingList';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -300,6 +301,7 @@ export default function DashboardPage() {
           {/* Right rail */}
           <aside className="space-y-6">
             <LiveNowRail />
+            <FollowingList compact />
           </aside>
         </div>
       </div>

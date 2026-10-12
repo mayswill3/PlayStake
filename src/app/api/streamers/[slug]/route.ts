@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { followerCount, isFollowing } from "../../../../lib/follows/service";
 import { prisma } from "../../../../lib/db/client";
 import { validateSession } from "../../../../lib/auth/session";
 import { getSessionToken } from "../../../../lib/auth/helpers";
@@ -156,6 +157,13 @@ export async function GET(
       ? isRefereedStreamGame(declaredGameType)
       : false;
 
+    // Follows are private: viewers learn only whether they follow; the
+    // streamer alone sees their follower count.
+    const [following, followers] = await Promise.all([
+      isSelf ? Promise.resolve(false) : isFollowing(session.userId, account.userId),
+      isSelf ? followerCount(account.userId) : Promise.resolve(null),
+    ]);
+
     return NextResponse.json({
       streamer: {
         channelSlug: account.channelSlug,
@@ -167,6 +175,8 @@ export async function GET(
         title,
         declaredGame,
         isSelf,
+        isFollowing: following,
+        followerCount: followers,
         canChallenge:
           !isSelf &&
           Boolean(isLive && declaredGame) &&

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { notifyFollowersWentLiveQuietly } from "../../../../lib/follows/service";
 import { prisma } from "../../../../lib/db/client";
 import { KICK_HEADERS, verifyKickSignature } from "../../../../lib/kick/webhook";
 import { publishLiveStatusChanged } from "../../../../lib/realtime/live-events";
@@ -89,6 +90,12 @@ async function dispatchEvent(eventType: string | null, payload: unknown) {
  */
 async function handleLivestreamStatus(event: LivestreamStatusEvent) {
   const kickUserId = String(event.broadcaster.user_id);
+  // Read the previous state so followers hear only about a real offline -> live
+  // change, not Kick's redeliveries.
+  const before = await prisma.kickAccount.findFirst({
+    where: { kickUserId },
+    select: { userId: true, isLive: true },
+  });
 
   const { count } = await prisma.kickAccount.updateMany({
     where: { kickUserId },
@@ -98,6 +105,7 @@ async function handleLivestreamStatus(event: LivestreamStatusEvent) {
     },
   });
   if (count > 0) await publishLiveStatusChanged();
+  if (before && !before.isLive && event.is_live) notifyFollowersWentLiveQuietly([before.userId]);
 }
 
 async function handleFollow(event: ChannelFollowedEvent) {

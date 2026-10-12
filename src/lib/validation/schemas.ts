@@ -117,6 +117,8 @@ export const updateProfileSchema = z.object({
   emailNotifications: z.boolean().optional(),
   /** Promotional email. Opt-in only; never sent while excluded. */
   marketingConsent: z.boolean().optional(),
+  /** Email when a followed streamer goes live (also needs marketingConsent). */
+  followLiveEmails: z.boolean().optional(),
   displayName: z
     .string()
     .min(2, "Display name must be at least 2 characters")

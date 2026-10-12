@@ -8,6 +8,7 @@ import { EligibilityNotice } from '@/components/compliance/EligibilityNotice';
 import { SessionReminder } from '@/components/responsible-play/SessionReminder';
 import { InteractionPrompt } from '@/components/responsible-play/InteractionPrompt';
 import { LimitReviewPrompt } from '@/components/responsible-play/LimitReviewPrompt';
+import { FollowLiveAlerts } from '@/components/follows/FollowLiveAlerts';
 import { SessionClock } from '@/components/responsible-play/SessionClock';
 
 export const metadata: Metadata = {
@@ -78,6 +79,7 @@ export default function PlayLayout({ children }: { children: React.ReactNode }) 
         <SessionReminder />
         <InteractionPrompt />
         <LimitReviewPrompt />
+        <FollowLiveAlerts />
       </div>
     </ChallengesProvider>
   );

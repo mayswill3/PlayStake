@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Radio, Users, ExternalLink, Swords, Gamepad2, Scale } from 'lucide-react';
+import { Radio, Users, ExternalLink, Swords, Gamepad2, Scale, BellPlus, BellRing } from 'lucide-react';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { FadeIn } from '@/components/ui/FadeIn';
@@ -57,6 +57,10 @@ interface Streamer {
   title: string | null;
   declaredGame: { gameType: string; name: string } | null;
   isSelf: boolean;
+  /** Whether the viewer follows this streamer (always false on your own page). */
+  isFollowing: boolean;
+  /** Only on your own page: follows are private. */
+  followerCount: number | null;
   canChallenge: boolean;
   streamVsStreamEligible: boolean;
   selectedGameRequiresReferee: boolean;
@@ -93,6 +97,33 @@ export default function StreamDetailPage() {
   const bumpRefresh = useCallback(() => setRefreshKey((key) => key + 1), []);
   useOnKickStatusChanged(bumpRefresh);
   useLiveStatusEvents(bumpRefresh);
+
+  // Follow state. Seeded from the page data, then updated optimistically.
+  const [following, setFollowing] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
+  const followSeeded = useRef(false);
+  useEffect(() => {
+    if (data?.streamer && !followSeeded.current) {
+      followSeeded.current = true;
+      setFollowing(data.streamer.isFollowing);
+    }
+  }, [data]);
+
+  async function toggleFollow() {
+    const next = !following;
+    setFollowBusy(true);
+    setFollowing(next);
+    try {
+      const res = await fetch(`/api/streamers/${slug}/follow`, { method: next ? 'POST' : 'DELETE' });
+      if (!res.ok) throw new Error();
+      toast('success', next ? `You're following ${name}. We'll let you know when they go live.` : `You've unfollowed ${name}.`);
+    } catch {
+      setFollowing(!next);
+      toast('error', 'Could not update follow. Please try again.');
+    } finally {
+      setFollowBusy(false);
+    }
+  }
 
   // Challenge dialog state.
   const [challengeOpen, setChallengeOpen] = useState(false);
@@ -238,14 +269,35 @@ export default function StreamDetailPage() {
               )}
             </div>
           </div>
-          <a
-            href={`https://kick.com/${streamer.channelSlug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-mono text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-text dark:hover:text-ps-text-on-dark transition-colors"
-          >
-            Open on Kick <ExternalLink size={14} />
-          </a>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            {streamer.isSelf ? (
+              streamer.followerCount !== null && (
+                <p className="text-sm font-mono text-ps-muted dark:text-ps-muted-on-dark tabular-nums">
+                  {streamer.followerCount.toLocaleString()} follower{streamer.followerCount === 1 ? '' : 's'}
+                  <span className="ml-1 text-xs">(only you can see this)</span>
+                </p>
+              )
+            ) : (
+              <PSButton
+                size="sm"
+                variant={following ? 'secondary' : 'primary'}
+                loading={followBusy}
+                icon={following ? <BellRing size={16} /> : <BellPlus size={16} />}
+                onClick={toggleFollow}
+                aria-pressed={following}
+              >
+                {following ? 'Following' : 'Follow'}
+              </PSButton>
+            )}
+            <a
+              href={`https://kick.com/${streamer.channelSlug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-mono text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-text dark:hover:text-ps-text-on-dark transition-colors"
+            >
+              Open on Kick <ExternalLink size={14} />
+            </a>
+          </div>
         </div>
 
         {/* Declared game + challenge */}

@@ -689,6 +689,29 @@ async function resolveRouteHandler(
     return { handler: mod.POST, params: { slug: decodeURIComponent(challengeMatch[1]) } };
   }
 
+  // Following: /api/streamers/{slug}/follow, the streamer page, /api/follows
+  const followMatch = path.match(/^\/api\/streamers\/([^/]+)\/follow$/);
+  if (followMatch) {
+    const mod = await import("../../src/app/api/streamers/[slug]/follow/route.js");
+    return {
+      handler: method === "DELETE" ? mod.DELETE : mod.POST,
+      params: { slug: decodeURIComponent(followMatch[1]) },
+    };
+  }
+  const streamerMatch = path.match(/^\/api\/streamers\/([^/]+)$/);
+  if (streamerMatch) {
+    const mod = await import("../../src/app/api/streamers/[slug]/route.js");
+    return { handler: mod.GET, params: { slug: decodeURIComponent(streamerMatch[1]) } };
+  }
+  if (path === "/api/follows") {
+    const mod = await import("../../src/app/api/follows/route.js");
+    return { handler: mod.GET };
+  }
+  if (path === "/api/follows/live") {
+    const mod = await import("../../src/app/api/follows/live/route.js");
+    return { handler: mod.GET };
+  }
+
   // Lobby invite inbox + respond
   if (path === "/api/lobby/invites") {
     const mod = await import("../../src/app/api/lobby/invites/route.js");

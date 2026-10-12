@@ -338,6 +338,9 @@ model User {
   /// Opt-in to promotional email. Never sent while self-excluded.
   marketingConsent              Boolean   @default(false) @map("marketing_consent")
   marketingConsentAt            DateTime? @map("marketing_consent_at")
+  /// Email when a streamer this user follows goes live. Also needs
+  /// marketingConsent: the email is promotional.
+  followLiveEmails              Boolean   @default(true) @map("follow_live_emails")
   accountStatus                 AccountStatus @default(ACTIVE) @map("account_status")
   accountStatusReason           String?   @map("account_status_reason") @db.VarChar(500)
   accountStatusChangedAt        DateTime? @map("account_status_changed_at")
@@ -358,6 +361,8 @@ model User {
   sessions             Session[]
   oauthAccounts        OAuthAccount[]
   kickAccount          KickAccount?
+  following            StreamerFollow[]       @relation("FollowsMade")
+  followers            StreamerFollow[]       @relation("FollowsReceived")
   lobbyEntries         LobbyEntry[]             @relation("LobbyUser")
   lobbyInvitesSent     LobbyEntry[]             @relation("LobbyInviter")
   challengesSent       StreamChallenge[]        @relation("ChallengeChallenger")
@@ -1465,4 +1470,24 @@ model GameEvent {
 
   @@unique([sessionId, seq], map: "uq_game_event_seq")
   @@map("game_events")
+}
+
+// =============================================================================
+// FOLLOWS
+// =============================================================================
+
+/// A user following a streamer (a user with a linked Kick channel). Private:
+/// only the follower sees who they follow; a streamer sees only a count.
+model StreamerFollow {
+  id         String   @id @default(uuid()) @db.Uuid
+  followerId String   @map("follower_id") @db.Uuid
+  streamerId String   @map("streamer_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  follower User @relation("FollowsMade", fields: [followerId], references: [id], onDelete: Cascade)
+  streamer User @relation("FollowsReceived", fields: [streamerId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, streamerId], map: "uq_streamer_follow")
+  @@index([streamerId], map: "idx_streamer_follow_streamer")
+  @@map("streamer_follows")
 }
