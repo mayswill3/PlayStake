@@ -6,7 +6,7 @@ export function Footer() {
   return (
     <footer className="border-t border-[var(--ps-border-light)] dark:border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] bg-ps-paper dark:bg-ps-ink">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
 
           {/* Column 1: Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
@@ -56,11 +56,6 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/investors" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
-                  Investors
-                </Link>
-              </li>
-              <li>
                 <Link href="/#games" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   Games
                 </Link>
@@ -71,7 +66,7 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <Link href="/#beta-signup" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                <Link href="/#join" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   Join Beta
                 </Link>
               </li>
@@ -85,7 +80,7 @@ export function Footer() {
             </h3>
             <ul className="space-y-3">
               <li>
-                <Link href="/#trust" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                <Link href="/faq#tools" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   Safer Gambling
                 </Link>
               </li>
@@ -146,6 +141,30 @@ export function Footer() {
               <li>
                 <Link href="/match-rules" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   Match Rules
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 5: Company */}
+          <div>
+            <h3 className="font-display text-xs font-bold uppercase tracking-widest text-ps-text dark:text-ps-text-on-dark mb-4">
+              Company
+            </h3>
+            <ul className="space-y-3">
+              <li>
+                <Link href="/learn-more" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link href="/investors" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                  Investors
+                </Link>
+              </li>
+              <li>
+                <Link href="/referees/human" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
+                  Become a referee
                 </Link>
               </li>
               <li>

@@ -6,9 +6,18 @@ import Link from 'next/link';
 
 interface MobileMenuProps {
   links: Array<{ href: string; label: string }>;
+  /** Less prominent links shown under a divider (e.g. Investors). */
+  secondaryLinks?: Array<{ href: string; label: string }>;
+  ctaHref?: string;
+  ctaLabel?: string;
 }
 
-export function MobileMenu({ links }: MobileMenuProps) {
+export function MobileMenu({
+  links,
+  secondaryLinks = [],
+  ctaHref = '#beta-signup',
+  ctaLabel = 'Join Beta',
+}: MobileMenuProps) {
   const [open, setOpen] = useState(false);
 
   // Lock body scroll when open
@@ -84,6 +93,21 @@ export function MobileMenu({ links }: MobileMenuProps) {
               ))}
             </nav>
 
+            {secondaryLinks.length > 0 && (
+              <div className="mx-6 flex flex-wrap gap-x-5 gap-y-2 border-t border-themed py-3">
+                {secondaryLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setOpen(false)}
+                    className="text-sm text-fg-secondary hover:text-fg transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+
             <div className="flex flex-col gap-3 px-6 pb-6 pt-2">
               <Link
                 href="/login"
@@ -93,11 +117,11 @@ export function MobileMenu({ links }: MobileMenuProps) {
                 Log in
               </Link>
               <Link
-                href="#beta-signup"
+                href={ctaHref}
                 onClick={() => setOpen(false)}
-                className="flex items-center justify-center h-12 rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-700 transition-colors"
+                className="flex items-center justify-center h-12 rounded-lg bg-[var(--ps-lime)] text-ps-ink font-semibold hover:brightness-95 transition-[filter]"
               >
-                Join Beta
+                {ctaLabel}
               </Link>
             </div>
           </div>

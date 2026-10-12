@@ -86,7 +86,12 @@ export function LandingNav({
             <a href={ctaHref} className="hidden lg:block">
               <PSButton size="sm">{ctaLabel}</PSButton>
             </a>
-            <MobileMenu links={links} />
+            <MobileMenu
+              links={links}
+              secondaryLinks={[{ href: '/investors', label: 'Investors' }]}
+              ctaHref={ctaHref}
+              ctaLabel={ctaLabel}
+            />
           </div>
         </div>
       </div>
