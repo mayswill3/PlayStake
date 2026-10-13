@@ -293,7 +293,7 @@ export default function SettingsPage() {
           </form>
         </Card>
 
-        <Card className="bg-ps-paper-elevated dark:bg-ps-ink-2 border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">
+        <Card id="security" className="scroll-mt-24 bg-ps-paper-elevated dark:bg-ps-ink-2 border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">
           <CardTitle>Security</CardTitle>
           <CardDescription>Manage your password and two-factor authentication.</CardDescription>
           <form onSubmit={handlePasswordChange} className="space-y-4 mt-4">
