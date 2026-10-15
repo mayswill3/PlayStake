@@ -453,7 +453,7 @@ export default function TermsPage() {
       <LegalSection id="contact" number="17" title="Contact us">
         <p>
           Questions or notices about these Terms can be sent to PlayStake Ltd
-          at <a href="mailto:admin@playstake.org">admin@playstake.org</a>.
+          at <a href="mailto:support@playstake.org">support@playstake.org</a>.
           To make a complaint, see our{' '}
           <Link href="/complaints">Complaints Procedure</Link>.
         </p>

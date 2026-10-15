@@ -168,7 +168,7 @@ export default function PrivacyPage() {
         </p>
         <p>
           For privacy questions or requests, contact{' '}
-          <a href="mailto:admin@playstake.org">admin@playstake.org</a>.
+          <a href="mailto:support@playstake.org">support@playstake.org</a>.
         </p>
       </LegalSection>
 
@@ -432,7 +432,7 @@ export default function PrivacyPage() {
         </p>
         <p>
           To exercise a right, email{' '}
-          <a href="mailto:admin@playstake.org">admin@playstake.org</a>. We
+          <a href="mailto:support@playstake.org">support@playstake.org</a>. We
           may need to verify your identity before acting on the request.
         </p>
       </LegalSection>
@@ -479,7 +479,7 @@ export default function PrivacyPage() {
         </p>
         <p>
           Privacy questions and requests can be sent to PlayStake Ltd at{' '}
-          <a href="mailto:admin@playstake.org">admin@playstake.org</a>.
+          <a href="mailto:support@playstake.org">support@playstake.org</a>.
         </p>
       </LegalSection>
     </LegalPage>

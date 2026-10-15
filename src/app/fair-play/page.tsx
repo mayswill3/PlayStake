@@ -149,7 +149,7 @@ export default function FairPlayPage() {
       <LegalSection id="report" number="07" title="Report something">
         <p>
           If you think an opponent cheated, or you have found a problem with a game, email{' '}
-          <a href="mailto:admin@playstake.org">admin@playstake.org</a> with the match link, or
+          <a href="mailto:support@playstake.org">support@playstake.org</a> with the match link, or
           use the <Link href="/complaints">complaints procedure</Link>. Reports are confidential.
         </p>
       </LegalSection>

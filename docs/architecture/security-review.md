@@ -109,7 +109,7 @@ ledger adjustment, account unfreeze, dispute override or manual payment action.
 - Set `NEXT_PUBLIC_APP_URL=https://playstake.org` and restrict
   `ALLOWED_ORIGINS` to controlled HTTPS origins.
 - Verify `playstake.org` with the email provider, set SPF/DKIM/DMARC, configure
-  `RESEND_API_KEY`, and send from `PlayStake <admin@playstake.org>`.
+  `RESEND_API_KEY`, and send from `PlayStake <support@playstake.org>`.
 - Keep `STRIPE_SECRET_KEY` in test mode and set `STRIPE_CONNECT_COUNTRY` to the
   approved platform country during testing.
 - Subscribe the Stripe webhook to payment intent, connected account and legacy

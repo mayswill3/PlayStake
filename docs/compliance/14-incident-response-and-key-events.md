@@ -16,7 +16,7 @@ This procedure sets out how PlayStake spots, handles, records and reports incide
 
 ## 2. Reporting an incident
 
-Anyone — staff, a referee, a supplier or a customer — who sees something that may be an incident reports it straight away to the Information Security Officer (ISO): [PHONE], [EMAIL], and in the operations channel. Customers report through admin@playstake.org or the complaints form; support passes anything security-related to the ISO at once. Don't investigate alone, delete anything, or contact a suspected attacker.
+Anyone — staff, a referee, a supplier or a customer — who sees something that may be an incident reports it straight away to the Information Security Officer (ISO): [PHONE], [EMAIL], and in the operations channel. Customers report through support@playstake.org or the complaints form; support passes anything security-related to the ISO at once. Don't investigate alone, delete anything, or contact a suspected attacker.
 
 Automatic triggers:
 - ledger-audit worker failure (a balance or transaction that doesn't reconcile) — email alert to `EMAIL_ADMIN`;

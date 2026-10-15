@@ -138,7 +138,7 @@ export async function queueEmailSafely<N extends EmailTemplateName>(
 }
 
 /** The staff mailbox: sender of every automated email and the reply-to. */
-export const STAFF_INBOX = "admin@playstake.org";
+export const STAFF_INBOX = "support@playstake.org";
 const DEFAULT_FROM = `PlayStake <${STAFF_INBOX}>`;
 
 async function deliver(input: {

@@ -68,7 +68,7 @@ export function ComplaintForm() {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(data.error ?? 'We could not send your complaint. Please email admin@playstake.org.');
+        setError(data.error ?? 'We could not send your complaint. Please email support@playstake.org.');
         return;
       }
       setFiled(data);
