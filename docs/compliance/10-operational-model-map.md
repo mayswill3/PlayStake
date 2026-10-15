@@ -49,7 +49,7 @@ PlayStake is operated by [COMPANY NAME] from [OPERATING ADDRESS]. The company bu
 | Safer gambling: limits, breaks, reminders, interactions | Web service, worker; admin console | PlayStake | PlayStake staff | Policies 03–05 |
 | AML monitoring and case management | Worker; admin console | PlayStake | MLRO | Policy 07 |
 | Fraud and anomaly detection | Worker; admin console | PlayStake (Stripe Radar planned) | PlayStake staff | Policy 01 |
-| Customer service | Email (support@playstake.org) | [EMAIL PROVIDER] | PlayStake staff | |
+| Customer service | Email (admin@playstake.org) | [EMAIL PROVIDER] | PlayStake staff | |
 | Complaints | Website form; admin console | PlayStake | Complaints manager | Policy 02 |
 | ADR | IBAS | IBAS | IBAS | To sign |
 | Transactional email | Worker outbox → Resend | Resend | PlayStake | |

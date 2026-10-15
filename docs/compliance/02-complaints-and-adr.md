@@ -38,7 +38,7 @@ A customer unhappy with a dispute outcome can then make a complaint. Anything th
 Customers can complain in two ways:
 
 - **Online:** through the complaint form at **playstake.org/complaints**. It works whether or not the customer is signed in, so someone locked out of their account can still use it.
-- **By email:** to **support@playstake.org** (the address is shown on the complaints page, in the footer, in the Terms of Service and on every email). Staff log each email complaint into the complaints system on the day it arrives.
+- **By email:** to **admin@playstake.org** (the address is shown on the complaints page, in the footer, in the Terms of Service and on every email). Staff log each email complaint into the complaints system on the day it arrives.
 
 The /complaints page explains, in plain English:
 

@@ -47,7 +47,7 @@ export default function ComplaintsPage() {
           </li>
           <li>
             <strong>By email:</strong> write to{' '}
-            <a href="mailto:support@playstake.org">support@playstake.org</a> with your
+            <a href="mailto:admin@playstake.org">admin@playstake.org</a> with your
             name, the email address on your account and what went wrong.
           </li>
         </ul>

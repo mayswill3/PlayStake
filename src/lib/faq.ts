@@ -175,14 +175,14 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         id: 'complaints',
         q: 'How do I make a complaint?',
-        a: "Use the form on our complaints page or email support@playstake.org. You'll get a reference straight away and a final answer within 8 weeks. If you're not happy with our answer, you can take it to IBAS, an independent adjudicator, for free.",
+        a: "Use the form on our complaints page or email admin@playstake.org. You'll get a reference straight away and a final answer within 8 weeks. If you're not happy with our answer, you can take it to IBAS, an independent adjudicator, for free.",
         links: [{ href: '/complaints', label: 'Complaints procedure' }],
       },
       {
         id: 'contact',
         q: 'How do I contact PlayStake?',
-        a: 'Email support@playstake.org and our team will get back to you.',
-        links: [{ href: 'mailto:support@playstake.org', label: 'support@playstake.org' }],
+        a: 'Email admin@playstake.org and our team will get back to you.',
+        links: [{ href: 'mailto:admin@playstake.org', label: 'admin@playstake.org' }],
       },
     ],
   },

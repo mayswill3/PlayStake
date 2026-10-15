@@ -39,7 +39,7 @@ export default function FaqPage() {
       <LegalPage
         eyebrow="Help"
         title="Frequently asked questions"
-        summary="Everything you need to know about playing on PlayStake. Can't find your answer? Email support@playstake.org."
+        summary="Everything you need to know about playing on PlayStake. Can't find your answer? Email admin@playstake.org."
         lastUpdated="30 September 2026"
         toc={toc}
       >

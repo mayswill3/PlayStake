@@ -42,7 +42,7 @@ The minimum self-exclusion is six months.
     - that when the period ends the account stays closed to gambling until they ask to return
   - The customer must confirm before the exclusion starts.
 - **By contacting us:**
-  - A customer can ask by email (support@playstake.org) or any other contact.
+  - A customer can ask by email (admin@playstake.org) or any other contact.
   - Staff apply it straight away from the customer's admin page, recording how the customer asked.
   - This is audited, and the same rules apply as for self-service.
   - Staff must never try to talk a customer out of self-excluding.

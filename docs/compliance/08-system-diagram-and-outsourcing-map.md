@@ -108,7 +108,7 @@ flowchart TB
 | **Geolocation** | None | **Gap** | No IP-based location check today. Customers state their country at verification. | — | — | See §6 |
 | **Fraud detection** | In-house | Live | Anomaly detection (win rates, winner patterns, fast settlement, volume spikes), shared-identity checks, AML scans | — | PlayStake | — |
 | | Stripe Radar | To configure | Card-fraud scoring on deposits | As payment services | Stripe | As payment services |
-| **Customer service** | In-house | Live | support@playstake.org, complaints procedure, in-app messages | — | PlayStake staff | — |
+| **Customer service** | In-house | Live | admin@playstake.org, complaints procedure, in-app messages | — | PlayStake staff | — |
 | **Alternative dispute resolution** | IBAS | To sign | Independent adjudication of unresolved complaints | Complaint file, on referral only | UK | ADR agreement (Master Manual §8 item 2) |
 | **Marketing** | None | — | No marketing providers, affiliates or ad networks. No analytics or tracking scripts. | — | — | — |
 | **Transactional email** | Resend | Live | Sends account, bet, safer-gambling and complaint emails from an outbox | Email address, name, message content | [RESEND REGION] | Resend terms and DPA |

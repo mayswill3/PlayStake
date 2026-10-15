@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       user.accountStatus === AccountStatus.CLOSED_UNDERAGE
     ) {
       throw new AuthenticationError(
-        "This account is closed. Contact support@playstake.org if you need help with it.",
+        "This account is closed. Contact admin@playstake.org if you need help with it.",
       );
     }
 
