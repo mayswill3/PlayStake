@@ -137,6 +137,10 @@ export async function queueEmailSafely<N extends EmailTemplateName>(
   }
 }
 
+/** The staff mailbox: sender of every automated email and the reply-to. */
+export const STAFF_INBOX = "admin@playstake.org";
+const DEFAULT_FROM = `PlayStake <${STAFF_INBOX}>`;
+
 async function deliver(input: {
   to: string;
   subject: string;
@@ -155,8 +159,8 @@ async function deliver(input: {
       "Idempotency-Key": input.idempotencyKey,
     },
     body: JSON.stringify({
-      from: process.env.EMAIL_FROM ?? "PlayStake <support@playstake.org>",
-      reply_to: "support@playstake.org",
+      from: process.env.EMAIL_FROM || DEFAULT_FROM,
+      reply_to: process.env.EMAIL_REPLY_TO || STAFF_INBOX,
       to: [input.to],
       subject: input.subject,
       html: input.html,

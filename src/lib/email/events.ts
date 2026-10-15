@@ -13,7 +13,7 @@ import { prisma } from "@/lib/db/client";
 import type { TxClient } from "@/lib/db/client";
 import { dollarsToCents } from "@/lib/utils/money";
 import { formatCents } from "@/lib/utils/format";
-import { queueEmail, queueEmailSafely } from "./outbox";
+import { STAFF_INBOX, queueEmail, queueEmailSafely } from "./outbox";
 
 type Money = Decimal | string | number;
 
@@ -544,14 +544,15 @@ export async function emailBetaSignup(email: string, name: string, signupId: str
   });
 }
 
-/** Ops alerts to EMAIL_ADMIN (falls back to the support inbox). */
+/** Ops alerts to EMAIL_ADMIN (in production, the staff inbox if unset). */
 export async function emailAdminAlert(input: {
   key: string;
   title: string;
   detail: string;
   url?: string | null;
 }): Promise<void> {
-  const to = process.env.EMAIL_ADMIN;
+  const to =
+    process.env.EMAIL_ADMIN ?? (process.env.NODE_ENV === "production" ? STAFF_INBOX : undefined);
   if (!to) return;
   await queueEmailSafely({
     template: "admin.alert",
