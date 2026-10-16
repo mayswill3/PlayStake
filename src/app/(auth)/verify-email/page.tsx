@@ -54,12 +54,14 @@ export default function VerifyEmailPage() {
             &#10003;
           </div>
           <h1 className="text-2xl font-bold font-display text-fg mb-2">Email Verified</h1>
-          <p className="text-fg-secondary mb-6">Your email has been verified successfully.</p>
+          <p className="text-fg-secondary mb-6">
+            Your email has been verified. Next, verify your ID so you can deposit and play.
+          </p>
           <Link
-            href="/login"
+            href="/verification"
             className="inline-flex items-center h-11 px-5 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors"
           >
-            Continue to Login
+            Continue to ID verification
           </Link>
         </div>
       )}

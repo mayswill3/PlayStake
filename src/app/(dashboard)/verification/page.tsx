@@ -78,6 +78,8 @@ export default function VerificationPage() {
   const [state, setState] = useState<KycState | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const [documentType, setDocumentType] = useState<DocumentType>('PASSPORT');
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
@@ -118,6 +120,28 @@ export default function VerificationPage() {
       toast('error', 'Could not submit your documents. Try again.');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function sendVerificationEmail() {
+    setEmailSending(true);
+    try {
+      const res = await fetch('/api/auth/resend-verification', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast('error', data.error ?? 'Could not send the verification email.');
+        return;
+      }
+      if (data.alreadyVerified) {
+        await load();
+        return;
+      }
+      setEmailSent(true);
+      toast('success', 'Verification email sent. Check your inbox.');
+    } catch {
+      toast('error', 'Could not send the verification email.');
+    } finally {
+      setEmailSending(false);
     }
   }
 
@@ -209,8 +233,16 @@ export default function VerificationPage() {
         <Card className="border-l-4 border-l-[var(--ps-warning)]">
           <CardTitle>Verify your email first</CardTitle>
           <p className="mt-1 text-sm text-fg-secondary">
-            Confirm your email address before submitting identity documents.
+            Confirm your email address before submitting identity documents.{' '}
+            {emailSent
+              ? 'We’ve sent you a link — open it, then come back to this page. Check your spam folder if it hasn’t arrived in a few minutes.'
+              : 'We’ll email you a link to confirm it.'}
           </p>
+          <div className="mt-4">
+            <PSButton size="sm" loading={emailSending} onClick={sendVerificationEmail}>
+              {emailSent ? 'Send it again' : 'Send verification email'}
+            </PSButton>
+          </div>
         </Card>
       )}
 
