@@ -309,46 +309,46 @@ enum AnomalyStatus {
 // =============================================================================
 
 model User {
-  id                            String    @id @default(uuid()) @db.Uuid
-  email                         String    @unique @db.VarChar(255)
-  passwordHash                  String?   @map("password_hash") @db.VarChar(255)
-  role                          UserRole  @default(PLAYER)
-  displayName                   String    @map("display_name") @db.VarChar(100)
-  avatarUrl                     String?   @map("avatar_url") @db.VarChar(500)
+  id                            String         @id @default(uuid()) @db.Uuid
+  email                         String         @unique @db.VarChar(255)
+  passwordHash                  String?        @map("password_hash") @db.VarChar(255)
+  role                          UserRole       @default(PLAYER)
+  displayName                   String         @map("display_name") @db.VarChar(100)
+  avatarUrl                     String?        @map("avatar_url") @db.VarChar(500)
   /// Version of the Match Rules (/match-rules) this user last accepted, and when.
-  matchRulesVersion             String?   @map("match_rules_version") @db.VarChar(20)
-  matchRulesAcceptedAt          DateTime? @map("match_rules_accepted_at")
-  kycStatus                     KycStatus @default(NOT_STARTED) @map("kyc_status")
-  stripeCustomerId              String?   @unique @map("stripe_customer_id") @db.VarChar(255)
-  stripeConnectAccountId        String?   @unique @map("stripe_connect_account_id") @db.VarChar(255)
-  stripeConnectDetailsSubmitted Boolean   @default(false) @map("stripe_connect_details_submitted")
-  stripeConnectPayoutsEnabled   Boolean   @default(false) @map("stripe_connect_payouts_enabled")
-  emailVerified                 Boolean   @default(false) @map("email_verified")
+  matchRulesVersion             String?        @map("match_rules_version") @db.VarChar(20)
+  matchRulesAcceptedAt          DateTime?      @map("match_rules_accepted_at")
+  kycStatus                     KycStatus      @default(NOT_STARTED) @map("kyc_status")
+  stripeCustomerId              String?        @unique @map("stripe_customer_id") @db.VarChar(255)
+  stripeConnectAccountId        String?        @unique @map("stripe_connect_account_id") @db.VarChar(255)
+  stripeConnectDetailsSubmitted Boolean        @default(false) @map("stripe_connect_details_submitted")
+  stripeConnectPayoutsEnabled   Boolean        @default(false) @map("stripe_connect_payouts_enabled")
+  emailVerified                 Boolean        @default(false) @map("email_verified")
   /// Optional emails (match results, referee alerts, channel changes). Security,
   /// money and responsible-play emails always send regardless.
-  emailNotifications            Boolean   @default(true) @map("email_notifications")
-  twoFactorEnabled              Boolean   @default(false) @map("two_factor_enabled")
-  twoFactorSecret               String?   @map("two_factor_secret") @db.VarChar(512)
-  twoFactorLastUsedStep         Int?      @map("two_factor_last_used_step")
-  lastLoginAt                   DateTime? @map("last_login_at")
+  emailNotifications            Boolean        @default(true) @map("email_notifications")
+  twoFactorEnabled              Boolean        @default(false) @map("two_factor_enabled")
+  twoFactorSecret               String?        @map("two_factor_secret") @db.VarChar(512)
+  twoFactorLastUsedStep         Int?           @map("two_factor_last_used_step")
+  lastLoginAt                   DateTime?      @map("last_login_at")
   /// Date of birth declared at registration; checked against the ID document.
-  dateOfBirth                   DateTime? @map("date_of_birth") @db.Date
+  dateOfBirth                   DateTime?      @map("date_of_birth") @db.Date
   /// When the customer confirmed they are 18 or over.
-  ageConfirmedAt                DateTime? @map("age_confirmed_at")
+  ageConfirmedAt                DateTime?      @map("age_confirmed_at")
   /// Opt-in to promotional email. Never sent while self-excluded.
-  marketingConsent              Boolean   @default(false) @map("marketing_consent")
-  marketingConsentAt            DateTime? @map("marketing_consent_at")
+  marketingConsent              Boolean        @default(false) @map("marketing_consent")
+  marketingConsentAt            DateTime?      @map("marketing_consent_at")
   /// Email when a streamer this user follows goes live. Also needs
   /// marketingConsent: the email is promotional.
-  followLiveEmails              Boolean   @default(true) @map("follow_live_emails")
-  accountStatus                 AccountStatus @default(ACTIVE) @map("account_status")
-  accountStatusReason           String?   @map("account_status_reason") @db.VarChar(500)
-  accountStatusChangedAt        DateTime? @map("account_status_changed_at")
+  followLiveEmails              Boolean        @default(true) @map("follow_live_emails")
+  accountStatus                 AccountStatus  @default(ACTIVE) @map("account_status")
+  accountStatusReason           String?        @map("account_status_reason") @db.VarChar(500)
+  accountStatusChangedAt        DateTime?      @map("account_status_changed_at")
   gamstopStatus                 GamstopStatus? @map("gamstop_status")
-  gamstopCheckedAt              DateTime? @map("gamstop_checked_at")
-  createdAt                     DateTime  @default(now()) @map("created_at")
-  updatedAt                     DateTime  @updatedAt @map("updated_at")
-  deletedAt                     DateTime? @map("deleted_at")
+  gamstopCheckedAt              DateTime?      @map("gamstop_checked_at")
+  createdAt                     DateTime       @default(now()) @map("created_at")
+  updatedAt                     DateTime       @updatedAt @map("updated_at")
+  deletedAt                     DateTime?      @map("deleted_at")
 
   // Relations
   ledgerAccounts       LedgerAccount[]
@@ -361,8 +361,9 @@ model User {
   sessions             Session[]
   oauthAccounts        OAuthAccount[]
   kickAccount          KickAccount?
-  following            StreamerFollow[]       @relation("FollowsMade")
-  followers            StreamerFollow[]       @relation("FollowsReceived")
+  following            StreamerFollow[]         @relation("FollowsMade")
+  avatar               UserAvatar?
+  followers            StreamerFollow[]         @relation("FollowsReceived")
   lobbyEntries         LobbyEntry[]             @relation("LobbyUser")
   lobbyInvitesSent     LobbyEntry[]             @relation("LobbyInviter")
   challengesSent       StreamChallenge[]        @relation("ChallengeChallenger")
@@ -432,15 +433,15 @@ model TwoFactorBackupCode {
 }
 
 model Session {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  tokenHash String   @unique @map("token_hash") @db.VarChar(255)
-  ipAddress String?  @map("ip_address") @db.VarChar(45)
-  userAgent String?  @map("user_agent") @db.VarChar(500)
-  expiresAt DateTime @map("expires_at")
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  tokenHash  String   @unique @map("token_hash") @db.VarChar(255)
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  userAgent  String?  @map("user_agent") @db.VarChar(500)
+  expiresAt  DateTime @map("expires_at")
   /// Last request made with this session; drives the idle timeout.
   lastSeenAt DateTime @default(now()) @map("last_seen_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt  DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id])
 
@@ -920,18 +921,18 @@ model StripeEvent {
 // =============================================================================
 
 model BetaSignup {
-  id          String   @id @default(uuid()) @db.Uuid
+  id             String    @id @default(uuid()) @db.Uuid
   /// Optional: the homepage form asks only for an email.
-  name        String?  @db.VarChar(100)
-  email       String   @unique @db.VarChar(255)
-  game        String?  @db.VarChar(100)
-  playerType  String   @map("player_type") @db.VarChar(50)
-  isDemo      Boolean  @default(false) @map("is_demo")
-  consentedAt DateTime @map("consented_at")
+  name           String?   @db.VarChar(100)
+  email          String    @unique @db.VarChar(255)
+  game           String?   @db.VarChar(100)
+  playerType     String    @map("player_type") @db.VarChar(50)
+  isDemo         Boolean   @default(false) @map("is_demo")
+  consentedAt    DateTime  @map("consented_at")
   /// Set when they opt out; no further updates are sent.
   unsubscribedAt DateTime? @map("unsubscribed_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   @@index([createdAt], map: "idx_beta_signup_created_at")
   @@index([isDemo, createdAt], map: "idx_beta_signup_demo_created_at")
@@ -1194,18 +1195,18 @@ model PlayerRiskSignal {
 }
 
 model ResponsiblePlaySettings {
-  id                     String   @id @default(uuid()) @db.Uuid
-  userId                 String   @unique @map("user_id") @db.Uuid
+  id                     String    @id @default(uuid()) @db.Uuid
+  userId                 String    @unique @map("user_id") @db.Uuid
   /// Minutes between in-session play reminders; null disables them.
-  sessionReminderMinutes Int?     @map("session_reminder_minutes")
+  sessionReminderMinutes Int?      @map("session_reminder_minutes")
   /// When the customer answered the set-a-deposit-limit prompt that comes
   /// before their first deposit (whether they set one or declined).
   depositLimitPromptedAt DateTime? @map("deposit_limit_prompted_at")
   /// When the customer last answered the six-monthly "review your limits"
   /// reminder (RTS 12).
   limitsReviewedAt       DateTime? @map("limits_reviewed_at")
-  createdAt              DateTime @default(now()) @map("created_at")
-  updatedAt              DateTime @updatedAt @map("updated_at")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1490,4 +1491,16 @@ model StreamerFollow {
   @@unique([followerId, streamerId], map: "uq_streamer_follow")
   @@index([streamerId], map: "idx_streamer_follow_streamer")
   @@map("streamer_follows")
+}
+
+/// A profile photo uploaded in Settings, re-encoded to a 256px WebP before it
+/// is stored. Served publicly from /api/avatars/:userId.
+model UserAvatar {
+  userId    String   @id @map("user_id") @db.Uuid
+  data      Bytes
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_avatars")
 }

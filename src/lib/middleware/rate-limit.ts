@@ -266,3 +266,10 @@ export const chatMessageRateLimit = rateLimit({
   maxRequests: 20,
   keyFn: (req) => `chat-message:${getClientIp(req)}`,
 });
+
+/** Profile photo uploads: ten per hour per IP. Each one is decoded and re-encoded. */
+export const avatarUploadRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 10,
+  keyFn: (req) => `avatar-upload:${getClientIp(req)}`,
+});

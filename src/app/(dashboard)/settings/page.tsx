@@ -10,6 +10,7 @@ import { FadeIn } from '@/components/ui/FadeIn';
 import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { PSButton } from '@/components/ui/playstake/PSButton';
+import { AvatarUpload } from '@/components/settings/AvatarUpload';
 
 interface UserProfile {
   id: string;
@@ -31,7 +32,6 @@ export default function SettingsPage() {
 
   const [notifSaving, setNotifSaving] = useState(false);
   const [displayName, setDisplayName] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState('');
@@ -53,7 +53,6 @@ export default function SettingsPage() {
         if (data) {
           setProfile(data);
           setDisplayName(data.displayName);
-          setAvatarUrl(data.avatarUrl || '');
         }
       })
       // finally() re-throws a rejection rather than handling it, so a network
@@ -126,7 +125,7 @@ export default function SettingsPage() {
       const res = await fetch('/api/user/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ displayName, avatarUrl: avatarUrl || null }),
+        body: JSON.stringify({ displayName }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -242,8 +241,15 @@ export default function SettingsPage() {
 
         <Card className="bg-ps-paper-elevated dark:bg-ps-ink-2 border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">
           <CardTitle>Profile</CardTitle>
-          <CardDescription>Update your display name and avatar.</CardDescription>
-          <form onSubmit={handleProfileSave} className="space-y-4 mt-4">
+          <CardDescription>Update your display name and profile photo.</CardDescription>
+          <div className="mt-4">
+            <AvatarUpload
+              avatarUrl={profile?.avatarUrl ?? null}
+              name={displayName}
+              onChange={(url) => setProfile((current) => (current ? { ...current, avatarUrl: url } : current))}
+            />
+          </div>
+          <form onSubmit={handleProfileSave} className="space-y-4 mt-6">
             <Input
               label="Email"
               type="email"
@@ -279,13 +285,6 @@ export default function SettingsPage() {
               required
               minLength={2}
               maxLength={32}
-            />
-            <Input
-              label="Avatar URL"
-              type="url"
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://example.com/avatar.jpg"
             />
             <div className="flex justify-end">
               <PSButton type="submit" loading={profileSaving}>Save Profile</PSButton>

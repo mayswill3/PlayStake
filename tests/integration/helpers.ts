@@ -607,6 +607,17 @@ async function resolveRouteHandler(
     return { handler: mod.GET };
   }
 
+  // Profile photos
+  if (path === "/api/user/avatar") {
+    const mod = await import("../../src/app/api/user/avatar/route.js");
+    return { handler: method === "DELETE" ? mod.DELETE : mod.POST };
+  }
+  const avatarMatch = path.match(/^\/api\/avatars\/([^/?]+)(?:\?.*)?$/);
+  if (avatarMatch) {
+    const mod = await import("../../src/app/api/avatars/[userId]/route.js");
+    return { handler: mod.GET, params: { userId: decodeURIComponent(avatarMatch[1]) } };
+  }
+
   // Auth routes
   if (path === "/api/auth/register") {
     const mod = await import("../../src/app/api/auth/register/route.js");
