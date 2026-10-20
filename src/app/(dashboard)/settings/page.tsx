@@ -41,6 +41,7 @@ export default function SettingsPage() {
 
   const [twoFAOpen, setTwoFAOpen] = useState(false);
   const [twoFASecret, setTwoFASecret] = useState('');
+  const [twoFAQr, setTwoFAQr] = useState('');
   const [twoFACode, setTwoFACode] = useState('');
   const [twoFASaving, setTwoFASaving] = useState(false);
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
@@ -177,6 +178,9 @@ export default function SettingsPage() {
       if (!res.ok) { toast('error', 'Failed to enable 2FA.'); return; }
       const data = await res.json();
       setTwoFASecret(data.secret);
+      // The QR code is drawn here in the browser, so the secret never goes to a third party.
+      const QRCode = await import('qrcode');
+      setTwoFAQr(await QRCode.toDataURL(data.otpauthUri, { width: 200, margin: 1 }));
       setTwoFAOpen(true);
     } catch {
       toast('error', 'Something went wrong.');
@@ -405,11 +409,30 @@ export default function SettingsPage() {
           }
         >
           <div className="space-y-4">
-            <p className="text-sm">Enter this secret key in your authenticator app:</p>
-            <div className="p-3 rounded-[var(--ps-radius-md)] bg-ps-ink-2 text-center">
-              <code className="text-sm text-ps-lime font-mono break-all">{twoFASecret}</code>
-            </div>
-            <p className="text-sm">Then enter the 6-digit code from your app:</p>
+            <p className="text-sm">
+              Scan this QR code with an authenticator app such as Google Authenticator, Microsoft
+              Authenticator or 1Password.
+            </p>
+            {twoFAQr && (
+              <div className="flex justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element -- a data: URL drawn in the browser */}
+                <img src={twoFAQr} alt="QR code for your authenticator app" width={200} height={200} className="rounded-[var(--ps-radius-md)] bg-white p-2" />
+              </div>
+            )}
+            <details className="text-sm">
+              <summary className="cursor-pointer text-ps-muted dark:text-ps-muted-on-dark">Can&apos;t scan it? Enter the key by hand</summary>
+              <div className="mt-2 flex items-center gap-2 p-3 rounded-[var(--ps-radius-md)] bg-ps-ink-2">
+                <code className="flex-1 text-sm text-ps-lime font-mono break-all">{twoFASecret.match(/.{1,4}/g)?.join(' ')}</code>
+                <button
+                  type="button"
+                  className="shrink-0 text-xs font-semibold text-ps-text-on-dark underline"
+                  onClick={() => navigator.clipboard?.writeText(twoFASecret).then(() => toast('success', 'Key copied.'))}
+                >
+                  Copy
+                </button>
+              </div>
+            </details>
+            <p className="text-sm">Then enter the 6-digit code your app shows:</p>
             <Input
               type="text"
               inputMode="numeric"
@@ -424,7 +447,7 @@ export default function SettingsPage() {
 
         <Dialog
           open={backupCodes.length > 0}
-          onClose={() => { setBackupCodes([]); setTwoFAOpen(false); setTwoFACode(''); setTwoFASecret(''); }}
+          onClose={() => { setBackupCodes([]); setTwoFAOpen(false); setTwoFACode(''); setTwoFASecret(''); setTwoFAQr(''); }}
           title="Save Your Backup Codes"
         >
           <div className="space-y-4">
