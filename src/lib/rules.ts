@@ -24,7 +24,7 @@ export const KEY_PLAYER_RULES = [
 
 /** Shown in the Referee Hub. Each must match a rule on /match-rules#referees. */
 export const KEY_REFEREE_RULES = [
-  "Never officiate a match you're in, or one involving anyone you know or have a stake with.",
+  "Never officiate a match you're in, or one involving anyone you know (following each other counts) or have a stake with.",
   'Go live on Kick and watch both streams for the whole match.',
   "Decide only from what the streams show, and write clear notes. If you can't tell, record a draw.",
   "Stay neutral: don't coach, don't take gifts, and don't bet on matches you officiate.",

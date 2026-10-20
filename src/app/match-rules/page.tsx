@@ -180,6 +180,12 @@ export default function MatchRulesPage() {
             match and tell us.
           </li>
           <li>
+            Following each other on PlayStake, either way, counts as knowing each other, and so does a
+            block. We won&apos;t offer you a match involving anyone you follow, who follows you, or with
+            whom there is a block. While you&apos;re officiating a match, you and its players can&apos;t
+            start following each other.
+          </li>
+          <li>
             Never bet on a match you officiate, or let anyone bet on your behalf, and never share
             inside information about a match.
           </li>

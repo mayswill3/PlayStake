@@ -29,7 +29,8 @@ import {
   REFEREE_START_TTL_MS,
   REFEREE_MATCH_TTL_MS,
 } from "../../src/lib/referees/service.js";
-import { ConflictError } from "../../src/lib/errors/index.js";
+import { AuthorizationError, ConflictError } from "../../src/lib/errors/index.js";
+import { followStreamer } from "../../src/lib/follows/service.js";
 
 const prisma = getTestPrisma();
 let gameId: string;
@@ -233,6 +234,55 @@ describe("Referee lifecycle: claiming", () => {
     });
     expect(after.status).toBe(RefereeAssignmentStatus.OPEN);
     expect(after.refereeProfileId).toBeNull();
+  });
+});
+
+describe("Referee conflicts: follows and blocks", () => {
+  it("keeps a referee off a match with a player who follows them", async () => {
+    const { assignment, playerA } = await makeClaimableMatch();
+    const referee = await makeReferee("Ref Life Followed");
+    await prisma.streamerFollow.create({ data: { followerId: playerA.id, streamerId: referee.user.id } });
+
+    const listed = await listRefereeAssignments(referee.user.id, "available");
+    expect(listed.map((item) => item.id)).not.toContain(assignment.id);
+    await expect(claimAssignment(referee.user.id, assignment.id)).rejects.toBeInstanceOf(AuthorizationError);
+    const after = await prisma.refereeAssignment.findUniqueOrThrow({ where: { id: assignment.id } });
+    expect(after.status).toBe(RefereeAssignmentStatus.OPEN);
+  });
+
+  it("keeps a referee off a match with a player they follow or have blocked", async () => {
+    const followed = await makeClaimableMatch();
+    const blocked = await makeClaimableMatch();
+    const referee = await makeReferee("Ref Life Linked");
+    await prisma.streamerFollow.create({ data: { followerId: referee.user.id, streamerId: followed.playerB.id } });
+    await prisma.userBlock.create({ data: { blockerId: referee.user.id, blockedId: blocked.playerA.id } });
+
+    const listed = (await listRefereeAssignments(referee.user.id, "available")).map((item) => item.id);
+    expect(listed).not.toContain(followed.assignment.id);
+    expect(listed).not.toContain(blocked.assignment.id);
+    await expect(claimAssignment(referee.user.id, followed.assignment.id)).rejects.toThrow(/follow/);
+    await expect(claimAssignment(referee.user.id, blocked.assignment.id)).rejects.toThrow(/blocked/);
+  });
+
+  it("records the check on claim and stops new follows until the match is over", async () => {
+    const { assignment, playerA } = await makeClaimableMatch();
+    const referee = await makeReferee("Ref Life Clean");
+    const refereeKick = await prisma.kickAccount.findUniqueOrThrow({ where: { userId: referee.user.id } });
+
+    await claimAssignment(referee.user.id, assignment.id);
+    const claimEvent = await prisma.refereeAuditEvent.findFirstOrThrow({
+      where: { assignmentId: assignment.id, action: "REFEREE_CLAIMED" },
+    });
+    expect(claimEvent.details).toMatchObject({ socialLinkCheck: "no follow or block with either player" });
+
+    await expect(followStreamer(playerA.id, refereeKick.channelSlug!)).rejects.toThrow(/after the match/);
+
+    await prisma.refereeAssignment.update({
+      where: { id: assignment.id },
+      data: { status: RefereeAssignmentStatus.COMPLETED },
+    });
+    await followStreamer(playerA.id, refereeKick.channelSlug!);
+    expect(await prisma.streamerFollow.count({ where: { followerId: playerA.id, streamerId: referee.user.id } })).toBe(1);
   });
 });
 

@@ -164,7 +164,7 @@ describe("blocking", () => {
   it("removes follows, hides the blocker, and stops challenges both ways", async () => {
     const streamer = await makeLiveStreamer("blocker");
     const pest = await makeUser("pest", { discoverable: true });
-    await prisma.ledgerAccount.create({ data: { userId: pest.id, accountType: "PLAYER_BALANCE", balance: 50 } });
+    // No balance needed: the block is checked before the stake.
 
     await callApi("POST", `/api/users/${streamer.username}/follow`, { sessionToken: pest.token });
     const blocked = await callApi("POST", `/api/users/${pest.username}/block`, { sessionToken: streamer.token });

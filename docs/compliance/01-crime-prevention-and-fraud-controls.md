@@ -91,6 +91,7 @@ Cheating is an offence under s.42 of the Gambling Act 2005. PlayStake prevents a
 - **Results for streamed matches** are decided by an independent human referee:
   - referees apply, are verified (identity and age), and are approved by staff for specific games
   - a referee cannot officiate a match they are playing in, and can hold only one match at a time
+  - a referee is never offered, and cannot claim, a match where they follow or are followed by either player, or where either side has blocked the other. The Referee Code of Conduct treats a follow as knowing each other. While a referee is on a match, they and its players cannot start following each other. Each claim records in the audit trail that this check found no link
   - the match can only start while both players are live on Kick with the same game declared, so the referee can watch both feeds
   - every referee action is written to an append-only, hash-chained audit trail that the database protects from edits or deletion; anyone can verify the chain for a match
   - after a decision, either player has 15 minutes to dispute it before payout

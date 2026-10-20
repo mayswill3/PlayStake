@@ -14,6 +14,7 @@ import {
   ValidationError,
 } from "@/lib/errors";
 import { appendRefereeAudit, type AuditContext } from "./audit";
+import { areSociallyLinked, betWithoutRefereeLinks } from "./conflicts";
 import { voidNoShowMatch } from "@/lib/lobby/match-lifecycle";
 import {
   RefereeCodeRequiredError,
@@ -260,6 +261,8 @@ export async function listRefereeAssignments(userId: string, scope: string) {
         status: BetStatus.MATCHED,
         playerAId: { not: userId },
         playerBId: { not: userId },
+        // Not a match for anyone the referee follows, is followed by or has a block with.
+        ...betWithoutRefereeLinks(userId),
       },
     },
     include: assignmentInclude,
@@ -332,6 +335,14 @@ export async function claimAssignment(
     ) {
       throw new AuthorizationError("Players cannot referee their own match");
     }
+    const players = [assignment.bet.playerAId, assignment.bet.playerBId].filter((id): id is string => Boolean(id));
+    for (const playerId of players) {
+      if (await areSociallyLinked(userId, playerId, tx)) {
+        throw new AuthorizationError(
+          "You can't referee this match: you follow, are followed by or have blocked one of the players.",
+        );
+      }
+    }
     if (!profile.qualifications.some((item) => item.gameId === assignment.bet.gameId)) {
       throw new AuthorizationError("You are not qualified for this game");
     }
@@ -361,7 +372,8 @@ export async function claimAssignment(
       assignmentId,
       actorUserId: userId,
       action: "REFEREE_CLAIMED",
-      details: { version: updated.version },
+      // Recorded so a later dispute review can see the conflict check ran.
+      details: { version: updated.version, socialLinkCheck: "no follow or block with either player" },
       context,
     });
     return updated;
@@ -593,6 +605,7 @@ export async function countClaimableAssignments(userId: string): Promise<number>
         status: BetStatus.MATCHED,
         playerAId: { not: userId },
         playerBId: { not: userId },
+        ...betWithoutRefereeLinks(userId),
       },
     },
   });

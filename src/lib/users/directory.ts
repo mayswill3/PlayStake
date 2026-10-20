@@ -19,6 +19,7 @@ import {
 import { prisma } from "../db/client";
 import { AuthorizationError, NotFoundError, ValidationError } from "../errors";
 import { normalizeUsername } from "./username";
+import { assertNoRefereeLinkDuringMatch } from "../referees/conflicts";
 
 export const SEARCH_MIN_LENGTH = 2;
 export const SEARCH_LIMIT = 10;
@@ -192,6 +193,7 @@ async function followableUserId(viewerId: string, rawUsername: string, now: Date
 
 export async function followPlayer(viewerId: string, username: string, now: Date = new Date()): Promise<void> {
   const targetId = await followableUserId(viewerId, username, now);
+  await assertNoRefereeLinkDuringMatch(viewerId, targetId);
   await prisma.streamerFollow.createMany({
     data: [{ followerId: viewerId, streamerId: targetId }],
     skipDuplicates: true,

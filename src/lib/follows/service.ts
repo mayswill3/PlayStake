@@ -22,6 +22,7 @@ import { queueEmailSafely } from "../email/outbox";
 import { NotFoundError, ValidationError } from "../errors";
 import { getActiveBreak } from "../responsible-play/service";
 import { isBlockedEitherWay } from "../users/directory";
+import { assertNoRefereeLinkDuringMatch } from "../referees/conflicts";
 
 export interface FollowedStreamer {
   streamerId: string;
@@ -47,6 +48,7 @@ export async function followStreamer(followerId: string, slug: string): Promise<
   const streamerId = await streamerBySlug(slug);
   if (streamerId === followerId) throw new ValidationError("You can't follow yourself");
   if (await isBlockedEitherWay(followerId, streamerId)) throw new NotFoundError("Streamer not found");
+  await assertNoRefereeLinkDuringMatch(followerId, streamerId);
   await prisma.streamerFollow.createMany({
     data: [{ followerId, streamerId }],
     skipDuplicates: true,
