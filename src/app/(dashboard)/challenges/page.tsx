@@ -16,6 +16,15 @@ import { formatCents } from '@/lib/utils/format';
  * isn't lost. Reads from the shared ChallengesProvider (which polls
  * /api/lobby/invites); Accept/Decline route through /api/lobby/respond.
  */
+/** How each sent challenge's outcome reads to the challenger. */
+const OUTGOING_STATUS_LABEL: Record<string, string> = {
+  PENDING: 'Waiting for response',
+  ACCEPTED: 'Accepted',
+  DECLINED: 'Declined',
+  EXPIRED: 'No response — timed out',
+  CANCELLED: 'Closed',
+};
+
 export default function ChallengesPage() {
   const {
     invites,
@@ -144,9 +153,7 @@ export default function ChallengesPage() {
                                 : ''
                           }
                         >
-                          {challenge.status === 'PENDING'
-                            ? 'Waiting for response'
-                            : challenge.status.toLowerCase()}
+                          {OUTGOING_STATUS_LABEL[challenge.status] ?? challenge.status.toLowerCase()}
                         </span>
                       </p>
                     </div>

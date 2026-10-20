@@ -43,6 +43,35 @@ export interface MyOutgoingChallenge {
 }
 
 const POLL_MS = 6000;
+
+/**
+ * What to tell the challenger when a challenge they sent stops being pending
+ * without being accepted. Returns null when there's nothing to say: they
+ * cancelled it themselves, or sent a newer challenge that replaced it.
+ */
+function closedChallengeMessage(
+  challenge: MyOutgoingChallenge,
+  all: MyOutgoingChallenge[],
+): string | null {
+  const who = challenge.streamer.displayName;
+  const game = challenge.gameName;
+  switch (challenge.status) {
+    case 'DECLINED':
+      return `${who} declined your ${game} challenge. Nothing was taken from your balance.`;
+    case 'EXPIRED':
+      return `${who} didn't respond to your ${game} challenge in time. Nothing was taken from your balance.`;
+    case 'CANCELLED': {
+      const replacedByNewer = all.some(
+        (other) => other.challengeId !== challenge.challengeId && other.createdAt > challenge.createdAt,
+      );
+      return replacedByNewer
+        ? null
+        : `${who} took another challenge, so yours was closed. Nothing was taken from your balance.`;
+    }
+    default:
+      return null;
+  }
+}
 // The lobby SSE stream requires a gameType but also subscribes the caller to
 // their per-user lobby:invite:<userId> channel regardless — so any valid game
 // type opens the invite feed. We only use messages as a nudge to re-poll.
@@ -124,6 +153,10 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
   const [refereeOpenCount, setRefereeOpenCount] = useState(0);
 
   const seenRef = useRef<Set<string>>(new Set());
+  // Status of each sent challenge at the last poll, to spot ones that just closed.
+  const outgoingStatusRef = useRef<Map<string, string>>(new Map());
+  // Challenges this user cancelled here, so they aren't told about their own action.
+  const selfCancelledRef = useRef<Set<string>>(new Set());
   const initializedRef = useRef(false);
   const refreshRef = useRef<() => void>(() => {});
   // betIds this client has already navigated into (imperatively on accept or via
@@ -154,6 +187,19 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
         }
       }
       seenRef.current = new Set(list.map((i) => i.lobbyEntryId));
+
+      // Tell the challenger when a challenge they sent was declined, timed out
+      // or was closed because the streamer took another one.
+      if (initializedRef.current) {
+        for (const challenge of outgoingList) {
+          if (outgoingStatusRef.current.get(challenge.challengeId) !== 'PENDING') continue;
+          if (challenge.status === 'PENDING' || challenge.status === 'ACCEPTED') continue;
+          if (selfCancelledRef.current.has(challenge.challengeId)) continue;
+          const message = closedChallengeMessage(challenge, outgoingList);
+          if (message) toast('info', message);
+        }
+      }
+      outgoingStatusRef.current = new Map(outgoingList.map((c) => [c.challengeId, c.status]));
 
       // Accept->play handoff: route the player into any joinable match we
       // haven't already routed into. This is how an idle challenger gets pulled
@@ -262,6 +308,7 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
   const cancelOutgoing = useCallback(
     async (challengeId: string) => {
       setBusyOutgoingId(challengeId);
+      selfCancelledRef.current.add(challengeId);
       try {
         const res = await fetch(`/api/lobby/challenges/${challengeId}`, {
           method: 'DELETE',
