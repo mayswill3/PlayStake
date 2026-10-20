@@ -4,7 +4,7 @@ import { Trophy, X, Minus, RotateCcw, LogOut } from 'lucide-react';
 
 export interface SettlementResult {
   outcome: 'PLAYER_A_WIN' | 'PLAYER_B_WIN' | 'DRAW';
-  winnerPayout: number; // dollars
+  winnerPayout: number; // pounds
 }
 
 export function deriveOutcome(
@@ -21,9 +21,9 @@ export function formatResultAmount(
   winnerPayout: number,
   betAmountCents: number
 ): string {
-  if (outcome === 'win') return `+$${winnerPayout.toFixed(2)}`;
-  if (outcome === 'draw') return `$${(betAmountCents / 100).toFixed(2)} Returned`;
-  return `-$${(betAmountCents / 100).toFixed(2)}`;
+  if (outcome === 'win') return `+£${winnerPayout.toFixed(2)}`;
+  if (outcome === 'draw') return `£${(betAmountCents / 100).toFixed(2)} Returned`;
+  return `-£${(betAmountCents / 100).toFixed(2)}`;
 }
 
 interface GameResultOverlayProps {

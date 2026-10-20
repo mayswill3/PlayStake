@@ -198,10 +198,10 @@ These must be done before the application is submitted, or before real-money lau
 | 3 | Join GAMSTOP, then set `GAMSTOP_API_KEY` and `GAMSTOP_REQUIRED=true` in production. Also confirm field requirements: collecting a mobile number may improve match rates. | Launch | Head of Compliance |
 | 4 | Appoint an electronic identity and age verification provider to supplement manual document review, including liveness and document-authenticity checks | Recommended before launch | Head of Compliance |
 | 5 | Appoint a sanctions and PEP screening provider. Until then, check manually against the OFSI consolidated list at KYC approval and record the check in the review notes. | Launch | MLRO |
-| 6 | Payments: move Stripe from test to live mode, switch to GBP, configure Stripe Radar rules and 3-D Secure, and match the payout account holder's name to the KYC legal name | Launch | Head of Compliance / engineering |
+| 6 | Payments: move Stripe from test to live mode (the switch to GBP was made on 20 October 2026), configure Stripe Radar rules and 3-D Secure, and match the payout account holder's name to the KYC legal name | Launch | Head of Compliance / engineering |
 | 7 | Set `EMAIL_ADMIN` and `SENTRY_DSN` in production, and confirm alerts arrive | Launch | Engineering |
 | 8 | Confirm every staff account has 2FA enabled (enforced in production) | Launch | Head of Compliance |
-| 9 | Set the AML and affordability thresholds (`AML_*`, `AFFORDABILITY_REVIEW_THRESHOLD_CENTS`) to the values in the approved risk assessment, in GBP pence once currency changes | Launch | MLRO |
+| 9 | Set the AML and affordability thresholds (`AML_*`, `AFFORDABILITY_REVIEW_THRESHOLD_CENTS`) to the values in the approved risk assessment, in GBP pence | Launch | MLRO |
 | 10 | Build automated data-retention purges matching the Privacy Policy | Within 3 months of launch | Engineering |
 | 11 | Move rate limiting from per-process memory to Redis before running more than one web instance | Before scaling | Engineering |
 | 12 | ~~Add a Content-Security-Policy and frame-ancestors headers~~ Done 30 September 2026. Remaining: move to nonce-based CSP (Document 13). | Launch | Engineering |

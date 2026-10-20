@@ -10,7 +10,7 @@
 
 > Draft for review by a compliance adviser. **Regulatory position:** as a non-casino operator, PlayStake is expected not to be a "relevant person" under the Money Laundering, Terrorist Financing and Transfer of Funds Regulations 2017 (which apply to casino licensees). It is, however, fully subject to POCA, the Terrorism Act and the LCCP. PlayStake nevertheless applies customer due diligence, monitoring and record-keeping to a standard informed by the Regulations. *Confirm this position with legal advisers for the licence type applied for.*
 >
-> All monetary thresholds below are defaults in the platform, currently in US dollars because payments are in Stripe test mode. They must be converted to pounds sterling and confirmed in this assessment before launch (Master Manual §8 items 6 and 9).
+> All monetary thresholds below are defaults in the platform, in pounds sterling. The platform switched from US dollars to GBP on 20 October 2026, while payments were still in Stripe test mode. The figures were kept as they were, not converted at an exchange rate. The MLRO must confirm each figure in this assessment before launch (Master Manual §8 item 9).
 
 ---
 

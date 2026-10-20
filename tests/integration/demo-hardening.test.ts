@@ -74,7 +74,7 @@ async function matchedBet(amount = "10.00") {
       gameId: scenario.game.id,
       playerAId: scenario.playerA.id,
       amount: stake,
-      currency: "USD",
+      currency: "GBP",
       status: BetStatus.PENDING_CONSENT,
       matchType: BetMatchType.GAME_LOBBY,
       platformFeePercent: scenario.game.platformFeePercent,
@@ -332,7 +332,7 @@ describe("Demo hardening: the real /play flow still works", () => {
     expect(settled.status).toBe(200);
     expect(settled.body.success).toBe(true);
     expect(settled.body.outcome).toBe(expected);
-    // The whole $40 pot: this scenario runs with no platform fee.
+    // The whole £40 pot: this scenario runs with no platform fee.
     expect(settled.body.winnerPayout).toBeCloseTo(40, 2);
 
     const after = await prisma.bet.findUniqueOrThrow({ where: { id: bet.id } });

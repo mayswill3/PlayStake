@@ -1,12 +1,12 @@
 /**
- * Format an integer cents value as a dollar string.
- * Example: 2500 -> "$25.00"
+ * Format an integer pence value as a pounds string.
+ * Example: 2500 -> "£25.00"
  */
 export function formatCents(cents: number): string {
   const dollars = cents / 100;
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-GB", {
     style: "currency",
-    currency: "USD",
+    currency: "GBP",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(dollars);

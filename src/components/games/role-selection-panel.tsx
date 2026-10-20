@@ -110,11 +110,11 @@ export function RoleSelectionPanel({
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-muted">Balance</span>
                 </div>
                 <p className="text-base font-bold text-fg font-mono tabular-nums">
-                  ${(playerInfo.balance / 100).toFixed(2)}
+                  £{(playerInfo.balance / 100).toFixed(2)}
                 </p>
                 {playerInfo.escrowed > 0 && (
                   <p className="text-[9px] text-fg-muted mt-0.5">
-                    ${(playerInfo.escrowed / 100).toFixed(2)} in play
+                    £{(playerInfo.escrowed / 100).toFixed(2)} in play
                   </p>
                 )}
               </div>

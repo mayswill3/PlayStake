@@ -920,7 +920,7 @@ export async function respondToInvite(input: RespondInput): Promise<RespondResul
         playerAId: playerAEntry.userId,
         playerBId: playerBEntry.userId,
         amount: amountDollars,
-        currency: "USD",
+        currency: "GBP",
         status: BetStatus.PENDING_CONSENT,
         matchType: streamChallenge?.requiresReferee
           ? BetMatchType.STREAM_VS_STREAM

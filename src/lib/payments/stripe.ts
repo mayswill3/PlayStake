@@ -32,7 +32,7 @@ export const stripe = getStripe();
  * Create a Stripe PaymentIntent for a deposit.
  *
  * @param amount       Amount in cents (smallest currency unit).
- * @param currency     Three-letter ISO currency code (e.g. "usd").
+ * @param currency     Three-letter ISO currency code (e.g. "gbp").
  * @param customerId   Stripe Customer ID.
  * @param metadata     Arbitrary key-value metadata attached to the PI.
  * @param idempotencyKey  Stripe idempotency key to prevent double charges.

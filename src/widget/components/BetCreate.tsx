@@ -6,8 +6,8 @@ interface BetCreateProps {
   balance: BalanceData | null;
   onCreateBet: (params: CreateBetParams) => Promise<BetData | null>;
   onConsentBet: (betId: string) => Promise<BetData | null>;
-  minBet?: number; // cents, default 100 ($1)
-  maxBet?: number; // cents, default 100000 ($1000)
+  minBet?: number; // pence, default 100 (£1)
+  maxBet?: number; // pence, default 100000 (£1000)
   disabled?: boolean;
 }
 
@@ -168,7 +168,7 @@ export function BetCreate({
           Custom Amount
         </label>
         <div className="ps-input-group">
-          <span className="ps-input-group__prefix">$</span>
+          <span className="ps-input-group__prefix">£</span>
           <input
             id="ps-custom-amount"
             type="text"

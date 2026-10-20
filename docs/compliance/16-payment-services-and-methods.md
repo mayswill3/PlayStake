@@ -71,7 +71,7 @@ Nothing is added until every step is complete and recorded:
 | 1 | Obtain Stripe's written approval for gambling, or appoint a gambling-approved PSP | Head of Compliance |
 | 2 | Confirm the Stripe entity and FRN on the FCA register | Head of Compliance |
 | 3 | **Block credit cards.** The approved method is "card", which includes credit cards. Before launch, refuse credit-funded cards (for example a Stripe Radar rule blocking `card_funding = credit`, with a server-side check on the payment method's funding type) | Head of Compliance / engineering |
-| 4 | Switch currency from USD to GBP for UK customers | Engineering |
+| 4 | ~~Switch currency from USD to GBP for UK customers~~ **Done 20 October 2026.** Deposits, payouts, balances, records and everything customers see are in GBP | Engineering |
 | 5 | Take legal advice confirming that moving stakes between customer balances on PlayStake's own ledger is not itself a regulated payment service | Head of Compliance |
 
 | Version | Date | Change |

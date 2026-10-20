@@ -69,7 +69,7 @@ export default function WithdrawPage() {
     setError('');
 
     if (amountCents < 1000) {
-      setError('Minimum withdrawal is $10.00');
+      setError('Minimum withdrawal is £10.00');
       return;
     }
     if (available !== null && amountCents > available) {
@@ -167,7 +167,7 @@ export default function WithdrawPage() {
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="50.00"
-            prefix={<span className="text-sm font-medium">$</span>}
+            prefix={<span className="text-sm font-medium">£</span>}
             required
           />
 
@@ -182,7 +182,7 @@ export default function WithdrawPage() {
           )}
 
           <div className="text-xs text-text-muted">
-            Min $10.00 &middot; Funds typically arrive in 1-3 business days
+            Min £10.00 &middot; Funds typically arrive in 1-3 business days
           </div>
 
           <Button type="submit" loading={loading} className="w-full">

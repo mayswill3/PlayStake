@@ -53,7 +53,7 @@ describe("Bet Lifecycle: Full flow from creation to settlement", () => {
           gameId: scenario.game.id,
           playerAId: scenario.playerA.id,
           amount: betAmount,
-          currency: "USD",
+          currency: "GBP",
           status: BetStatus.PENDING_CONSENT,
           platformFeePercent: scenario.game.platformFeePercent,
           expiresAt: new Date(Date.now() + 300_000),

@@ -119,7 +119,7 @@ async function fundUser(userId: string, dollars: number): Promise<void> {
       userId,
       accountType: LedgerAccountType.PLAYER_BALANCE,
       balance: new Decimal(dollars),
-      currency: "USD",
+      currency: "GBP",
     },
   });
 }
@@ -217,7 +217,7 @@ describe("No-show void", () => {
     const STAKE = 500;
     const { viewerId, streamerId, betId } = await acceptedMatch(STAKE);
 
-    // Both are escrowed after accept: $50 - $5 = $45 each.
+    // Both are escrowed after accept: £50 - £5 = £45 each.
     expect(await balanceCents(viewerId)).toBe(5000 - STAKE);
     expect(await balanceCents(streamerId)).toBe(5000 - STAKE);
 

@@ -32,7 +32,7 @@ describe("approved payment methods", () => {
 
   it("deposits pin the payment methods instead of leaving them to the Stripe Dashboard", async () => {
     const { createPaymentIntent } = await import("../../../src/lib/payments/stripe");
-    await createPaymentIntent(1000, "USD", "cus_1", {}, "idem_1");
+    await createPaymentIntent(1000, "GBP", "cus_1", {}, "idem_1");
 
     const params = create.mock.calls[0][0] as Record<string, unknown>;
     expect(params.payment_method_types).toEqual(["card"]);

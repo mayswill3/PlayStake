@@ -128,7 +128,7 @@ export async function createConnectedAccountTransfer(input: {
   return stripe.transfers.create(
     {
       amount: input.amount,
-      currency: 'usd',
+      currency: 'gbp',
       destination: input.destination,
       metadata: {
         playstakeUserId: input.userId,

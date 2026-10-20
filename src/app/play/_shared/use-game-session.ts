@@ -288,7 +288,7 @@ export function useGameSession(
         const payoutDisplay = settle.winnerPayout.toFixed(2);
         const outcomeLabel = settle.outcome === 'DRAW'
           ? 'Draw — both refunded'
-          : `Winner receives $${payoutDisplay}`;
+          : `Winner receives £${payoutDisplay}`;
         log(`Bet settled! ${outcomeLabel}`, 'success');
         return { outcome: settle.outcome, winnerPayout: settle.winnerPayout };
       } else {

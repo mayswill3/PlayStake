@@ -173,11 +173,11 @@ export default function DepositPage() {
     setError('');
 
     if (amountCents < 500) {
-      setError('Minimum deposit is $5.00');
+      setError('Minimum deposit is £5.00');
       return;
     }
     if (amountCents > 100000) {
-      setError('Maximum deposit is $1,000.00');
+      setError('Maximum deposit is £1,000.00');
       return;
     }
 
@@ -285,7 +285,7 @@ export default function DepositPage() {
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="25.00"
-            prefix={<span className="text-sm font-medium">$</span>}
+            prefix={<span className="text-sm font-medium">£</span>}
             required
           />
 
@@ -310,7 +310,7 @@ export default function DepositPage() {
           </div>
 
           <div className="text-xs text-text-muted">
-            Min $5.00 &middot; Max $1,000.00 &middot; Processed via Stripe
+            Min £5.00 &middot; Max £1,000.00 &middot; Processed via Stripe
           </div>
 
           <Button type="submit" loading={loading} className="w-full">
@@ -371,7 +371,7 @@ export default function DepositPage() {
             value={limitAmount}
             onChange={(e) => setLimitAmount(e.target.value)}
             placeholder="100.00"
-            prefix={<span className="text-sm font-medium">$</span>}
+            prefix={<span className="text-sm font-medium">£</span>}
           />
         </div>
       </Dialog>

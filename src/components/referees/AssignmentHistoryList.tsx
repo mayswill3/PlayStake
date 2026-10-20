@@ -54,11 +54,11 @@ export function outcomeLabel(outcome: string, assignment: Pick<HistoryAssignment
 
 /** What the referee earned, or stands to earn while the match is unresolved. */
 export function rewardLabel(assignment: HistoryAssignment) {
-  if (assignment.rewardAmount !== null) return `$${Number(assignment.rewardAmount).toFixed(2)} earned`;
+  if (assignment.rewardAmount !== null) return `£${Number(assignment.rewardAmount).toFixed(2)} earned`;
   if (assignment.status === 'CANCELLED') return 'No fee';
   const fee =
     Number(assignment.bet.amount) * 2 * Number(assignment.bet.platformFeePercent) * Number(assignment.rewardPercent);
-  return `$${fee.toFixed(2)} fee pending`;
+  return `£${fee.toFixed(2)} fee pending`;
 }
 
 export function AssignmentHistoryList<T extends HistoryAssignment>({
@@ -98,7 +98,7 @@ export function AssignmentHistoryList<T extends HistoryAssignment>({
                     {assignment.bet.playerA.displayName} vs {assignment.bet.playerB?.displayName ?? 'TBD'}
                   </Link>
                   <p className="truncate text-xs text-ps-muted dark:text-ps-muted-on-dark">
-                    {assignment.bet.game.name} · ${(Number(assignment.bet.amount) * 2).toFixed(2)} pot ·{' '}
+                    {assignment.bet.game.name} · £{(Number(assignment.bet.amount) * 2).toFixed(2)} pot ·{' '}
                     {formatDate(when)}
                   </p>
                   {assignment.decision && (

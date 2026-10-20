@@ -14,7 +14,7 @@ interface StatProps {
 const STATS: StatProps[] = [
   {
     value: 200000,
-    prefix: '$',
+    prefix: '£',
     suffix: '+',
     label: 'Total paid out',
     format: (n) => n >= 1000 ? `${Math.round(n / 1000)}K` : String(n),
@@ -23,7 +23,7 @@ const STATS: StatProps[] = [
     value: 12000,
     suffix: '+',
     label: 'Bets settled',
-    format: (n) => n.toLocaleString('en-US'),
+    format: (n) => n.toLocaleString('en-GB'),
   },
   {
     value: 99.2,

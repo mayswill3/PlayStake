@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
           type: TransactionType.DEPOSIT,
           status: TransactionStatus.PENDING,
           amount: amountDollars,
-          currency: "USD",
+          currency: "GBP",
           description: "Deposit via Stripe",
           metadata: {
             userId: session.userId,
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     // Create a Stripe PaymentIntent
     const paymentIntent = await createPaymentIntent(
       input.amount, // Stripe uses cents
-      "usd",
+      "gbp",
       stripeCustomerId,
       {
         transactionId: transaction.id,

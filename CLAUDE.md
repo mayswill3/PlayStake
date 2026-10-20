@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-PlayStake is a real-money peer-to-peer wagering platform for competitive games. Players deposit via Stripe, wager against each other, and withdraw winnings. Every dollar moves through a **double-entry ledger** with per-bet escrow accounts, dual-source result verification, and background anomaly detection. Money is the invariant — most of the complexity exists to make it impossible to create or destroy funds by accident.
+PlayStake is a real-money peer-to-peer wagering platform for competitive games. Players deposit via Stripe, wager against each other, and withdraw winnings. Every pound moves through a **double-entry ledger** with per-bet escrow accounts, dual-source result verification, and background anomaly detection. Money is the invariant — most of the complexity exists to make it impossible to create or destroy funds by accident.
 
 Stack: Next.js 16 (App Router, `output: standalone`) on Node 20 · TypeScript · PostgreSQL 16 + Prisma 7 · Redis 7 + BullMQ · Stripe · Zod · Tailwind 4 · Vitest.
 
@@ -66,7 +66,7 @@ Ledger functions take a `TxClient` (Prisma interactive-transaction client) as th
 
 ### Money representation
 
-API request/response bodies use **integer cents**. The ledger stores `Decimal` USD. Convert at the boundary with `src/lib/utils/money.ts` (`centsToDollars`, etc.). Don't mix the two.
+API request/response bodies use **integer pence** (the code still calls them "cents"). The ledger stores `Decimal` GBP. Convert at the boundary with `src/lib/utils/money.ts` (`centsToDollars`, etc. — the names predate the switch from USD to GBP). Don't mix the two.
 
 ### Request layers (`src/lib/middleware/`)
 

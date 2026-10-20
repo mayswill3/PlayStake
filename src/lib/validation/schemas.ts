@@ -149,7 +149,7 @@ export const depositSchema = z.object({
   amount: z
     .number()
     .int("Amount must be an integer (cents)")
-    .min(500, "Minimum deposit is $5.00 (500 cents)")
+    .min(500, "Minimum deposit is £5.00 (500 pence)")
     .max(100_000, "Maximum deposit is $1,000.00 (100000 cents)"),
   idempotencyKey: z
     .string()
@@ -229,7 +229,7 @@ export const challengeSchema = z.object({
     .number()
     .int("Amount must be an integer (cents)")
     .min(100, "Minimum stake is $1.00 (100 cents)")
-    .max(50_000, "Maximum stake is $500.00 (50000 cents)"),
+    .max(50_000, "Maximum stake is £500.00 (50000 pence)"),
   /** Set when the player ticks "I accept the Match Rules" with this challenge. */
   acceptMatchRules: z.boolean().optional(),
 });
@@ -397,7 +397,7 @@ export const createBetSchema = z.object({
     .number()
     .int("Amount must be an integer (cents)")
     .positive("Amount must be positive"),
-  currency: z.string().length(3, "Currency must be a 3-letter code").default("USD"),
+  currency: z.string().length(3, "Currency must be a 3-letter code").default("GBP"),
   externalId: z
     .string()
     .max(255, "External ID must be at most 255 characters")

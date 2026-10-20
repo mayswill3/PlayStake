@@ -6,7 +6,7 @@
  * ```tsx
  * <StatStrip
  *   stats={[
- *     { value: '$200K+', label: 'Total Paid Out', caption: 'Since launch' },
+ *     { value: '£200K+', label: 'Total Paid Out', caption: 'Since launch' },
  *     { value: '5,000+', label: 'Active Players' },
  *     { value: '99.2%', label: 'Settlement Rate', caption: 'Verified' },
  *   ]}
@@ -15,7 +15,7 @@
  */
 
 interface StatItem {
-  /** Formatted numeric value (e.g. "$200K+", "99.2%"). */
+  /** Formatted numeric value (e.g. "£200K+", "99.2%"). */
   value: string;
   /** Primary label text. */
   label: string;

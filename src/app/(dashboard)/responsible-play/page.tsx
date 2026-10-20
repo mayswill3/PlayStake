@@ -100,8 +100,8 @@ export default function ResponsiblePlayPage() {
 
   async function saveLimit(period: Period) {
     const raw = drafts[period].trim();
-    const dollars = Number(raw);
-    if (!raw || !Number.isFinite(dollars) || dollars <= 0) {
+    const pounds = Number(raw);
+    if (!raw || !Number.isFinite(pounds) || pounds <= 0) {
       toast('error', 'Enter an amount greater than zero.');
       return;
     }
@@ -111,7 +111,7 @@ export default function ResponsiblePlayPage() {
       const response = await fetch('/api/responsible-play/deposit-limits', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ period, amount: Math.round(dollars * 100) }),
+        body: JSON.stringify({ period, amount: Math.round(pounds * 100) }),
       });
       const data = await response.json();
 
@@ -385,7 +385,7 @@ export default function ResponsiblePlayPage() {
                     <Input
                       label={limit ? 'Change limit' : 'Set limit'}
                       inputMode="decimal"
-                      prefix="$"
+                      prefix="£"
                       placeholder="100.00"
                       value={drafts[period]}
                       onChange={(event) =>

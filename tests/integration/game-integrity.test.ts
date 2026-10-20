@@ -55,7 +55,7 @@ async function matchedBet(amount = "10.00") {
       gameId: scenario.game.id,
       playerAId: scenario.playerA.id,
       amount: stake,
-      currency: "USD",
+      currency: "GBP",
       status: BetStatus.PENDING_CONSENT,
       matchType: BetMatchType.GAME_LOBBY,
       platformFeePercent: scenario.game.platformFeePercent,

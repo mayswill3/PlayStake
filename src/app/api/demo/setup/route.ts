@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
         userId: playerId,
         accountType: LedgerAccountType.PLAYER_BALANCE,
         balance: 0,
-        currency: "USD",
+        currency: "GBP",
       },
     });
 
@@ -181,7 +181,7 @@ async function ensureDemoGame(gameType: DemoGameType): Promise<{ gameId: string;
       const existing = await tx.ledgerAccount.findFirst({ where: { accountType, userId: null, betId: null } });
       if (!existing) {
         await tx.ledgerAccount.create({
-          data: { accountType, balance: 0, currency: "USD" },
+          data: { accountType, balance: 0, currency: "GBP" },
         });
       }
     }

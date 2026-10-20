@@ -18,7 +18,7 @@ interface InviteReceivedProps {
   isResponding?: boolean;
 }
 
-function formatUsd(cents: number): string {
+function formatPounds(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
@@ -73,12 +73,12 @@ export function InviteReceived({
         </div>
         <div className="flex items-center justify-between">
           <dt className="text-fg-muted">Stake</dt>
-          <dd className="text-fg font-semibold tabular-nums">${formatUsd(stakeCents)} each</dd>
+          <dd className="text-fg font-semibold tabular-nums">£{formatPounds(stakeCents)} each</dd>
         </div>
         <div className="flex items-center justify-between">
           <dt className="text-fg-muted">Total pot</dt>
           <dd className="text-brand-600 dark:text-brand-400 font-bold tabular-nums">
-            ${formatUsd(total)}
+            £{formatPounds(total)}
           </dd>
         </div>
       </dl>

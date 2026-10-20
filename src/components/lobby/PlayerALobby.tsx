@@ -17,7 +17,7 @@ interface PlayerALobbyProps {
   error?: string | null;
 }
 
-function formatUsd(cents: number): string {
+function formatPounds(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
@@ -49,7 +49,7 @@ export function PlayerALobby({
             {hasPlayers ? 'Looking for opponents' : 'Waiting for opponents'}
           </p>
           <p className="text-[11px] text-fg-muted font-mono">
-            Stake: ${formatUsd(stakeCents)} &middot; {gameName}
+            Stake: £{formatPounds(stakeCents)} &middot; {gameName}
           </p>
         </div>
       </div>

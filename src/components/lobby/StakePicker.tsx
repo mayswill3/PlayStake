@@ -14,7 +14,7 @@ interface StakePickerProps {
   gameType: string;
 }
 
-function formatUsd(cents: number): string {
+function formatPounds(cents: number): string {
   const dollars = cents / 100;
   return dollars.toFixed(dollars % 1 === 0 ? 0 : 2);
 }
@@ -45,7 +45,7 @@ export function StakePicker({ value, onChange, onJoin, isJoining, role, gameType
                     }
                   `}
                 >
-                  ${formatUsd(cents)}
+                  £{formatPounds(cents)}
                 </button>
               );
             })}

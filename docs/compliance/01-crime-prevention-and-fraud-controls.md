@@ -109,7 +109,7 @@ Cheating is an offence under s.42 of the Gambling Act 2005. PlayStake prevents a
 
 - Identity and age must be verified before any deposit or withdrawal.
 - **Deposits:**
-  - between $5 and $1,000 per transaction
+  - between £5 and £1,000 per transaction
   - at most 5 deposit attempts an hour from one address
   - also limited by the customer's own deposit limits
 - **Withdrawals:**

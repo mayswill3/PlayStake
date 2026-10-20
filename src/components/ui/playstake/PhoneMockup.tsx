@@ -203,7 +203,7 @@ export function MatchPreview({ variant = 'phone', className = '' }: MatchPreview
           }}
         >
           <div className="mb-1 text-[9px] uppercase tracking-widest text-white/35">Your Stake</div>
-          <div className="text-base font-bold tabular-nums text-white">$5.00</div>
+          <div className="text-base font-bold tabular-nums text-white">£5.00</div>
         </div>
         <div
           className="rounded-xl p-3"
@@ -219,7 +219,7 @@ export function MatchPreview({ variant = 'phone', className = '' }: MatchPreview
             Total Pot
           </div>
           <div className="text-base font-bold tabular-nums" style={{ color: 'var(--ps-lime)' }}>
-            $10.00
+            £10.00
           </div>
         </div>
       </div>

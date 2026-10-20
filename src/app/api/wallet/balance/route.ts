@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
       userId,
       available,
       escrowed,
-      currency: "USD",
+      currency: "GBP",
     });
   } catch (error) {
     return errorResponse(error);

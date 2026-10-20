@@ -88,7 +88,7 @@ export default function DartsDemoPage() {
   useResumeMatch(handleResume);
 
   const handleBetCreated = useCallback(async (bet: { betId: string; amount: number }) => {
-    log(`Bet created: ${bet.betId} ($${(bet.amount / 100).toFixed(2)})`, 'bet');
+    log(`Bet created: ${bet.betId} (£${(bet.amount / 100).toFixed(2)})`, 'bet');
     betIdRef.current = bet.betId; setBetAmountCents(bet.amount);
     if (sessionId) await setBetId(bet.betId);
   }, [sessionId, setBetId, log]);

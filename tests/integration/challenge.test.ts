@@ -151,7 +151,7 @@ async function fundUser(userId: string, dollars: number): Promise<void> {
       userId,
       accountType: LedgerAccountType.PLAYER_BALANCE,
       balance: new Decimal(dollars),
-      currency: "USD",
+      currency: "GBP",
     },
   });
 }

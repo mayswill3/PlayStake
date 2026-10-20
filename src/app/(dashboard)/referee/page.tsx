@@ -463,8 +463,8 @@ function AvailableMatches({
                 {assignment.bet.playerA.displayName} <span className="text-ps-muted">vs</span> {assignment.bet.playerB?.displayName}
               </p>
               <p className="mt-1 text-sm text-ps-muted dark:text-ps-muted-on-dark">
-                {assignment.bet.game.name} · ${(Number(assignment.bet.amount) * 2).toFixed(2)} pot ·{' '}
-                ${(Number(assignment.bet.amount) * 2 * Number(assignment.bet.platformFeePercent) * Number(assignment.rewardPercent)).toFixed(2)} referee fee
+                {assignment.bet.game.name} · £{(Number(assignment.bet.amount) * 2).toFixed(2)} pot ·{' '}
+                £{(Number(assignment.bet.amount) * 2 * Number(assignment.bet.platformFeePercent) * Number(assignment.rewardPercent)).toFixed(2)} referee fee
               </p>
             </div>
             <PSButton

@@ -123,7 +123,7 @@ export default function TicTacToeDemoPage() {
   }, [role, gameState, makeMove, authState, setBetId, reportAndSettle, log]);
 
   const handleBetCreated = useCallback(async (bet: { betId: string; amount: number }) => {
-    log(`Bet created: ${bet.betId} ($${(bet.amount / 100).toFixed(2)})`, 'bet');
+    log(`Bet created: ${bet.betId} (£${(bet.amount / 100).toFixed(2)})`, 'bet');
     betIdRef.current = bet.betId;
     setBetAmountCents(bet.amount);
     if (sessionId) {

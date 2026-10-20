@@ -1,12 +1,12 @@
 /**
  * Format cents (integer) to a dollar string.
- * e.g. 2500 -> "$25.00", -500 -> "-$5.00"
+ * e.g. 2500 -> "£25.00", -500 -> "-£5.00"
  */
 export function formatCents(cents: number): string {
   const negative = cents < 0;
   const abs = Math.abs(cents);
   const dollars = (abs / 100).toFixed(2);
-  return `${negative ? '-' : ''}$${dollars}`;
+  return `${negative ? '-' : ''}£${dollars}`;
 }
 
 /**
@@ -28,7 +28,7 @@ export function formatDate(date: string | Date): string {
   if (diffHr < 24) return `${diffHr}h ago`;
   if (diffDay < 7) return `${diffDay}d ago`;
 
-  return d.toLocaleDateString('en-US', {
+  return d.toLocaleDateString('en-GB', {
     month: 'short',
     day: 'numeric',
     year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
@@ -48,7 +48,7 @@ export function formatPercent(decimal: number): string {
  * e.g. 12500 -> "12,500"
  */
 export function formatNumber(n: number): string {
-  return n.toLocaleString('en-US');
+  return n.toLocaleString('en-GB');
 }
 
 /**

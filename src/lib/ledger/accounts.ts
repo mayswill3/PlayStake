@@ -34,7 +34,7 @@ export async function getOrCreatePlayerAccount(
       userId,
       accountType: LedgerAccountType.PLAYER_BALANCE,
       balance: new Decimal("0.00"),
-      currency: "USD",
+      currency: "GBP",
     },
   });
 }
@@ -66,7 +66,7 @@ export async function getOrCreateDeveloperAccount(
       userId,
       accountType: LedgerAccountType.DEVELOPER_BALANCE,
       balance: new Decimal("0.00"),
-      currency: "USD",
+      currency: "GBP",
     },
   });
 }
@@ -99,7 +99,7 @@ export async function createEscrowAccount(
       betId,
       accountType: LedgerAccountType.ESCROW,
       balance: new Decimal("0.00"),
-      currency: "USD",
+      currency: "GBP",
     },
   });
 }
@@ -137,7 +137,7 @@ export async function getSystemAccount(
       data: {
         accountType: type,
         balance: new Decimal("0.00"),
-        currency: "USD",
+        currency: "GBP",
       },
     });
   } catch (error) {

@@ -200,7 +200,7 @@ export async function transfer(
       type: input.transactionType,
       status: TransactionStatus.COMPLETED,
       amount,
-      currency: "USD",
+      currency: "GBP",
       description: input.description ?? null,
       metadata: (input.metadata as any) ?? undefined,
       betId: input.betId ?? null,

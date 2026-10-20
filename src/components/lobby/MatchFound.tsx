@@ -9,7 +9,7 @@ interface MatchFoundProps {
   gameName: string;
 }
 
-function formatUsd(cents: number): string {
+function formatPounds(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
@@ -32,7 +32,7 @@ export function MatchFound({ playerAName, playerBName, stakeCents, gameName }: M
       </div>
 
       <p className="text-[11px] text-fg-muted font-mono mb-4 tabular-nums">
-        ${formatUsd(stakeCents)} each &middot; ${formatUsd(total)} pot &middot; {gameName}
+        £{formatPounds(stakeCents)} each &middot; £{formatPounds(total)} pot &middot; {gameName}
       </p>
 
       {/* Indeterminate loading bar */}

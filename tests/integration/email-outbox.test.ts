@@ -69,7 +69,7 @@ describe("Email outbox: queueing", () => {
       template: "wallet.deposit-succeeded",
       dedupeKey: `test-deposit-${user.id}`,
       userId: user.id,
-      payload: { name: "Outbox Tester", amount: "$25.00", balance: "$40.00" },
+      payload: { name: "Outbox Tester", amount: "£25.00", balance: "£40.00" },
     });
 
     const result = await flushEmailOutbox();
@@ -77,11 +77,11 @@ describe("Email outbox: queueing", () => {
 
     const body = sentBody();
     expect(body.to).toEqual([user.email]);
-    expect(body.subject).toBe("Deposit received — $25.00");
+    expect(body.subject).toBe("Deposit received — £25.00");
     // The branded layout: logo, the amount, and a plain-text alternative.
     expect(body.html).toContain("playstake.org/logo.png");
-    expect(body.html).toContain("$25.00");
-    expect(body.text).toContain("$25.00");
+    expect(body.html).toContain("£25.00");
+    expect(body.text).toContain("£25.00");
 
     const row = await prisma.emailOutbox.findUniqueOrThrow({
       where: { dedupeKey: `test-deposit-${user.id}` },
@@ -96,7 +96,7 @@ describe("Email outbox: queueing", () => {
       template: "wallet.withdrawal-paid" as const,
       dedupeKey: `test-dup-${user.id}`,
       userId: user.id,
-      payload: { name: "Outbox Tester", amount: "$10.00" },
+      payload: { name: "Outbox Tester", amount: "£10.00" },
     };
 
     await queueEmail(input);
@@ -118,9 +118,9 @@ describe("Email outbox: queueing", () => {
         gameName: "Darts 301",
         opponent: "kwasi88",
         outcome: "won",
-        stake: "$5.00",
-        netResult: "+$4.50",
-        balance: "$20.00",
+        stake: "£5.00",
+        netResult: "+£4.50",
+        balance: "£20.00",
         betId: crypto.randomUUID(),
       },
     });
@@ -128,7 +128,7 @@ describe("Email outbox: queueing", () => {
       template: "wallet.withdrawal-failed",
       dedupeKey: `test-essential-${user.id}`,
       userId: user.id,
-      payload: { name: "Outbox Tester", amount: "$5.00", reason: "Bank rejected" },
+      payload: { name: "Outbox Tester", amount: "£5.00", reason: "Bank rejected" },
     });
 
     const templates = (
@@ -139,7 +139,7 @@ describe("Email outbox: queueing", () => {
 });
 
 describe("Email outbox: match events", () => {
-  /** A settled head-to-head bet: $5 each, 5% platform fee, player A wins. */
+  /** A settled head-to-head bet: £5 each, 5% platform fee, player A wins. */
   async function settledBet(outcome: BetOutcome) {
     const playerA = await makeUser();
     const playerB = await makeUser();
@@ -188,11 +188,11 @@ describe("Email outbox: match events", () => {
     const toWinner = bodies.find((body) => body.to[0] === playerA.email);
     const toLoser = bodies.find((body) => body.to[0] === playerB.email);
 
-    // Winner takes the $10 pot less the $0.50 fee, so +$4.50 on a $5 stake.
-    expect(toWinner.subject).toBe("You won +$4.50 — Outbox Game");
-    expect(toWinner.html).toContain("+$4.50");
+    // Winner takes the £10 pot less the £0.50 fee, so +£4.50 on a £5 stake.
+    expect(toWinner.subject).toBe("You won +£4.50 — Outbox Game");
+    expect(toWinner.html).toContain("+£4.50");
     expect(toLoser.subject).toBe("Match settled — Outbox Game");
-    expect(toLoser.html).toContain("-$5.00");
+    expect(toLoser.html).toContain("-£5.00");
   });
 
   it("returns both stakes on a draw", async () => {
@@ -205,7 +205,7 @@ describe("Email outbox: match events", () => {
       .map((call) => JSON.parse(call[1].body as string))
       .find((candidate) => candidate.to[0] === playerA.email);
     expect(body.subject).toBe("Match drawn — Outbox Game");
-    expect(body.html).toContain("$5.00");
+    expect(body.html).toContain("£5.00");
   });
 
   it("tells both players why a match was voided, once each", async () => {
@@ -281,7 +281,7 @@ describe("Email outbox: delivery failures", () => {
             template: "wallet.deposit-succeeded",
             dedupeKey,
             userId: user.id,
-            payload: { name: "Outbox Tester", amount: "$5.00", balance: "$5.00" },
+            payload: { name: "Outbox Tester", amount: "£5.00", balance: "£5.00" },
           },
           tx as never,
         );

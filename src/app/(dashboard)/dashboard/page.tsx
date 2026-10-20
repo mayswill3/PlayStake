@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Hash,
   TrendingUp,
-  DollarSign,
+  PoundSterling,
   Activity,
   Plus,
   List,
@@ -268,7 +268,7 @@ export default function DashboardPage() {
                 label="Net Profit"
                 value={formatCents(stats?.netProfit ?? 0)}
                 subtext={stats?.totalWagered ? `of ${formatCents(stats.totalWagered)} wagered` : undefined}
-                icon={DollarSign}
+                icon={PoundSterling}
                 accent={isProfitPositive ? 'positive' : isProfitNegative ? 'negative' : 'neutral'}
               />
               <StatCard

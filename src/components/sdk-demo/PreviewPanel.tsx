@@ -8,7 +8,7 @@ import {
   Trophy,
   Clock,
   CheckCircle2,
-  CircleDollarSign,
+  CirclePoundSterling,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
@@ -168,12 +168,12 @@ export function PreviewPanel({ widgetState, onStateChange, className = '' }: Pre
             {/* Game header */}
             <div className="border-b border-white/8 bg-surface-850 px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <CircleDollarSign className="h-4 w-4 text-brand-400" />
+                <CirclePoundSterling className="h-4 w-4 text-brand-400" />
                 <span className="text-sm font-display font-semibold text-text-primary">
                   PlayStake Widget
                 </span>
               </div>
-              <span className="text-xs font-mono text-text-muted">$5.00 wager</span>
+              <span className="text-xs font-mono text-text-muted">£5.00 wager</span>
             </div>
 
             {/* State progress bar */}
