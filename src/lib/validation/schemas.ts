@@ -119,6 +119,10 @@ export const updateProfileSchema = z.object({
   marketingConsent: z.boolean().optional(),
   /** Email when a followed streamer goes live (also needs marketingConsent). */
   followLiveEmails: z.boolean().optional(),
+  /** Checked and normalised by changeUsername. */
+  username: z.string().max(30).optional(),
+  /** Let other players find and follow this account. */
+  discoverable: z.boolean().optional(),
   displayName: z
     .string()
     .min(2, "Display name must be at least 2 characters")

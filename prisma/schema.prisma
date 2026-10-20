@@ -314,6 +314,13 @@ model User {
   passwordHash                  String?        @map("password_hash") @db.VarChar(255)
   role                          UserRole       @default(PLAYER)
   displayName                   String         @map("display_name") @db.VarChar(100)
+  /// Unique handle for search and profile links (/u/<username>): lowercase
+  /// letters, digits and underscores, 3–20 characters.
+  username                      String?        @unique @db.VarChar(20)
+  usernameChangedAt             DateTime?      @map("username_changed_at")
+  /// Opted in to being found in player search and followed. Streamers are
+  /// findable regardless, because their channel is public.
+  discoverable                  Boolean        @default(false)
   avatarUrl                     String?        @map("avatar_url") @db.VarChar(500)
   /// Version of the Match Rules (/match-rules) this user last accepted, and when.
   matchRulesVersion             String?        @map("match_rules_version") @db.VarChar(20)
@@ -363,6 +370,8 @@ model User {
   kickAccount          KickAccount?
   following            StreamerFollow[]         @relation("FollowsMade")
   avatar               UserAvatar?
+  blocksMade           UserBlock[]              @relation("BlocksMade")
+  blocksReceived       UserBlock[]              @relation("BlocksReceived")
   followers            StreamerFollow[]         @relation("FollowsReceived")
   lobbyEntries         LobbyEntry[]             @relation("LobbyUser")
   lobbyInvitesSent     LobbyEntry[]             @relation("LobbyInviter")
@@ -1477,7 +1486,7 @@ model GameEvent {
 // FOLLOWS
 // =============================================================================
 
-/// A user following a streamer (a user with a linked Kick channel). Private:
+/// A user following another user: a streamer, or a player who allows it.
 /// only the follower sees who they follow; a streamer sees only a count.
 model StreamerFollow {
   id         String   @id @default(uuid()) @db.Uuid
@@ -1503,4 +1512,20 @@ model UserAvatar {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_avatars")
+}
+
+/// One user blocking another. Hides each from the other in search and on
+/// profiles, removes follows between them and stops challenges either way.
+model UserBlock {
+  id        String   @id @default(uuid()) @db.Uuid
+  blockerId String   @map("blocker_id") @db.Uuid
+  blockedId String   @map("blocked_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  blocker User @relation("BlocksMade", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId], map: "uq_user_block")
+  @@index([blockedId], map: "idx_user_block_blocked")
+  @@map("user_blocks")
 }

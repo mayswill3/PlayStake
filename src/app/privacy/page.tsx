@@ -34,7 +34,7 @@ const toc = [
 const dataRows = [
   [
     <strong key="account">Account and profile</strong>,
-    'Email address, display name, password hash, avatar, verification status, role, account settings, last-login time, and the streamers you follow (private to you; a streamer sees only how many people follow them).',
+    'Email address, display name, username, password hash, avatar, verification status, role, account settings, last-login time, the people you follow (private to you; a streamer sees only how many people follow them) and the people you block. If you turn on "Let other players find and follow me", or you stream on Kick, other signed-in players can find your display name, username and photo, and see when you joined and whether you are live. Your bets, results and balance are never shown to other players.',
   ],
   [
     <strong key="linked">Linked services</strong>,

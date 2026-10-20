@@ -55,6 +55,7 @@ export async function GET(
         profilePicture: true,
         isLive: true,
         declaredGame: { select: { id: true, slug: true, name: true } },
+        user: { select: { username: true } },
       },
     });
     if (!account || !account.channelSlug) {
@@ -167,6 +168,7 @@ export async function GET(
     return NextResponse.json({
       streamer: {
         channelSlug: account.channelSlug,
+        username: account.user.username,
         displayName: account.displayName,
         profilePicture: account.profilePicture,
         isLive,

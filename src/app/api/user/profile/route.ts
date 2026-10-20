@@ -1,10 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../../lib/db/client";
 import { validateSession } from "../../../../lib/auth/session";
-import { getSessionToken, sanitizeUser } from "../../../../lib/auth/helpers";
+import { getSessionToken } from "../../../../lib/auth/helpers";
 import { updateProfileSchema } from "../../../../lib/validation/schemas";
 import { validateBody } from "../../../../lib/middleware/validate";
 import { errorResponse, AuthenticationError } from "../../../../lib/errors/index";
+import { changeUsername, generateUsername, nextUsernameChangeAt } from "../../../../lib/users/username";
+import type { User } from "../../../../../generated/prisma/client";
+
+function profileJson(user: User) {
+  return {
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    username: user.username,
+    usernameChangeAvailableAt: nextUsernameChangeAt(user.usernameChangedAt)?.toISOString() ?? null,
+    discoverable: user.discoverable,
+    avatarUrl: user.avatarUrl,
+    role: user.role,
+    kycStatus: user.kycStatus,
+    emailVerified: user.emailVerified,
+    emailNotifications: user.emailNotifications,
+    marketingConsent: user.marketingConsent,
+    followLiveEmails: user.followLiveEmails,
+    twoFactorEnabled: user.twoFactorEnabled,
+    createdAt: user.createdAt.toISOString(),
+  };
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,22 +36,16 @@ export async function GET(request: NextRequest) {
     const session = await validateSession(token);
     if (!session) throw new AuthenticationError("Invalid or expired session");
 
-    const user = session.user;
+    let user = session.user as User;
+    // Accounts made before usernames existed, or by a path that skips them.
+    if (!user.username) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { username: await generateUsername(prisma, user.displayName) },
+      });
+    }
 
-    return NextResponse.json({
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
-      role: user.role,
-      kycStatus: user.kycStatus,
-      emailVerified: user.emailVerified,
-      emailNotifications: user.emailNotifications,
-      marketingConsent: user.marketingConsent,
-      followLiveEmails: user.followLiveEmails,
-      twoFactorEnabled: user.twoFactorEnabled,
-      createdAt: user.createdAt.toISOString(),
-    });
+    return NextResponse.json(profileJson(user));
   } catch (error) {
     return errorResponse(error);
   }
@@ -58,30 +74,15 @@ export async function PATCH(request: NextRequest) {
       updateData.marketingConsentAt = input.marketingConsent ? new Date() : null;
     }
     if (input.followLiveEmails !== undefined) updateData.followLiveEmails = input.followLiveEmails;
+    if (input.discoverable !== undefined) updateData.discoverable = input.discoverable;
+    if (input.username !== undefined) await changeUsername(session.userId, input.username);
 
-    if (Object.keys(updateData).length === 0) {
-      return NextResponse.json(sanitizeUser(session.user as any));
-    }
+    const updated =
+      Object.keys(updateData).length === 0
+        ? await prisma.user.findUniqueOrThrow({ where: { id: session.userId } })
+        : await prisma.user.update({ where: { id: session.userId }, data: updateData });
 
-    const updated = await prisma.user.update({
-      where: { id: session.userId },
-      data: updateData,
-    });
-
-    return NextResponse.json({
-      id: updated.id,
-      email: updated.email,
-      displayName: updated.displayName,
-      avatarUrl: updated.avatarUrl,
-      role: updated.role,
-      kycStatus: updated.kycStatus,
-      emailVerified: updated.emailVerified,
-      emailNotifications: updated.emailNotifications,
-      marketingConsent: updated.marketingConsent,
-      followLiveEmails: updated.followLiveEmails,
-      twoFactorEnabled: updated.twoFactorEnabled,
-      createdAt: updated.createdAt.toISOString(),
-    });
+    return NextResponse.json(profileJson(updated));
   } catch (error) {
     return errorResponse(error);
   }

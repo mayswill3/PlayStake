@@ -4,6 +4,7 @@ import { exchangeCodeForTokens, getGoogleUserInfo } from "../../../../../lib/aut
 import { createSession } from "../../../../../lib/auth/session";
 import { getOrCreatePlayerAccount } from "../../../../../lib/ledger/accounts";
 import { getClientIp } from "../../../../../lib/middleware/rate-limit";
+import { generateUsername } from "@/lib/users/username";
 
 export async function GET(request: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -85,6 +86,7 @@ export async function GET(request: NextRequest) {
               email: googleUser.email,
               passwordHash: null,
               displayName: googleUser.name,
+              username: await generateUsername(tx, googleUser.name),
               avatarUrl: googleUser.picture ?? null,
               emailVerified: true,
             },

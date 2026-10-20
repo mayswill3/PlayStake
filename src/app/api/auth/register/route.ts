@@ -10,6 +10,7 @@ import { issueAuthToken } from "../../../../lib/auth/tokens";
 import { sendVerificationEmail } from "../../../../lib/email/resend";
 import { MINIMUM_AGE_YEARS, ageInYears } from "../../../../lib/kyc/constants";
 import { registerRateLimit } from "../../../../lib/middleware/rate-limit";
+import { generateUsername } from "../../../../lib/users/username";
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,6 +52,7 @@ export async function POST(request: NextRequest) {
           email: input.email,
           passwordHash,
           displayName: input.displayName,
+          username: await generateUsername(tx, input.displayName),
           dateOfBirth,
           ageConfirmedAt: new Date(),
           marketingConsent: input.marketingConsent,

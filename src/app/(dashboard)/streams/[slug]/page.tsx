@@ -57,6 +57,8 @@ interface Streamer {
   title: string | null;
   declaredGame: { gameType: string; name: string } | null;
   isSelf: boolean;
+  /** PlayStake username, for the profile link. */
+  username: string | null;
   /** Whether the viewer follows this streamer (always false on your own page). */
   isFollowing: boolean;
   /** Only on your own page: follows are private. */
@@ -259,6 +261,14 @@ export default function StreamDetailPage() {
                   </span>
                 )}
               </div>
+              {streamer.username && (
+                <Link
+                  href={`/u/${streamer.username}`}
+                  className="text-xs text-ps-muted hover:text-ps-text hover:underline dark:text-ps-muted-on-dark dark:hover:text-ps-text-on-dark"
+                >
+                  @{streamer.username}
+                </Link>
+              )}
               {streamer.title && (
                 <p className="text-sm text-ps-muted dark:text-ps-muted-on-dark truncate">{streamer.title}</p>
               )}

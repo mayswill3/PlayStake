@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { PSButton } from '@/components/ui/playstake/PSButton';
 import { AvatarUpload } from '@/components/settings/AvatarUpload';
+import { PlayerDirectorySettings } from '@/components/settings/PlayerDirectorySettings';
 
 interface UserProfile {
   id: string;
@@ -295,6 +296,8 @@ export default function SettingsPage() {
             </div>
           </form>
         </Card>
+
+        <PlayerDirectorySettings />
 
         <Card id="security" className="scroll-mt-24 bg-ps-paper-elevated dark:bg-ps-ink-2 border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">
           <CardTitle>Security</CardTitle>

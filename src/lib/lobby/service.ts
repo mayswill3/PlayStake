@@ -44,6 +44,7 @@ import {
 import { LobbyChannels, publishLobbyEvent } from "./pubsub";
 import { emailRefereesMatchAvailable } from "@/lib/email/events";
 import { createRefereeAssignmentForBet } from "@/lib/referees/service";
+import { isBlockedEitherWay } from "../users/directory";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -237,6 +238,11 @@ export async function listLobbyPlayers(input: ListPlayersInput): Promise<ListPla
       status: LobbyStatus.WAITING,
       expiresAt: { gt: new Date() },
       userId: { not: input.callerUserId },
+      // Hide anyone the caller has blocked, or who has blocked them.
+      user: {
+        blocksMade: { none: { blockedId: input.callerUserId } },
+        blocksReceived: { none: { blockerId: input.callerUserId } },
+      },
     },
     orderBy: { createdAt: "asc" },
     include: {
@@ -322,6 +328,9 @@ export async function inviteLobbyPlayer(input: InviteInput): Promise<InviteResul
     }
     if (target.expiresAt <= now) {
       throw new ConflictError("Target entry has expired");
+    }
+    if (await isBlockedEitherWay(input.callerUserId, target.userId)) {
+      throw new AuthorizationError("You can't challenge this player");
     }
 
     const updatedTarget = await tx.lobbyEntry.update({
@@ -438,6 +447,9 @@ export async function createChallenge(
   }
   if (account.userId === input.challengerUserId) {
     throw new ValidationError("You can't challenge yourself");
+  }
+  if (await isBlockedEitherWay(input.challengerUserId, account.userId)) {
+    throw new AuthorizationError("You can't challenge this player");
   }
   if (!account.isLive) {
     throw new ConflictError("This streamer is not live right now");

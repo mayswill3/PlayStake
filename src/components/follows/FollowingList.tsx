@@ -22,7 +22,7 @@ function Avatar({ streamer }: { streamer: FollowedStreamer }) {
 }
 
 /**
- * The streamers you follow, live first. `compact` is a single scrolling row
+ * The people you follow, live streamers first. `compact` is a single scrolling row
  * for the dashboard; the full version is a grid for Watch Live.
  */
 export function FollowingList({ compact = false }: { compact?: boolean }) {
@@ -35,14 +35,15 @@ export function FollowingList({ compact = false }: { compact?: boolean }) {
       <div className="flex items-start gap-3 rounded-[var(--ps-radius-lg)] border border-dashed border-[var(--ps-border-light)] p-4 text-sm text-ps-muted dark:border-[var(--ps-border-dark)] dark:text-ps-muted-on-dark">
         <BellPlus className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
         <p>
-          Follow streamers from their page to see them here and hear when they go live.
+          Follow streamers and players from their page, or find them with the search at the top,
+          to see them here and hear when streamers go live.
         </p>
       </div>
     );
   }
 
   return (
-    <section aria-label="Streamers you follow">
+    <section aria-label="People you follow">
       <div className="mb-3 flex items-baseline justify-between">
         <h2 className="font-display text-lg font-bold text-ps-text dark:text-ps-text-on-dark">Following</h2>
         <span className="text-xs text-ps-muted dark:text-ps-muted-on-dark">
@@ -53,7 +54,7 @@ export function FollowingList({ compact = false }: { compact?: boolean }) {
         {following.map((streamer) => (
           <li key={streamer.streamerId} className={compact ? 'w-56 shrink-0' : ''}>
             <Link
-              href={`/streams/${streamer.channelSlug}`}
+              href={streamer.channelSlug ? `/streams/${streamer.channelSlug}` : `/u/${streamer.username}`}
               className="flex items-center gap-3 rounded-[var(--ps-radius-md)] border border-[var(--ps-border-light)] bg-ps-paper-elevated p-3 transition-colors hover:border-[var(--ps-lime)] dark:border-[var(--ps-border-dark)] dark:bg-ps-ink-2"
             >
               <Avatar streamer={streamer} />
@@ -67,8 +68,10 @@ export function FollowingList({ compact = false }: { compact?: boolean }) {
                       <span className="font-semibold text-rose-500">Live</span>
                       {streamer.gameName ? ` · ${streamer.gameName}` : ''}
                     </>
-                  ) : (
+                  ) : streamer.channelSlug ? (
                     'Offline'
+                  ) : (
+                    `@${streamer.username}`
                   )}
                 </span>
               </span>

@@ -8,6 +8,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { formatCents } from '@/lib/utils/format';
 import { ChevronDown } from 'lucide-react';
+import { PlayerSearch } from '@/components/users/PlayerSearch';
 
 interface HeaderProps {
   user: {
@@ -58,11 +59,16 @@ export function Header({ user, balance }: HeaderProps) {
           </Link>
         </div>
 
-        {/* Desktop spacer */}
-        <div className="hidden lg:block" />
+        {/* Player search (desktop); phones get an icon in the right section */}
+        <div className="hidden sm:block">{user && <PlayerSearch />}</div>
 
         {/* Right section */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {user && (
+            <div className="sm:hidden">
+              <PlayerSearch />
+            </div>
+          )}
           {/* Theme toggle */}
           <ThemeToggle />
 

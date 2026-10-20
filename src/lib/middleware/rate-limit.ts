@@ -273,3 +273,13 @@ export const avatarUploadRateLimit = rateLimit({
   maxRequests: 10,
   keyFn: (req) => `avatar-upload:${getClientIp(req)}`,
 });
+
+/**
+ * Player search: 60 lookups a minute per IP. Enough for search-as-you-type,
+ * low enough that the player list can't be scraped.
+ */
+export const userSearchRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  maxRequests: 60,
+  keyFn: (req) => `user-search:${getClientIp(req)}`,
+});

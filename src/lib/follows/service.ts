@@ -1,7 +1,8 @@
 // =============================================================================
-// PlayStake — Following streamers
+// PlayStake — Following
 // =============================================================================
-// Users follow streamers (users with a linked Kick channel). Follows are
+// Users follow streamers (users with a linked Kick channel) and players who
+// let others find and follow them (see ../users/directory). Follows are
 // private: a follower sees who they follow, a streamer sees only how many
 // follow them. Following drives three things:
 //
@@ -20,11 +21,14 @@ import { prisma } from "../db/client";
 import { queueEmailSafely } from "../email/outbox";
 import { NotFoundError, ValidationError } from "../errors";
 import { getActiveBreak } from "../responsible-play/service";
+import { isBlockedEitherWay } from "../users/directory";
 
 export interface FollowedStreamer {
   streamerId: string;
+  username: string | null;
   displayName: string;
-  channelSlug: string;
+  /** Null for a player who doesn't stream. */
+  channelSlug: string | null;
   profilePicture: string | null;
   isLive: boolean;
   gameName: string | null;
@@ -42,6 +46,7 @@ async function streamerBySlug(slug: string) {
 export async function followStreamer(followerId: string, slug: string): Promise<void> {
   const streamerId = await streamerBySlug(slug);
   if (streamerId === followerId) throw new ValidationError("You can't follow yourself");
+  if (await isBlockedEitherWay(followerId, streamerId)) throw new NotFoundError("Streamer not found");
   await prisma.streamerFollow.createMany({
     data: [{ followerId, streamerId }],
     skipDuplicates: true,
@@ -65,7 +70,11 @@ export function followerCount(streamerId: string): Promise<number> {
   return prisma.streamerFollow.count({ where: { streamerId } });
 }
 
-/** Everyone this user follows, live streamers first. */
+/**
+ * Everyone this user follows, live streamers first. A player who has since
+ * stopped letting others find them, or whose account is no longer active,
+ * drops out of the list.
+ */
 export async function listFollowing(followerId: string): Promise<FollowedStreamer[]> {
   const rows = await prisma.streamerFollow.findMany({
     where: { followerId },
@@ -73,7 +82,11 @@ export async function listFollowing(followerId: string): Promise<FollowedStreame
       streamer: {
         select: {
           id: true,
+          username: true,
           displayName: true,
+          avatarUrl: true,
+          discoverable: true,
+          accountStatus: true,
           kickAccount: {
             select: {
               channelSlug: true,
@@ -87,14 +100,19 @@ export async function listFollowing(followerId: string): Promise<FollowedStreame
     },
   });
   return rows
-    .filter((row) => row.streamer.kickAccount?.channelSlug)
-    .map((row) => ({
-      streamerId: row.streamer.id,
-      displayName: row.streamer.displayName,
-      channelSlug: row.streamer.kickAccount!.channelSlug!,
-      profilePicture: row.streamer.kickAccount!.profilePicture,
-      isLive: row.streamer.kickAccount!.isLive,
-      gameName: row.streamer.kickAccount!.declaredGame?.name ?? null,
+    .filter(({ streamer }) =>
+      streamer.kickAccount?.channelSlug
+        ? true
+        : streamer.discoverable && streamer.accountStatus === AccountStatus.ACTIVE && streamer.username,
+    )
+    .map(({ streamer }) => ({
+      streamerId: streamer.id,
+      username: streamer.username,
+      displayName: streamer.displayName,
+      channelSlug: streamer.kickAccount?.channelSlug ?? null,
+      profilePicture: streamer.kickAccount?.profilePicture ?? streamer.avatarUrl,
+      isLive: Boolean(streamer.kickAccount?.isLive),
+      gameName: streamer.kickAccount?.declaredGame?.name ?? null,
     }))
     .sort((a, b) => Number(b.isLive) - Number(a.isLive) || a.displayName.localeCompare(b.displayName));
 }

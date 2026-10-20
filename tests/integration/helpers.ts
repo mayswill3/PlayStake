@@ -607,6 +607,37 @@ async function resolveRouteHandler(
     return { handler: mod.GET };
   }
 
+  if (path === "/api/user/profile") {
+    const mod = await import("../../src/app/api/user/profile/route.js");
+    return { handler: method === "PATCH" ? mod.PATCH : mod.GET };
+  }
+
+  // Finding players
+  if (path.startsWith("/api/users/search")) {
+    const mod = await import("../../src/app/api/users/search/route.js");
+    return { handler: mod.GET };
+  }
+  if (path === "/api/users/blocked") {
+    const mod = await import("../../src/app/api/users/blocked/route.js");
+    return { handler: mod.GET };
+  }
+  const userActionMatch = path.match(/^\/api\/users\/([^/?]+)\/(follow|block)$/);
+  if (userActionMatch) {
+    const mod =
+      userActionMatch[2] === "follow"
+        ? await import("../../src/app/api/users/[username]/follow/route.js")
+        : await import("../../src/app/api/users/[username]/block/route.js");
+    return {
+      handler: method === "DELETE" ? mod.DELETE : mod.POST,
+      params: { username: decodeURIComponent(userActionMatch[1]) },
+    };
+  }
+  const userProfileMatch = path.match(/^\/api\/users\/([^/?]+)$/);
+  if (userProfileMatch) {
+    const mod = await import("../../src/app/api/users/[username]/route.js");
+    return { handler: mod.GET, params: { username: decodeURIComponent(userProfileMatch[1]) } };
+  }
+
   // Profile photos
   if (path === "/api/user/avatar") {
     const mod = await import("../../src/app/api/user/avatar/route.js");

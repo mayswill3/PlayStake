@@ -5,8 +5,10 @@ import { useLiveStatusEvents } from '@/hooks/useLiveStatusEvents';
 
 export interface FollowedStreamer {
   streamerId: string;
+  username: string | null;
   displayName: string;
-  channelSlug: string;
+  /** Null for a player who doesn't stream. */
+  channelSlug: string | null;
   profilePicture: string | null;
   isLive: boolean;
   gameName: string | null;

@@ -14,6 +14,10 @@ interface UserDetail {
   id: string;
   email: string;
   displayName: string;
+  username: string | null;
+  discoverable: boolean;
+  blocksMade: number;
+  blocksReceived: number;
   avatarUrl: string | null;
   role: string;
   kycStatus: string;
@@ -204,6 +208,9 @@ export default function AdminUserDetailPage() {
         <CardTitle>Account Details</CardTitle>
         <div className="mt-4 space-y-3">
           <DetailRow label="User ID" value={user.id} />
+          <DetailRow label="Username" value={user.username ? `@${user.username}` : 'None'} />
+          <DetailRow label="Findable in player search" value={user.discoverable ? 'Yes' : 'No'} />
+          <DetailRow label="Blocks" value={`Has blocked ${user.blocksMade} · Blocked by ${user.blocksReceived}`} />
           <DetailRow label="Joined" value={formatDate(user.createdAt)} />
           <DetailRow label="Last Login" value={user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'} />
           <DetailRow label="Date of birth (declared)" value={user.dateOfBirth ? user.dateOfBirth.slice(0, 10) : 'Not given'} />

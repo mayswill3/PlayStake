@@ -97,6 +97,12 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         ],
       },
       {
+        id: 'find-players',
+        q: 'Can I find and follow other players?',
+        a: "Yes. Use Find players at the top of the page to search by name or @username. Streamers can always be found. Other players only appear if they've turned on \"Let other players find and follow me\" in Settings, and no one appears while they're on a break or self-excluded. Profiles show a name, username, photo and join date, never bets, results or balances. Follows are private, and you can block anyone from their profile: they won't be able to find you or challenge you.",
+        links: [{ href: '/settings#players', label: 'Finding and following settings' }],
+      },
+      {
         id: 'referees',
         q: 'What is a referee, and can I become one?',
         a: "Referees are approved people who officiate stream matches. They must verify their identity, can't officiate a match they're playing in, and every decision they make is recorded. Referees earn 10% of the platform fee on each match they officiate. You can apply from the Referee Hub.",
