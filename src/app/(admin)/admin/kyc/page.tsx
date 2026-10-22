@@ -36,6 +36,68 @@ interface SubmissionDetail extends SubmissionRow {
   reviewNotes: string | null;
   reviewedBy: { id: string; displayName: string; email: string } | null;
   documents: Array<{ id: string; kind: string; mimeType: string; byteSize: number }>;
+  provider: 'MANUAL' | 'DIDIT';
+  providerSessionId: string | null;
+  providerStatus: string | null;
+  providerSummary: DiditSummary | null;
+}
+
+/** What Didit found, as stored on the submission (no images). */
+interface DiditSummary {
+  document: { type: string | null; issuingState: string | null; expires: string | null; status: string } | null;
+  liveness: Array<{ status: string; score: number | null; ageEstimate: number | null }>;
+  faceMatch: Array<{ status: string; score: number | null }>;
+  proofOfAddress: { status: string; type: string | null; issued: string | null; address: string | null } | null;
+  aml: Array<{ status: string; hits: number; score: number | null }>;
+  reasons: string[];
+}
+
+function DiditPanel({ detail }: { detail: SubmissionDetail }) {
+  const summary = detail.providerSummary;
+  const rows: Array<[string, string]> = summary
+    ? [
+        ['Didit result', detail.providerStatus ?? '—'],
+        [
+          'Document',
+          summary.document
+            ? `${summary.document.type ?? '—'} · ${summary.document.issuingState ?? '—'} · ${summary.document.status}${summary.document.expires ? ` · expires ${summary.document.expires.slice(0, 10)}` : ''}`
+            : '—',
+        ],
+        ['Liveness', summary.liveness.map((c) => `${c.status}${c.score !== null ? ` (${Math.round(c.score)})` : ''}${c.ageEstimate !== null ? `, looks ~${Math.round(c.ageEstimate)}` : ''}`).join('; ') || '—'],
+        ['Face match', summary.faceMatch.map((m) => `${m.status}${m.score !== null ? ` (${Math.round(m.score)}%)` : ''}`).join('; ') || '—'],
+        [
+          'Proof of address',
+          summary.proofOfAddress
+            ? `${summary.proofOfAddress.status} · ${summary.proofOfAddress.type ?? '—'}${summary.proofOfAddress.issued ? ` · issued ${summary.proofOfAddress.issued.slice(0, 10)}` : ''}`
+            : '—',
+        ],
+        ['AML screening', summary.aml.map((a) => `${a.status} · ${a.hits} hit${a.hits === 1 ? '' : 's'}`).join('; ') || '—'],
+      ]
+    : [['Didit result', detail.providerStatus ?? '—']];
+  return (
+    <div className="mt-6 rounded-lg border border-[var(--border)] p-4">
+      <p className="text-sm font-semibold text-fg">Checked by Didit</p>
+      <p className="mt-1 text-xs text-fg-secondary">
+        Documents, selfie and AML hits are held by Didit. Open session {detail.providerSessionId} in the Didit
+        console (Sessions) to see them before deciding.
+      </p>
+      <dl className="mt-3 grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-[10rem_1fr]">
+        {rows.map(([label, value]) => (
+          <div key={label} className="contents">
+            <dt className="text-fg-secondary">{label}</dt>
+            <dd className="text-fg">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      {summary && summary.reasons.length > 0 && (
+        <ul className="mt-3 list-disc pl-5 text-sm text-fg">
+          {summary.reasons.map((reason) => (
+            <li key={reason}>{reason}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 interface ListResponse {
@@ -296,6 +358,8 @@ export default function AdminKycPage() {
               </dd>
             </div>
           </dl>
+
+          {selected.provider === 'DIDIT' && <DiditPanel detail={selected} />}
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {selected.documents.map((document) => {

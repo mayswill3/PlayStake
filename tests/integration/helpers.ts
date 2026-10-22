@@ -607,6 +607,20 @@ async function resolveRouteHandler(
     return { handler: mod.GET };
   }
 
+  // Didit identity checks
+  if (path === "/api/kyc/didit") {
+    const mod = await import("../../src/app/api/kyc/didit/route.js");
+    return { handler: mod.POST };
+  }
+  if (path === "/api/kyc/didit/sync") {
+    const mod = await import("../../src/app/api/kyc/didit/sync/route.js");
+    return { handler: mod.POST };
+  }
+  if (path === "/api/webhooks/didit") {
+    const mod = await import("../../src/app/api/webhooks/didit/route.js");
+    return { handler: mod.POST };
+  }
+
   if (path === "/api/user/profile") {
     const mod = await import("../../src/app/api/user/profile/route.js");
     return { handler: method === "PATCH" ? mod.PATCH : mod.GET };

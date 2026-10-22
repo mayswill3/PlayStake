@@ -35,10 +35,17 @@ Nobody under 18 may gamble with PlayStake. Remote operators must verify a custom
 Before any deposit, free-to-play access or gambling, the customer must complete identity verification. The steps are:
 
 1. **Email address verified first.**
-2. **Details and documents submitted.** The customer enters their legal name, date of birth and address, and uploads:
-   - a passport (photo page), a driving licence (front and back) or a national ID card (front and back)
-   - a selfie
-3. **Automatic checks when submitted:**
+2. **Electronic verification with Didit (the normal route).** The customer completes Didit's hosted check, which:
+   - reads and checks the identity document for authenticity and tampering (passport, driving licence, national ID card or residence permit, from any country; expired documents are declined)
+   - runs a passive liveness check and matches the selfie to the document photo
+   - declines anyone the document shows is under 18
+   - checks a proof of address issued in the last 3 months (utility bill, bank statement or government letter)
+   - screens the customer against sanctions, PEP and adverse-media lists, and re-screens them as the lists change
+
+   PlayStake re-reads Didit's decision from Didit's API with its own key (never trusting a webhook body alone) and records it as a submission. Didit approves automatically only when every step passes; anything borderline (a possible AML match, a borderline face match, an unclear proof of address) comes back "In Review" for staff.
+3. **Upload for manual review (fallback).** If Didit is unavailable, or the customer can't use it, they enter their legal name, date of birth and address, and upload a passport (photo page), a driving licence or national ID card (front and back), and a selfie.
+
+   Automatic checks on an upload:
    - the date of birth entered must show the customer is 18 or over
    - files must be genuine images or PDFs (checked from the file contents, not the file name) and no larger than 8 MB
    - documents are encrypted as soon as they are received (AES-256-GCM)
@@ -46,7 +53,10 @@ Before any deposit, free-to-play access or gambling, the customer must complete 
    - the document date of birth is compared with the one given at sign-up; a mismatch opens a case and blocks approval
    - the same name and date of birth, or the same document image, on another account opens a case and blocks approval (one person, one account)
    - GAMSTOP is checked (Policy 04)
-5. **Manual review by trained staff**, at `/admin/kyc`. The reviewer checks that:
+5. **Decision.**
+   - **Didit approved:** the customer is verified automatically only if the document date of birth shows they are 18 or over **and** no identity case is open. Otherwise the submission waits for staff.
+   - **Didit declined:** rejected with Didit's reasons; the customer can try again.
+   - **Didit in review, or any upload:** staff review it at `/admin/kyc`, seeing Didit's results (document, liveness, face match, proof of address, AML) and opening the session in Didit's console for the images. For an upload, the reviewer checks that:
    - the document is genuine and unaltered, and not expired
    - the name and date of birth on the document match what the customer entered
    - the selfie matches the document photo
@@ -54,7 +64,7 @@ Before any deposit, free-to-play access or gambling, the customer must complete 
 6. **Age re-checked at approval.** When the reviewer approves, the platform re-checks age from the document's date of birth. It refuses approval if the customer is under 18, and tells the reviewer to close the account as under-18 instead.
 7. **Decision.** Every approval and rejection is recorded, with the reviewer and their notes, in the admin audit log. A rejection must include a reason, which the customer is told.
 
-**Outstanding (Master Manual §8 item 4).** An electronic identity and age verification provider will be added to supplement manual review. It will provide document-authenticity checks, liveness detection and a credit-reference or electoral-roll age check. Until then, every submission is reviewed manually and nothing is approved automatically.
+**Electronic verification provider.** Didit (didit.me) was appointed in October 2026 (Master Manual §8 item 4). Before real-money launch: sign Didit's data processing agreement, confirm where data is processed and stored, complete the DPIA (Document 17), and consider adding Didit's UK electoral-roll or credit-reference check so the address can be verified without a document.
 
 ### 3.3 Where verification is enforced
 

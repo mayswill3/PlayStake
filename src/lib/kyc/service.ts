@@ -8,6 +8,7 @@ import { prisma, withTransaction } from "../db/client";
 import { ConflictError, NotFoundError, ValidationError } from "../errors";
 import { decryptDocument, encryptDocument, hashDocument } from "./crypto";
 import { recordAdminAction } from "../admin/audit";
+import { isDiditEnabled } from "./didit";
 import { hasBlockingIdentityCase, screenKycSubmission } from "../compliance/identity-checks";
 import {
   MAX_DOCUMENT_BYTES,
@@ -191,6 +192,8 @@ export async function getKycState(userId: string) {
   return {
     kycStatus: user.kycStatus,
     emailVerified: user.emailVerified,
+    /** Online verification through Didit is set up; otherwise upload only. */
+    diditEnabled: isDiditEnabled(),
     // A rejected packet can be replaced; a pending or approved one cannot.
     canSubmit:
       user.emailVerified &&

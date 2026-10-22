@@ -178,12 +178,15 @@ export default function PrivacyPage() {
           rows={dataRows}
         />
         <p>
-          If identity or age verification is enabled, a specialist provider may
-          collect identity-document, address, date-of-birth, liveness or
-          source-of-funds information. PlayStake may receive the verification
-          outcome and limited supporting details rather than the complete
-          document. The collection screen will identify the provider and
-          information required.
+          We verify identity and age with Didit, a specialist verification
+          provider. Didit collects your identity document, a selfie (used to
+          check you are present and match the document photo, which is
+          biometric data), a proof of address, and checks you against
+          sanctions, politically-exposed-person and adverse-media lists. We
+          receive the outcome and the details we need to keep: your name, date
+          of birth, address, document type and the reasons for any decision.
+          The images stay with Didit. If you upload documents to us instead,
+          we store them encrypted and only trained staff can view them.
         </p>
       </LegalSection>
 
@@ -270,6 +273,10 @@ export default function PrivacyPage() {
           <li>
             <strong>Stripe and financial providers</strong> for payments,
             refunds, withdrawals, fraud prevention and compliance;
+          </li>
+          <li>
+            <strong>Didit</strong>, our identity verification provider, for
+            identity, age, address and financial-crime checks;
           </li>
           <li>
             <strong>Google and Kick</strong> when you choose to connect those

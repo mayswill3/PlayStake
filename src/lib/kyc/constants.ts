@@ -38,6 +38,12 @@ export const REQUIRED_DOCUMENT_KINDS: Record<
     KycDocumentKind.DOCUMENT_BACK,
     KycDocumentKind.SELFIE,
   ],
+  // Only from Didit; the upload form doesn't offer it.
+  [KycDocumentType.RESIDENCE_PERMIT]: [
+    KycDocumentKind.DOCUMENT_FRONT,
+    KycDocumentKind.DOCUMENT_BACK,
+    KycDocumentKind.SELFIE,
+  ],
 };
 
 /**

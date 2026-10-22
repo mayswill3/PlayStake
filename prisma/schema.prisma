@@ -42,6 +42,14 @@ enum KycDocumentType {
   PASSPORT
   DRIVERS_LICENCE
   NATIONAL_ID
+  RESIDENCE_PERMIT
+}
+
+/// Who checked the documents: uploaded for staff review, or Didit's hosted
+/// verification (document, liveness, face match, proof of address, AML).
+enum KycProvider {
+  MANUAL
+  DIDIT
 }
 
 enum KycDocumentKind {
@@ -1071,24 +1079,31 @@ model StreamChallenge {
 /// The denormalised `User.kycStatus` mirrors the newest submission's outcome
 /// and is what the money paths gate on.
 model KycSubmission {
-  id             String              @id @default(uuid()) @db.Uuid
-  userId         String              @map("user_id") @db.Uuid
-  status         KycSubmissionStatus @default(PENDING)
-  legalFirstName String              @map("legal_first_name") @db.VarChar(100)
-  legalLastName  String              @map("legal_last_name") @db.VarChar(100)
-  dateOfBirth    DateTime            @map("date_of_birth") @db.Date
-  addressLine1   String              @map("address_line1") @db.VarChar(200)
-  addressLine2   String?             @map("address_line2") @db.VarChar(200)
-  city           String              @db.VarChar(100)
-  region         String?             @db.VarChar(100)
-  postalCode     String              @map("postal_code") @db.VarChar(20)
-  country        String              @db.VarChar(2)
-  documentType   KycDocumentType     @map("document_type")
-  reviewedById   String?             @map("reviewed_by_id") @db.Uuid
-  reviewedAt     DateTime?           @map("reviewed_at")
-  reviewNotes    String?             @map("review_notes") @db.VarChar(1000)
-  createdAt      DateTime            @default(now()) @map("created_at")
-  updatedAt      DateTime            @updatedAt @map("updated_at")
+  id                String              @id @default(uuid()) @db.Uuid
+  userId            String              @map("user_id") @db.Uuid
+  status            KycSubmissionStatus @default(PENDING)
+  legalFirstName    String              @map("legal_first_name") @db.VarChar(100)
+  legalLastName     String              @map("legal_last_name") @db.VarChar(100)
+  dateOfBirth       DateTime            @map("date_of_birth") @db.Date
+  addressLine1      String              @map("address_line1") @db.VarChar(200)
+  addressLine2      String?             @map("address_line2") @db.VarChar(200)
+  city              String              @db.VarChar(100)
+  region            String?             @db.VarChar(100)
+  postalCode        String              @map("postal_code") @db.VarChar(20)
+  country           String              @db.VarChar(2)
+  documentType      KycDocumentType     @map("document_type")
+  provider          KycProvider         @default(MANUAL)
+  /// Didit session behind this submission. Documents stay with Didit.
+  providerSessionId String?             @unique @map("provider_session_id") @db.VarChar(64)
+  /// Didit's own status: Approved, Declined or In Review.
+  providerStatus    String?             @map("provider_status") @db.VarChar(30)
+  /// What Didit found, without images: document, scores, AML hits, warnings.
+  providerSummary   Json?               @map("provider_summary")
+  reviewedById      String?             @map("reviewed_by_id") @db.Uuid
+  reviewedAt        DateTime?           @map("reviewed_at")
+  reviewNotes       String?             @map("review_notes") @db.VarChar(1000)
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
 
   user       User          @relation("KycSubject", fields: [userId], references: [id], onDelete: Restrict)
   reviewedBy User?         @relation("KycReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)

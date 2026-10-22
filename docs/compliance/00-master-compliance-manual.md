@@ -99,6 +99,7 @@ The application's technical documents:
 | 14 | [Incident Response and Key Event Reporting](14-incident-response-and-key-events.md) | Triage, response, customer and ICO notification, LCCP 15.2.1 key events within 5 working days |
 | 15 | [UAE (GCGRA) Certification Plan](15-uae-gcgra-certification-plan.md) | Route to GCGRA licensing and GLI-19 / GLI-33 certification with GLI or BMM (planning draft, unverified) |
 | 16 | [Payment Services and Payment Methods](16-payment-services-and-methods.md) | Payments only through PSR-authorised providers; approved methods fixed in code; provider register and onboarding checklist |
+| 17 | [DPIA: Identity Verification (Didit)](17-dpia-identity-verification.md) | Biometric identity checks: lawful basis, necessity, risks and controls, questions for Didit (first draft) |
 
 Each policy states its owner, its review date, the LCCP provisions it addresses, and exactly how the platform carries it out.
 
@@ -196,7 +197,7 @@ These must be done before the application is submitted, or before real-money lau
 | 1 | Complete company details, key people and PML holders throughout these documents | Application | [COMPLIANCE LEAD NAME] |
 | 2 | Sign the ADR agreement with IBAS and confirm the referral terms. The site and emails state 6 months from the final response, which must be confirmed. | Application | Complaints Manager |
 | 3 | Join GAMSTOP, then set `GAMSTOP_API_KEY` and `GAMSTOP_REQUIRED=true` in production. Also confirm field requirements: collecting a mobile number may improve match rates. | Launch | Head of Compliance |
-| 4 | Appoint an electronic identity and age verification provider to supplement manual document review, including liveness and document-authenticity checks | Recommended before launch | Head of Compliance |
+| 4 | ~~Appoint an electronic identity and age verification provider~~ Didit appointed and integrated (October 2026). Remaining: sign the DPA, confirm data locations, complete the DPIA (Document 17), switch from sandbox to live | Before launch | Head of Compliance |
 | 5 | Appoint a sanctions and PEP screening provider. Until then, check manually against the OFSI consolidated list at KYC approval and record the check in the review notes. | Launch | MLRO |
 | 6 | Payments: move Stripe from test to live mode (the switch to GBP was made on 20 October 2026), configure Stripe Radar rules and 3-D Secure, and match the payout account holder's name to the KYC legal name | Launch | Head of Compliance / engineering |
 | 7 | Set `EMAIL_ADMIN` and `SENTRY_DSN` in production, and confirm alerts arrive | Launch | Engineering |

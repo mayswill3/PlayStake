@@ -17,6 +17,8 @@ interface KycState {
   kycStatus: KycStatus;
   emailVerified: boolean;
   canSubmit: boolean;
+  /** Online verification through Didit is available. */
+  diditEnabled?: boolean;
   submission: null | {
     id: string;
     status: string;
@@ -81,6 +83,8 @@ export default function VerificationPage() {
   const [emailSending, setEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [documentType, setDocumentType] = useState<DocumentType>('PASSPORT');
+  const [startingDidit, setStartingDidit] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
   const load = useCallback(async () => {
@@ -95,8 +99,50 @@ export default function VerificationPage() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    // Coming back from Didit: read the result now rather than wait for the webhook.
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('verificationSessionId');
+    if (!sessionId) {
+      void load();
+      return;
+    }
+    window.history.replaceState(null, '', window.location.pathname);
+    void (async () => {
+      try {
+        const res = await fetch('/api/kyc/didit/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (data.state) setState(data.state as KycState);
+        if (data.outcome === 'approved') toast('success', "You're verified. Deposits and withdrawals are unlocked.");
+        else if (data.outcome === 'pending') toast('info', "Thanks. We're reviewing your check and will email you soon.");
+        else if (data.outcome === 'rejected') toast('error', "We couldn't verify you this time. See the reasons below and try again.");
+      } finally {
+        await load();
+      }
+    })();
+  }, [load, toast]);
+
+  async function startDidit() {
+    setStartingDidit(true);
+    try {
+      const res = await fetch('/api/kyc/didit', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) {
+        toast('error', data.error ?? 'Online verification is unavailable. You can upload your documents instead.');
+        setShowUpload(true);
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      toast('error', 'Online verification is unavailable. You can upload your documents instead.');
+      setShowUpload(true);
+    } finally {
+      setStartingDidit(false);
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -246,7 +292,40 @@ export default function VerificationPage() {
         </Card>
       )}
 
-      {state.canSubmit && (
+      {state.canSubmit && state.diditEnabled && (
+        <Card>
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[var(--ps-lime)]" />
+            <div className="min-w-0">
+              <CardTitle>Verify your identity online</CardTitle>
+              <p className="mt-1 text-sm text-fg-secondary">
+                Takes about two minutes with our verification partner, Didit. You&apos;ll need:
+              </p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-fg-secondary">
+                <li>your passport, driving licence, national ID card or residence permit</li>
+                <li>a quick selfie, to show it&apos;s really you</li>
+                <li>a bill, bank statement or council tax letter from the last 3 months showing your address</li>
+              </ul>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <PSButton loading={startingDidit} onClick={startDidit}>
+                  Start verification
+                </PSButton>
+                {!showUpload && (
+                  <button type="button" className="text-sm text-fg-secondary underline" onClick={() => setShowUpload(true)}>
+                    Upload documents instead
+                  </button>
+                )}
+              </div>
+              <p className="mt-3 text-xs text-fg-secondary">
+                Didit checks your documents and selfie for us and keeps them securely. See our{' '}
+                <Link href="/privacy" className="underline">Privacy Policy</Link>.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {state.canSubmit && (!state.diditEnabled || showUpload) && (
         <Card>
           <div className="mb-5 flex items-start gap-3">
             <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[var(--ps-lime)]" />

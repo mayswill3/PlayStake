@@ -27,7 +27,7 @@ We commit to:
 | Web service, worker service, PostgreSQL, Redis (Railway) | All customer data, the ledger and game logic |
 | Admin console and staff accounts | Privileged access |
 | Source code, CI and deployment pipeline (GitHub → Railway) | Integrity of released software |
-| Suppliers handling customer data (Stripe, Resend, Sentry, GAMSTOP, IBAS, eIDV) | Through supplier management (5.19–5.23) |
+| Suppliers handling customer data (Stripe, Resend, Sentry, GAMSTOP, IBAS, Didit) | Through supplier management (5.19–5.23) |
 | Staff devices used for administration | Endpoint controls (8.1) |
 
 ## 3. Key technical safeguards

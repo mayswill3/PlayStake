@@ -23,6 +23,7 @@ combined PDF of the whole set (`pdf/PlayStake-Compliance-Manual-complete.pdf`).
 | 14 | [Incident Response and Key Event Reporting](14-incident-response-and-key-events.md) |
 | 15 | [UAE (GCGRA) Certification Plan](15-uae-gcgra-certification-plan.md) — planning draft |
 | 16 | [Payment Services and Payment Methods](16-payment-services-and-methods.md) |
+| 17 | [DPIA: Identity Verification (Didit)](17-dpia-identity-verification.md) — first draft |
 
 **Before submission:**
 - Replace every `[PLACEHOLDER]`.
