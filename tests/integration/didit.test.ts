@@ -115,7 +115,7 @@ describe("starting a Didit check", () => {
     const res = await callApi("POST", "/api/kyc/didit", { sessionToken: user.token, headers: { "x-forwarded-for": user.ip } });
     expect(res.status).toBe(200);
     expect(res.body.url).toBe("https://verify.didit.me/session/test");
-    expect(createdSessions.at(-1)).toMatchObject({
+    expect(createdSessions[createdSessions.length - 1]).toMatchObject({
       vendor_data: user.id,
       expected_details: { date_of_birth: "1990-05-20" },
     });
