@@ -190,6 +190,14 @@ describe("Didit webhook", () => {
   });
 });
 
+describe("Didit console test events", () => {
+  it("acknowledges a signed event for a session Didit doesn't know", async () => {
+    const res = await webhook(randomUUID());
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ handled: false, reason: "unknown session" });
+  });
+});
+
 describe("returning from Didit", () => {
   it("applies the player's own result, and ignores someone else's session", async () => {
     const user = await player();

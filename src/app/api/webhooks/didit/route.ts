@@ -1,5 +1,5 @@
 import { applyDiditDecision } from "@/lib/kyc/didit-decisions";
-import { getDiditDecision, verifyDiditWebhook } from "@/lib/kyc/didit";
+import { DiditApiError, getDiditDecision, verifyDiditWebhook } from "@/lib/kyc/didit";
 
 const SESSION_EVENTS = new Set(["status.updated", "data.updated"]);
 
@@ -31,6 +31,11 @@ export async function POST(request: Request) {
     const outcome = await applyDiditDecision(await getDiditDecision(event.session_id));
     return Response.json({ received: true, outcome });
   } catch (error) {
+    // Didit's console test events name sessions that don't exist. Nothing to
+    // do, and retrying won't help.
+    if (error instanceof DiditApiError && error.status === 404) {
+      return Response.json({ received: true, handled: false, reason: "unknown session" });
+    }
     // A 5xx makes Didit retry (twice, over about five minutes).
     console.error("[KYC] Didit webhook could not be processed:", error);
     return Response.json({ error: "Processing failed" }, { status: 500 });
