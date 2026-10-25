@@ -47,7 +47,7 @@ interface NavItem {
 // What players use every visit.
 const playNav: NavItem[] = [
   { label: 'Home', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Play', href: '/play', icon: Gamepad2 },
+  { label: 'Games', href: '/games', icon: Gamepad2 },
   { label: 'Watch Live', href: '/watch', icon: Tv },
   { label: 'Challenges', href: '/challenges', icon: Bell },
   { label: 'My Bets', href: '/bets', icon: Swords },
@@ -242,6 +242,5 @@ function NavLink({
 function isActive(pathname: string, href: string): boolean {
   if (href === '/dashboard') return pathname === '/dashboard';
   if (href === '/admin') return pathname === '/admin';
-  if (href === '/play') return pathname.startsWith('/play');
   return pathname.startsWith(href);
 }

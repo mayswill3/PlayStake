@@ -14,8 +14,8 @@ import {
   Gamepad2,
   ChevronRight,
   ArrowRight,
-  Grid3x3,
-  Target,
+  Trophy,
+  Swords,
   ShieldCheck,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -88,8 +88,8 @@ function mapBetStatusToPill(status: string): PillStatus {
 }
 
 const QUICK_PLAY_GAMES = [
-  { name: 'Tic-Tac-Toe', description: 'Classic strategy game', href: '/play/tictactoe', icon: Grid3x3 },
-  { name: 'Darts 301', description: 'Aim and throw to zero', href: '/play/darts', icon: Target },
+  { name: 'EA SPORTS FC 27', description: 'Head-to-head friendly, refereed', href: '/games/ea-sports-fc-27', icon: Trophy },
+  { name: 'Tekken 8', description: 'First-to-3 set, refereed', href: '/games/tekken-8', icon: Swords },
 ];
 
 function timeOfDay(): string {
@@ -326,14 +326,14 @@ function PlayNowSection() {
             Ready to play?
           </h2>
           <p className="text-sm text-ps-muted dark:text-ps-muted-on-dark mt-0.5">
-            Choose a game and challenge an opponent
+            Go live on Kick with your game, or challenge a live player
           </p>
         </div>
         <Link
-          href="/play"
+          href="/watch"
           className="hidden sm:inline-flex items-center gap-1 text-sm text-ps-lime font-semibold hover:gap-2 transition-all"
         >
-          Browse all games
+          Find a live player
           <ChevronRight size={14} />
         </Link>
       </div>
@@ -346,10 +346,10 @@ function PlayNowSection() {
       </div>
 
       <Link
-        href="/play"
+        href="/watch"
         className="sm:hidden mt-4 inline-flex items-center gap-1 text-sm text-ps-lime font-semibold"
       >
-        Browse all games
+        Find a live player
         <ChevronRight size={14} />
       </Link>
     </section>
@@ -455,11 +455,11 @@ function RecentBetsSection({ bets }: { bets: RecentBet[] }) {
           </div>
           <p className="text-sm font-medium text-ps-text dark:text-ps-text-on-dark">No bets yet</p>
           <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark mt-1">
-            Play a game and place your first bet
+            Challenge a live player to your first match
           </p>
-          <Link href="/play" className="inline-block mt-4">
+          <Link href="/watch" className="inline-block mt-4">
             <PSButton variant="primary" icon={<Gamepad2 size={15} />}>
-              Find a game
+              Find a live player
             </PSButton>
           </Link>
         </div>

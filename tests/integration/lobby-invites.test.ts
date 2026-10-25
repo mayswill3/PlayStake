@@ -32,7 +32,7 @@ import {
 import { dollarsToCents } from "../../src/lib/utils/money.js";
 
 const prisma = getTestPrisma();
-const DECLARED_SLUG = "darts-301";
+const DECLARED_SLUG = "ea-sports-fc-27";
 let gameId: string;
 const createdUserIds: string[] = [];
 
@@ -62,7 +62,7 @@ beforeAll(async () => {
     update: {},
     create: {
       developerProfileId: profile.id,
-      name: "Darts 301",
+      name: "EA SPORTS FC 27",
       slug: DECLARED_SLUG,
       isActive: true,
       platformFeePercent: 0,
@@ -97,6 +97,17 @@ afterEach(async () => {
   await prisma.lobbyEntry.deleteMany({ where: { userId: { in: createdUserIds } } });
   await prisma.session.deleteMany({ where: { userId: { in: createdUserIds } } });
   await prisma.kickAccount.deleteMany({ where: { userId: { in: createdUserIds } } });
+  await prisma.$executeRawUnsafe(
+    'ALTER TABLE "referee_audit_events" DISABLE TRIGGER "referee_audit_events_immutable"',
+  );
+  try {
+    await prisma.refereeAuditEvent.deleteMany({ where: { assignment: { betId: { in: betIds } } } });
+  } finally {
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "referee_audit_events" ENABLE TRIGGER "referee_audit_events_immutable"',
+    );
+  }
+  await prisma.refereeAssignment.deleteMany({ where: { betId: { in: betIds } } });
   await prisma.bet.deleteMany({ where: { id: { in: betIds } } });
   await purgeComplianceRecords(prisma, createdUserIds);
   await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
@@ -163,6 +174,27 @@ async function makeLiveStreamer(slug: string): Promise<{ id: string }> {
   return { id: streamer.id };
 }
 
+/** A challenger live on Kick with the same game: every match is refereed. */
+async function makeLiveViewer(displayName: string): Promise<{ id: string }> {
+  const viewer = await makeUser(displayName);
+  const uid = crypto.randomUUID();
+  await prisma.kickAccount.create({
+    data: {
+      userId: viewer.id,
+      kickUserId: `kick-${uid}`,
+      channelSlug: `viewer-${uid.slice(0, 8)}`,
+      displayName,
+      accessTokenEnc: "enc",
+      refreshTokenEnc: "enc",
+      tokenExpiresAt: new Date(Date.now() + 3_600_000),
+      scope: "user:read",
+      isLive: true,
+      declaredGameId: gameId,
+    },
+  });
+  return viewer;
+}
+
 async function sessionFor(userId: string): Promise<string> {
   const { sessionToken } = await createTestSession(prisma as never, userId);
   return sessionToken;
@@ -172,7 +204,7 @@ describe("Challenge inbox", () => {
   it("surfaces an incoming challenge to the challenged Player B via GET /api/lobby/invites", async () => {
     const slug = `inbox-${crypto.randomUUID().substring(0, 8)}`;
     const streamer = await makeLiveStreamer(slug);
-    const viewer = await makeUser("Viewer");
+    const viewer = await makeLiveViewer("Viewer");
     await fundUser(viewer.id, 50);
 
     const challenge = await createChallenge({
@@ -189,8 +221,8 @@ describe("Challenge inbox", () => {
     expect(res.body.invites).toHaveLength(1);
     const invite = res.body.invites[0];
     expect(invite.lobbyEntryId).toBe(challenge.streamerLobbyEntryId);
-    expect(invite.gameType).toBe("darts");
-    expect(invite.gameName).toBe("Darts 301");
+    expect(invite.gameType).toBe("ea-sports-fc-27");
+    expect(invite.gameName).toBe("EA SPORTS FC 27");
     expect(invite.stakeAmount).toBe(500);
     expect(invite.from.userId).toBe(viewer.id);
     expect(invite.from.displayName).toBe("Viewer");
@@ -204,7 +236,7 @@ describe("Challenge inbox", () => {
       challengeId: challenge.challengeId,
       status: "PENDING",
       stakeAmount: 500,
-      gameType: "darts",
+      gameType: "ea-sports-fc-27",
     });
   });
 
@@ -212,7 +244,7 @@ describe("Challenge inbox", () => {
     const STAKE = 500;
     const slug = `accept-${crypto.randomUUID().substring(0, 8)}`;
     const streamer = await makeLiveStreamer(slug);
-    const viewer = await makeUser("Viewer");
+    const viewer = await makeLiveViewer("Viewer");
     await fundUser(viewer.id, 50);
     await fundUser(streamer.id, 50);
 
@@ -243,7 +275,7 @@ describe("Challenge inbox", () => {
   it("won't lock the challenger's stake if they have self-excluded since challenging", async () => {
     const slug = `excluded-${crypto.randomUUID().substring(0, 8)}`;
     const streamer = await makeLiveStreamer(slug);
-    const viewer = await makeUser("Viewer");
+    const viewer = await makeLiveViewer("Viewer");
     await fundUser(viewer.id, 50);
     await fundUser(streamer.id, 50);
 
@@ -279,7 +311,7 @@ describe("Challenge inbox", () => {
   it("caps how often the same two players can play each other in an hour", async () => {
     const slug = `pair-${crypto.randomUUID().substring(0, 8)}`;
     const streamer = await makeLiveStreamer(slug);
-    const viewer = await makeUser("Viewer");
+    const viewer = await makeLiveViewer("Viewer");
     await fundUser(viewer.id, 50);
     await fundUser(streamer.id, 50);
     for (let i = 0; i < 5; i++) {
@@ -314,7 +346,7 @@ describe("Challenge inbox", () => {
   it("a declined challenge no longer surfaces in the inbox", async () => {
     const slug = `decline-${crypto.randomUUID().substring(0, 8)}`;
     const streamer = await makeLiveStreamer(slug);
-    const viewer = await makeUser("Viewer");
+    const viewer = await makeLiveViewer("Viewer");
     await fundUser(viewer.id, 50);
 
     const challenge = await createChallenge({
@@ -354,7 +386,7 @@ describe("Challenge inbox", () => {
   it("lets the challenger cancel a pending outgoing challenge", async () => {
     const slug = `cancel-${crypto.randomUUID().substring(0, 8)}`;
     const streamer = await makeLiveStreamer(slug);
-    const viewer = await makeUser("Viewer");
+    const viewer = await makeLiveViewer("Viewer");
     await fundUser(viewer.id, 50);
 
     const challenge = await createChallenge({
@@ -386,8 +418,8 @@ describe("Challenge inbox", () => {
   it("accepting one challenge cancels the streamer's other pending invitations", async () => {
     const slug = `single-accept-${crypto.randomUUID().substring(0, 8)}`;
     const streamer = await makeLiveStreamer(slug);
-    const firstViewer = await makeUser("First viewer");
-    const secondViewer = await makeUser("Second viewer");
+    const firstViewer = await makeLiveViewer("First viewer");
+    const secondViewer = await makeLiveViewer("Second viewer");
     await fundUser(streamer.id, 50);
     await fundUser(firstViewer.id, 50);
     await fundUser(secondViewer.id, 50);
@@ -435,7 +467,7 @@ describe("Challenge inbox", () => {
   it("expires a targeted challenge and both of its lobby entries as one unit", async () => {
     const slug = `expire-${crypto.randomUUID().substring(0, 8)}`;
     await makeLiveStreamer(slug);
-    const viewer = await makeUser("Viewer");
+    const viewer = await makeLiveViewer("Viewer");
     await fundUser(viewer.id, 50);
 
     const challenge = await createChallenge({

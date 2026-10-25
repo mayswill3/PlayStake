@@ -82,14 +82,9 @@ describe("Eligibility gate", () => {
     await expect(assertCanDeposit(player.id, 1000)).rejects.toMatchObject({ code: "KYC_REQUIRED" });
   });
 
-  it("refuses free play on /play until age and identity are verified", async () => {
+  it("refuses any stake until age and identity are verified", async () => {
     const player = await makePlayer(KycStatus.NOT_STARTED);
-    const res = await callApi("POST", "/api/demo/game", {
-      ...player.auth,
-      body: { gameType: "tictactoe" },
-    });
-    expect(res.status).toBe(403);
-    expect(res.body.code).toBe("KYC_REQUIRED");
+    await expect(assertCanWager(player.id)).rejects.toMatchObject({ code: "KYC_REQUIRED" });
   });
 
   it("refuses a suspended account", async () => {
@@ -154,11 +149,11 @@ describe("Self-exclusion", () => {
     const invitee = await makePlayer();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
     const waiting = await prisma.lobbyEntry.create({
-      data: { gameType: "darts", userId: player.id, role: LobbyRole.PLAYER_A, stakeAmount: 500, expiresAt },
+      data: { gameType: "ea-sports-fc-27", userId: player.id, role: LobbyRole.PLAYER_A, stakeAmount: 500, expiresAt },
     });
     const invited = await prisma.lobbyEntry.create({
       data: {
-        gameType: "darts",
+        gameType: "ea-sports-fc-27",
         userId: invitee.id,
         role: LobbyRole.PLAYER_B,
         stakeAmount: 500,

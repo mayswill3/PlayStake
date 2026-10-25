@@ -4,7 +4,7 @@ import { betaSignupSchema } from "../../../src/lib/validation/schemas.js";
 const validSignup = {
   name: "Test Player",
   email: "Player@Example.com ",
-  game: "Darts",
+  game: "Tekken 8",
   playerType: "Player",
   consent: true,
 };
@@ -17,11 +17,9 @@ describe("betaSignupSchema", () => {
   });
 
   it.each([
-    "Call of Duty",
-    "Grand Theft Auto V / GTA Online",
-    "EA SPORTS FC 26",
-    "Fortnite",
+    "EA SPORTS FC 27",
     "Tekken 8",
+    "Other",
   ])("accepts the popular game option %s", (game) => {
     expect(betaSignupSchema.safeParse({ ...validSignup, game }).success).toBe(true);
   });

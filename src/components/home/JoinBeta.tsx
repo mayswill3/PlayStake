@@ -12,12 +12,12 @@ const BEFORE_YOU_JOIN: FaqItem[] = [
   {
     id: 'beta-available',
     q: 'What is available in the beta?',
-    a: "Live stream challenges on Kick, decided by independent referees, and PlayStake's own games, Tic-Tac-Toe and Darts 301. Everything runs with test money, so you can try it all without risk.",
+    a: "Live stream challenges on Kick in EA SPORTS FC 27 and Tekken 8, decided by independent referees. Everything runs with test money, so you can try it all without risk.",
   },
   {
     id: 'beta-games',
-    q: 'Which games are planned?',
-    a: 'Stream matches in EA SPORTS FC 26, Fortnite, Call of Duty, Rocket League, NBA 2K26, Apex Legends, Minecraft and GTA Online, with fighting games such as Tekken 8 to follow. Tell us your game when you sign up and we will use it to decide what comes next.',
+    q: 'Which games can I play?',
+    a: 'EA SPORTS FC 27 and Tekken 8 for now, with more to follow. Tell us your game when you sign up and we will use it to decide what comes next.',
   },
   {
     id: 'beta-real-money',

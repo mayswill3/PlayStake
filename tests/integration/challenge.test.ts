@@ -37,7 +37,7 @@ const prisma = getTestPrisma();
 
 // A shared demo developer + game whose slug maps to a challengeable lobby game.
 let gameId: string;
-const DECLARED_SLUG = "darts-301";
+const DECLARED_SLUG = "ea-sports-fc-27";
 
 // Track everything created per-test for teardown.
 const createdUserIds: string[] = [];
@@ -68,7 +68,7 @@ beforeAll(async () => {
     update: {},
     create: {
       developerProfileId: profile.id,
-      name: "Darts 301",
+      name: "EA SPORTS FC 27",
       slug: DECLARED_SLUG,
       isActive: true,
       platformFeePercent: 0,
@@ -113,6 +113,20 @@ afterEach(async () => {
   await prisma.lobbyEntry.deleteMany({ where: { userId: { in: createdUserIds } } });
   await prisma.session.deleteMany({ where: { userId: { in: createdUserIds } } });
   await prisma.kickAccount.deleteMany({ where: { userId: { in: createdUserIds } } });
+  // Every match is refereed, so each bet carries a referee assignment and its
+  // audit events. The audit table is append-only; lift that only to remove
+  // this suite's rows (same pattern as referee-lifecycle.test.ts).
+  await prisma.$executeRawUnsafe(
+    'ALTER TABLE "referee_audit_events" DISABLE TRIGGER "referee_audit_events_immutable"',
+  );
+  try {
+    await prisma.refereeAuditEvent.deleteMany({ where: { assignment: { betId: { in: betIds } } } });
+  } finally {
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "referee_audit_events" ENABLE TRIGGER "referee_audit_events_immutable"',
+    );
+  }
+  await prisma.refereeAssignment.deleteMany({ where: { betId: { in: betIds } } });
   await prisma.bet.deleteMany({ where: { id: { in: betIds } } });
   await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
   createdUserIds.length = 0;
@@ -190,6 +204,30 @@ async function makeStreamer(opts: {
   return { id: streamer.id, channelSlug: opts.channelSlug };
 }
 
+/**
+ * A challenger who is live on Kick with the same declared game. Every game is
+ * refereed, and a referee can only watch a match both players are streaming.
+ */
+async function makeViewer(displayName = "Viewer"): Promise<{ id: string }> {
+  const viewer = await makeUser(displayName);
+  const uid = crypto.randomUUID();
+  await prisma.kickAccount.create({
+    data: {
+      userId: viewer.id,
+      kickUserId: `kick-${uid}`,
+      channelSlug: `viewer-${uid.slice(0, 8)}`,
+      displayName,
+      accessTokenEnc: "enc",
+      refreshTokenEnc: "enc",
+      tokenExpiresAt: new Date(Date.now() + 3_600_000),
+      scope: "user:read",
+      isLive: true,
+      declaredGameId: gameId,
+    },
+  });
+  return viewer;
+}
+
 async function sessionFor(userId: string): Promise<string> {
   const { sessionToken } = await createTestSession(prisma as never, userId);
   return sessionToken;
@@ -203,7 +241,7 @@ describe("POST /api/streamers/[slug]/challenge", () => {
   it("creates a PENDING invite with zero ledger movement when streamer is live + declared", async () => {
     const slug = `live-${crypto.randomUUID().substring(0, 8)}`;
     const streamer = await makeStreamer({ channelSlug: slug, isLive: true, declared: true });
-    const viewer = await makeUser("Viewer");
+    const viewer = await makeViewer();
     await fundUser(viewer.id, 50); // enough to pass the soft balance check
     const token = await sessionFor(viewer.id);
 
@@ -214,7 +252,7 @@ describe("POST /api/streamers/[slug]/challenge", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("SENT");
-    expect(res.body.gameType).toBe("darts");
+    expect(res.body.gameType).toBe("ea-sports-fc-27");
     expect(res.body.stakeAmount).toBe(500);
 
     // Streamer got an INVITED Player B entry; viewer holds a WAITING Player A entry.
@@ -243,7 +281,7 @@ describe("POST /api/streamers/[slug]/challenge", () => {
   it("rejects a broke challenger BEFORE publishing (soft balance check)", async () => {
     const slug = `broke-${crypto.randomUUID().substring(0, 8)}`;
     const streamer = await makeStreamer({ channelSlug: slug, isLive: true, declared: true });
-    const viewer = await makeUser("Viewer"); // no funds at all
+    const viewer = await makeViewer(); // no funds at all
     const token = await sessionFor(viewer.id);
 
     const res = await callApi("POST", `/api/streamers/${slug}/challenge`, {
@@ -278,7 +316,7 @@ describe("POST /api/streamers/[slug]/challenge", () => {
   it("rejects when the streamer is offline", async () => {
     const slug = `offline-${crypto.randomUUID().substring(0, 8)}`;
     await makeStreamer({ channelSlug: slug, isLive: false, declared: true });
-    const viewer = await makeUser("Viewer");
+    const viewer = await makeViewer();
     await fundUser(viewer.id, 50);
     const token = await sessionFor(viewer.id);
 
@@ -293,7 +331,7 @@ describe("POST /api/streamers/[slug]/challenge", () => {
   it("rejects when the streamer has no declared game", async () => {
     const slug = `nogame-${crypto.randomUUID().substring(0, 8)}`;
     await makeStreamer({ channelSlug: slug, isLive: true, declared: false });
-    const viewer = await makeUser("Viewer");
+    const viewer = await makeViewer();
     await fundUser(viewer.id, 50);
     const token = await sessionFor(viewer.id);
 
@@ -308,7 +346,7 @@ describe("POST /api/streamers/[slug]/challenge", () => {
   it("rejects an out-of-range stake", async () => {
     const slug = `range-${crypto.randomUUID().substring(0, 8)}`;
     await makeStreamer({ channelSlug: slug, isLive: true, declared: true });
-    const viewer = await makeUser("Viewer");
+    const viewer = await makeViewer();
     await fundUser(viewer.id, 50);
     const token = await sessionFor(viewer.id);
 
@@ -330,7 +368,7 @@ describe("challenge -> respondToInvite(ACCEPT)", () => {
     const STAKE_CENTS = 500; // $5.00 each
     const slug = `handoff-${crypto.randomUUID().substring(0, 8)}`;
     const streamer = await makeStreamer({ channelSlug: slug, isLive: true, declared: true });
-    const viewer = await makeUser("Viewer");
+    const viewer = await makeViewer();
     await fundUser(viewer.id, 50);
     await fundUser(streamer.id, 50);
 
@@ -376,7 +414,7 @@ describe("challenge -> respondToInvite(ACCEPT)", () => {
 describe("Match Rules acceptance", () => {
   /** A player who has never accepted the Match Rules. */
   async function newcomer(displayName: string) {
-    const user = await makeUser(displayName);
+    const user = await makeViewer(displayName);
     await prisma.user.update({ where: { id: user.id }, data: { matchRulesVersion: null } });
     return user;
   }
@@ -409,7 +447,7 @@ describe("Match Rules acceptance", () => {
     const slug = `rules-acc-${crypto.randomUUID().substring(0, 8)}`;
     const streamer = await makeStreamer({ channelSlug: slug, isLive: true, declared: true });
     await prisma.user.update({ where: { id: streamer.id }, data: { matchRulesVersion: null } });
-    const viewer = await makeUser("Viewer");
+    const viewer = await makeViewer();
     await fundUser(viewer.id, 50);
     await fundUser(streamer.id, 50);
     const challenge = await createChallenge({

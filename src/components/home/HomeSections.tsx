@@ -20,16 +20,18 @@ const sectionTitle = 'font-display text-3xl font-extrabold tracking-tight sm:tex
 
 const GAMES = [
   {
-    name: 'EA SPORTS FC 26',
+    name: 'EA SPORTS FC 27',
+    href: '/games/ea-sports-fc-27',
     image: '/home/photos/game-football.webp',
     alt: 'A floodlit football stadium at night',
     status: 'In beta',
   },
   {
     name: 'Tekken 8',
+    href: '/games/tekken-8',
     image: '/home/photos/game-fighting.webp',
     alt: 'A torch-lit fighting arena beneath snowy mountains',
-    status: 'Coming soon',
+    status: 'In beta',
   },
 ];
 
@@ -39,16 +41,18 @@ export function FindYourGame() {
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-end justify-between gap-4">
           <h2 className={sectionTitle}>Find your game</h2>
-          <Link href="/faq#what-can-i-play" className="inline-flex items-center gap-1 text-sm font-semibold hover:underline">
-            All games <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          <Link href="/games" className="inline-flex items-center gap-1 text-sm font-semibold hover:underline">
+            How each game works <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
         {/* A swipeable row on phones, a grid from tablet up. */}
         <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0">
           {GAMES.map((game) => (
-            <div
+            <Link
               key={game.name}
-              className="relative flex aspect-[16/8] w-[85%] shrink-0 snap-start items-end overflow-hidden rounded-[var(--ps-radius-lg)] p-5 text-white shadow-md sm:w-auto sm:p-6"
+              href={game.href}
+              aria-label={`How ${game.name} matches work`}
+              className="relative flex aspect-[16/8] w-[85%] shrink-0 snap-start items-end overflow-hidden rounded-[var(--ps-radius-lg)] p-5 text-white shadow-md transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ps-lime)] sm:w-auto sm:p-6"
             >
               <Image src={game.image} alt={game.alt} fill sizes="(min-width: 640px) 50vw, 85vw" className="object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" aria-hidden="true" />
@@ -58,7 +62,7 @@ export function FindYourGame() {
                   {game.status}
                 </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
         <p className={`mt-4 text-xs ${muted}`}>

@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { NotFoundError, ValidationError, errorResponse } from "@/lib/errors/index";
-import { isLobbyGameType, LOBBY_GAME_META } from "@/lib/lobby/games";
-import { STREAM_GAME_CATALOGUE } from "@/lib/games/catalogue";
+import { STREAM_GAME_CATALOGUE, isStreamGameType } from "@/lib/games/catalogue";
 
 /**
- * GET /api/lobby/fee?gameType=darts
+ * GET /api/lobby/fee?gameType=ea-sports-fc-27
  *
  * The platform fee taken from the pot for this game, so the stake screens can
  * show what a win (or a draw) pays before anyone commits. Public: it is the
@@ -16,10 +15,8 @@ export async function GET(request: NextRequest) {
     const gameType = request.nextUrl.searchParams.get("gameType");
     if (!gameType) throw new ValidationError("gameType is required");
 
-    const slug = isLobbyGameType(gameType)
-      ? LOBBY_GAME_META[gameType].slug
-      : (STREAM_GAME_CATALOGUE as Record<string, { slug: string }>)[gameType]?.slug;
-    if (!slug) throw new NotFoundError("Unknown game");
+    if (!isStreamGameType(gameType)) throw new NotFoundError("Unknown game");
+    const slug = STREAM_GAME_CATALOGUE[gameType].slug;
 
     const game = await prisma.game.findUnique({
       where: { slug },

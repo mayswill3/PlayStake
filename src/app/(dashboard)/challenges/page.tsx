@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Clock3, Gamepad2, Swords } from 'lucide-react';
+import { Clock3, Swords } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
@@ -28,14 +28,12 @@ const OUTGOING_STATUS_LABEL: Record<string, string> = {
 export default function ChallengesPage() {
   const {
     invites,
-    matches,
     outgoing,
     loading,
     busyId,
     busyOutgoingId,
     respond,
     cancelOutgoing,
-    resumeMatch,
   } = useChallenges();
 
   return (
@@ -78,42 +76,6 @@ export default function ChallengesPage() {
             )}
           </div>
         </Card>
-
-        {matches.length > 0 && (
-          <Card>
-            <CardTitle>Matches ready</CardTitle>
-            <CardDescription>
-              Accepted challenges stay here until you enter or finish the match.
-            </CardDescription>
-            <div className="mt-4 space-y-3">
-              {matches.map((match) => {
-                const opponent =
-                  match.myRole === 'A' ? match.playerBName : match.playerAName;
-                return (
-                  <div
-                    key={match.betId}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--ps-radius-md)] border border-brand-400/30 bg-brand-400/5 p-4"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-400/15 text-brand-400">
-                        <Gamepad2 size={18} />
-                      </span>
-                      <div>
-                        <p className="font-display text-sm font-semibold text-fg">
-                          {match.gameName} with {opponent}
-                        </p>
-                        <p className="text-xs text-fg-secondary">
-                          {formatCents(match.stakeAmount)} stake locked
-                        </p>
-                      </div>
-                    </div>
-                    <Button onClick={() => resumeMatch(match)}>Resume match</Button>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-        )}
 
         <Card>
           <CardTitle>Sent challenges</CardTitle>

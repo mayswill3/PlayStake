@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Wallet, Swords, Gamepad2, Settings, Bell } from 'lucide-react';
+import { LayoutDashboard, Wallet, Swords, Tv, Settings, Bell } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { usePendingChallengeCount } from '@/components/lobby/ChallengesProvider';
 
@@ -17,7 +17,7 @@ const items: NavItem[] = [
   { label: 'Wallet', href: '/wallet', icon: Wallet },
   { label: 'My Bets', href: '/bets', icon: Swords },
   { label: 'Challenges', href: '/challenges', icon: Bell },
-  { label: 'Play', href: '/play', icon: Gamepad2 },
+  { label: 'Watch', href: '/watch', icon: Tv },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 

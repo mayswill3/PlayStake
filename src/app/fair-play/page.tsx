@@ -31,48 +31,57 @@ export default function FairPlayPage() {
       eyebrow="Help"
       title="Fair Play"
       summary="You play against other people, not against us. This page explains how every result is decided, what we charge, what happens if a match is cut short, and what we do to stop anyone cheating."
-      lastUpdated="30 September 2026"
+      lastUpdated="25 October 2026"
       toc={toc}
     >
       <LegalSection id="results" number="01" title="How results are decided">
         <p>
-          Every game on <Link href="/play">/play</Link> runs on PlayStake&apos;s servers, not in
-          your browser. Your device sends what you did (a move, or where you aimed a dart). Our
-          server applies the rules, makes any random draw, and decides the
-          result. Neither player, and no one at PlayStake, can choose or change a result.
+          Every match is played between two people, both streaming their own screen on Kick, and
+          decided by an independent, approved human referee who watches both streams. Neither
+          player, and no one at PlayStake, can enter or change a result.
         </p>
         <ul>
           <li>
-            <strong>Random draws</strong> (the scatter on a dart) come from a cryptographically
-            secure random number generator. Nothing you or your
-            opponent does can predict or influence them.
+            <strong>Independent referees.</strong> A referee can never officiate a match they are
+            playing in, and is never offered a match with anyone they follow, who follows them, or
+            with whom there is a block.
           </li>
           <li>
-            <strong>Everything is recorded.</strong> Each move, each random draw and each result
-            is written to a permanent match record that can&apos;t be edited. If you question a
-            result, we check it against that record.
+            <strong>Decided from the streams.</strong> The referee records the result shown on both
+            streams, with written notes on what decided it. If they can&apos;t tell, they record a
+            draw.
+          </li>
+          <li>
+            <strong>Time to dispute.</strong> Either player can dispute the result within 15
+            minutes. Nothing is paid out until that time has passed.
+          </li>
+          <li>
+            <strong>Everything is recorded.</strong> Every referee action is written to a permanent
+            match record that can&apos;t be edited. If you question a result, we review it with both
+            streams and match chat.
           </li>
         </ul>
         <p>
-          Live stream matches are decided differently: an independent human referee watches both
-          streams, and the result can be disputed before any money moves. See{' '}
-          <Link href="/terms">our terms</Link> and the <Link href="/match-rules">Match Rules</Link>.
+          The full rules are in the <Link href="/match-rules">Match Rules</Link> and{' '}
+          <Link href="/terms">our terms</Link>.
         </p>
       </LegalSection>
 
       <LegalSection id="rules" number="02" title="Game rules">
-        <p>The full rules are shown on each game&apos;s page before you join. In short:</p>
+        <p>
+          Players agree their settings on stream before the referee starts the match. If they
+          don&apos;t, the standard settings on each game&apos;s page apply:
+        </p>
         <LegalTable
           headers={['Game', 'How you win', 'Draws']}
           rows={[
-            ['Tic-Tac-Toe', 'Three in a row. X (the player who set the stake) moves first.', 'A full board with no line is a draw.'],
-            ['Darts 301', 'Start on 301, three rounds of three darts each. Reach exactly zero to win at once; otherwise the lower score after three rounds wins. Going below zero is a bust and the turn’s score is cancelled.', 'Equal scores after three rounds are a draw.'],
+            ['EA SPORTS FC 27', 'Win the online friendly (6-minute halves by default) on the final score shown on both streams.', 'A draw at full time stays a draw, unless extra time and penalties were agreed on stream first.'],
+            ['Tekken 8', 'Be first to win 3 games (each best of 3 rounds) in a private player match.', "A set always has a winner; it's only a draw if the referee can't tell what happened."],
           ]}
         />
         <p>
-          In darts you choose where to aim and how long to steady the throw. Steadier throws, aimed
-          nearer the centre, scatter less, but every dart lands with some random scatter, so skill
-          improves your chances without guaranteeing a score.
+          See <Link href="/games/ea-sports-fc-27">how FC 27 matches work</Link> and{' '}
+          <Link href="/games/tekken-8">how Tekken 8 sets work</Link>.
         </p>
       </LegalSection>
 
@@ -91,23 +100,22 @@ export default function FairPlayPage() {
 
       <LegalSection id="interrupted" number="04" title="Interrupted and abandoned matches">
         <p>
-          The state of every match is saved on our servers after each move. If your connection
-          drops or you close the tab, open the match again from the same link, or from your bets,
-          and carry on from where you left off.
+          If your stream or game drops, reconnect as quickly as you can and say what happened on
+          your stream. The referee decides what is fair from what both streams show: carry on,
+          replay the affected part, or award the match.
         </p>
         <LegalTable
           headers={['What happened', 'What we do']}
           rows={[
-            ['Nobody started the match within 10 minutes of it being agreed', 'The match is void. Both stakes are returned in full.'],
-            ['The match started, then no move was made for 10 minutes', 'The player whose move it was is treated as having left and forfeits. The other player wins. This stops anyone walking away from a losing position to get their stake back.'],
-            ['The match finished but was not settled (for example, a tab closed on the last move)', 'We settle it on the recorded result.'],
-            ['Something went wrong on our side (an outage or a fault)', 'We review the match record. If it cannot fairly be completed, we void it and return both stakes in full. If a fault led to a wrong payment, we correct it.'],
+            ['No referee took the match within 10 minutes of it being agreed', 'The match is cancelled. Both stakes are returned in full.'],
+            ['A player dropped out and hasn’t returned within 10 minutes', 'The referee may award the match to the other player.'],
+            ['The match wasn’t finished within 2 hours of starting', 'The match is cancelled. Both stakes are returned in full.'],
+            ['Something went wrong on our side (an outage or a fault)', 'We review the match. If it cannot fairly be completed, we cancel it and return both stakes in full. If a fault led to a wrong payment, we correct it.'],
           ]}
         />
         <p>
-          If you think a forfeit was caused by a problem on our side rather than by you leaving,
-          contact us through the <Link href="/complaints">complaints procedure</Link> and we will
-          look at the match record.
+          If you think a decision was caused by a problem on our side, contact us through the{' '}
+          <Link href="/complaints">complaints procedure</Link> and we will review the match.
         </p>
       </LegalSection>
 
@@ -148,7 +156,7 @@ export default function FairPlayPage() {
 
       <LegalSection id="report" number="07" title="Report something">
         <p>
-          If you think an opponent cheated, or you have found a problem with a game, email{' '}
+          If you think an opponent or a referee broke the rules, or you have found a problem, email{' '}
           <a href="mailto:support@playstake.org">support@playstake.org</a> with the match link, or
           use the <Link href="/complaints">complaints procedure</Link>. Reports are confidential.
         </p>

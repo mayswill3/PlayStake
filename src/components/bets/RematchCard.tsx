@@ -71,7 +71,7 @@ export function RematchCard({ opponent }: { opponent: RematchOpponent | null }) 
             be challenged directly.
           </p>
           <Link
-            href="/play"
+            href="/watch"
             className="inline-flex items-center justify-center w-full px-4 min-h-[44px] rounded-lg text-sm font-medium border border-brand-500/30 text-brand-400 hover:border-brand-500/60 hover:text-brand-300 transition-colors"
           >
             Find a new match

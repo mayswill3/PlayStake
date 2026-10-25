@@ -1,26 +1,19 @@
-import { CircleDot, Target, Goal, Trophy, Eye } from 'lucide-react';
+import { Goal, Swords, Trophy, Eye } from 'lucide-react';
 import { EyebrowPill, GlowCard, IconTile, StatusPill } from '@/components/ui/playstake';
 
 const GAMES = [
   {
-    icon: <CircleDot size={24} strokeWidth={1.5} />,
-    name: 'Pool / 8-Ball',
+    icon: <Goal size={24} strokeWidth={1.5} />,
+    name: 'EA SPORTS FC 27',
     description:
-      'One-on-one 8-ball pool. Set your stake, match with an opponent, play live.',
+      'One-against-one online friendlies, both players streaming on Kick and an independent referee recording the score.',
     status: 'live' as const,
   },
   {
-    icon: <Target size={24} strokeWidth={1.5} />,
-    name: 'Darts',
-    description: '501 head-to-head. Real targets, real stakes, real pressure.',
-    status: 'coming-soon' as const,
-  },
-  {
-    icon: <Goal size={24} strokeWidth={1.5} />,
-    name: 'Penalty Shootout',
-    description:
-      'Take penalties against a live keeper. Best of five — the winner takes the pot, less PlayStake\'s fee.',
-    status: 'coming-soon' as const,
+    icon: <Swords size={24} strokeWidth={1.5} />,
+    name: 'Tekken 8',
+    description: 'First-to-3 sets, both players streaming on Kick and an independent referee recording the winner.',
+    status: 'live' as const,
   },
   {
     icon: <Trophy size={24} strokeWidth={1.5} />,
@@ -32,8 +25,7 @@ const GAMES = [
   {
     icon: <Eye size={24} strokeWidth={1.5} />,
     name: 'Watch-Along Rooms',
-    description:
-      "Spectate live matches, predict outcomes, stake on friends' games.",
+    description: 'Spectate live refereed matches with the community.',
     status: 'coming-soon' as const,
   },
 ] as const;
@@ -50,8 +42,8 @@ export function GameModes() {
             <span className="block ps-gradient-text">Prove Your Skill.</span>
           </h2>
           <p className="mt-3 text-ps-muted dark:text-ps-muted-on-dark max-w-lg mx-auto">
-            Pool is live now. More arenas are coming — beta players choose what ships
-            next.
+            EA SPORTS FC 27 and Tekken 8 are in the beta. More games are coming, and beta
+            players choose what ships next.
           </p>
         </div>
 

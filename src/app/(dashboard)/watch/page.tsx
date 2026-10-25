@@ -38,8 +38,8 @@ export default function WatchIndexPage() {
             <p className="mt-1 text-sm text-ps-muted dark:text-ps-muted-on-dark">
               When two streamers start a refereed match, it shows up here.
             </p>
-            <Link href="/play" className="mt-5 inline-block">
-              <PSButton variant="primary">Start your own</PSButton>
+            <Link href="/games" className="mt-5 inline-block">
+              <PSButton variant="primary">How to start your own</PSButton>
             </Link>
           </div>
         ) : (

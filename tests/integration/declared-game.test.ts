@@ -20,8 +20,8 @@ import { ConflictError, ValidationError } from "../../src/lib/errors/index.js";
 
 const prisma = getTestPrisma();
 const GAMES = [
-  { slug: "ea-sports-fc-26", name: "EA SPORTS FC 26" },
-  { slug: "call-of-duty", name: "Call of Duty" },
+  { slug: "ea-sports-fc-27", name: "EA SPORTS FC 27" },
+  { slug: "tekken-8", name: "Tekken 8" },
 ];
 const createdGameIds: string[] = [];
 let fcGameId: string;
@@ -43,7 +43,7 @@ beforeAll(async () => {
       });
       createdGameIds.push(row.id);
     }
-    if (game.slug === "ea-sports-fc-26") fcGameId = row.id;
+    if (game.slug === "ea-sports-fc-27") fcGameId = row.id;
   }
 });
 
@@ -107,26 +107,26 @@ async function startRefereedMatch(
 describe("Declared game", () => {
   it("lets a streamer pick a game and go offline again", async () => {
     const streamer = await makeStreamer("Declared Solo");
-    expect((await setDeclaredGame(streamer.id, "ea-sports-fc-26"))?.name).toBe("EA SPORTS FC 26");
+    expect((await setDeclaredGame(streamer.id, "ea-sports-fc-27"))?.name).toBe("EA SPORTS FC 27");
     expect(await setDeclaredGame(streamer.id, null)).toBeNull();
   });
 
   it("refuses going offline or switching games while a refereed match is in play", async () => {
     const a = await makeStreamer("Declared A");
     const b = await makeStreamer("Declared B");
-    await setDeclaredGame(a.id, "ea-sports-fc-26");
+    await setDeclaredGame(a.id, "ea-sports-fc-27");
     await startRefereedMatch(a.id, b.id, RefereeAssignmentStatus.READY);
 
     await expect(setDeclaredGame(a.id, null)).rejects.toBeInstanceOf(ConflictError);
-    await expect(setDeclaredGame(a.id, "call-of-duty")).rejects.toBeInstanceOf(ConflictError);
+    await expect(setDeclaredGame(a.id, "tekken-8")).rejects.toBeInstanceOf(ConflictError);
     // Re-saving the same game is a no-op, not a change.
-    expect((await setDeclaredGame(a.id, "ea-sports-fc-26"))?.name).toBe("EA SPORTS FC 26");
+    expect((await setDeclaredGame(a.id, "ea-sports-fc-27"))?.name).toBe("EA SPORTS FC 27");
   });
 
   it("allows going offline once the match is over", async () => {
     const a = await makeStreamer("Declared Done A");
     const b = await makeStreamer("Declared Done B");
-    await setDeclaredGame(a.id, "ea-sports-fc-26");
+    await setDeclaredGame(a.id, "ea-sports-fc-27");
     await startRefereedMatch(a.id, b.id, RefereeAssignmentStatus.COMPLETED, BetStatus.SETTLED);
 
     expect(await setDeclaredGame(a.id, null)).toBeNull();
@@ -137,6 +137,6 @@ describe("Declared game", () => {
     const user = await prisma.user.create({
       data: { email: `declared-nokick-${uid}@playstake-test.com`, displayName: "No Kick", emailVerified: true },
     });
-    await expect(setDeclaredGame(user.id, "ea-sports-fc-26")).rejects.toBeInstanceOf(ValidationError);
+    await expect(setDeclaredGame(user.id, "ea-sports-fc-27")).rejects.toBeInstanceOf(ValidationError);
   });
 });

@@ -110,7 +110,7 @@ export default function RefereeHubPage() {
     if (!isApproved) return;
     let es: EventSource;
     try {
-      es = new EventSource('/api/lobby/stream?gameType=darts');
+      es = new EventSource('/api/lobby/stream');
     } catch {
       return;
     }

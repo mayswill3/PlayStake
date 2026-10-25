@@ -43,8 +43,9 @@ export default function MatchRulesPage() {
           These rules apply to every live stream match on PlayStake: a challenge between two
           players on a console or PC game, streamed on Kick and decided by a referee. They sit
           alongside our <Link href="/terms">Terms</Link> and <Link href="/fair-play">Fair Play</Link>{' '}
-          policy. Matches in PlayStake&apos;s own games, such as Darts 301, are decided by our servers
-          and follow the rules shown on each game.
+          policy. Each game&apos;s standard settings are on its page:{' '}
+          <Link href="/games/ea-sports-fc-27">EA SPORTS FC 27</Link> and{' '}
+          <Link href="/games/tekken-8">Tekken 8</Link>.
         </p>
         <ul>
           <li>You must be 18 or over, with a verified identity, playing from your own account.</li>

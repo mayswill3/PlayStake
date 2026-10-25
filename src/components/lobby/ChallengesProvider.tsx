@@ -9,25 +9,11 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
+import { useRouter } from 'next/navigation';
 import { RulesConsentDialog } from '@/components/rules/RulesConsent';
 import { useToast } from '@/components/ui/Toast';
 import { type MyInvite } from './ChallengeItem';
 import { ChallengeModal } from './ChallengeModal';
-
-/** A joinable match (bet reached MATCHED, not yet played) — mirrors MyMatchDTO. */
-export interface MyMatch {
-  betId: string;
-  gameType: string;
-  gameName: string;
-  myRole: 'A' | 'B';
-  playerAId: string;
-  playerBId: string;
-  playerAName: string;
-  playerBName: string;
-  stakeAmount: number;
-}
 
 export interface MyOutgoingChallenge {
   challengeId: string;
@@ -72,14 +58,10 @@ function closedChallengeMessage(
       return null;
   }
 }
-// The lobby SSE stream requires a gameType but also subscribes the caller to
-// their per-user lobby:invite:<userId> channel regardless — so any valid game
-// type opens the invite feed. We only use messages as a nudge to re-poll.
-const SSE_GAMETYPE = 'darts';
+// SSE messages are only a nudge to re-poll /api/lobby/invites.
 
 interface ChallengesContextValue {
   invites: MyInvite[];
-  matches: MyMatch[];
   outgoing: MyOutgoingChallenge[];
   loading: boolean;
   pendingCount: number;
@@ -92,13 +74,7 @@ interface ChallengesContextValue {
     acceptMatchRules?: boolean,
   ) => Promise<void>;
   cancelOutgoing: (challengeId: string) => Promise<void>;
-  resumeMatch: (match: MyMatch) => void;
   refresh: () => Promise<void>;
-}
-
-/** Route segment for each game type: /play/<segment>. */
-function playPath(gameType: string, betId: string): string {
-  return `/play/${gameType}?bet=${betId}`;
 }
 
 const ChallengesContext = createContext<ChallengesContextValue | null>(null);
@@ -111,7 +87,7 @@ export function useChallenges(): ChallengesContextValue {
 
 /**
  * Null-safe pending count for nav badges. The shared Sidebar / bottom nav also
- * render outside the dashboard (admin layout, /play pages) where the provider
+ * render outside the dashboard (admin layout) where the provider
  * isn't mounted — there the badge is simply absent (0) rather than throwing.
  */
 export function usePendingChallengeCount(): number {
@@ -139,9 +115,7 @@ export function useOpenRefereeCount(): number {
 export function ChallengesProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const router = useRouter();
-  const pathname = usePathname();
   const [invites, setInvites] = useState<MyInvite[]>([]);
-  const [matches, setMatches] = useState<MyMatch[]>([]);
   const [outgoing, setOutgoing] = useState<MyOutgoingChallenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -159,9 +133,6 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
   const selfCancelledRef = useRef<Set<string>>(new Set());
   const initializedRef = useRef(false);
   const refreshRef = useRef<() => void>(() => {});
-  // betIds this client has already navigated into (imperatively on accept or via
-  // the ambient auto-route) — prevents double-navigation across the two paths.
-  const routedRef = useRef<Set<string>>(new Set());
 
   const refresh = useCallback(async () => {
     try {
@@ -169,10 +140,8 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
       if (!res.ok) return; // unauthenticated / transient — the poll retries
       const data = await res.json();
       const list: MyInvite[] = data.invites ?? [];
-      const matchList: MyMatch[] = data.matches ?? [];
       const outgoingList: MyOutgoingChallenge[] = data.outgoing ?? [];
       setInvites(list);
-      setMatches(matchList);
       setOutgoing(outgoingList);
       setSseEnabled(Boolean(data.sseEnabled));
       setRefereeOpenCount(Number(data.refereeOpenCount) || 0);
@@ -193,7 +162,12 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
       if (initializedRef.current) {
         for (const challenge of outgoingList) {
           if (outgoingStatusRef.current.get(challenge.challengeId) !== 'PENDING') continue;
-          if (challenge.status === 'PENDING' || challenge.status === 'ACCEPTED') continue;
+          if (challenge.status === 'PENDING') continue;
+          if (challenge.status === 'ACCEPTED') {
+            toast('success', `${challenge.streamer.displayName} accepted your ${challenge.gameName} challenge. An independent referee is joining.`);
+            if (challenge.betId) router.push(`/bets/${challenge.betId}`);
+            continue;
+          }
           if (selfCancelledRef.current.has(challenge.challengeId)) continue;
           const message = closedChallengeMessage(challenge, outgoingList);
           if (message) toast('info', message);
@@ -201,19 +175,6 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
       }
       outgoingStatusRef.current = new Map(outgoingList.map((c) => [c.challengeId, c.status]));
 
-      // Accept->play handoff: route the player into any joinable match we
-      // haven't already routed into. This is how an idle challenger gets pulled
-      // into the game once their challenge is accepted — same ambient poll that
-      // delivered the challenge. Only fires post-init so a page load doesn't
-      // yank someone mid-navigation.
-      if (initializedRef.current) {
-        const toEnter = matchList.find((m) => !routedRef.current.has(m.betId));
-        if (toEnter) {
-          routedRef.current.add(toEnter.betId);
-          toast('success', `Challenge on — joining ${toEnter.gameName}…`);
-          router.push(playPath(toEnter.gameType, toEnter.betId));
-        }
-      }
       initializedRef.current = true;
     } catch {
       /* network blip — the next poll retries */
@@ -238,7 +199,7 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
     if (!sseEnabled) return;
     let es: EventSource;
     try {
-      es = new EventSource(`/api/lobby/stream?gameType=${SSE_GAMETYPE}`);
+      es = new EventSource('/api/lobby/stream');
     } catch {
       return;
     }
@@ -272,22 +233,12 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
             toast('error', body.error || 'Could not respond to the challenge.');
           }
         } else if (action === 'ACCEPT') {
-          // Route the accepter straight into the game for this bet. The response
-          // carries { status: 'MATCHED', betId, gameType }. Mark it routed so the
-          // ambient match-poll doesn't navigate again.
+          // Every match is refereed: open the bet's page, which tracks the
+          // referee joining and the result.
           const body = await res.json().catch(() => ({}));
-          if (body?.status === 'MATCHED' && body?.betId && body?.gameType) {
-            if (body.awaitingReferee) {
-              // Not joinable until a referee starts it, so open the bet's live
-              // page (it tracks the claim and match); the ambient poll still
-              // routes into the game once it's IN_PROGRESS.
-              toast('success', 'Challenge accepted — funds locked while an independent referee joins.');
-              router.push(`/bets/${body.betId}`);
-              return;
-            }
-            routedRef.current.add(body.betId);
-            toast('success', 'Challenge accepted — starting the match…');
-            router.push(playPath(body.gameType, body.betId));
+          if (body?.status === 'MATCHED' && body?.betId) {
+            toast('success', 'Challenge accepted — funds locked while an independent referee joins.');
+            router.push(`/bets/${body.betId}`);
           } else {
             toast('success', 'Challenge accepted — your match is set!');
           }
@@ -330,20 +281,11 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
         setBusyOutgoingId(null);
       }
     },
-    [refresh, toast],
-  );
-
-  const resumeMatch = useCallback(
-    (match: MyMatch) => {
-      routedRef.current.add(match.betId);
-      router.push(playPath(match.gameType, match.betId));
-    },
-    [router],
+    [refresh, toast, router],
   );
 
   const value: ChallengesContextValue = {
     invites,
-    matches,
     outgoing,
     loading,
     pendingCount: invites.length,
@@ -352,33 +294,12 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
     busyOutgoingId,
     respond,
     cancelOutgoing,
-    resumeMatch,
     refresh,
   };
-
-  const resumableMatch = matches[0];
-  const showResume = Boolean(resumableMatch) && !pathname.startsWith('/play/');
 
   return (
     <ChallengesContext.Provider value={value}>
       {children}
-      {showResume && resumableMatch && (
-        <div className="fixed bottom-20 right-4 z-40 w-[calc(100%-2rem)] max-w-sm rounded-xl border border-brand-400/40 bg-surface-900 p-4 text-surface-100 shadow-2xl lg:bottom-6 lg:right-6">
-          <p className="font-display font-semibold">Your match is ready</p>
-          <p className="mt-1 text-sm text-surface-300">
-            {resumableMatch.gameName} against{' '}
-            {resumableMatch.myRole === 'A'
-              ? resumableMatch.playerBName
-              : resumableMatch.playerAName}
-          </p>
-          <Button
-            className="mt-3 w-full"
-            onClick={() => resumeMatch(resumableMatch)}
-          >
-            Resume match
-          </Button>
-        </div>
-      )}
       <RulesConsentDialog
         open={rulesPromptId !== null}
         kind="player"

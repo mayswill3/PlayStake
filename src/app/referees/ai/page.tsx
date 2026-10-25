@@ -30,7 +30,7 @@ const FAQS = [
   },
   {
     q: 'What games will support AI refereeing?',
-    a: 'The validator is being built first for the PlayStake-built games (Darts 301, Tic-Tac-Toe and others), where we control the full event stream. Games built on the PlayStake SDK that emit the standard event format will follow.',
+    a: 'The validator needs a complete, verifiable event stream from the game itself, so it will start with games built on the PlayStake SDK that emit the standard event format. Console games such as EA SPORTS FC 27 and Tekken 8 stay with human referees.',
   },
   {
     q: 'What happens if there is a dispute after AI settlement?',

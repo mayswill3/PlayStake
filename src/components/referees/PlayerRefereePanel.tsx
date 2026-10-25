@@ -90,7 +90,7 @@ export function PlayerRefereePanel() {
 
 /**
  * Compact sidebar version of the panel, so a player waiting on (or working
- * with) a referee sees it from any dashboard page — not just /play.
+ * with) a referee sees it from any dashboard page.
  */
 export function PlayerRefereeSidebarCard({ onNavigate }: { onNavigate?: () => void }) {
   const assignment = usePlayerRefereeAssignment();

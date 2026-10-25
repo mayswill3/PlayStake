@@ -16,12 +16,6 @@ import { QUEUE_NAMES, type BetExpiryScanPayload } from "../lib/jobs/types";
 import { prisma, withTransaction, type TxClient } from "../lib/db/client";
 import { refundEscrow } from "../lib/ledger/escrow";
 import { voidNoShowMatch, NO_SHOW_TTL_MS } from "../lib/lobby/match-lifecycle";
-import {
-  findFinishedSessionForBet,
-  forfeitAbandonedMatch,
-  lastActivityByBet,
-} from "../lib/games/sessions";
-import { settleBetFromSession } from "../lib/demo/settle";
 import { LobbyChannels, publishLobbyEvent } from "../lib/lobby/pubsub";
 import {
   REFEREE_CLAIM_TTL_MS,
@@ -148,27 +142,6 @@ async function voidStaleMatch(betId: string): Promise<void> {
       log("info", "skip_locked", { betId });
       return;
     }
-    // A match that was played to a result but never settled (someone closed
-    // the tab on the last move) is paid out on its recorded result, not voided.
-    const bet = await tx.bet.findUnique({
-      where: { id: betId },
-      select: { id: true, status: true, playerAId: true, playerBId: true },
-    });
-    if (bet?.status === BetStatus.MATCHED && (await findFinishedSessionForBet(tx, bet))) {
-      const { outcome } = await settleBetFromSession(tx, betId);
-      log("info", "finished_match_settled", { betId, outcome });
-      return;
-    }
-
-    // A match that started and then went quiet: whoever's move it is walked
-    // away and forfeits. Voiding it instead would let a losing player take
-    // their stake back by leaving.
-    if (bet?.status === BetStatus.MATCHED && (await forfeitAbandonedMatch(tx, bet, Date.now()))) {
-      const { outcome } = await settleBetFromSession(tx, betId);
-      log("info", "abandoned_match_forfeited", { betId, outcome });
-      return;
-    }
-
     // voidNoShowMatch re-reads the bet and no-ops unless it is still MATCHED,
     // so a play/result landing at the same moment is never double-handled.
     const { voided, refunded } = await voidNoShowMatch(tx, betId);
@@ -257,13 +230,7 @@ export async function processBetExpiryScan(
     take: 100,
   });
 
-  // Moves are recorded on the game session, not the bet, so a match still
-  // being played has a stale bet.updatedAt. Leave those alone.
-  const noShowCutoff = now.getTime() - NO_SHOW_TTL_MS;
-  const lastPlay = await lastActivityByBet(staleMatches.map((bet) => bet.id));
-  const unplayed = staleMatches.filter(
-    (bet) => (lastPlay.get(bet.id)?.getTime() ?? 0) < noShowCutoff,
-  );
+  const unplayed = staleMatches;
 
   if (unplayed.length > 0) {
     log("info", "no_show_scan_found", { count: unplayed.length });

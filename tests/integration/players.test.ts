@@ -36,9 +36,9 @@ beforeAll(async () => {
     create: { userId: dev.id, companyName: "Players Test", contactEmail: "players-test-dev@playstake-test.com", isApproved: true },
   });
   const game = await prisma.game.upsert({
-    where: { slug: "darts-301" },
+    where: { slug: "ea-sports-fc-27" },
     update: {},
-    create: { developerProfileId: profile.id, name: "Darts 301", slug: "darts-301", isActive: true, platformFeePercent: 0 },
+    create: { developerProfileId: profile.id, name: "EA SPORTS FC 27", slug: "ea-sports-fc-27", isActive: true, platformFeePercent: 0 },
   });
   gameId = game.id;
 });

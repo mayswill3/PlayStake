@@ -5,7 +5,7 @@ const STEPS = [
   {
     icon: <Gamepad2 size={24} strokeWidth={1.5} />,
     title: 'Pick a Game',
-    description: 'Choose pool, darts, or penalty shootout — more games are on the way.',
+    description: 'EA SPORTS FC 27 or Tekken 8, with more games on the way.',
     label: 'Choose a Game',
   },
   {
@@ -16,21 +16,21 @@ const STEPS = [
   },
   {
     icon: <Swords size={24} strokeWidth={1.5} />,
-    title: 'Match With an Opponent',
-    description: 'Skill-matched pairing finds you a real challenger within seconds.',
+    title: 'Challenge a Live Player',
+    description: 'Find a player streaming your game on Kick and send a challenge. Both of you stay live.',
     label: 'Play the Match',
   },
   {
     icon: <ShieldCheck size={24} strokeWidth={1.5} />,
-    title: 'Result Verified',
-    description: 'Two independent sources confirm the result. No disputes, no delays.',
-    label: 'Verified Result',
+    title: 'Referee Decides',
+    description: 'An independent referee watches both streams and records the result. You have 15 minutes to dispute it.',
+    label: 'Refereed Result',
   },
   {
     icon: <Zap size={24} strokeWidth={1.5} />,
     title: 'Winner Paid',
-    description: "The pot hits the winner's wallet instantly. No withdrawal forms.",
-    label: 'Instant Settlement',
+    description: "Once the dispute window closes, the pot, less a 5% fee, goes to the winner's balance.",
+    label: 'Settlement',
   },
 ] as const;
 

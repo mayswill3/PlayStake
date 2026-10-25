@@ -1,68 +1,14 @@
 // =============================================================================
-// PlayStake — Lobby Game Type Registry
+// PlayStake — Game rows behind the stream catalogue
 // =============================================================================
-// Maps lowercase gameType strings (used throughout demo/play routes and the
-// lobby) to canonical demo Game row IDs in the database. Reuses the same slug
-// convention as /api/demo/setup so a single Game row backs both flows.
+// Each game players can be challenged to (src/lib/games/catalogue.ts) has a
+// Game row in the database, which bets, fees and referee qualifications use.
 // =============================================================================
 
 import { prisma } from "@/lib/db/client";
-import {
-  STREAM_GAME_CATALOGUE,
-  type StreamGameType,
-} from "@/lib/games/catalogue";
+import { STREAM_GAME_CATALOGUE, type StreamGameType } from "@/lib/games/catalogue";
 
-export type LobbyGameType = "tictactoe" | "darts";
-
-export const LOBBY_GAME_TYPES: readonly LobbyGameType[] = [
-  "tictactoe",
-  "darts",
-] as const;
-
-export const LOBBY_GAME_META: Record<LobbyGameType, { slug: string; name: string }> = {
-  tictactoe: { slug: "tic-tac-toe", name: "Tic-Tac-Toe" },
-  darts: { slug: "darts-301", name: "Darts 301" },
-};
-
-export function isLobbyGameType(value: unknown): value is LobbyGameType {
-  return typeof value === "string" && (LOBBY_GAME_TYPES as readonly string[]).includes(value);
-}
-
-/**
- * Reverse of LOBBY_GAME_META: resolve a Game.slug back to its LobbyGameType.
- * Returns null when the slug is not one of the challengeable lobby games — the
- * caller then knows a declared Game can't be turned into a lobby challenge.
- */
-export function lobbyGameTypeForSlug(slug: string): LobbyGameType | null {
-  for (const gameType of LOBBY_GAME_TYPES) {
-    if (LOBBY_GAME_META[gameType].slug === slug) return gameType;
-  }
-  return null;
-}
-
-/**
- * Resolve the Game.id for a given lobby gameType. The demo Game row is lazily
- * created by /api/demo/setup when a user first plays; by the time they reach
- * the lobby they'll have run setup, so this lookup should always hit.
- *
- * Throws a clear error if the game hasn't been provisioned yet so callers
- * surface a 400 rather than a cryptic FK violation.
- */
-export async function getDemoGameId(gameType: LobbyGameType): Promise<string> {
-  const meta = LOBBY_GAME_META[gameType];
-  const game = await prisma.game.findUnique({
-    where: { slug: meta.slug },
-    select: { id: true },
-  });
-  if (!game) {
-    throw new Error(
-      `Demo game '${gameType}' (slug '${meta.slug}') not provisioned — run /api/demo/setup first`
-    );
-  }
-  return game.id;
-}
-
-/** Resolve the database Game row backing any supported Kick stream game. */
+/** Resolve the database Game row backing a stream game. */
 export async function getStreamGameId(gameType: StreamGameType): Promise<string> {
   const meta = STREAM_GAME_CATALOGUE[gameType];
   const game = await prisma.game.findUnique({
@@ -70,9 +16,7 @@ export async function getStreamGameId(gameType: StreamGameType): Promise<string>
     select: { id: true },
   });
   if (!game) {
-    throw new Error(
-      `Stream game '${gameType}' (slug '${meta.slug}') has not been provisioned`,
-    );
+    throw new Error(`Stream game '${gameType}' (slug '${meta.slug}') has not been provisioned`);
   }
   return game.id;
 }

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/seo';
+import { GAME_GUIDES } from '@/lib/games/guides';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
@@ -8,6 +9,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly',
       priority: 1,
     },
+    {
+      url: `${SITE_URL}/games`,
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
+    ...GAME_GUIDES.map((guide) => ({
+      url: `${SITE_URL}/games/${guide.slug}`,
+      changeFrequency: 'monthly' as const,
+      priority: 0.9,
+    })),
     {
       url: `${SITE_URL}/learn-more`,
       changeFrequency: 'monthly',

@@ -96,16 +96,16 @@ Bet-lifecycle notifications to developers, HMAC-SHA256 signed (`sign.ts`), deliv
 
 A standalone React 19 app bundled by `widget.build.ts` (esbuild, React bundled in) to `public/widget/`. It is **not** part of the Next.js build — rebuild it separately with `npm run widget:build`. `/widget` is rewritten to the built `index.html` in `next.config.ts`. `public/widget/sdk.js` is the lightweight loader game developers embed.
 
-### Demo / play games (`src/app/play/`, `/api/demo/`)
+### Games (`src/lib/games/catalogue.ts`, `src/lib/games/guides.ts`, `/games`)
 
-Playable demo games (darts, cards, tic-tac-toe) used to exercise the bet flow without a real game-server integration. `/demo` and `/demo/*` are permanently redirected to `/play` (`next.config.ts`).
+Two games, both refereed stream matches: EA SPORTS FC 27 and Tekken 8. Each has a Game row (owned by the `catalog@playstake.org` developer profile) and a public guide at `/games/<slug>`. PlayStake's former on-site games (Tic-Tac-Toe, Darts 301) and their `/play` pages, engines and `/api/demo` routes were removed in October 2026; `/play` and `/demo` redirect to `/games`. Old Game rows stay, inactive, for past bets.
 
 ## App Router route groups (`src/app/`)
 
 - `(auth)` — login, register, verify-email, password reset
 - `(dashboard)` — player wallet, deposit/withdraw, bets, settings, streams
 - `(admin)` — disputes, anomalies, user management, ledger oversight
-- `api/` — all API routes, **session- or API-key-authed by handler** (there is no `/api/v1` prefix and no `(developer)` route group despite what older README sections imply — the app pivoted to lobby matchmaking + Kick streaming). Notable groups: `auth`, `wallet`, `bets`, `lobby`, `kick`, `streamers`, `demo`, `admin`, `webhooks/{stripe,kick}`.
+- `api/` — all API routes, **session- or API-key-authed by handler** (there is no `/api/v1` prefix and no `(developer)` route group despite what older README sections imply — the app pivoted to lobby matchmaking + Kick streaming). Notable groups: `auth`, `wallet`, `bets`, `lobby`, `kick`, `streamers`, `users`, `admin`, `webhooks/{stripe,kick,didit}`.
 
 > Note: `README.md` documents an aspirational developer-API/widget product (a `/api/v1/...` surface, a developer portal, `src/lib/bets`, `src/lib/security`). Those paths do **not** exist in the current tree — trust the code over that section of the README.
 

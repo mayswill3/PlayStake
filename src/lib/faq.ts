@@ -64,8 +64,11 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         id: 'what-can-i-play',
         q: 'What can I play?',
-        a: "Live stream matches in popular console and PC games such as EA SPORTS FC 26, Fortnite, Call of Duty and Rocket League, played on Kick. And PlayStake's own games, Tic-Tac-Toe and Darts 301, which you play right on the site.",
-        links: [{ href: '/play', label: 'Browse games' }],
+        a: "EA SPORTS FC 27 and Tekken 8, played head to head against another player. Both of you stream on Kick and an independent referee watches both streams and records the result.",
+        links: [
+          { href: '/games/ea-sports-fc-27', label: 'How FC 27 matches work' },
+          { href: '/games/tekken-8', label: 'How Tekken 8 sets work' },
+        ],
       },
       {
         id: 'stream-challenges',
@@ -77,20 +80,20 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         id: 'results',
         q: 'How are results decided?',
-        a: "Stream matches are decided by an independent, approved referee who watches both live streams and records the result with evidence. In PlayStake's own games, our servers apply the rules, make any random draw (like the scatter on a dart) and decide the result. Neither player can choose or change a result, and every move and decision is kept on a record that can't be edited.",
+        a: "Every match is decided by an independent, approved referee who watches both live streams and records the result with written notes. Neither player can enter or change a result, and every referee action is kept on a record that can't be edited.",
         links: [{ href: '/fair-play', label: 'How we keep games fair' }],
         featured: true,
       },
       {
         id: 'opponent-leaves',
         q: 'What if my opponent leaves or the match is interrupted?',
-        a: "Every move is saved, so if your connection drops you can open the match again and carry on. If a match is never started within 10 minutes, it's cancelled and both stakes are returned in full. If a match starts and then nobody moves for 10 minutes, the player whose turn it was forfeits. If something goes wrong on our side, we review the match and either return both stakes or correct the result.",
-        links: [{ href: '/fair-play#interrupted', label: 'Interrupted matches' }],
+        a: "Reconnect as quickly as you can and say what happened on your stream; the referee decides what's fair from both streams, such as carrying on or replaying part of the match. If a player hasn't returned within 10 minutes, the referee may award the match to the other player. If no referee takes a match within 10 minutes, or it isn't finished within 2 hours, it's cancelled and both stakes are returned in full.",
+        links: [{ href: '/match-rules#interruptions', label: 'Disconnects under the Match Rules' }],
       },
       {
         id: 'disputes',
         q: 'What happens in a dispute?',
-        a: "For stream matches, either player can dispute the referee's decision within 15 minutes, and nothing is paid out until that time has passed. For other matches you can dispute a result within 24 hours of it being reported. We review the game record, stream footage and referee evidence, and correct the result if it was wrong. If you're unhappy with how we handle it, you can make a complaint.",
+        a: "Either player can dispute the referee's decision within 15 minutes, and nothing is paid out until that time has passed. We review both streams, match chat and the referee's notes, and correct the result if it was wrong. If you're unhappy with how we handle it, you can make a complaint.",
         links: [
           { href: '/match-rules#results', label: 'Disputes under the Match Rules' },
           { href: '/complaints', label: 'Complaints procedure' },

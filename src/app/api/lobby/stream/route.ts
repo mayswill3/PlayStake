@@ -2,22 +2,20 @@ import { NextRequest } from "next/server";
 import { RefereeProfileStatus } from "@/../generated/prisma/client";
 import { getSessionToken } from "@/lib/auth/helpers";
 import { validateSession } from "@/lib/auth/session";
-import { AuthenticationError, ValidationError, errorResponse } from "@/lib/errors/index";
+import { AuthenticationError, errorResponse } from "@/lib/errors/index";
 import { prisma } from "@/lib/db/client";
 import { getRedisConnection } from "@/lib/jobs/queue";
-import { isLobbyGameType } from "@/lib/lobby/games";
 import { LobbyChannels } from "@/lib/lobby/pubsub";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * GET /api/lobby/stream?gameType=bullseye
+ * GET /api/lobby/stream
  *
- * Server-Sent Events endpoint. Subscribes to the caller's relevant Redis
- * channels and streams lobby events. Gated behind `ENABLE_LOBBY_SSE=true`
- * — when disabled, clients should fall back to polling /api/lobby/status
- * and /api/lobby/players.
+ * Server-Sent Events endpoint. Subscribes to the caller's own challenge
+ * channels and streams lobby events as a nudge to re-poll. Gated behind
+ * `ENABLE_LOBBY_SSE=true`; when disabled, clients poll /api/lobby/invites.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -30,17 +28,11 @@ export async function GET(request: NextRequest) {
     const session = await validateSession(token);
     if (!session) throw new AuthenticationError("Invalid session");
 
-    const gameType = request.nextUrl.searchParams.get("gameType");
-    if (!gameType || !isLobbyGameType(gameType)) {
-      throw new ValidationError("Valid gameType is required");
-    }
-
     const userId = session.userId;
     const encoder = new TextEncoder();
 
     const subscriber = getRedisConnection().duplicate();
     const channels = [
-      LobbyChannels.game(gameType),
       LobbyChannels.invite(userId),
       LobbyChannels.matched(userId),
       LobbyChannels.inviteDeclined(userId),
