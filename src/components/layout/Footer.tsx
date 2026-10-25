@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { SOCIAL_PROFILES } from '@/lib/seo';
+import { CookieSettingsLink } from '@/components/analytics/CookieSettingsLink';
 
 export function Footer() {
   return (
@@ -171,6 +172,9 @@ export function Footer() {
                 <a href="mailto:support@playstake.org" className="text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors">
                   Contact
                 </a>
+              </li>
+              <li>
+                <CookieSettingsLink className="text-left text-sm text-ps-muted dark:text-ps-muted-on-dark hover:text-ps-lime transition-colors" />
               </li>
             </ul>
           </div>

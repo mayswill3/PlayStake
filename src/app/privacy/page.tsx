@@ -134,6 +134,18 @@ const cookieRows = [
     'Preference storage',
     'Until you clear it or change your preference',
   ],
+  [
+    <strong key="consent">ps-analytics-consent (local storage)</strong>,
+    'Remembers whether you accepted or rejected analytics cookies.',
+    'Strictly necessary',
+    'Until you clear it or change your choice',
+  ],
+  [
+    <strong key="ga">_ga, _ga_S3QN76R9C7</strong>,
+    'Google Analytics: counts visits and how people use our public pages. Only set if you accept analytics cookies.',
+    'Analytics (consent)',
+    'Up to 13 months',
+  ],
 ];
 
 export default function PrivacyPage() {
@@ -142,14 +154,14 @@ export default function PrivacyPage() {
       eyebrow="Privacy"
       title="Privacy Policy"
       summary="This policy explains how PlayStake handles personal information when you visit the website, create an account, play a match, connect Kick, make a transaction, file a dispute or act as a referee."
-      lastUpdated="6 August 2026"
+      lastUpdated="25 October 2026"
       toc={toc}
     >
       <LegalCallout title="A plain-language promise">
         <p>
           We use personal information to operate and protect PlayStake. We do not
-          sell personal information. We do not currently use advertising or
-          marketing cookies.
+          sell personal information. We do not use advertising or marketing
+          cookies, and we only use analytics cookies if you accept them.
         </p>
       </LegalCallout>
 
@@ -394,10 +406,22 @@ export default function PrivacyPage() {
         />
         <p>
           Strictly necessary cookies are required to provide a feature you ask
-          for and do not need advertising consent. If we introduce non-essential
-          analytics, advertising or personalisation storage, we will provide
-          appropriate information and controls before setting it where consent
-          is required.
+          for and don&apos;t need your consent.
+        </p>
+        <p>
+          <strong>Analytics.</strong> If you accept analytics cookies, we use
+          Google Analytics to understand how people use our public pages (for
+          example the homepage, game guides and FAQ), such as which pages are
+          visited, roughly where visitors come from and which device type they
+          use, and whether someone signs up. Google acts as our processor and
+          may process the data in the United States under the UK
+          extension to the EU-US Data Privacy Framework. We switch off Google
+          signals and ad personalisation, and we never measure your wallet,
+          bets, identity checks, settings or admin pages, or send your balance,
+          stakes or personal details. Nothing is set until you choose, Reject
+          carries the same weight as Accept, and you can change your mind at any
+          time with <strong>Cookie settings</strong> at the bottom of every
+          page; if you withdraw consent we delete the analytics cookies.
         </p>
       </LegalSection>
 

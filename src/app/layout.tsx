@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { Sora, Inter } from 'next/font/google';
 import { ToastProvider } from '@/components/ui/Toast';
+import { Analytics } from '@/components/analytics/Analytics';
+import { CookieBanner } from '@/components/analytics/CookieBanner';
 import {
   DEFAULT_SEO_DESCRIPTION,
   SITE_NAME,
@@ -82,6 +84,8 @@ export default function RootLayout({
         <ToastProvider>
           {children}
         </ToastProvider>
+        <CookieBanner />
+        <Analytics />
       </body>
     </html>
   );

@@ -7,6 +7,7 @@ import { CheckCircle2 } from 'lucide-react';
 import { FaqList } from '@/components/landing/faq';
 import { BETA_FAVOURITE_GAMES } from '@/lib/games/catalogue';
 import type { FaqItem } from '@/lib/faq';
+import { trackEvent } from '@/lib/analytics';
 
 const BEFORE_YOU_JOIN: FaqItem[] = [
   {
@@ -69,6 +70,7 @@ export function JoinBeta() {
         return;
       }
       setState('done');
+      trackEvent('beta_signup', { form: 'homepage', ...(game ? { game } : {}) });
     } catch {
       setError('Something went wrong. Please try again.');
       setState('error');

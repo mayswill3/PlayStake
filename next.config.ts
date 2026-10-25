@@ -55,13 +55,14 @@ const nextConfig: NextConfig = {
     const csp = (frameAncestors: string) =>
       [
         "default-src 'self'",
-        `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://js.stripe.com`,
+        `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://js.stripe.com https://www.googletagmanager.com`,
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' data: https://fonts.gstatic.com",
         // Kick thumbnails and avatars come from several CDNs.
         "img-src 'self' data: blob: https:",
         "media-src 'self' blob: https:",
-        `connect-src 'self' https://api.stripe.com https://*.sentry.io${isDev ? ' ws: wss:' : ''}`,
+        // Google Analytics, loaded only after the visitor accepts analytics cookies.
+        `connect-src 'self' https://api.stripe.com https://*.sentry.io https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com${isDev ? ' ws: wss:' : ''}`,
         'frame-src https://js.stripe.com https://hooks.stripe.com https://player.kick.com',
         "object-src 'none'",
         "base-uri 'self'",

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Button } from '@/components/ui/Button';
+import { trackEvent } from '@/lib/analytics';
 
 function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
   let score = 0;
@@ -69,6 +70,7 @@ export default function RegisterPage() {
         return;
       }
 
+      trackEvent('sign_up', { method: 'email' });
       router.push('/login?registered=1');
     } catch {
       setError('Something went wrong. Please try again.');

@@ -7,6 +7,7 @@ import {
   BETA_APPLICANT_TYPES,
   BETA_FAVOURITE_GAMES,
 } from '@/lib/games/catalogue';
+import { trackEvent } from '@/lib/analytics';
 
 type FormState = {
   name: string;
@@ -54,6 +55,7 @@ export function BetaSignup() {
       }
 
       setSubmitted(true);
+      trackEvent('beta_signup', { form: 'investor_page', applicant: form.type, ...(form.game ? { game: form.game } : {}) });
     } catch (requestError) {
       setError(
         requestError instanceof Error
