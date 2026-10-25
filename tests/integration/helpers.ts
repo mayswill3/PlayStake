@@ -607,6 +607,25 @@ async function resolveRouteHandler(
     return { handler: mod.GET };
   }
 
+  const adminRefereeMatch = path.match(/^\/api\/admin\/referees\/([^/?]+)$/);
+  if (adminRefereeMatch) {
+    const mod = await import("../../src/app/api/admin/referees/[id]/route.js");
+    return { handler: mod.PATCH, params: { id: decodeURIComponent(adminRefereeMatch[1]) } };
+  }
+  // Dispute review by an admin or approved dispute reviewer
+  if (path === "/api/referees/disputes") {
+    const mod = await import("../../src/app/api/referees/disputes/route.js");
+    return { handler: mod.GET };
+  }
+  const reviewMatch = path.match(/^\/api\/referees\/disputes\/([^/?]+)$/);
+  if (reviewMatch) {
+    const mod = await import("../../src/app/api/referees/disputes/[id]/route.js");
+    return {
+      handler: method === "PATCH" ? mod.PATCH : method === "POST" ? mod.POST : mod.GET,
+      params: { id: decodeURIComponent(reviewMatch[1]) },
+    };
+  }
+
   // Didit identity checks
   if (path === "/api/kyc/didit") {
     const mod = await import("../../src/app/api/kyc/didit/route.js");

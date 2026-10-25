@@ -129,6 +129,7 @@ export async function POST(
           betId,
           filedById: session.userId,
           reason: input.reason,
+          ...(input.moments?.length ? { moments: input.moments } : {}),
         },
       });
       if (current.status === BetStatus.RESULT_REPORTED) {
@@ -149,7 +150,7 @@ export async function POST(
           assignmentId: refereeAssignment.id,
           actorUserId: session.userId,
           action: "DISPUTE_FILED",
-          details: { disputeId: created.id, reason: input.reason },
+          details: { disputeId: created.id, reason: input.reason, moments: input.moments ?? [] },
           context: auditContextFromRequest(request),
         });
       }

@@ -93,7 +93,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         id: 'disputes',
         q: 'What happens in a dispute?',
-        a: "Either player can dispute the referee's decision within 15 minutes, and nothing is paid out until that time has passed. We review both streams, match chat and the referee's notes, and correct the result if it was wrong. If you're unhappy with how we handle it, you can make a complaint.",
+        a: "Either player can dispute the referee's decision within 15 minutes, and nothing is paid out until that time has passed. Someone who wasn't involved in the match, a PlayStake admin or an approved dispute reviewer, reviews both streams, match chat and the referee's notes, and corrects the result if it was wrong. If you're unhappy with how we handle it, you can make a complaint.",
         links: [
           { href: '/match-rules#results', label: 'Disputes under the Match Rules' },
           { href: '/complaints', label: 'Complaints procedure' },

@@ -16,6 +16,7 @@ import {
   AssignmentTimeline,
   type AdminAssignment,
 } from '@/components/referees/AssignmentAdminDetails';
+import { DisputeEvidence, type DisputeEvidenceData } from '@/components/disputes/DisputeEvidence';
 
 interface DisputeDetail {
   id: string;
@@ -41,6 +42,8 @@ interface DisputeDetail {
   }>;
   /** Present when the bet was refereed. */
   refereeAssignment: AdminAssignment | null;
+  /** Timeline, chat, the player's moments and recordings (null if the admin has a conflict). */
+  evidence: DisputeEvidenceData | null;
 }
 
 const RESOLUTION_OPTIONS = [
@@ -177,6 +180,17 @@ export default function AdminDisputeDetailPage() {
 
       {/* Referee's call, notes, and audit trail — the case being disputed. */}
       {dispute.refereeAssignment && <RefereeCard assignment={dispute.refereeAssignment} />}
+
+      {dispute.evidence ? (
+        <DisputeEvidence data={dispute.evidence} />
+      ) : (
+        <Card>
+          <p className="text-sm">
+            You can&apos;t decide this dispute: you played in or refereed the match, or you follow, are followed by or
+            have blocked one of the players. Ask another admin or a dispute reviewer.
+          </p>
+        </Card>
+      )}
 
       {/* Messages */}
       {dispute.messages.length > 0 && (

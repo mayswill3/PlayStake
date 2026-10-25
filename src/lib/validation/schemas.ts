@@ -248,6 +248,16 @@ export const disputeSchema = z.object({
     .min(10, "Reason must be at least 10 characters")
     .max(2000, "Reason must be at most 2000 characters")
     .trim(),
+  /** Moments for the reviewer to look at: a time ("14:32", "62nd minute") and what happened. */
+  moments: z
+    .array(
+      z.object({
+        at: z.string().trim().min(1, "Say when it happened").max(20),
+        note: z.string().trim().min(3, "Say what happened").max(300),
+      }),
+    )
+    .max(5, "Add at most 5 moments")
+    .optional(),
 });
 
 // ---------------------------------------------------------------------------

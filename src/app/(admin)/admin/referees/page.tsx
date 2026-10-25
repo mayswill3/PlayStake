@@ -17,6 +17,7 @@ interface Profile {
   bio: string | null;
   isAvailable: boolean;
   matchesHandled: number;
+  canReviewDisputes: boolean;
   user: {
     displayName: string;
     email: string;
@@ -86,6 +87,25 @@ export default function AdminRefereesPage() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  async function setReviewer(id: string, allow: boolean) {
+    setBusy(id);
+    try {
+      const response = await fetch(`/api/admin/referees/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canReviewDisputes: allow }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) toast('error', body.error ?? 'Could not change dispute review access');
+      else {
+        toast('success', allow ? 'Can now review disputes' : 'Dispute review access removed');
+        await load();
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function update(id: string, status: string) {
     setBusy(id);
@@ -275,6 +295,15 @@ export default function AdminRefereesPage() {
                 <PSButton variant="ghost" disabled={busy === profile.id} onClick={() => update(profile.id, 'REJECTED')}>
                   Reject
                 </PSButton>
+                {profile.status === 'APPROVED' && (
+                  <PSButton
+                    variant="secondary"
+                    disabled={busy === profile.id}
+                    onClick={() => setReviewer(profile.id, !profile.canReviewDisputes)}
+                  >
+                    {profile.canReviewDisputes ? 'Remove dispute reviewing' : 'Allow dispute reviewing'}
+                  </PSButton>
+                )}
                 {profile.status === 'APPROVED' && (
                   <PSButton variant="danger" disabled={busy === profile.id} onClick={() => update(profile.id, 'SUSPENDED')}>
                     Suspend

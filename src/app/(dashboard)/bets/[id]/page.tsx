@@ -98,6 +98,7 @@ export default function BetDetailPage() {
   const [error, setError] = useState('');
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
+  const [disputeMoments, setDisputeMoments] = useState<Array<{ at: string; note: string }>>([]);
   const [disputeLoading, setDisputeLoading] = useState(false);
 
   useEffect(() => {
@@ -168,7 +169,10 @@ export default function BetDetailPage() {
       const res = await fetch(`/api/bets/${id}/dispute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: disputeReason }),
+        body: JSON.stringify({
+          reason: disputeReason,
+          moments: disputeMoments.filter((m) => m.at.trim() && m.note.trim()),
+        }),
       });
 
       if (!res.ok) {
@@ -181,6 +185,7 @@ export default function BetDetailPage() {
       toast('success', 'Dispute filed successfully. Our team will review it.');
       setDisputeOpen(false);
       setDisputeReason('');
+      setDisputeMoments([]);
       const updated = await fetch(`/api/bets/${id}`).then(r => r.json());
       setBet(updated);
     } catch {
@@ -404,8 +409,8 @@ export default function BetDetailPage() {
         >
           <div className="space-y-4">
             <p className="text-sm">
-              Please describe why you believe the result is incorrect. Our team will review
-              your dispute within 48 hours.
+              Say why you believe the result is wrong. Someone who wasn&apos;t involved in the match,
+              an admin or an approved dispute reviewer, will look at the streams and decide.
             </p>
             <textarea
               value={disputeReason}
@@ -415,6 +420,53 @@ export default function BetDetailPage() {
               className="w-full rounded-[var(--ps-radius-md)] border border-[var(--ps-border-dark)] bg-ps-ink-2 text-ps-text-on-dark font-mono text-sm px-3 py-2 resize-none focus:border-ps-lime focus:ring-0 focus:outline-none"
               required
             />
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Moments to look at (optional)</p>
+              <p className="text-xs text-ps-muted-on-dark">
+                Point the reviewer to what matters, like &ldquo;14:32 into the match&rdquo; or &ldquo;62nd minute&rdquo;.
+              </p>
+              {disputeMoments.map((moment, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    value={moment.at}
+                    onChange={(e) =>
+                      setDisputeMoments((list) => list.map((m, i) => (i === index ? { ...m, at: e.target.value } : m)))
+                    }
+                    placeholder="When"
+                    maxLength={20}
+                    aria-label={`Moment ${index + 1}: when`}
+                    className="w-28 shrink-0 rounded-[var(--ps-radius-md)] border border-[var(--ps-border-dark)] bg-ps-ink-2 px-3 py-2 font-mono text-sm text-ps-text-on-dark focus:border-ps-lime focus:outline-none"
+                  />
+                  <input
+                    value={moment.note}
+                    onChange={(e) =>
+                      setDisputeMoments((list) => list.map((m, i) => (i === index ? { ...m, note: e.target.value } : m)))
+                    }
+                    placeholder="What happened"
+                    maxLength={300}
+                    aria-label={`Moment ${index + 1}: what happened`}
+                    className="min-w-0 flex-1 rounded-[var(--ps-radius-md)] border border-[var(--ps-border-dark)] bg-ps-ink-2 px-3 py-2 text-sm text-ps-text-on-dark focus:border-ps-lime focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setDisputeMoments((list) => list.filter((_, i) => i !== index))}
+                    className="shrink-0 px-2 text-sm text-ps-muted-on-dark hover:text-ps-text-on-dark"
+                    aria-label={`Remove moment ${index + 1}`}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              {disputeMoments.length < 5 && (
+                <button
+                  type="button"
+                  onClick={() => setDisputeMoments((list) => [...list, { at: '', note: '' }])}
+                  className="text-sm font-semibold text-ps-lime underline underline-offset-2"
+                >
+                  Add a moment
+                </button>
+              )}
+            </div>
           </div>
         </Dialog>
       </div>

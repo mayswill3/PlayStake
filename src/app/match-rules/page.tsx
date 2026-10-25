@@ -143,8 +143,12 @@ export default function MatchRulesPage() {
             think was wrong and point to the moment on stream.
           </li>
           <li>
-            Our team reviews both streams, match chat and the referee&apos;s notes, and either upholds
-            or corrects the result. Every step is kept on a record that can&apos;t be edited.
+            The dispute is decided by someone who wasn&apos;t involved: a PlayStake admin, or an
+            experienced referee we have approved as a dispute reviewer. They are never you, your
+            opponent or the match referee, and never anyone who follows, is followed by or has a
+            block with either player. They review both streams, match chat and the referee&apos;s
+            notes, and either uphold or correct the result, with written reasons. Every step is kept
+            on a record that can&apos;t be edited.
           </li>
           <li>
             If you&apos;re unhappy with how a dispute was handled, use our{' '}

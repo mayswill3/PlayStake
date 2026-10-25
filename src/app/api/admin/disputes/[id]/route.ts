@@ -1,27 +1,13 @@
 import { withRoleGuard } from "@/lib/middleware/auth";
 import { prisma } from "@/lib/db/client";
-import {
-  BetOutcome,
-  BetStatus,
-  RefereeAssignmentStatus,
-  UserRole,
-} from "../../../../../../generated/prisma/client";
+import { UserRole } from "../../../../../../generated/prisma/client";
 import { adminResolveDisputeSchema } from "@/lib/validation/schemas";
-import { appendRefereeAudit, auditContextFromRequest } from "@/lib/referees/audit";
-import { refundEscrow } from "@/lib/ledger/escrow";
-import { emailDisputeResolved } from "@/lib/email/events";
+import { auditContextFromRequest } from "@/lib/referees/audit";
 import { getAssignmentForBetForAdmin } from "@/lib/referees/admin-history";
-import { recordAdminAction } from "@/lib/admin/audit";
+import { errorResponse } from "@/lib/errors";
+import { getDisputeEvidence, resolveDispute } from "@/lib/disputes/review";
 
-/** Human-readable outcome for the players' resolution email. */
-const DISPUTE_OUTCOME_LABELS: Record<string, string> = {
-  RESOLVED_PLAYER_A: "Player A won",
-  RESOLVED_PLAYER_B: "Player B won",
-  RESOLVED_DRAW: "Draw — both stakes returned",
-  RESOLVED_VOID: "Match voided — both stakes refunded",
-};
-
-export const GET = withRoleGuard([UserRole.ADMIN], async (_req, context) => {
+export const GET = withRoleGuard([UserRole.ADMIN], async (_req, context, auth) => {
   const id = context?.params?.id;
   if (!id) {
     return Response.json({ error: "Dispute ID required" }, { status: 400 });
@@ -51,214 +37,35 @@ export const GET = withRoleGuard([UserRole.ADMIN], async (_req, context) => {
     return Response.json({ error: "Dispute not found" }, { status: 404 });
   }
 
-  const refereeAssignment = await getAssignmentForBetForAdmin(dispute.betId);
-  return Response.json({ ...dispute, refereeAssignment });
+  const [refereeAssignment, evidence] = await Promise.all([
+    getAssignmentForBetForAdmin(dispute.betId),
+    getDisputeEvidence(auth.userId, id).catch(() => null),
+  ]);
+  return Response.json({ ...dispute, refereeAssignment, evidence });
 });
 
 export const PATCH = withRoleGuard([UserRole.ADMIN], async (req, context, auth) => {
-  const id = context?.params?.id;
-  if (!id) {
-    return Response.json({ error: "Dispute ID required" }, { status: 400 });
-  }
+  try {
+    const id = context?.params?.id;
+    if (!id) return Response.json({ error: "Dispute ID required" }, { status: 400 });
 
-  const body = await req.json();
-  const parsed = adminResolveDisputeSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return Response.json(
-      { error: "Invalid request", details: parsed.error.flatten().fieldErrors },
-      { status: 400 }
-    );
-  }
-
-  const dispute = await prisma.dispute.findUnique({
-    where: { id },
-    include: {
-      bet: {
-        include: { refereeAssignment: true },
-      },
-    },
-  });
-  if (!dispute) {
-    return Response.json({ error: "Dispute not found" }, { status: 404 });
-  }
-
-  if (!["OPEN", "UNDER_REVIEW"].includes(dispute.status)) {
-    return Response.json(
-      { error: "Dispute has already been resolved" },
-      { status: 400 }
-    );
-  }
-
-  const updated = await prisma.$transaction(async (tx) => {
-    await tx.$queryRaw`SELECT id FROM bets WHERE id = ${dispute.betId}::uuid FOR UPDATE`;
-    const now = new Date();
-    const resolved = await tx.dispute.update({
-      where: { id },
-      data: {
-        status: parsed.data.status,
-        resolution: parsed.data.resolution,
-        resolvedById: auth.userId,
-        resolvedAt: now,
-      },
-    });
-
-    const outcomeByStatus: Partial<Record<string, BetOutcome>> = {
-      RESOLVED_PLAYER_A: BetOutcome.PLAYER_A_WIN,
-      RESOLVED_PLAYER_B: BetOutcome.PLAYER_B_WIN,
-      RESOLVED_DRAW: BetOutcome.DRAW,
-    };
-    const outcome = outcomeByStatus[parsed.data.status];
-
-    if (dispute.bet.refereeAssignment) {
-      const assignment = dispute.bet.refereeAssignment;
-      if (parsed.data.status === "RESOLVED_VOID") {
-        if (dispute.bet.status !== BetStatus.DISPUTED) {
-          throw new Error("Only an unsettled disputed bet can be voided");
-        }
-        await refundEscrow(tx, {
-          betId: dispute.betId,
-          playerId: dispute.bet.playerAId,
-          amount: dispute.bet.amount,
-          idempotencyKey: `dispute:${id}:refund:a`,
-        });
-        if (dispute.bet.playerBId) {
-          await refundEscrow(tx, {
-            betId: dispute.betId,
-            playerId: dispute.bet.playerBId,
-            amount: dispute.bet.amount,
-            idempotencyKey: `dispute:${id}:refund:b`,
-          });
-        }
-        await tx.bet.update({
-          where: { id: dispute.betId },
-          data: { status: BetStatus.VOIDED, cancelledAt: now },
-        });
-        await tx.refereeAssignment.update({
-          where: { id: assignment.id },
-          data: {
-            status: RefereeAssignmentStatus.CANCELLED,
-            cancelledAt: now,
-            version: { increment: 1 },
-          },
-        });
-      } else if (outcome) {
-        await tx.bet.update({
-          where: { id: dispute.betId },
-          data: {
-            status: BetStatus.RESULT_REPORTED,
-            outcome,
-            resultVerified: true,
-            resultReportedAt: now,
-          },
-        });
-
-        // The referee's own call stays in `decision`. Overwriting it here used
-        // to erase the only queryable record of what they decided, leaving
-        // overturn rate reconstructible solely from the audit chain.
-        const overturned =
-          assignment.decision !== null && assignment.decision !== outcome;
-
-        await tx.refereeAssignment.update({
-          where: { id: assignment.id },
-          data: {
-            status: RefereeAssignmentStatus.DECISION_SUBMITTED,
-            // Only fill `decision` when the referee never submitted one.
-            decision: assignment.decision ?? outcome,
-            overturnedOutcome: overturned ? outcome : null,
-            overturnedAt: overturned ? now : null,
-            disputeDeadline: now,
-            version: { increment: 1 },
-          },
-        });
-
-        if (overturned && assignment.refereeProfileId) {
-          await tx.refereeProfile.update({
-            where: { id: assignment.refereeProfileId },
-            data: { disputesUpheld: { increment: 1 } },
-          });
-        }
-      }
-
-      await appendRefereeAudit(tx, {
-        assignmentId: assignment.id,
-        actorUserId: auth.userId,
-        action: "DISPUTE_RESOLVED",
-        details: {
-          disputeId: id,
-          resolutionStatus: parsed.data.status,
-          outcome: outcome ?? null,
-          refereeDecision: assignment.decision ?? null,
-          overturned:
-            assignment.decision !== null &&
-            outcome !== null &&
-            assignment.decision !== outcome,
-          resolution: parsed.data.resolution,
-        },
-        context: auditContextFromRequest(req),
-      });
-    } else if (dispute.bet.status === BetStatus.DISPUTED) {
-      // No referee: the admin's decision becomes the result. Previously only
-      // the Dispute row changed, leaving the bet DISPUTED and both stakes in
-      // escrow indefinitely while the email said funds had been paid.
-      if (parsed.data.status === "RESOLVED_VOID") {
-        await tx.bet.update({
-          where: { id: dispute.betId },
-          data: { status: BetStatus.VOIDED, cancelledAt: now },
-        });
-        await refundEscrow(tx, {
-          betId: dispute.betId,
-          playerId: dispute.bet.playerAId,
-          amount: dispute.bet.amount,
-          idempotencyKey: `dispute:${id}:refund:a`,
-        });
-        if (dispute.bet.playerBId) {
-          await refundEscrow(tx, {
-            betId: dispute.betId,
-            playerId: dispute.bet.playerBId,
-            amount: dispute.bet.amount,
-            idempotencyKey: `dispute:${id}:refund:b`,
-          });
-        }
-      } else if (outcome) {
-        // A verified result: the settlement worker pays it out.
-        await tx.bet.update({
-          where: { id: dispute.betId },
-          data: {
-            status: BetStatus.RESULT_REPORTED,
-            outcome,
-            resultVerified: true,
-            resultReportedAt: now,
-          },
-        });
-      }
+    const parsed = adminResolveDisputeSchema.safeParse(await req.json().catch(() => ({})));
+    if (!parsed.success) {
+      return Response.json(
+        { error: "Invalid request", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
     }
-
-    await recordAdminAction(
-      {
-        actorId: auth.userId,
-        action: "dispute.resolve",
-        targetType: "dispute",
-        targetId: id,
-        details: {
-          betId: dispute.betId,
-          betStatusBefore: dispute.bet.status,
-          resolution: parsed.data.status,
-          outcome: outcome ?? null,
-          refereed: Boolean(dispute.bet.refereeAssignment),
-          note: parsed.data.resolution,
-        },
-        request: req,
-      },
-      tx,
-    );
-    return resolved;
-  });
-
-  await emailDisputeResolved(
-    dispute.betId,
-    DISPUTE_OUTCOME_LABELS[parsed.data.status] ?? parsed.data.status,
-  );
-
-  return Response.json(updated);
+    const updated = await resolveDispute({
+      userId: auth.userId,
+      disputeId: id,
+      status: parsed.data.status,
+      resolution: parsed.data.resolution,
+      context: auditContextFromRequest(req),
+      request: req,
+    });
+    return Response.json(updated);
+  } catch (error) {
+    return errorResponse(error);
+  }
 });

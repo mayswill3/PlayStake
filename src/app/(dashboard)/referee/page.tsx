@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/Toast';
 import { KeyRules, RulesCheckbox, RulesConsentDialog } from '@/components/rules/RulesConsent';
 import { useLiveStatusEvents } from '@/hooks/useLiveStatusEvents';
 import { AssignmentHistoryList } from '@/components/referees/AssignmentHistoryList';
+import { DisputeReviewQueue } from '@/components/disputes/DisputeReviewQueue';
 
 interface Game { id: string; name: string }
 interface ProfileResponse {
@@ -19,6 +20,8 @@ interface ProfileResponse {
     isAvailable: boolean;
     bio: string | null;
     qualifications: { game: Game }[];
+    /** Approved by an admin to review disputes about other referees' calls. */
+    canReviewDisputes?: boolean;
   };
   games: Game[];
   /** False when the current Referee Code of Conduct hasn't been accepted. */
@@ -317,6 +320,7 @@ export default function RefereeHubPage() {
               onClaim={(id) => assignmentAction(id, 'claim')}
             />
           )}
+          {profileData.profile?.canReviewDisputes && <DisputeReviewQueue />}
           <AssignmentHistory assignments={mine} />
           <RulesConsentDialog
             open={codePrompt !== null}

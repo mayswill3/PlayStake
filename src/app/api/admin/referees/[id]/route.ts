@@ -3,11 +3,25 @@ import { prisma } from "@/lib/db/client";
 import { withRoleGuard } from "@/lib/middleware/auth";
 import { emailRefereeApplicationDecided } from "@/lib/email/events";
 import { recordAdminAction } from "@/lib/admin/audit";
+import { setDisputeReviewer } from "@/lib/disputes/review";
+import { errorResponse } from "@/lib/errors";
 
 export const PATCH = withRoleGuard([UserRole.ADMIN], async (request, context, auth) => {
   const id = context.params?.id;
   if (!id) return Response.json({ error: "Referee profile ID required" }, { status: 400 });
   const body = await request.json().catch(() => ({}));
+
+  // Grant or remove permission to review disputes about other referees' calls.
+  if (typeof body.canReviewDisputes === "boolean" && body.status === undefined) {
+    try {
+      return Response.json(
+        await setDisputeReviewer({ adminId: auth.userId, refereeProfileId: id, allow: body.canReviewDisputes, request }),
+      );
+    } catch (error) {
+      return errorResponse(error);
+    }
+  }
+
   if (
     body.status !== RefereeProfileStatus.APPROVED &&
     body.status !== RefereeProfileStatus.REJECTED &&
@@ -52,6 +66,10 @@ export const PATCH = withRoleGuard([UserRole.ADMIN], async (request, context, au
         body.status === RefereeProfileStatus.APPROVED ? now : undefined,
       suspendedAt:
         body.status === RefereeProfileStatus.SUSPENDED ? now : null,
+      // A referee who is no longer approved can't review disputes either.
+      ...(body.status === RefereeProfileStatus.APPROVED
+        ? {}
+        : { canReviewDisputes: false, disputeReviewerApprovedAt: null }),
     },
   });
   await recordAdminAction({

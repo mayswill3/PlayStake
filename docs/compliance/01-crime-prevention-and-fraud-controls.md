@@ -90,7 +90,7 @@ Cheating is an offence under s.42 of the Gambling Act 2005. PlayStake prevents a
   - every referee action is written to an append-only, hash-chained audit trail that the database protects from edits or deletion; anyone can verify the chain for a match
   - after a decision, either player has 15 minutes to dispute it before payout
   - a match that no referee takes within 10 minutes, or that isn't finished within 2 hours of starting, is cancelled and both stakes are returned in full
-- **Disputes.** Any result can be disputed before it pays out (see Policy 02). Staff decisions on disputes are recorded in the audit log.
+- **Disputes.** Any result can be disputed before it pays out (see Policy 02). A dispute is decided by someone independent of the match: an admin, or a referee an admin has approved as a dispute reviewer. The reviewer can never be a player in the match or its referee, and is kept off any dispute where they follow, are followed by or have a block with either player. A reviewer must take a dispute before deciding it, so two people can't decide the same one. The player can point to moments in the match when filing. Every claim and decision, with written reasons, is recorded in the hash-chained referee audit trail and the admin audit log. Recordings of the match held by PlayStake are listed alongside the evidence once the recorder is live, and a disputed match's recordings are kept for 12 months after the decision.
 - **Referee quality.** Overturned referee decisions are tracked per referee. Referees with a high overturn rate are reviewed and can be suspended.
 - **Anomaly detection.** A scan every 15 minutes looks for:
   - win rates above 80%

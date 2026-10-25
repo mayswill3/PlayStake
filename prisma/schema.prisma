@@ -370,6 +370,8 @@ model User {
   sessionsAsPlayerA    Bet[]                    @relation("PlayerA")
   sessionsAsPlayerB    Bet[]                    @relation("PlayerB")
   disputesFiled        Dispute[]                @relation("DisputeFiler")
+  disputesReviewing    Dispute[]                @relation("DisputeReviewer")
+  matchRecordings      MatchRecording[]
   disputeMessages      DisputeMessage[]
   developerProfile     DeveloperProfile?
   widgetSessions       WidgetSession[]
@@ -695,6 +697,7 @@ model Bet {
   streamChallenge   StreamChallenge?
   refereeAssignment RefereeAssignment?
   chatMessages      MatchChatMessage[]
+  recordings        MatchRecording[]
 
   @@index([gameId, status], map: "idx_bet_game_status")
   @@index([playerAId, status], map: "idx_bet_player_a_status")
@@ -710,19 +713,25 @@ model Bet {
 // =============================================================================
 
 model Dispute {
-  id           String        @id @default(uuid()) @db.Uuid
-  betId        String        @map("bet_id") @db.Uuid
-  filedById    String        @map("filed_by_id") @db.Uuid
-  status       DisputeStatus @default(OPEN)
-  reason       String        @db.Text
-  resolution   String?       @db.Text
-  resolvedById String?       @map("resolved_by_id") @db.Uuid
-  resolvedAt   DateTime?     @map("resolved_at")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
+  id              String        @id @default(uuid()) @db.Uuid
+  betId           String        @map("bet_id") @db.Uuid
+  filedById       String        @map("filed_by_id") @db.Uuid
+  status          DisputeStatus @default(OPEN)
+  reason          String        @db.Text
+  /// Moments in the match the player points to, e.g. [{ "at": "14:32", "note": "..." }].
+  moments         Json?
+  /// The admin or dispute reviewer who took the dispute; only they (or an admin) decide it.
+  reviewerId      String?       @map("reviewer_id") @db.Uuid
+  reviewClaimedAt DateTime?     @map("review_claimed_at")
+  resolution      String?       @db.Text
+  resolvedById    String?       @map("resolved_by_id") @db.Uuid
+  resolvedAt      DateTime?     @map("resolved_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
 
   bet      Bet              @relation(fields: [betId], references: [id])
   filedBy  User             @relation("DisputeFiler", fields: [filedById], references: [id])
+  reviewer User?            @relation("DisputeReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
   messages DisputeMessage[]
 
   @@index([betId], map: "idx_dispute_bet")
@@ -750,22 +759,25 @@ model DisputeMessage {
 // =============================================================================
 
 model RefereeProfile {
-  id             String               @id @default(uuid()) @db.Uuid
-  userId         String               @unique @map("user_id") @db.Uuid
-  status         RefereeProfileStatus @default(PENDING)
-  isAvailable    Boolean              @default(false) @map("is_available")
-  bio            String?              @db.VarChar(500)
-  matchesHandled Int                  @default(0) @map("matches_handled")
+  id                        String               @id @default(uuid()) @db.Uuid
+  userId                    String               @unique @map("user_id") @db.Uuid
+  status                    RefereeProfileStatus @default(PENDING)
+  isAvailable               Boolean              @default(false) @map("is_available")
+  bio                       String?              @db.VarChar(500)
+  matchesHandled            Int                  @default(0) @map("matches_handled")
   /// Disputes resolved against this referee — i.e. their decision was
   /// overturned by an admin. Written by dispute resolution.
-  disputesUpheld Int                  @default(0) @map("disputes_upheld")
-  approvedAt     DateTime?            @map("approved_at")
-  suspendedAt    DateTime?            @map("suspended_at")
+  disputesUpheld            Int                  @default(0) @map("disputes_upheld")
+  approvedAt                DateTime?            @map("approved_at")
+  suspendedAt               DateTime?            @map("suspended_at")
   /// Version of the Referee Code of Conduct this referee last accepted, and when.
-  codeVersion    String?              @map("code_version") @db.VarChar(20)
-  codeAcceptedAt DateTime?            @map("code_accepted_at")
-  createdAt      DateTime             @default(now()) @map("created_at")
-  updatedAt      DateTime             @updatedAt @map("updated_at")
+  codeVersion               String?              @map("code_version") @db.VarChar(20)
+  codeAcceptedAt            DateTime?            @map("code_accepted_at")
+  /// Approved by an admin to review disputes about other referees' decisions.
+  canReviewDisputes         Boolean              @default(false) @map("can_review_disputes")
+  disputeReviewerApprovedAt DateTime?            @map("dispute_reviewer_approved_at")
+  createdAt                 DateTime             @default(now()) @map("created_at")
+  updatedAt                 DateTime             @updatedAt @map("updated_at")
 
   user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   qualifications RefereeQualification[]
@@ -1543,4 +1555,47 @@ model UserBlock {
   @@unique([blockerId, blockedId], map: "uq_user_block")
   @@index([blockedId], map: "idx_user_block_blocked")
   @@map("user_blocks")
+}
+
+enum MatchRecordingRole {
+  PLAYER_A
+  PLAYER_B
+  REFEREE
+}
+
+enum MatchRecordingStatus {
+  RECORDING
+  READY
+  FAILED
+  DELETED
+}
+
+/// A PlayStake-held recording of one participant's stream for a refereed
+/// match, captured from when the referee starts it until the result. Stored
+/// privately (storageKey) and deleted at retainUntil; a dispute, complaint or
+/// IBAS case extends retainUntil until it closes. Written by the recorder.
+model MatchRecording {
+  id              String               @id @default(uuid()) @db.Uuid
+  betId           String               @map("bet_id") @db.Uuid
+  userId          String               @map("user_id") @db.Uuid
+  role            MatchRecordingRole
+  channelSlug     String               @map("channel_slug") @db.VarChar(100)
+  status          MatchRecordingStatus @default(RECORDING)
+  storageKey      String?              @map("storage_key") @db.VarChar(500)
+  startedAt       DateTime             @map("started_at")
+  endedAt         DateTime?            @map("ended_at")
+  durationSeconds Int?                 @map("duration_seconds")
+  byteSize        BigInt?              @map("byte_size")
+  failureReason   String?              @map("failure_reason") @db.VarChar(500)
+  retainUntil     DateTime?            @map("retain_until")
+  deletedAt       DateTime?            @map("deleted_at")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  bet  Bet  @relation(fields: [betId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([betId, role], map: "uq_match_recording_role")
+  @@index([retainUntil], map: "idx_match_recording_retain")
+  @@map("match_recordings")
 }
