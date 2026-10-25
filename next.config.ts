@@ -3,6 +3,10 @@ import { withSentryConfig } from '@sentry/nextjs/config';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // One id per deploy (Railway's commit SHA, available at build time). A tab
+  // left open across a deploy then does a full reload on its next navigation,
+  // instead of asking the new server for data in the old build's format.
+  deploymentId: process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 12) || undefined,
   reactStrictMode: true,
   async rewrites() {
     return [

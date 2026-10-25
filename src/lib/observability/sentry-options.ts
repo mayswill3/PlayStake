@@ -30,6 +30,15 @@ const TRACES_SAMPLE_RATE = Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0.1);
 export const SENTRY_RELEASE =
   process.env.SENTRY_RELEASE ?? process.env.RAILWAY_GIT_COMMIT_SHA;
 
+/**
+ * Long-lived connections that would otherwise dominate the performance data:
+ * the live and lobby event streams stay open for up to 15 minutes by design,
+ * and BullMQ workers wait on Redis BZPOPMIN for 10 seconds at a time when idle.
+ * They aren't slow, so leave them out of tracing.
+ */
+const UNTRACED_ROUTES = /\/api\/(live|lobby)\/stream/;
+const IGNORED_SPANS = [/^redis-bzpopmin/i];
+
 export function sentryBaseOptions() {
   return {
     dsn: SENTRY_DSN,
@@ -41,7 +50,9 @@ export function sentryBaseOptions() {
     // hold; neither belongs in a third-party error report.
     sendDefaultPii: false,
 
-    tracesSampleRate: Number.isFinite(TRACES_SAMPLE_RATE) ? TRACES_SAMPLE_RATE : 0.1,
+    tracesSampler: ({ name }: { name: string }) =>
+      UNTRACED_ROUTES.test(name) ? 0 : Number.isFinite(TRACES_SAMPLE_RATE) ? TRACES_SAMPLE_RATE : 0.1,
+    ignoreSpans: IGNORED_SPANS,
 
     // Local runs shouldn't post to a shared project even if a DSN leaks into
     // a developer's .env.
