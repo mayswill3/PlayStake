@@ -5,7 +5,7 @@ import { FEATURED_FAQS, type FaqItem } from '@/lib/faq';
 /** Accordion of FAQ items. Native <details>, so it works without JS. */
 export function FaqList({ items }: { items: FaqItem[] }) {
   return (
-    <dl className="space-y-3">
+    <div className="space-y-3">
       {items.map(({ id, q, a, links }) => (
         <details
           key={id}
@@ -16,7 +16,7 @@ export function FaqList({ items }: { items: FaqItem[] }) {
             className="flex cursor-pointer select-none items-center justify-between gap-4 px-5 py-5 text-ps-text dark:text-ps-text-on-dark font-semibold text-sm sm:text-base list-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ps-blue)] dark:focus-visible:ring-[var(--ps-lime)] focus-visible:ring-inset"
             style={{ WebkitAppearance: 'none' }}
           >
-            <dt>{q}</dt>
+            <span>{q}</span>
             {/* Rotates from + to x when open */}
             <span
               aria-hidden="true"
@@ -25,7 +25,7 @@ export function FaqList({ items }: { items: FaqItem[] }) {
               +
             </span>
           </summary>
-          <dd className="px-5 pb-5 text-ps-muted dark:text-ps-muted-on-dark text-sm leading-relaxed">
+          <div className="px-5 pb-5 text-ps-muted dark:text-ps-muted-on-dark text-sm leading-relaxed">
             <p>{a}</p>
             {links && links.length > 0 && (
               <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
@@ -51,10 +51,10 @@ export function FaqList({ items }: { items: FaqItem[] }) {
                 )}
               </p>
             )}
-          </dd>
+          </div>
         </details>
       ))}
-    </dl>
+    </div>
   );
 }
 

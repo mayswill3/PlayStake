@@ -52,7 +52,7 @@ export function LandingNav({
           <Link href="/" className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ps-lime)] rounded-lg">
             <Image
               src="/logo.png"
-              alt="PlayStake"
+              alt=""
               width={40}
               height={40}
               priority

@@ -23,7 +23,15 @@ export function HomeHero() {
     <section className="relative overflow-hidden border-b border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)]">
       {/* Desktop: the photo fills the right of the hero and fades into the page. */}
       <div className="absolute inset-y-0 right-0 hidden w-[62%] lg:block">
-        <Image src="/home/photos/head-to-head.webp" alt={HERO_ALT} fill priority sizes="62vw" className="object-cover object-center" />
+        {/* Lazy, so phones (where this copy is hidden) never download it. */}
+        <Image
+          src="/home/photos/head-to-head.webp"
+          alt={HERO_ALT}
+          fill
+          fetchPriority="high"
+          sizes="(min-width: 1024px) 62vw, 1px"
+          className="object-cover object-center"
+        />
         <div
           className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-ps-paper to-transparent dark:from-ps-ink"
           aria-hidden="true"
@@ -44,7 +52,16 @@ export function HomeHero() {
 
           {/* Phones: the photo sits between the intro and the buttons. */}
           <div className="relative mt-6 aspect-[16/10] overflow-hidden rounded-[var(--ps-radius-lg)] lg:hidden">
-            <Image src="/home/photos/head-to-head.webp" alt={HERO_ALT} fill priority sizes="100vw" className="object-cover" />
+            {/* The phone LCP image: fetched first, at the width it's shown. */}
+            <Image
+              src="/home/photos/head-to-head.webp"
+              alt={HERO_ALT}
+              fill
+              loading="eager"
+              fetchPriority="high"
+              sizes="(min-width: 1024px) 1px, (min-width: 640px) calc(100vw - 48px), calc(100vw - 32px)"
+              className="object-cover"
+            />
             <DemoBadge />
           </div>
 
