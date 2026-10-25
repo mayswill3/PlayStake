@@ -55,14 +55,9 @@ From the moment a self-exclusion starts:
 
 1. **No gambling.** Every deposit, stake and game entry passes the eligibility check (Master Manual §5.1). A self-excluded customer is refused at each of:
    - depositing
-   - joining a lobby
-   - sending an invite
-   - accepting an invite or challenge
    - issuing a challenge
-   - starting a free-to-play game
+   - accepting a challenge
 2. **Open activity is withdrawn.** The following are cancelled at once, so they cannot be drawn into a match:
-   - the customer's waiting lobby entries
-   - invites they have received
    - challenges they have sent or received
 
    Nothing needs refunding at this point, because stakes are only taken once a match is agreed.

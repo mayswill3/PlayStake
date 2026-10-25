@@ -6,6 +6,7 @@ import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { Spinner } from '@/components/ui/Spinner';
 import { ChallengesProvider } from '@/components/lobby/ChallengesProvider';
 import { SessionReminder } from '@/components/responsible-play/SessionReminder';
+import { SessionClock } from '@/components/responsible-play/SessionClock';
 import { InteractionPrompt } from '@/components/responsible-play/InteractionPrompt';
 import { LimitReviewPrompt } from '@/components/responsible-play/LimitReviewPrompt';
 import { FollowLiveAlerts } from '@/components/follows/FollowLiveAlerts';
@@ -29,6 +30,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex-1 flex flex-col min-w-0">
           <Header user={user} balance={balance} />
           <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6">
+            <div className="mb-3 flex justify-end sm:hidden">
+              <SessionClock />
+            </div>
             {children}
           </main>
         </div>

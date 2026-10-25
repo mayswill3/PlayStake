@@ -22,9 +22,9 @@ PlayStake is operated by [COMPANY NAME] from [OPERATING ADDRESS]. The company bu
 
 | Equipment | Purpose | Provider | Operator | Location |
 |---|---|---|---|---|
-| Web service (Next.js, Node 20) | Website, customer and staff interfaces, API, game server (all `/play` game logic and random number generation), payment webhooks | Railway (infrastructure); PlayStake (software) | PlayStake | [RAILWAY REGION] |
+| Web service (Next.js, Node 20) | Website, customer and staff interfaces, API, referee console, payment webhooks. No game logic or random number generation (on-site games withdrawn 25 October 2026) | Railway (infrastructure); PlayStake (software) | PlayStake | [RAILWAY REGION] |
 | Worker service (BullMQ) | Settlement, expiry and no-show handling, dispute escalation, harm and anomaly detection, AML scans, ledger audit, email and webhook delivery, session cleanup | Railway; PlayStake | PlayStake | [RAILWAY REGION] |
-| PostgreSQL 16 | System of record: accounts, ledger, bets, game sessions and event log, encrypted identity documents, compliance and audit records | Railway | PlayStake | [RAILWAY REGION] |
+| PostgreSQL 16 | System of record: accounts, ledger, bets, referee audit trail, encrypted identity documents, compliance and audit records; historical game records of the withdrawn on-site games (append-only, no new rows) | Railway | PlayStake | [RAILWAY REGION] |
 | Database backups | Recovery of the system of record | Railway | PlayStake | [BACKUP LOCATION] — confirm backups are enabled and tested (Document 13) |
 | Redis 7 | Job queues, real-time lobby events, worker heartbeat | Railway | PlayStake | [RAILWAY REGION] |
 | Domain and DNS (playstake.org) | Customer access | Namecheap | PlayStake | Global DNS |
@@ -41,8 +41,8 @@ PlayStake is operated by [COMPANY NAME] from [OPERATING ADDRESS]. The company bu
 | Sanctions and PEP screening | Admin console (manual); planned supplier | [SCREENING PROVIDER] | PlayStake (MLRO) | Manual check against OFSI list until contracted |
 | Deposits | Stripe (card capture); web service (ledger) | Stripe | PlayStake | Stripe in test mode until launch |
 | Withdrawals | Web service (ledger); Stripe Connect (payout) | Stripe | PlayStake | |
-| Matchmaking and challenges | Web service, Redis | PlayStake | PlayStake | |
-| Game play and random number generation | Web service | PlayStake | PlayStake | CSPRNG; outcomes decided server-side; event log |
+| Challenges and match management | Web service, Redis | PlayStake | PlayStake | |
+| Game play | Players' own consoles or PCs; third-party games (EA SPORTS FC 27, Tekken 8) | Game publishers | Players | PlayStake runs no games and no random number generation since 25 October 2026 |
 | Stream-match refereeing | Referee console; Kick video | PlayStake (software); Kick (video) | Independent referees engaged by PlayStake | Referees vetted and audited (Policy 01) |
 | Result verification and disputes | Web service, worker; admin console | PlayStake | PlayStake staff | |
 | Settlement and payouts to balances | Worker service / web service | PlayStake | PlayStake | |

@@ -29,9 +29,8 @@ To set out what PlayStake would need to do to have its gambling system assessed 
 
 | Standard | Why it may apply | Main areas it covers |
 |---|---|---|
-| **GLI-19** Interactive Gaming Systems | PlayStake is an online platform with player accounts, a wallet and server-side games | Player account management, KYC and geolocation, wallet and financial transactions, responsible gaming tools, game fairness and RNG, game recall and interrupted games, logging and reporting, security and change management |
+| **GLI-19** Interactive Gaming Systems | PlayStake is an online platform with player accounts and a wallet | Player account management, KYC and geolocation, wallet and financial transactions, responsible gaming tools, interrupted matches, logging and reporting, security and change management. Its game fairness and RNG sections are unlikely to apply: PlayStake has run no games of its own since 25 October 2026 [CONFIRM with advisor] |
 | **GLI-33** Event Wagering Systems | Stream matches are wagers on the outcome of an external event (a live game), settled on a referee's result | Wager acceptance, event and result management, settlement, voids and cancellations |
-| GLI RNG requirements (within GLI-19) | Darts uses server-side random draws | RNG source, scaling, seeding, statistical testing |
 | **GCGRA-specific requirements** | Local rules on responsible gaming, AML, data and reporting | [TO OBTAIN] |
 
 ## 4. Plan
@@ -42,17 +41,17 @@ To set out what PlayStake would need to do to have its gambling system assessed 
 | **2. Obtain the rules** | Get the GCGRA technical standards, licensing rules and any lab-submission guidance; confirm which GLI standards and versions apply | Requirements library | Month 2 |
 | **3. Gap assessment** | Map each requirement to the platform, reusing the UK RTS statement (Document 12), testing strategy (Document 11) and ISO 27001 mapping (Document 13). Early candidates: UAE geolocation; UAE identity checks; AED currency; data residency; GCGRA reporting feeds; game recall display; any limits or tools the GCGRA mandates | Gap register with owners | Month 3 |
 | **4. Build** | Close the gaps as a UAE configuration of the same platform, behind jurisdiction settings, through the change control in Document 11 §5 | Release candidate | Months 4–6 |
-| **5. Lab engagement** | Engage GLI or BMM (as approved by the GCGRA). Pre-submission meeting; submit source code, documentation and a test environment; RNG and game certification; platform (GLI-19 / GLI-33) testing | Lab report and certificate | Months 6–9 |
+| **5. Lab engagement** | Engage GLI or BMM (as approved by the GCGRA). Pre-submission meeting; submit source code, documentation and a test environment; platform (GLI-19 / GLI-33) testing | Lab report and certificate | Months 6–9 |
 | **6. Licence submission** | Submit certificates with the licence application or the partner's change notification | Approval | After phase 5 |
 | **7. Ongoing** | Re-certification for changes as the GCGRA requires; keep one change register covering UK and UAE; annual security audit covering both | Maintained certification | Continuous |
 
 ## 5. What carries over from the UK work
 
-- **Server-authoritative games and CSPRNG** (`src/lib/games/`), with an append-only event log for game recall — the core of GLI-19 game and RNG testing.
+- **Refereed results** (`src/lib/referees/`): referee independence checks, a hash-chained, append-only audit trail and a dispute window — relevant to GLI-33 result management and settlement. (PlayStake's own games and their RNG were withdrawn on 25 October 2026, so there is no game or RNG to certify.)
 - **Double-entry ledger and per-bet escrow**, append-only, audited daily — the core of wallet and financial transaction requirements.
-- **Safer gambling tools** (deposit limits, breaks, reality checks, clock, interactions) and the single eligibility gate.
+- **Safer gambling tools** (deposit limits, breaks, reality checks, interactions) and the single eligibility gate.
 - **Security controls** mapped to ISO/IEC 27001:2022 (Document 13), and the incident process (Document 14).
-- **Test evidence:** the automated test suite and the UK test-house report. Ask the lab whether any UK certification work can be reused, for example for the RNG, to shorten the UAE assessment.
+- **Test evidence:** the automated test suite and any UK test-house or security audit reports. Ask the lab whether any UK work can be reused to shorten the UAE assessment.
 
 ## 6. Decisions and risks
 

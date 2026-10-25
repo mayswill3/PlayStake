@@ -9,6 +9,7 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { formatCents } from '@/lib/utils/format';
 import { ChevronDown } from 'lucide-react';
 import { PlayerSearch } from '@/components/users/PlayerSearch';
+import { SessionClock } from '@/components/responsible-play/SessionClock';
 
 interface HeaderProps {
   user: {
@@ -69,6 +70,13 @@ export function Header({ user, balance }: HeaderProps) {
               <PlayerSearch />
             </div>
           )}
+          {/* Time and session length, always visible while signed in (RTS 13). Phones show it under the header. */}
+          {user && (
+            <div className="hidden sm:block">
+              <SessionClock />
+            </div>
+          )}
+
           {/* Theme toggle */}
           <ThemeToggle />
 

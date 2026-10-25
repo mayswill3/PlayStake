@@ -73,8 +73,7 @@ The eligibility check (Master Manual §5.1) requires verified identity for every
 | Action | Blocked until verified? |
 |---|---|
 | Depositing | Yes |
-| Entering the games (`/play`), including free-to-play games | Yes |
-| Joining a lobby, sending or accepting an invite, issuing or accepting a challenge | Yes |
+| Issuing or accepting a challenge (the only way to enter a match since the on-site games and lobby were withdrawn on 25 October 2026) | Yes |
 | Having a stake locked when an opponent accepts a match | Yes (the opponent is re-checked) |
 | Withdrawing | Yes |
 | Applying to be a referee | Verified identity is required before approval and before officiating |

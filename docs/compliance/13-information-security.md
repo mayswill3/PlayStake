@@ -62,7 +62,7 @@ Status: **In place** — implemented and evidenced; **Partial** — some of the 
 | 5.24 Incident management planning and preparation | Document 14 | In place (document) |
 | 5.25 Assessment and decision on information security events | Triage in Document 14 §3 | In place (document) |
 | 5.26 Response to information security incidents | Document 14 §4 | In place (document) |
-| 5.28 Collection of evidence | Append-only audit logs, ledger and game events; log export and preservation steps in Document 14 | Partial — log retention (§6) |
+| 5.28 Collection of evidence | Append-only audit logs, ledger, hash-chained referee audit trail and historical game records; log export and preservation steps in Document 14 | Partial — log retention (§6) |
 | 5.35 Independent review of information security | Annual independent security audit; quarterly review by external compliance adviser | Planned |
 
 ### 4.2 People controls
@@ -103,7 +103,7 @@ PlayStake operates no data centre or office servers; physical security of hostin
 | 8.24 Use of cryptography | AES-256-GCM for identity documents and OAuth tokens with separate keys; bcrypt; SHA-256 token hashes; HMAC-SHA256 webhook signing; TLS. Keys held only in the hosting environment; key rotation procedure to write | Partial — rotation procedure |
 | 8.25 Secure development life cycle | All changes in Git; CI lint, type check, tests, dependency audit and malware scan before release; change classes and sign-off (Document 11 §5) | In place |
 | 8.26 Application security requirements | Server-side authorisation on every route; identity from session only, never the request body; input validation; idempotency on money routes | In place |
-| 8.27 Secure system architecture and engineering principles | Ledger as trust boundary; server-authoritative games; append-only records; fail-closed eligibility gate | In place |
+| 8.27 Secure system architecture and engineering principles | Ledger as trust boundary; results recorded only by approved referees with a hash-chained audit trail; append-only records; fail-closed eligibility gate | In place |
 | 8.29 Security testing in development and acceptance | Automated tests for authorisation and exploit paths (e.g. forged sessions, client-declared results); independent penetration test before launch and annually | Partial — penetration test not yet done |
 | 8.30 Outsourced development | None at present; any future outsourced development under the same CI and review | In place |
 | 8.31 Separation of development, test and production environments | Local and CI environments use their own databases; production secrets never in development | In place |

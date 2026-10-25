@@ -24,12 +24,12 @@ flowchart TD
   D -- no --> X["Gambling refused<br/>(under 18: account closed)"]
   D -- yes --> E["4. Deposit-limit prompt<br/>set a limit or decline"]
   E --> F["5. Deposit by card<br/>Stripe; limit checked first"]
-  F --> G["6. Find a match<br/>lobby, invite or stream challenge"]
+  F --> G["6. Find a match<br/>challenge a player or streamer"]
   G --> H["7. Both players consent<br/>stakes move into bet escrow"]
-  H --> I["8. Play<br/>server runs the game,<br/>draws, decides result"]
+  H --> I["8. Play<br/>both stream on Kick,<br/>referee decides result"]
   I --> J["9. Settle<br/>fee to revenue, pot to winner<br/>(or split on a draw)"]
   J --> K["10. Withdraw<br/>Stripe Connect payout"]
-  G -.-> L["Eligibility gate on every<br/>deposit, join, invite, accept:<br/>account, KYC, GAMSTOP, breaks"]
+  G -.-> L["Eligibility gate on every<br/>deposit, challenge, accept:<br/>account, KYC, GAMSTOP, breaks"]
   H -.-> L
   F -.-> L
 ```
@@ -46,9 +46,9 @@ All PlayStake steps run on the web service or worker service with data in Postgr
 | **3a. GAMSTOP** *(planned)* | The verified identity is checked against GAMSTOP on verification, on sign-in and when a cached result is over 24 hours old. | Registered customers can't gamble; a failed check refuses gambling rather than allowing it | GAMSTOP API (UK) |
 | **4. Deposit-limit prompt** | Before the first deposit the customer must set a deposit limit or actively decline. Every six months they are reminded to review limits. | Limits are on gross deposits, per day/week/month; decreases apply at once, increases after 24 hours | Web service (Railway) |
 | **5. Deposit** | Customer pays by card on a Stripe form. Stripe confirms payment by signed webhook; the ledger then moves funds from `STRIPE_SOURCE` to the player's account. | Eligibility gate; deposit limits (most restrictive applies); affordability and AML thresholds; webhook signature verified; idempotent ledger transfer | Card entry: Stripe. Webhook handling and ledger: Railway. |
-| **6. Find a match** | Customer joins a game lobby and picks a stake, invites or is invited by another player, or challenges a live streamer. The fee and what a win or draw pays are shown before commitment. | Eligibility gate on join, invite and accept, for both players; lobby entries and invites expire | Web service; real-time lobby events through Redis (Railway) |
+| **6. Find a match** | Customer challenges another player, or a live streamer, to EA SPORTS FC 27 or Tekken 8 and picks a stake (£1 to £500). The fee and what a win or draw pays are shown before commitment. | Eligibility gate on issuing and accepting a challenge, for both players; Match Rules accepted before the first challenge; unanswered challenges expire | Web service; real-time challenge events through Redis (Railway) |
 | **7. Consent and escrow** | Each player explicitly consents. Only then is their stake moved from their account into a per-bet escrow account. | Sufficient-funds check in the same database statement as the debit; no stake taken without consent; unanswered bets expire and refund | Ledger in PostgreSQL (Railway) |
-| **8. Play** | `/play` games: the server holds the state, draws every random outcome (CSPRNG) and decides the result; each move and draw is written to an append-only event log. Stream matches: an independent referee decides from both streams. | Clients can't declare results; hidden cards never leave the server; a started match left idle 10 minutes is forfeited by the player to move; an unstarted one is voided and refunded | Game server: web service (Railway). Stream video: Kick. |
+| **8. Play** | Both players stream their own screen on Kick. An independent, approved referee watches both streams and records the result (a win for either player, or a draw) with written notes. | Players can't declare results; the referee can't officiate their own match or players they follow, are followed by or have a block with; every referee action is written to a hash-chained, append-only audit trail; no referee within 10 minutes, or not finished within 2 hours, cancels the match with stakes returned in full; a player who drops and doesn't return within 10 minutes may lose the match on the referee's decision | Referee console: web service (Railway). Stream video: Kick. |
 | **9. Settle** | The fee goes to `PLATFORM_REVENUE`, any developer or referee share is paid, and the rest of the escrow goes to the winner (or is split on a draw). Escrow must end at exactly zero. | Stream matches settle only after the dispute window; mismatched results open a dispute; settlement worker takes a row lock; daily ledger audit checks every account and transaction balances | Worker service or web service (Railway) |
 | **10. Withdraw** | Customer onboards to Stripe Connect Express once, then requests a withdrawal. The ledger debits their balance to `STRIPE_SINK` and Stripe pays out to their bank. | Verified identity required; suspended accounts can't withdraw; self-excluded and GAMSTOP-registered customers **can** withdraw; payout account name to be matched to the verified name | Ledger: Railway. Payout: Stripe. |
 
@@ -77,7 +77,7 @@ Every arrow is one call to the ledger's `transfer()`, which writes one debit and
 | Worker service (settlement, expiry, detection, email, webhooks) | Railway | [RAILWAY REGION] |
 | PostgreSQL (all records, ledger, encrypted KYC documents) | Railway | [RAILWAY REGION] |
 | Database backups | Railway | [BACKUP LOCATION] |
-| Redis (queues, lobby events) | Railway | [RAILWAY REGION] |
+| Redis (queues, challenge events) | Railway | [RAILWAY REGION] |
 | Card processing and payouts | Stripe | Stripe data centres (EU/US) |
 | Email delivery | Resend | [RESEND REGION] |
 | Error monitoring | Sentry | [SENTRY REGION] |

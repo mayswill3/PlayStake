@@ -120,7 +120,7 @@ export async function createChallenge(
       userId: true,
       isLive: true,
       declaredGameId: true,
-      declaredGame: { select: { slug: true } },
+      declaredGame: { select: { slug: true, name: true, isActive: true } },
     },
     }),
     prisma.kickAccount.findUnique({
@@ -142,6 +142,9 @@ export async function createChallenge(
   }
   if (!account.declaredGame) {
     throw new ValidationError("This streamer hasn't declared a game to challenge");
+  }
+  if (!account.declaredGame.isActive) {
+    throw new ConflictError(`${account.declaredGame.name} matches are paused right now. Try again later.`);
   }
   const gameType = streamGameTypeForSlug(account.declaredGame.slug);
   if (!gameType) {

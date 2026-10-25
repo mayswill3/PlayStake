@@ -16,7 +16,7 @@ This document gives the Commission a single picture of the PlayStake gambling sy
 
 ## 2. Summary
 
-PlayStake is a single web application with a separate background-worker process, a PostgreSQL database and a Redis instance. All four are hosted by one provider (Railway). PlayStake writes and operates all of its gambling software itself: game logic, random number generation, the wallet and ledger, result handling, and all compliance controls. No third-party gambling software, game content or platform is used.
+PlayStake is a single web application with a separate background-worker process, a PostgreSQL database and a Redis instance. All four are hosted by one provider (Railway). PlayStake writes and operates all of its gambling software itself: challenges and match management, the referee console, the wallet and ledger, result handling, and all compliance controls. No third-party gambling software or platform is used. The games themselves (EA SPORTS FC 27 and Tekken 8) are third-party console and PC games that players run on their own devices; PlayStake does not host, run or modify them, and uses no random number generator.
 
 Third parties provide: card payments and payouts (Stripe), transactional email (Resend), error monitoring (Sentry), optional sign-in (Google), live-stream integration (Kick), domain name registration and DNS (Namecheap), source control and build checks (GitHub). The national self-exclusion check (GAMSTOP) and dispute resolution (IBAS) are contracted but not yet live.
 
@@ -26,7 +26,7 @@ Third parties provide: card payments and payouts (Stripe), transactional email (
 flowchart TB
   subgraph Users["People"]
     direction LR
-    B["Customer browser<br/>website, /play games, wallet"]
+    B["Customer browser<br/>website, challenges, wallet"]
     W["In-game widget<br/>(iframe in a developer's game)"]
     STAFF["PlayStake staff<br/>admin console, 2FA"]
   end
@@ -41,9 +41,9 @@ flowchart TB
 
   subgraph Railway["Railway — region [RAILWAY REGION]"]
     direction LR
-    WEB["Web service<br/>Next.js, Node 20<br/>website, API, game server"]
+    WEB["Web service<br/>Next.js, Node 20<br/>website, API, referee console"]
     WRK["Worker service<br/>BullMQ jobs"]
-    PG[("PostgreSQL 16<br/>ledger, bets, game events,<br/>encrypted KYC, audit logs")]
+    PG[("PostgreSQL 16<br/>ledger, bets, referee audit,<br/>encrypted KYC, audit logs")]
     RD[("Redis 7<br/>queues, lobby events")]
   end
 
@@ -87,8 +87,8 @@ flowchart TB
 ### 3.1 Commentary
 
 - **One application, two processes.** The web service answers every request from customers, staff and game developers. The worker service runs everything time-based: settlement after the dispute window, expiry of unanswered bets, no-show voiding, dispute escalation, anomaly and harm detection, AML scans, the daily ledger audit, email delivery, outbound webhooks, deposit-limit activation and session cleanup. Both processes are deployed from the same code and connect to the same database.
-- **The database is the system of record.** Balances exist only as ledger accounts in PostgreSQL, changed only through a double-entry `transfer()` that writes two balancing entries. Ledger entries, game events, the admin audit log and referee audit events cannot be edited or deleted (database triggers reject it).
-- **Games run on our servers.** For every `/play` game, the server holds the rules and state, draws every random outcome (Node.js `crypto.randomInt`, a CSPRNG) and decides the result. The browser only sends what the player did. See Document 11 for testing.
+- **The database is the system of record.** Balances exist only as ledger accounts in PostgreSQL, changed only through a double-entry `transfer()` that writes two balancing entries. Ledger entries, the admin audit log, referee audit events and the historical game events of the withdrawn on-site games cannot be edited or deleted (database triggers reject it).
+- **No games run on our servers.** Every match is played in a third-party game on the players' own devices and streamed on Kick. An independent human referee decides the result from both streams through the referee console. PlayStake's own on-site games and their random number generator were withdrawn on 25 October 2026. See Document 11 for testing.
 - **Card data never reaches PlayStake.** Card entry uses Stripe Elements, loaded from Stripe, so PlayStake never sees or stores card numbers. Stripe tells us about payments through signed webhooks, which are verified before any balance changes.
 - **Redis holds no money and no customer records.** It carries job queues, real-time lobby events and the worker heartbeat. Losing it delays background work; it does not lose funds or records.
 - **Identity documents** are stored in PostgreSQL encrypted with AES-256-GCM, under a key held only in the hosting environment. Every staff view is logged.
@@ -122,7 +122,7 @@ flowchart TB
 
 ## 5. What is not outsourced
 
-- All gambling software: game logic and random number generation, the wallet and double-entry ledger, escrow, settlement, result verification, disputes and referees.
+- All gambling software: challenges and match management, the wallet and double-entry ledger, escrow, settlement, result verification, disputes and the referee console. (PlayStake runs no game logic or random number generation of its own.)
 - Every compliance control: eligibility gate, deposit limits, breaks and self-exclusion, reality checks, customer interaction, AML scans, complaints handling, audit logging.
 - Customer data processing: it runs only in PlayStake's own services on Railway.
 

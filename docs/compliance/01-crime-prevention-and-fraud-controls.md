@@ -76,25 +76,20 @@ Cheating is an offence under s.42 of the Gambling Act 2005. PlayStake prevents a
   - the database refuses any bet where both players are the same account
   - the lobby and challenge flows refuse it before that point
 - **Head-to-head cap.** The same two customers can play each other at most **5 times in any hour**. Repeated head-to-heads are how value is passed between colluding accounts.
-- **Results for PlayStake's own games:**
-  - the server decides every result: it holds the game state, applies each move, and makes every random draw with a cryptographically secure generator; the browser only sends the player's move, call or aim
-  - no request can declare a winner
-  - every move, draw and result is written to an append-only game event log that the database protects from edits or deletion
-  - settlement checks that the game session belongs to that bet and the same two players (hardened against a previously identified exploit chain)
-  - a player cannot move for their opponent
-  - a player who abandons a started match forfeits it, so leaving a losing position can't turn into a refund (see the Fair Play page)
+- **No PlayStake-run games.** PlayStake's own on-site games (Tic-Tac-Toe and Darts 301) were withdrawn on 25 October 2026. Every match is now a refereed stream match in EA SPORTS FC 27 or Tekken 8. Past game records for the withdrawn games are kept, append-only; no new ones are created.
 - **Match Rules and Referee Code of Conduct** (published at `/match-rules`):
   - players must accept the Match Rules before sending or accepting their first stream challenge
   - referees must accept the Referee Code of Conduct when they apply, and before going available or claiming a match
   - the accepted version and time are recorded for each person, so a disputed match is judged against the rules that applied; changing a rule in substance bumps the version and everyone must accept again
   - the rules cover cheating, fixing, bots, staying live, conduct, disconnects, disputes and sanctions; the Code covers independence and conflicts, no betting or gifts, officiating live, deciding only on what the streams show, written notes and confidentiality
-- **Results for streamed matches** are decided by an independent human referee:
+- **Results** for every match are decided by an independent human referee:
   - referees apply, are verified (identity and age), and are approved by staff for specific games
   - a referee cannot officiate a match they are playing in, and can hold only one match at a time
   - a referee is never offered, and cannot claim, a match where they follow or are followed by either player, or where either side has blocked the other. The Referee Code of Conduct treats a follow as knowing each other. While a referee is on a match, they and its players cannot start following each other. Each claim records in the audit trail that this check found no link
   - the match can only start while both players are live on Kick with the same game declared, so the referee can watch both feeds
   - every referee action is written to an append-only, hash-chained audit trail that the database protects from edits or deletion; anyone can verify the chain for a match
   - after a decision, either player has 15 minutes to dispute it before payout
+  - a match that no referee takes within 10 minutes, or that isn't finished within 2 hours of starting, is cancelled and both stakes are returned in full
 - **Disputes.** Any result can be disputed before it pays out (see Policy 02). Staff decisions on disputes are recorded in the audit log.
 - **Referee quality.** Overturned referee decisions are tracked per referee. Referees with a high overturn rate are reviewed and can be suspended.
 - **Anomaly detection.** A scan every 15 minutes looks for:
@@ -103,7 +98,7 @@ Cheating is an offence under s.42 of the Gambling Act 2005. PlayStake prevents a
   - average settlement under 30 seconds
   - hourly volume spikes above 3 times normal
 
-  For third-party games it can automatically reduce the game's escrow cap or freeze the developer. For PlayStake's own games it alerts staff instead, so that two colluding players cannot take the whole site offline.
+  It alerts staff. For third-party games it can also automatically reduce the game's escrow cap or freeze the developer account that owns it. For PlayStake's own games (EA SPORTS FC 27 and Tekken 8) it only alerts staff, so two colluding players cannot take both games offline. Player-level collusion is handled by the AML scan below.
 - **Chip-dumping detection** (Policy 07). The same pair playing 5 or more times in 7 days, with one side winning at least 80% and receiving at least a set amount, opens a `CHIP_DUMPING` case.
 
 ### 3.4 Payments

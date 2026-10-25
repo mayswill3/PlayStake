@@ -47,8 +47,11 @@ interface DeveloperForAnalysis {
   user?: { email: string };
 }
 
-/** The system account that owns every PlayStake-run game (see /api/demo/setup). */
-const PLATFORM_DEVELOPER_EMAIL = "system-demo@playstake.internal";
+/**
+ * System accounts that own PlayStake's own games: the game catalogue
+ * (EA SPORTS FC 27, Tekken 8) and the former on-site demo games.
+ */
+const PLATFORM_DEVELOPER_EMAILS = new Set(["catalog@playstake.org", "system-demo@playstake.internal"]);
 
 /**
  * Automatic cap cuts and freezes are for third-party developers. On the
@@ -58,9 +61,9 @@ const PLATFORM_DEVELOPER_EMAIL = "system-demo@playstake.internal";
  * only alert.
  */
 async function isPlatformDeveloper(developer: DeveloperForAnalysis): Promise<boolean> {
-  if (developer.user) return developer.user.email === PLATFORM_DEVELOPER_EMAIL;
+  if (developer.user) return PLATFORM_DEVELOPER_EMAILS.has(developer.user.email);
   const user = await prisma.user.findUnique({ where: { id: developer.userId }, select: { email: true } });
-  return user?.email === PLATFORM_DEVELOPER_EMAIL;
+  return Boolean(user && PLATFORM_DEVELOPER_EMAILS.has(user.email));
 }
 
 // ---------------------------------------------------------------------------

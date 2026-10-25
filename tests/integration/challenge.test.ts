@@ -343,6 +343,21 @@ describe("POST /api/streamers/[slug]/challenge", () => {
     expect(res.status).toBe(422);
   });
 
+  it("refuses a challenge for a game staff have paused", async () => {
+    const slug = `paused-${crypto.randomUUID().substring(0, 8)}`;
+    await makeStreamer({ channelSlug: slug, isLive: true, declared: true });
+    const viewer = await makeViewer();
+    await fundUser(viewer.id, 50);
+    await prisma.game.update({ where: { id: gameId }, data: { isActive: false } });
+    try {
+      await expect(
+        createChallenge({ challengerUserId: viewer.id, streamerChannelSlug: slug, stakeAmount: 500 }),
+      ).rejects.toThrow(/paused/);
+    } finally {
+      await prisma.game.update({ where: { id: gameId }, data: { isActive: true } });
+    }
+  });
+
   it("rejects an out-of-range stake", async () => {
     const slug = `range-${crypto.randomUUID().substring(0, 8)}`;
     await makeStreamer({ channelSlug: slug, isLive: true, declared: true });

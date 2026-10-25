@@ -24,16 +24,15 @@ This manual is the top-level description of how PlayStake meets the licensing ob
 2. ensuring gambling is conducted in a fair and open way;
 3. protecting children and other vulnerable persons from being harmed or exploited by gambling.
 
-It applies to every person who works for or on behalf of PlayStake, including directors, employees, contractors and outsourced providers. It also covers every part of the PlayStake service: the website at playstake.org, the lobby and challenge system, streamed matches refereed through Kick, the demo and skill games at /play, payments and withdrawals, and all back-office tooling.
+It applies to every person who works for or on behalf of PlayStake, including directors, employees, contractors and outsourced providers. It also covers every part of the PlayStake service: the website at playstake.org, the lobby and challenge system, streamed matches refereed through Kick, the game guide pages at /games, payments and withdrawals, and all back-office tooling.
 
 ## 2. The business in brief
 
 PlayStake is a peer-to-peer platform where adult customers wager against each other on the outcome of skill-based games they play themselves:
 
 - **Opponents are other customers.** PlayStake never takes the other side of a bet. It holds both stakes in escrow and pays the winner. It earns a platform fee (a percentage of the pot) on settled matches.
-- **Match types.**
-  - *Lobby matches* are played in PlayStake's own games (darts, tic-tac-toe). The server decides the result.
-  - *Streamed matches* are played in third-party games while both players broadcast on Kick. An independent, approved human referee watches both streams and records the result, and every referee action is written to a tamper-evident, hash-chained audit trail.
+- **Matches.** Every match is a refereed stream match in one of two third-party games: EA SPORTS FC 27 or Tekken 8. Both players broadcast their own screen on Kick. An independent, approved human referee watches both streams and records the result (a win for either player, or a draw), and every referee action is written to a tamper-evident, hash-chained audit trail. Stakes are £1 to £500.
+  - PlayStake's own on-site games (Tic-Tac-Toe and Darts 301 at /play) were withdrawn on 25 October 2026. PlayStake no longer runs any game itself, and uses no random number generator to decide any outcome.
 - **Money.** All money moves through a double-entry ledger with a per-match escrow account. The ledger is audited automatically every night.
 - **Disputes.** Either player can dispute a result before it pays out. Payout pauses while the dispute is reviewed.
 
@@ -93,7 +92,7 @@ The application's technical documents:
 | 08 | [System Diagram and Outsourcing Map](08-system-diagram-and-outsourcing-map.md) | Every component and supplier, with commentary: payments, identity, geolocation, marketing, customer service, fraud detection, hosting |
 | 09 | [End-to-End Customer and System Flow](09-end-to-end-flow.md) | Registration to gambling to payout, with the checks at each step and where the equipment is |
 | 10 | [Operational Model Map](10-operational-model-map.md) | Location, provider and operator of every system and activity, including key equipment |
-| 11 | [Testing Strategy](11-testing-strategy.md) | Test-house scope (RNG, game rules), in-house testing, CI, change control, annual security audit |
+| 11 | [Testing Strategy](11-testing-strategy.md) | What is tested and by whom (no PlayStake-run games or RNG since 25 October 2026), in-house testing, CI, change control, annual security audit |
 | 12 | [RTS Compliance Statement and Change Register](12-rts-compliance-and-change-register.md) | How each applicable RTS is met, RTS 12 phase 1 and 2, and how RTS changes are tracked |
 | 13 | [Information Security Policy](13-information-security.md) | ISO/IEC 27001:2022 control mapping for the RTS security requirements, residual risks and gaps |
 | 14 | [Incident Response and Key Event Reporting](14-incident-response-and-key-events.md) | Triage, response, customer and ICO notification, LCCP 15.2.1 key events within 5 working days |
@@ -159,7 +158,7 @@ The platform emails the compliance inbox, [COMPLIANCE EMAIL] (configured as `EMA
 - an interaction has no effect
 - a complaint is two weeks from, or past, its 8-week deadline
 - the nightly ledger audit fails
-- the anomaly scan detects unusual patterns on PlayStake's own games
+- the anomaly scan detects unusual patterns on matches
 
 > **Important:** without `EMAIL_ADMIN` set these alerts are silently skipped. Setting it is a go-live requirement.
 
@@ -212,11 +211,11 @@ These must be done before the application is submitted, or before real-money lau
 | 16 | Confirm the current Commission thresholds and rules on: financial vulnerability and affordability checks, consumer-set financial limit prompts, and marketing consent. Adjust the platform settings to match. | Application | Head of Compliance |
 | 17 | Record the Railway region and backup location; confirm backups are enabled and test a restore | Application | Engineering |
 | 18 | Decide permitted jurisdictions and add IP geolocation blocking plus a residency restriction at verification (Document 08 §6) | Launch | Head of Compliance / engineering |
-| 19 | Engage a Commission-approved test house for RNG and game certification (Document 11 §3.1); confirm with the Commission the in-house/third-party split for peer-to-peer games (Higher / Lower withdrawn 30 Sep 2026 as mostly chance) | Application | Head of Compliance |
+| 19 | ~~Engage a Commission-approved test house for RNG and game certification~~ No longer needed: PlayStake's own games and their RNG were withdrawn on 25 October 2026, so there is no PlayStake game or RNG to certify (Document 11 §3.1). Remaining: confirm with the Commission the in-house/third-party testing split for refereed peer-to-peer matches (Higher / Lower withdrawn 30 Sep 2026 as mostly chance) | Application | Head of Compliance |
 | 20 | Commission an independent penetration test; appoint the annual security auditor (first audit within 6 months of grant) | Launch / grant + 6 months | Head of Compliance |
 | 21 | Close the information security gaps in Document 13 §6 (log retention, written staff security rules, supplier assurance, key rotation, `timestamptz`) | As marked there | Head of Compliance / engineering |
 | 22 | Review the 12 January 2026 update to RTS 14 against Policies 03 and 04 (Document 12 §4) | Application | Head of Compliance |
-| 23 | Build the monthly game-fairness statistical check from the game event log (Document 11 §6) | Launch | Engineering |
+| 23 | ~~Build the monthly game-fairness statistical check from the game event log~~ No longer needed: it checked dart-scatter draws, and Darts was withdrawn on 25 October 2026 (Document 11 §6) | — | Engineering |
 | 24 | Get Stripe's written approval for gambling (or appoint a gambling-approved PSP) and confirm its FCA reference number (Policy 16) | Launch | Head of Compliance |
 | 25 | Block credit-funded cards on deposits (Policy 16 §7) | Launch | Head of Compliance / engineering |
 

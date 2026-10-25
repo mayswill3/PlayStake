@@ -42,12 +42,12 @@ A fault in a safer-gambling control is always at least Severity 2, and gambling 
 
 1. **Contain.** Stop the harm first. Options, in order of preference:
    - suspend affected accounts (`/admin/users`);
-   - turn off the affected feature or game (remove from `/play`, disable deposits by removing the payments flag);
+   - turn off the affected feature or game (pause a game at once by switching it off in the database, `games.is_active = false`, which stops new challenges and declarations without a deploy; disable deposits by removing the payments flag);
    - stop the worker service if it is moving money wrongly;
    - put the web service into maintenance, or scale it to zero, in Railway;
    - rotate compromised secrets (Railway environment variables) and sign all users out (delete sessions).
-2. **Preserve evidence.** Don't change or delete records. The ledger, game events and admin audit log are append-only. Export relevant application logs from Railway and Sentry before they age out; take a database snapshot; record every action taken, with times, in the incident record.
-3. **Assess.** Which customers, how much money, what data, since when, and how. Use the ledger audit, game event log and admin audit log to establish the facts.
+2. **Preserve evidence.** Don't change or delete records. The ledger, referee audit trail and admin audit log are append-only. Export relevant application logs from Railway and Sentry before they age out; take a database snapshot; record every action taken, with times, in the incident record.
+3. **Assess.** Which customers, how much money, what data, since when, and how. Use the ledger audit, referee audit trail and admin audit log to establish the facts.
 4. **Fix and recover.** Deploy the fix through CI (emergency change class, Document 11 §5). Restore from backup only if needed and only after preserving evidence. Correct any wrong payment with a new, reversing ledger transfer — never by editing records.
 5. **Tell the people who need to know** (§5 and §6).
 6. **Close and learn.** Within 10 working days of containment, a post-incident review records the cause, the impact, what worked, what didn't, and actions with owners. Policies, controls and tests are updated.
@@ -90,7 +90,7 @@ Other events under LCCP 15.2.2 (for example suspicion of offences, or informatio
 | Incident | First actions |
 |---|---|
 | **Ledger audit fails** | Stop the worker; identify the transaction(s); compare `balance` with the entry sum; no manual balance edits; correct with reversing transfers after sign-off; Severity 1 |
-| **Game decides a wrong result** | Remove the game from `/play`; list affected matches from `game_events`; void or correct with reversing transfers; tell affected customers; key event if payouts were wrong; test-house re-test before re-enabling |
+| **Wrong result recorded** (referee error or misconduct, or a platform fault) | Suspend the referee if misconduct is suspected; list affected matches from the referee audit trail; void or correct with reversing transfers; tell affected customers; key event if payouts were wrong; fix and test before re-enabling (Document 11 §5) |
 | **Leaked secret** (API key, encryption key, database URL) | Rotate in Railway; redeploy; delete all sessions; review audit and access logs for use; for the KYC key, re-encrypt documents under a new key |
 | **Unauthorised admin access** | Suspend the admin account; delete its sessions; review the admin audit log for every action; reverse unauthorised changes; reset 2FA |
 | **Outage** | Check Railway status and `/api/health`; communicate on the site; if customers can't access the system for more than 12 hours, report as a key event |
