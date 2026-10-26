@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import { formatCents } from '@/lib/utils/format';
 
 /** The shape returned by getDisputeEvidence (src/lib/disputes/review.ts). */
@@ -33,8 +34,9 @@ export interface DisputeEvidenceData {
     chatMessages: Array<{ body: string; createdAt: string; user: { id: string; displayName: string } }>;
     recordings: Array<{
       id: string;
-      role: 'PLAYER_A' | 'PLAYER_B' | 'REFEREE';
+      role: 'PLAYER_A' | 'PLAYER_B' | 'REFEREE' | 'COMPOSITE';
       channelSlug: string;
+      sha256?: string | null;
       status: string;
       startedAt: string;
       endedAt: string | null;
@@ -64,7 +66,91 @@ const ACTION_LABEL: Record<string, string> = {
   DISPUTE_FILED: 'Dispute filed',
   DISPUTE_REVIEW_CLAIMED: 'Reviewer took the dispute',
   DISPUTE_RESOLVED: 'Dispute decided',
+  RECORDING_SEALED: 'Recording sealed',
 };
+
+/** "87:40", "1:02:15" or "18:55 into the match" → seconds, if it reads as a time. */
+function momentSeconds(at: string): number | null {
+  const match = at.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (!match) return null;
+  const [a, b, c] = [match[1], match[2], match[3]].map((part) => (part === undefined ? undefined : Number(part)));
+  return c === undefined ? a! * 60 + b! : a! * 3600 + b! * 60 + c;
+}
+
+function RecordingPlayer({
+  disputeId,
+  recording,
+  jumps,
+}: {
+  disputeId: string;
+  recording: DisputeEvidenceData['bet']['recordings'][number];
+  jumps: Array<{ label: string; seconds: number }>;
+}) {
+  const video = useRef<HTMLVideoElement>(null);
+  const [url, setUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/referees/disputes/${disputeId}/recordings/${recording.id}`, { cache: 'no-store' });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error ?? 'Could not load the recording');
+      setUrl(body.url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not load the recording');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const seek = (seconds: number) => {
+    if (!video.current) return;
+    video.current.currentTime = Math.max(0, seconds);
+    void video.current.play();
+  };
+
+  if (!url) {
+    return (
+      <div className="mt-3">
+        <button
+          type="button"
+          onClick={load}
+          disabled={loading}
+          className="rounded-md bg-brand-400 px-4 py-2 text-sm font-semibold text-black disabled:opacity-60"
+        >
+          {loading ? 'Loading…' : 'Watch the recording'}
+        </button>
+        <p className="mt-1 text-xs text-fg-secondary">Each viewing is logged.</p>
+        {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+      </div>
+    );
+  }
+  return (
+    <div className="mt-3 space-y-2">
+      <video ref={video} src={url} controls preload="metadata" className="w-full rounded-md bg-black" />
+      {jumps.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {jumps.map((jump, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => seek(jump.seconds)}
+              className="rounded-md border border-[var(--border)] px-2.5 py-1 text-xs text-fg hover:bg-white/5"
+            >
+              {jump.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {recording.sha256 && (
+        <p className="break-all font-mono text-[11px] text-fg-secondary">SHA-256 {recording.sha256}</p>
+      )}
+    </div>
+  );
+}
 
 /** "+12:05" from the match start, or the clock time before it started. */
 function relative(at: string, start: string | null): string {
@@ -95,7 +181,18 @@ export function DisputeEvidence({ data }: { data: DisputeEvidenceData }) {
           ? `${assignment.refereeProfile.user.displayName} (referee)`
           : 'Someone else';
 
-  const recordingFor = (role: 'PLAYER_A' | 'PLAYER_B' | 'REFEREE') => data.bet.recordings.find((r) => r.role === role);
+  const composite = data.bet.recordings.find((r) => r.role === 'COMPOSITE');
+  // Seek points within the video: it starts when the referee starts the match.
+  const videoStart = composite ? new Date(composite.startedAt).getTime() : null;
+  const at = (iso: string) => (videoStart ? (new Date(iso).getTime() - videoStart) / 1000 : 0);
+  const jumps: Array<{ label: string; seconds: number }> = [
+    ...(start ? [{ label: 'Match start', seconds: at(start) }] : []),
+    ...(data.moments ?? []).flatMap((moment) => {
+      const seconds = momentSeconds(moment.at);
+      return seconds === null ? [] : [{ label: `${moment.at} · ${moment.note.slice(0, 30)}`, seconds: seconds + (start ? at(start) : 0) }];
+    }),
+    ...(assignment?.decisionSubmittedAt ? [{ label: 'Result recorded', seconds: at(assignment.decisionSubmittedAt) }] : []),
+  ];
   const participants: Array<{ role: 'PLAYER_A' | 'PLAYER_B' | 'REFEREE'; label: string; channel: string | null }> = [
     { role: 'PLAYER_A', label: `${data.bet.playerA.displayName} (A)`, channel: data.bet.playerA.kickAccount?.channelSlug ?? null },
     { role: 'PLAYER_B', label: `${data.bet.playerB?.displayName ?? '—'} (B)`, channel: data.bet.playerB?.kickAccount?.channelSlug ?? null },
@@ -147,29 +244,34 @@ export function DisputeEvidence({ data }: { data: DisputeEvidenceData }) {
       </section>
 
       <section className={panel}>
-        <p className={heading}>Recordings</p>
+        <p className={heading}>Recording</p>
         <p className="mt-1 text-xs text-fg-secondary">
-          PlayStake&apos;s own recordings of each stream, from when the referee started the match until the result.
+          PlayStake&apos;s recording of all three streams in one synced video, with sound, from when the referee
+          started the match until the result. The match clock is shown in the video.
         </p>
-        <ul className="mt-3 space-y-2 text-sm">
+        {composite ? (
+          composite.status === 'READY' ? (
+            <RecordingPlayer disputeId={data.id} recording={composite} jumps={jumps} />
+          ) : (
+            <p className="mt-3 text-sm text-fg-secondary">
+              {composite.status === 'RECORDING'
+                ? 'Recording in progress…'
+                : composite.status === 'FAILED'
+                  ? `The recording failed${composite.failureReason ? `: ${composite.failureReason}` : ''}. Use the players' Kick channels below.`
+                  : 'This recording has been deleted under the retention policy.'}
+            </p>
+          )
+        ) : (
+          <p className="mt-3 text-sm text-fg-secondary">No PlayStake recording for this match.</p>
+        )}
+        <p className="mt-4 text-xs font-semibold text-fg-secondary">Kick channels</p>
+        <ul className="mt-2 space-y-2 text-sm">
           {participants.map((participant) => {
-            const recording = recordingFor(participant.role);
             return (
-              <li key={participant.role} className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-fg">
-                  {participant.label}
-                  {participant.channel ? <span className="text-fg-secondary"> · kick.com/{participant.channel}</span> : null}
-                </span>
+              <li key={participant.role} className="text-fg">
+                {participant.label}
                 <span className="text-fg-secondary">
-                  {!recording
-                    ? 'No recording for this match'
-                    : recording.status === 'READY'
-                      ? `Recorded${recording.durationSeconds ? ` · ${Math.round(recording.durationSeconds / 60)} min` : ''}`
-                      : recording.status === 'RECORDING'
-                        ? 'Recording…'
-                        : recording.status === 'FAILED'
-                          ? `Recording failed${recording.failureReason ? `: ${recording.failureReason}` : ''}`
-                          : 'Deleted'}
+                  {participant.channel ? ` · kick.com/${participant.channel}` : ' · no Kick channel linked'}
                 </span>
               </li>
             );

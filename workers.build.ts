@@ -8,9 +8,13 @@
  * Our own source (including the generated Prisma client and "@/..." imports)
  * is bundled; npm packages stay external and load from node_modules at runtime.
  *
+ * Also builds the match recorder (src/recorder/index.ts), which runs as its
+ * own service in the recorder container (Dockerfile.recorder).
+ *
  * Usage:
- *   npm run workers:build     → dist/workers/index.mjs
+ *   npm run workers:build     → dist/workers/index.mjs, dist/recorder/index.mjs
  *   npm run workers:start     → node dist/workers/index.mjs
+ *   npm run recorder:start    → node dist/recorder/index.mjs
  */
 
 import * as esbuild from "esbuild";
@@ -18,8 +22,12 @@ import * as path from "path";
 
 async function build() {
   const result = await esbuild.build({
-    entryPoints: [path.resolve(__dirname, "src/workers/index.ts")],
-    outfile: path.resolve(__dirname, "dist/workers/index.mjs"),
+    entryPoints: {
+      "workers/index": path.resolve(__dirname, "src/workers/index.ts"),
+      "recorder/index": path.resolve(__dirname, "src/recorder/index.ts"),
+    },
+    outdir: path.resolve(__dirname, "dist"),
+    outExtension: { ".js": ".mjs" },
     bundle: true,
     platform: "node",
     target: "node20",
@@ -42,7 +50,7 @@ async function build() {
   });
 
   const bytes = Object.values(result.metafile.outputs).reduce((sum, out) => sum + out.bytes, 0);
-  console.log(`Workers built → dist/workers/index.mjs (${(bytes / 1024).toFixed(0)} KB incl. sourcemap)`);
+  console.log(`Workers and recorder built → dist/ (${(bytes / 1024).toFixed(0)} KB incl. sourcemaps)`);
 }
 
 build().catch((err) => {

@@ -95,6 +95,10 @@ export interface KickLiveSyncPayload {
 }
 
 /** Deletes expired and idle-timed-out login sessions. */
+export interface RecordingRetentionPayload {
+  triggeredAt?: string;
+}
+
 export interface SessionCleanupPayload {
   triggeredAt: string;
 }
@@ -117,6 +121,9 @@ export const QUEUE_NAMES = {
   EMAIL_DELIVERY: "email-delivery",
   KICK_LIVE_SYNC: "kick-live-sync",
   SESSION_CLEANUP: "session-cleanup",
+  /** Consumed by the separate recorder service, not the main worker. */
+  MATCH_RECORDING: "match-recording",
+  RECORDING_RETENTION: "recording-retention",
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];

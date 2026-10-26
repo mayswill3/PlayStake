@@ -99,6 +99,7 @@ The application's technical documents:
 | 15 | [UAE (GCGRA) Certification Plan](15-uae-gcgra-certification-plan.md) | Route to GCGRA licensing and GLI-19 / GLI-33 certification with GLI or BMM (planning draft, unverified) |
 | 16 | [Payment Services and Payment Methods](16-payment-services-and-methods.md) | Payments only through PSR-authorised providers; approved methods fixed in code; provider register and onboarding checklist |
 | 17 | [DPIA: Identity Verification (Didit)](17-dpia-identity-verification.md) | Biometric identity checks: lawful basis, necessity, risks and controls, questions for Didit (first draft) |
+| 18 | [DPIA: Match Recordings](18-dpia-match-recordings.md) | Recording every refereed match for disputes: what is recorded, who can watch, retention, risks and controls (first draft) |
 
 Each policy states its owner, its review date, the LCCP provisions it addresses, and exactly how the platform carries it out.
 

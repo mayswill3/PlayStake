@@ -18,7 +18,9 @@ This document gives the Commission a single picture of the PlayStake gambling sy
 
 PlayStake is a single web application with a separate background-worker process, a PostgreSQL database and a Redis instance. All four are hosted by one provider (Railway). PlayStake writes and operates all of its gambling software itself: challenges and match management, the referee console, the wallet and ledger, result handling, and all compliance controls. No third-party gambling software or platform is used. The games themselves (EA SPORTS FC 27 and Tekken 8) are third-party console and PC games that players run on their own devices; PlayStake does not host, run or modify them, and uses no random number generator.
 
-Third parties provide: card payments and payouts (Stripe), transactional email (Resend), error monitoring (Sentry), optional sign-in (Google), live-stream integration (Kick), domain name registration and DNS (Namecheap), source control and build checks (GitHub). The national self-exclusion check (GAMSTOP) and dispute resolution (IBAS) are contracted but not yet live.
+A third service, the **recorder**, records every refereed match: it opens a private PlayStake page showing both players' and the referee's Kick streams, captures it with sound, and stores the sealed video in Cloudflare R2 (Document 18).
+
+Third parties provide: card payments and payouts (Stripe), match-recording storage (Cloudflare R2), transactional email (Resend), error monitoring (Sentry), optional sign-in (Google), live-stream integration (Kick), domain name registration and DNS (Namecheap), source control and build checks (GitHub). The national self-exclusion check (GAMSTOP) and dispute resolution (IBAS) are contracted but not yet live.
 
 ## 3. System diagram
 
@@ -43,6 +45,7 @@ flowchart TB
     direction LR
     WEB["Web service<br/>Next.js, Node 20<br/>website, API, referee console"]
     WRK["Worker service<br/>BullMQ jobs"]
+    REC["Recorder service<br/>Chrome + ffmpeg,<br/>records each refereed match"]
     PG[("PostgreSQL 16<br/>ledger, bets, referee audit,<br/>encrypted KYC, audit logs")]
     RD[("Redis 7<br/>queues, lobby events")]
   end
@@ -69,6 +72,7 @@ flowchart TB
   end
 
   SN["Sentry<br/>error reports (web + worker)"]
+  R2[("Cloudflare R2<br/>match recordings (private)")]
   NC["Namecheap DNS<br/>playstake.org"]
 
   Users -- "HTTPS" --> WEB
@@ -80,12 +84,17 @@ flowchart TB
   WRK <--> RD
   WEB --> WebCalls
   WRK --> WrkCalls
+  REC <--> RD
+  REC -- "records the match page" --> WEB
+  REC --> R2
+  WEB -. "15-min playback links" .-> R2
   Inbound --> WEB
   Railway -. errors .-> SN
 ```
 
 ### 3.1 Commentary
 
+- **The recorder.** A third service, from the same code, takes a recording job from Redis when a referee starts a match, records the private match page in Chrome with ffmpeg, uploads 5-minute pieces to R2 while recording, and seals the final file into the audit trail when the result is recorded (Document 18).
 - **One application, two processes.** The web service answers every request from customers, staff and game developers. The worker service runs everything time-based: settlement after the dispute window, expiry of unanswered bets, no-show voiding, dispute escalation, anomaly and harm detection, AML scans, the daily ledger audit, email delivery, outbound webhooks, deposit-limit activation and session cleanup. Both processes are deployed from the same code and connect to the same database.
 - **The database is the system of record.** Balances exist only as ledger accounts in PostgreSQL, changed only through a double-entry `transfer()` that writes two balancing entries. Ledger entries, the admin audit log, referee audit events and the historical game events of the withdrawn on-site games cannot be edited or deleted (database triggers reject it).
 - **No games run on our servers.** Every match is played in a third-party game on the players' own devices and streamed on Kick. An independent human referee decides the result from both streams through the referee console. PlayStake's own on-site games and their random number generator were withdrawn on 25 October 2026. See Document 11 for testing.
@@ -100,6 +109,7 @@ flowchart TB
 | Function | Supplier | Status | What they do | Data shared | Where processed | Contract / assurance |
 |---|---|---|---|---|---|---|
 | **Hosting and storage** | Railway Corp. | Live | Runs the web and worker services, PostgreSQL and Redis; database backups (to be confirmed as enabled, Document 13) | All platform data (hosted, not accessed by Railway for its own purposes) | [RAILWAY REGION]. Confirm and record. | Railway terms and DPA. [CONFIRM SOC 2 REPORT] |
+| **Match-recording storage** | Cloudflare, Inc. (R2) | Built, **switched off** until the DPIA is signed off | Stores sealed match recordings privately; deleted after 30 days, or 12 months after a dispute is decided | Video and sound of players' and referees' streams | [R2 BUCKET JURISDICTION — EU recommended] | Cloudflare DPA (with UK addendum). Document 18 |
 | **Payment services** | Stripe Payments Europe / Stripe, Inc. | Live, **test mode** | Card deposits (Payment Intents), withdrawals via Stripe Connect Express, Radar fraud screening (to configure) | Customer name, email, amount; card data handled by Stripe only | Stripe (EU/US) | Stripe Services Agreement; PCI DSS Level 1; PSR authorisation and approved methods in Policy 16 |
 | **Age and identity verification** | In-house | Live | Customers upload an identity document; staff review it before any deposit or gambling | — | PlayStake (Railway) | — |
 | | Didit (didit.me) | Integrated; sandbox testing | Hosted identity check: document authenticity, liveness, face match, age (18+), proof of address, AML screening and ongoing re-screening | Name, date of birth, address, document and selfie images (biometric), email, PlayStake user id | EU (Spain); processing and storage locations to confirm | ISO 27001, SOC 2 Type II; DPA to sign; DPIA in Document 17 |

@@ -53,6 +53,10 @@ const dataRows = [
     'Application status, availability, qualifications, biography, assignments, decisions, evidence, performance record and append-only audit events.',
   ],
   [
+    <strong key="recordings">Match recordings</strong>,
+    "A video of each refereed match, recorded by PlayStake from the moment the referee starts the match until the result: both players' and the referee's Kick streams with their sound, the match clock, match events and match chat. Because it shows your stream, it may include your face, voice, surroundings and anything else your stream shows. It also records the file's fingerprint (SHA-256) and who watched it.",
+  ],
+  [
     <strong key="technical">Device and security</strong>,
     'IP address, hashed IP in referee audit records, user agent, session token hash, cookie identifiers, timestamps, failed-login and rate-limit information, and security or anomaly alerts.',
   ],
@@ -78,7 +82,7 @@ const useRows = [
   ],
   [
     <strong key="safety">Safety and integrity</strong>,
-    'Prevent cheating, fraud, payment abuse and account compromise; investigate anomalies and disputes; enforce our Terms; preserve audit trails.',
+    'Prevent cheating, fraud, payment abuse and account compromise; record refereed matches and review the recordings for disputes, complaints and suspected cheating or fixing; investigate anomalies and disputes; enforce our Terms; preserve audit trails.',
     'Our legitimate interests in providing a fair and secure service, and where applicable legal obligations.',
   ],
   [
@@ -299,6 +303,10 @@ export default function PrivacyPage() {
             application, databases, queues and logs on our behalf;
           </li>
           <li>
+            <strong>Cloudflare</strong>, which stores match recordings privately
+            on our behalf (R2 storage);
+          </li>
+          <li>
             <strong>approved game developers</strong> where their game needs
             authenticated match events, challenge status or result webhooks;
           </li>
@@ -372,6 +380,13 @@ export default function PrivacyPage() {
             <strong>6 years</strong> after the relevant relationship or
             transaction, and longer where law, an investigation or a legal
             claim requires it; and
+          </li>
+          <li>
+            match recordings are deleted <strong>30 days</strong> after the
+            match; if the match is disputed, they are kept until the dispute is
+            decided and then for <strong>12 months</strong> (for complaints and
+            independent adjudication), or longer only where an investigation or
+            legal claim requires it;
           </li>
           <li>
             failed-login, anomaly and security information is retained according

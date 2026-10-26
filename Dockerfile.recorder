@@ -1,0 +1,34 @@
+# =============================================================================
+# PlayStake — Match recorder service
+# =============================================================================
+# Records each refereed match: Chrome on a virtual screen shows the recording
+# view (both players' and the referee's Kick streams with the match clock) and
+# ffmpeg captures screen and sound. See src/recorder/index.ts.
+#
+# Railway: a separate service from this repo with
+#   RAILWAY_DOCKERFILE_PATH=Dockerfile.recorder
+# and DATABASE_URL, REDIS_URL, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID,
+# R2_SECRET_ACCESS_KEY, R2_BUCKET, RECORDER_SECRET, RECORDER_APP_URL.
+# Give it about 2 vCPU and 2 GB per concurrent match (RECORDER_CONCURRENCY).
+# =============================================================================
+
+FROM node:22-bookworm-slim
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+     chromium xvfb pulseaudio pulseaudio-utils ffmpeg \
+     fonts-liberation fonts-noto-color-emoji ca-certificates dbus \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts
+COPY . .
+# Generate the Prisma client and bundle the recorder.
+RUN npm run workers:build
+
+# Chrome and PulseAudio run as an ordinary user.
+RUN useradd --create-home recorder && chown -R recorder /app
+USER recorder
+ENV CHROME_PATH=chromium NODE_ENV=production
+CMD ["node", "dist/recorder/index.mjs"]

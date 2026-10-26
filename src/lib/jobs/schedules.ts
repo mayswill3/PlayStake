@@ -88,6 +88,11 @@ const SCHEDULES: ScheduleEntry[] = [
     jobName: "session-cleanup",
     every: 60 * 60_000, // hourly
   },
+  {
+    queueName: QUEUE_NAMES.RECORDING_RETENTION,
+    jobName: "recording-retention",
+    every: 60 * 60_000, // hourly
+  },
 ];
 
 // ---------------------------------------------------------------------------

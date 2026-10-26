@@ -98,6 +98,15 @@ export default function MatchRulesPage() {
             <strong>Stay live</strong> on the declared game until the referee records the result.
           </li>
           <li>
+            <strong>Matches are recorded.</strong> From the moment the referee starts the match until
+            the result, PlayStake records both players&apos; streams and the referee&apos;s stream,
+            with sound, into one video with the match clock. It is used only to review disputes,
+            complaints and suspected cheating or fixing, and only by PlayStake staff and approved
+            dispute reviewers. It is kept for 30 days, or for 12 months after a dispute is decided,
+            then deleted. Anything on your stream, including your camera and microphone, may be in
+            the recording.
+          </li>
+          <li>
             <strong>Be respectful.</strong> No abuse, threats, harassment or discrimination towards
             your opponent, the referee or anyone in chat.
           </li>

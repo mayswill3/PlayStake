@@ -617,6 +617,14 @@ async function resolveRouteHandler(
     const mod = await import("../../src/app/api/referees/disputes/route.js");
     return { handler: mod.GET };
   }
+  const playbackMatch = path.match(/^\/api\/referees\/disputes\/([^/?]+)\/recordings\/([^/?]+)$/);
+  if (playbackMatch) {
+    const mod = await import("../../src/app/api/referees/disputes/[id]/recordings/[recordingId]/route.js");
+    return {
+      handler: mod.GET,
+      params: { id: decodeURIComponent(playbackMatch[1]), recordingId: decodeURIComponent(playbackMatch[2]) },
+    };
+  }
   const reviewMatch = path.match(/^\/api\/referees\/disputes\/([^/?]+)$/);
   if (reviewMatch) {
     const mod = await import("../../src/app/api/referees/disputes/[id]/route.js");
@@ -717,6 +725,12 @@ async function resolveRouteHandler(
   }
 
   // Streamer challenge: /api/streamers/{slug}/challenge
+
+  const betDisputeMatch = path.match(/^\/api\/bets\/([^/?]+)\/dispute$/);
+  if (betDisputeMatch && method === "POST") {
+    const mod = await import("../../src/app/api/bets/[id]/dispute/route.js");
+    return { handler: mod.POST, params: { id: decodeURIComponent(betDisputeMatch[1]) } };
+  }
 
   const betDetailMatch = path.match(/^\/api\/bets\/([^/?]+)$/);
   if (betDetailMatch && method === "GET") {

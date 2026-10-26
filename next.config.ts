@@ -106,6 +106,7 @@ const nextConfig: NextConfig = {
       { source: '/settings/:path*', headers: noIndexHeaders },
       { source: '/referee/:path*', headers: noIndexHeaders },
       { source: '/streams/:path*', headers: noIndexHeaders },
+      { source: '/recorder/:path*', headers: noIndexHeaders },
     ];
   },
 };

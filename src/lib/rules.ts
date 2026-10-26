@@ -11,21 +11,22 @@
 // new version.
 // =============================================================================
 
-export const MATCH_RULES_VERSION = '2026-10-01';
-export const REFEREE_CODE_VERSION = '2026-10-01';
+export const MATCH_RULES_VERSION = '2026-10-26';
+export const REFEREE_CODE_VERSION = '2026-10-26';
 
 /** Shown in challenge dialogs. Each must match a rule on /match-rules. */
 export const KEY_PLAYER_RULES = [
   'Stay live on Kick, playing the declared game, for the whole match.',
   'Play the match yourself — no cheats, mods, macros or bots, and no agreeing results.',
   "The referee decides from what both streams show. You have 15 minutes to dispute.",
+  'PlayStake records the match (both streams and the referee, with sound) for disputes.',
   'Be respectful to your opponent and the referee.',
 ] as const;
 
 /** Shown in the Referee Hub. Each must match a rule on /match-rules#referees. */
 export const KEY_REFEREE_RULES = [
   "Never officiate a match you're in, or one involving anyone you know (following each other counts) or have a stake with.",
-  'Go live on Kick and watch both streams for the whole match.',
+  'Go live on Kick and watch both streams for the whole match. PlayStake records your stream with the players’.',
   "Decide only from what the streams show, and write clear notes. If you can't tell, record a draw.",
   "Stay neutral: don't coach, don't take gifts, and don't bet on matches you officiate.",
   'Keep players’ details and disputes private.',

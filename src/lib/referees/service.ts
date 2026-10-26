@@ -15,6 +15,7 @@ import {
 } from "@/lib/errors";
 import { appendRefereeAudit, type AuditContext } from "./audit";
 import { areSociallyLinked, betWithoutRefereeLinks } from "./conflicts";
+import { queueMatchRecording } from "@/lib/recordings/service";
 import { voidNoShowMatch } from "@/lib/lobby/match-lifecycle";
 import {
   RefereeCodeRequiredError,
@@ -381,6 +382,18 @@ export async function claimAssignment(
 }
 
 export async function advanceAssignment(
+  userId: string,
+  assignmentId: string,
+  action: "READY" | "START",
+  context?: AuditContext,
+) {
+  const updated = await advanceAssignmentInTx(userId, assignmentId, action, context);
+  // PlayStake records every match from the moment the referee starts it.
+  if (action === "START") await queueMatchRecording(updated.betId);
+  return updated;
+}
+
+async function advanceAssignmentInTx(
   userId: string,
   assignmentId: string,
   action: "READY" | "START",

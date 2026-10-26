@@ -22,6 +22,7 @@ import {
   auditContextFromRequest,
 } from "@/lib/referees/audit";
 import { disputeRateLimit } from "@/lib/middleware/rate-limit";
+import { holdRecordingsForDispute } from "@/lib/recordings/service";
 
 export async function POST(
   request: NextRequest,
@@ -157,6 +158,7 @@ export async function POST(
       return created;
     });
 
+    await holdRecordingsForDispute(betId);
     await emailDisputeFiled(betId, session.userId);
 
     return NextResponse.json(
