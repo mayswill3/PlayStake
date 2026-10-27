@@ -123,7 +123,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         id: 'staking',
         q: 'How does staking work?',
-        a: "You both agree the stake first. Nothing leaves your balance until you accept. Then both stakes move into a separate escrow account for that match, where neither player can touch them. When the match settles, the winner receives the pot less the fee. A draw splits it equally.",
+        a: "You both agree the stake first. Nothing leaves your balance until you accept. Then both stakes are set aside for that match in our ledger, where neither player can use them. When the match settles, the winner receives the pot less the fee. A draw splits it equally.",
       },
       {
         id: 'fees',
@@ -140,7 +140,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         id: 'stakes-safe',
         q: 'Are my stakes safe during a match?',
-        a: 'Yes. From the moment both players accept, stakes sit in an escrow account for that match only. They can only go to the winner, be split on a draw, or be returned if the match is cancelled.',
+        a: "From the moment both players accept, stakes are set aside in our ledger for that match only. They can only go to the winner, be split on a draw, or be returned if the match is cancelled. This is a record in PlayStake's own accounts, not a separate bank account or trust: like the rest of your balance, it is not protected if PlayStake becomes insolvent (see our Terms, protection of customer funds).",
       },
     ],
   },

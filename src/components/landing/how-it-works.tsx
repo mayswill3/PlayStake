@@ -11,7 +11,7 @@ const STEPS = [
   {
     icon: <Coins size={24} strokeWidth={1.5} />,
     title: 'Set the Stake',
-    description: 'Pick any amount within your stake limit. Both players lock in escrow.',
+    description: 'Pick any amount within your stake limit. Both stakes are set aside for the match.',
     label: 'Set Your Stake',
   },
   {

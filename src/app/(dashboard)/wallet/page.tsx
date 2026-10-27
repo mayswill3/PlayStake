@@ -302,7 +302,7 @@ export default function WalletPage() {
             </div>
             <div className="flex-1">
               <p className="font-mono text-[11px] uppercase tracking-wider text-ps-muted-on-dark mb-1 flex items-center gap-1.5">
-                <Lock className="h-3 w-3" /> In Escrow
+                <Lock className="h-3 w-3" /> In matches
               </p>
               <p className="text-3xl font-display font-bold tabular-nums text-ps-muted-on-dark">
                 {formatCents(balance?.escrowed ?? 0)}

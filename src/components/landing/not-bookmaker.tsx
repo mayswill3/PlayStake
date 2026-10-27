@@ -5,7 +5,7 @@ const COMPARISON_COLUMNS = [
     heading: 'Informal Wagers',
     items: [
       { label: 'Real opponent (not the house)', included: false },
-      { label: 'Escrow-backed stakes', included: false },
+      { label: 'Stakes held per match', included: false },
       { label: 'Dual-source result verification', included: false },
       { label: 'Instant settlement', included: false },
       { label: 'Dispute resolution', included: false },
@@ -16,7 +16,7 @@ const COMPARISON_COLUMNS = [
     heading: 'Existing Platforms',
     items: [
       { label: 'Real opponent (not the house)', included: false },
-      { label: 'Escrow-backed stakes', included: true },
+      { label: 'Stakes held per match', included: true },
       { label: 'Dual-source result verification', included: false },
       { label: 'Instant settlement', included: false },
       { label: 'Dispute resolution', included: false },
@@ -28,7 +28,7 @@ const COMPARISON_COLUMNS = [
     highlighted: true,
     items: [
       { label: 'Real opponent (not the house)', included: true },
-      { label: 'Escrow-backed stakes', included: true },
+      { label: 'Stakes held per match', included: true },
       { label: 'Dual-source result verification', included: true },
       { label: 'Instant settlement', included: true },
       { label: 'Dispute resolution', included: true },

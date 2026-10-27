@@ -17,7 +17,7 @@ const TYPE_OPTIONS = [
   { value: 'all', label: 'All Types' },
   { value: 'DEPOSIT', label: 'Deposits' },
   { value: 'WITHDRAWAL', label: 'Withdrawals' },
-  { value: 'BET_ESCROW', label: 'Bet Escrow' },
+  { value: 'BET_ESCROW', label: 'Stake held' },
   { value: 'BET_ESCROW_RELEASE', label: 'Payouts' },
   { value: 'BET_ESCROW_REFUND', label: 'Refunds' },
   { value: 'PLATFORM_FEE', label: 'Fees' },

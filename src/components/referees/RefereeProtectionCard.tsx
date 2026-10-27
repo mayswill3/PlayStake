@@ -117,7 +117,7 @@ function ResolutionCountdown({
       <div className="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
         <span className="flex items-center gap-1.5 text-ps-muted dark:text-ps-muted-on-dark">
           <Lock className="h-4 w-4 shrink-0 text-ps-lime" aria-hidden="true" />
-          {closed ? 'Dispute window closed — releasing funds' : 'Funds locked in escrow · resolves in'}
+          {closed ? 'Dispute window closed — releasing funds' : 'Stakes held for the match · resolves in'}
         </span>
         {!closed && (
           <span

@@ -37,8 +37,8 @@ const STEPS_BEFORE_FORK = [
     accent: '#06b6d4',
     accentBg: 'rgba(6,182,212,0.12)',
     description:
-      'Your opponent receives the challenge and accepts. The moment they accept, both stakes are locked in escrow and neither player can access the funds until the match is decided.',
-    chips: ['Stake locked in escrow instantly', 'Both players confirmed', 'Safe to cancel before opponent accepts'],
+      'Your opponent receives the challenge and accepts. The moment they accept, both stakes are set aside for the match and neither player can use them until the match is decided.',
+    chips: ['Stakes set aside instantly', 'Both players confirmed', 'Safe to cancel before opponent accepts'],
   },
   {
     num: '03',
@@ -62,7 +62,7 @@ const STEP_06 = {
   accent: '#10b981',
   accentBg: 'rgba(16,185,129,0.12)',
   description:
-    'Once the game ends, the referee confirms the final result. The winner\'s payout is released from escrow and lands in their PlayStake wallet instantly. No disputes, no waiting.',
+    'Once the game ends, the referee confirms the final result. After the 15-minute dispute window, the winner\'s payout lands in their PlayStake wallet.',
   chips: ['Winner paid instantly', 'Disputes handled within 24 hrs', 'Disconnect protection included'],
 };
 

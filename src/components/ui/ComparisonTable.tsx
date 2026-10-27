@@ -23,7 +23,7 @@ const ROWS = [
   },
   {
     feature: 'Integrity',
-    playstake: 'Escrow + dispute review',
+    playstake: 'Independent referee + dispute review',
     traditional: 'House rules apply',
   },
   {

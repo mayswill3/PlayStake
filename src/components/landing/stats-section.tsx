@@ -65,7 +65,7 @@ export function StatsSection() {
 
         {/* Trust statement */}
         <p className="mt-12 lg:mt-16 text-center text-lg text-fg-secondary max-w-3xl mx-auto">
-          Every bet is backed by secure escrow, dual-source result verification, and a double-entry financial ledger. No ifs.
+          Every stake is held for its match until the result, decided by an independent referee and recorded in a double-entry ledger.
         </p>
 
         {/* Trust badges */}
@@ -76,7 +76,7 @@ export function StatsSection() {
           </div>
           <div className="flex items-center gap-2 text-sm text-fg-muted">
             <Lock size={18} className="text-brand-600" />
-            <span className="font-medium">Funds in escrow</span>
+            <span className="font-medium">Stakes held per match</span>
           </div>
         </div>
       </div>

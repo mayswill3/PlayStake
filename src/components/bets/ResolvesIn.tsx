@@ -16,7 +16,7 @@ export function ResolvesIn({ at, className = '' }: { at: string; className?: str
     >
       <Lock size={11} className="shrink-0 text-ps-lime" aria-hidden="true" />
       {isExpired ? (
-        'Releasing escrow…'
+        'Paying out…'
       ) : (
         <>
           Resolves in{' '}

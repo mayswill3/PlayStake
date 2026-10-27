@@ -91,7 +91,7 @@ export function Header({ user, balance }: HeaderProps) {
                 {formatCents(balance.available)}
               </span>
               {balance.escrowed > 0 && (
-                <span className="hidden sm:inline text-xs text-ps-muted dark:text-ps-muted-on-dark" title="In escrow">
+                <span className="hidden sm:inline text-xs text-ps-muted dark:text-ps-muted-on-dark" title="Held in matches">
                   ({formatCents(balance.escrowed)})
                 </span>
               )}

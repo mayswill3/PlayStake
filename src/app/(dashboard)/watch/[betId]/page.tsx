@@ -118,7 +118,7 @@ export default function WatchMatchPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <Assurance icon={<Lock className="h-4 w-4" />} title="Stakes in escrow">
+          <Assurance icon={<Lock className="h-4 w-4" />} title="Stakes held for the match">
             Both stakes are locked the moment the match is accepted.
           </Assurance>
           <Assurance icon={<Video className="h-4 w-4" />} title="Referee on camera">

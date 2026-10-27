@@ -4,8 +4,8 @@ import { ShieldCheck, Zap, Scale, BarChart2, ArrowRight, Target } from 'lucide-r
 const FEATURES = [
   {
     icon: ShieldCheck,
-    title: 'Secure escrow',
-    description: 'Funds are locked until the result is verified by both the game server and the widget.',
+    title: 'Stakes held for the match',
+    description: 'Both stakes are set aside for the match and can only go to the winner, be split on a draw, or come back if it’s cancelled.',
   },
   {
     icon: Zap,
@@ -38,7 +38,7 @@ export function ForPlayers() {
               Bet on your skill. Get paid instantly.
             </h2>
             <p className="mt-4 text-lg text-fg-secondary">
-              Every match is backed by escrow and verified by two independent sources. No shady dealings — just you, your opponent, and your skill.
+              Every match has its stakes set aside and an independent referee watching both streams. No shady dealings — just you, your opponent, and your skill.
             </p>
 
             <ul className="mt-8 space-y-6">
