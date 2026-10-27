@@ -279,8 +279,8 @@ export default function TermsPage() {
         </p>
         <p>
           You must confirm that you have read and understood this before you
-          deposit or play with deposited funds. We remind you of it each time
-          you deposit, and at least every six months we remind you again,
+          deposit or play with deposited funds. At least every six months we
+          remind you again,
           showing the funds we hold for you, and ask you to confirm before you
           can stake them. You can always withdraw your balance. If we change
           how customer funds are held, we will tell you and ask you to confirm

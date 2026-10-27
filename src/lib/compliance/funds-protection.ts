@@ -6,9 +6,8 @@
 // can gamble with deposited funds: on their first deposit, and on the first
 // deposit after the terms change. Both "not protected" ratings also need a
 // reminder at least every six months that states the funds held for the
-// customer, acknowledged again before they can gamble. We go slightly further:
-// the acknowledgement is required before every deposit while it's current, and
-// the deposit page repeats the statement each time.
+// customer, acknowledged again before they can gamble. A current
+// acknowledgement is also required before every deposit.
 //
 // LCCP 4.1.1 requires a remote licensee to hold customer funds in a separate
 // client bank account. Until that account is open and funded the honest rating

@@ -136,9 +136,8 @@ export default function DepositPage() {
   const [limitAmount, setLimitAmount] = useState('');
   const [limitBusy, setLimitBusy] = useState(false);
 
-  // LCCP 4.2.1: how deposited funds are protected, acknowledged before any
-  // deposit and repeated on every visit because PlayStake's rating is
-  // "not protected".
+  // LCCP 4.2.1: how deposited funds are protected, acknowledged before the
+  // first deposit (and again after a change or the six-monthly reminder).
   const [funds, setFunds] = useState<{ statement: string; explainer: string; acknowledged: boolean } | null>(null);
   const [fundsTicked, setFundsTicked] = useState(false);
   const [fundsBusy, setFundsBusy] = useState(false);
@@ -378,15 +377,6 @@ export default function DepositPage() {
           <div className="text-xs text-text-muted">
             Min £5.00 &middot; Max £1,000.00 &middot; Processed via Stripe
           </div>
-
-          {funds?.acknowledged && (
-            <p className="rounded-sm border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-text-secondary">
-              <strong className="text-text-primary">Your funds are not protected.</strong> {funds.statement}{' '}
-              <Link href="/terms#funds-protection" className="underline">
-                How we hold your funds
-              </Link>
-            </p>
-          )}
 
           <Button type="submit" loading={loading} disabled={!funds?.acknowledged} className="w-full">
             Deposit {amountCents > 0 ? formatCents(amountCents) : ''}
