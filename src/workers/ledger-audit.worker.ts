@@ -16,6 +16,7 @@ import { QUEUE_NAMES, type LedgerAuditPayload } from "../lib/jobs/types";
 import { withTransaction, type TxClient } from "../lib/db/client";
 import { runFullAudit, type AuditReport } from "../lib/ledger/audit";
 import { reportJobFailure } from "../lib/observability/job-failure";
+import { getCustomerFundsHeld } from "../lib/ledger/customer-funds";
 
 // ---------------------------------------------------------------------------
 // Logging helper
@@ -130,6 +131,11 @@ async function processLedgerAudit(
     log("error", "ledger_audit_no_report", { durationMs });
     return;
   }
+
+  // The daily customer-funds figure finance reconciles against the client
+  // bank account (LCCP 4.1.1, Policy 19). Logged every run so there's a record.
+  const customerFunds = await getCustomerFundsHeld().catch(() => null);
+  if (customerFunds) log("info", "customer_funds_held", { ...customerFunds });
 
   // Log results
   if (auditReport.isHealthy && escrowDiscrepancies.length === 0) {

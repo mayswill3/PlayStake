@@ -17,6 +17,7 @@ interface AdminStats {
   openDisputes: number;
   totalVolume: number;
   platformRevenue: number;
+  customerFunds?: { playerBalancesCents: number; heldInMatchesCents: number; totalCents: number; asAt: string };
 }
 
 export default function AdminDashboardPage() {
@@ -75,6 +76,15 @@ export default function AdminDashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard label="Total Volume" value={formatCents(stats?.totalVolume ?? 0)} valueColor="text-brand-400" />
           <StatCard label="Platform Revenue" value={formatCents(stats?.platformRevenue ?? 0)} valueColor="text-brand-400" />
+          <StatCard
+            label="Customer funds held"
+            value={formatCents(stats?.customerFunds?.totalCents ?? 0)}
+            subtitle={
+              stats?.customerFunds
+                ? `${formatCents(stats.customerFunds.playerBalancesCents)} in balances · ${formatCents(stats.customerFunds.heldInMatchesCents)} in matches. Reconcile daily with the client account.`
+                : undefined
+            }
+          />
           <StatCard
             label="Open Disputes"
             value={formatNumber(stats?.openDisputes ?? 0)}

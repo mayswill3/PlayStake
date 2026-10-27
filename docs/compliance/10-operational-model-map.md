@@ -48,7 +48,7 @@ PlayStake is operated by [COMPANY NAME] from [OPERATING ADDRESS]. The company bu
 | Stream-match refereeing | Referee console; Kick video | PlayStake (software); Kick (video) | Independent referees engaged by PlayStake | Referees vetted and audited (Policy 01) |
 | Match recording | Recorder service; Cloudflare R2 | PlayStake; Cloudflare | PlayStake | Every refereed match; DPIA Document 18 |
 | Result verification and disputes | Web service, worker; admin console; reviewer pages | PlayStake | Admins, or referees approved as independent dispute reviewers | Reviewer can't be a player, the match referee, or linked to a player by a follow or block |
-| Customer funds protection disclosure | Web service | PlayStake | PlayStake | Rating "not protected – no segregation"; acknowledged before deposit and six-monthly (Policy 19) |
+| Customer funds protection disclosure | Web service | PlayStake | PlayStake | Customer funds in a separate customer-funds account, reconciled daily; rating "not protected – segregation of customer funds" once the account is live ("no segregation" until then); acknowledged before deposit and six-monthly (Policy 19) |
 | Settlement and payouts to balances | Worker service / web service | PlayStake | PlayStake | |
 | Safer gambling: limits, breaks, reminders, interactions | Web service, worker; admin console | PlayStake | PlayStake staff | Policies 03–05 |
 | AML monitoring and case management | Worker; admin console | PlayStake | MLRO | Policy 07 |

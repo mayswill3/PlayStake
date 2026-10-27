@@ -4,17 +4,19 @@
 // Customers must be told in writing how well their deposited funds are
 // protected if PlayStake became insolvent, and must acknowledge it before they
 // can gamble with deposited funds: on their first deposit, and on the first
-// deposit after the terms change. PlayStake's rating is "not protected – no
-// segregation" (funds are held with company money), so LCCP 4.2.1 also needs a
+// deposit after the terms change. Both "not protected" ratings also need a
 // reminder at least every six months that states the funds held for the
 // customer, acknowledged again before they can gamble. We go slightly further:
 // the acknowledgement is required before every deposit while it's current, and
 // the deposit page repeats the statement each time.
 //
-// Changing the level (e.g. to a segregated client account or a trust) means
-// changing the wording and bumping FUNDS_PROTECTION_VERSION, so every
-// customer acknowledges the new arrangement. Keep /terms#funds-protection and
-// Policy 19 in step.
+// LCCP 4.1.1 requires a remote licensee to hold customer funds in a separate
+// client bank account. Until that account is open and funded the honest rating
+// is "not protected – no segregation"; once it is, set
+// FUNDS_PROTECTION_LEVEL=NOT_PROTECTED_SEGREGATION. Each level has its own
+// wording version, so switching asks every customer to acknowledge the new
+// arrangement. The Terms (/terms#funds-protection) read the same wording from
+// here. Medium and high protection need legal arrangements and wording first.
 // =============================================================================
 
 import { prisma } from "../db/client";
@@ -28,19 +30,56 @@ export type FundsProtectionLevel =
   | "MEDIUM"
   | "HIGH";
 
-export const FUNDS_PROTECTION_LEVEL: FundsProtectionLevel = "NOT_PROTECTED_NO_SEGREGATION";
-export const FUNDS_PROTECTION_LEVEL_LABEL = "not protected – no segregation";
-export const FUNDS_PROTECTION_VERSION = "2026-10-27-not-protected";
+interface LevelWording {
+  label: string;
+  version: string;
+  statement: string;
+  explainer: string;
+  /** How PlayStake holds the money, for the Terms. */
+  howHeld: string;
+}
+
+const WORDING: Partial<Record<FundsProtectionLevel, LevelWording>> = {
+  NOT_PROTECTED_NO_SEGREGATION: {
+    label: "not protected – no segregation",
+    version: "2026-10-27-not-protected",
+    statement:
+      "We do not keep customer funds separate from company funds. This means that in the event of insolvency customer funds will not be protected.",
+    explainer:
+      'The UK Gambling Commission requires us to tell you how your funds are protected if PlayStake becomes insolvent. PlayStake\'s rating is "not protected – no segregation": your balance is held with PlayStake\'s own money, so if PlayStake became insolvent you might not get it back.',
+    howHeld:
+      "your balance is held with PlayStake's own money, in PlayStake's accounts with our payment provider and bank",
+  },
+  NOT_PROTECTED_SEGREGATION: {
+    label: "not protected – segregation of customer funds",
+    version: "2026-10-27-segregated",
+    statement:
+      "We hold customer funds separate from company funds, in a designated customer-funds bank account. These funds are not protected in the event of insolvency.",
+    explainer:
+      'The UK Gambling Commission requires us to tell you how your funds are protected if PlayStake becomes insolvent. PlayStake\'s rating is "not protected – segregation of customer funds": we keep your balance in a bank account used only for customer money, not for running the business, but that account is not held on trust for you, so if PlayStake became insolvent you might not get your money back.',
+    howHeld:
+      "your balance is kept in a bank account used only for customer money, separate from the money PlayStake uses to run its business, and reconciled every day. The account is not held on trust for customers",
+  },
+};
+
+function configuredLevel(): FundsProtectionLevel {
+  const raw = process.env.FUNDS_PROTECTION_LEVEL;
+  if (raw && raw in WORDING) return raw as FundsProtectionLevel;
+  if (raw) console.error(`[funds-protection] FUNDS_PROTECTION_LEVEL=${raw} has no approved wording; using no segregation`);
+  return "NOT_PROTECTED_NO_SEGREGATION";
+}
+
+export const FUNDS_PROTECTION_LEVEL: FundsProtectionLevel = configuredLevel();
+const wording = WORDING[FUNDS_PROTECTION_LEVEL]!;
+export const FUNDS_PROTECTION_LEVEL_LABEL = wording.label;
+export const FUNDS_PROTECTION_VERSION = wording.version;
 /** "Not protected" ratings must be re-acknowledged at least every six months. */
 export const FUNDS_PROTECTION_REMINDER_MS = 182 * 24 * 60 * 60 * 1000;
 const REMINDER_REQUIRED = FUNDS_PROTECTION_LEVEL.startsWith("NOT_PROTECTED");
 
-/** The Commission's wording for the "not protected" rating. */
-export const FUNDS_PROTECTION_STATEMENT =
-  "We do not keep customer funds separate from company funds. This means that in the event of insolvency customer funds will not be protected.";
-
-export const FUNDS_PROTECTION_EXPLAINER =
-  "The UK Gambling Commission requires us to tell you how your funds are protected if PlayStake becomes insolvent. PlayStake's rating is \"not protected – no segregation\": your balance is held with PlayStake's own money, so if PlayStake became insolvent you might not get it back.";
+export const FUNDS_PROTECTION_STATEMENT = wording.statement;
+export const FUNDS_PROTECTION_EXPLAINER = wording.explainer;
+export const FUNDS_PROTECTION_HOW_HELD = wording.howHeld;
 
 export class FundsProtectionRequiredError extends AppError {
   constructor() {

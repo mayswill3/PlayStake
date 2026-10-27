@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { FUNDS_PROTECTION_HOW_HELD, FUNDS_PROTECTION_LEVEL_LABEL, FUNDS_PROTECTION_STATEMENT } from '@/lib/compliance/funds-protection';
 import Link from 'next/link';
 import {
   LegalCallout,
@@ -254,11 +255,7 @@ export default function TermsPage() {
           Protection of customer funds
         </h3>
         <p>
-          <strong>
-            We do not keep customer funds separate from company funds. This
-            means that in the event of insolvency customer funds will not be
-            protected.
-          </strong>
+          <strong>{FUNDS_PROTECTION_STATEMENT}</strong>
         </p>
         <p>
           The Gambling Commission requires us to tell you what happens to money
@@ -267,10 +264,8 @@ export default function TermsPage() {
           segregation&rdquo;, &ldquo;not protected &ndash; segregation of
           customer funds&rdquo;, &ldquo;medium protection&rdquo; or &ldquo;high
           protection&rdquo;. PlayStake&apos;s rating is{' '}
-          <strong>not protected &ndash; no segregation</strong>: your balance is
-          held with PlayStake&apos;s own money, in PlayStake&apos;s accounts
-          with our payment provider and bank, so if PlayStake became insolvent
-          you might not get it back. Find out more about the
+          <strong>{FUNDS_PROTECTION_LEVEL_LABEL}</strong>: {FUNDS_PROTECTION_HOW_HELD},
+          so if PlayStake became insolvent you might not get it back. Find out more about the
           ratings on the{' '}
           <a
             href="https://www.gamblingcommission.gov.uk/public-and-players/guide/protection-of-customer-funds"

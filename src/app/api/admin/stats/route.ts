@@ -1,6 +1,7 @@
 import { withRoleGuard } from "@/lib/middleware/auth";
 import { prisma } from "@/lib/db/client";
 import { UserRole } from "../../../../../generated/prisma/client";
+import { getCustomerFundsHeld } from "@/lib/ledger/customer-funds";
 
 export const GET = withRoleGuard([UserRole.ADMIN], async () => {
   const [
@@ -11,6 +12,7 @@ export const GET = withRoleGuard([UserRole.ADMIN], async () => {
     openDisputes,
     totalVolume,
     platformRevenue,
+    customerFunds,
   ] = await Promise.all([
     prisma.user.count({ where: { deletedAt: null } }),
     prisma.user.count({ where: { role: "DEVELOPER", deletedAt: null } }),
@@ -26,6 +28,7 @@ export const GET = withRoleGuard([UserRole.ADMIN], async () => {
       where: { type: "PLATFORM_FEE", status: "COMPLETED" },
       _sum: { amount: true },
     }),
+    getCustomerFundsHeld(),
   ]);
 
   return Response.json({
@@ -36,5 +39,7 @@ export const GET = withRoleGuard([UserRole.ADMIN], async () => {
     openDisputes,
     totalVolume: Number(totalVolume._sum.amount ?? 0),
     platformRevenue: Number(platformRevenue._sum.amount ?? 0),
+    /** In pence: what PlayStake owes customers, to reconcile daily against the client account. */
+    customerFunds,
   });
 });

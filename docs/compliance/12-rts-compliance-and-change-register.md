@@ -37,7 +37,7 @@ This document states how PlayStake meets each RTS requirement that applies to it
 | Third-party software and bots | RTS 16 | Yes | Bots, scripts and software that plays for a player prohibited in terms, Match Rules and Fair Play; the referee watches both players' streams; detection by referee observation and pattern review | `/fair-play` §5, `/match-rules` |
 | Auto-play, game speed, near-miss and similar slot/casino design rules | Various | **Confirm** — likely not applicable to peer-to-peer skill games | PlayStake runs no game of its own; no auto-play or spin-style features on the platform | — |
 | Security requirements | RTS security section (ISO/IEC 27001:2022 Annex A; audits against the 2013 version ended 31 October 2024) | Yes | Document 13 | Document 13 |
-| Protection of customer funds (LCCP, not RTS) | LCCP 4.1.1, 4.2.1 | Yes | Rating "not protected – no segregation" in the Terms; written disclosure acknowledged before deposit and before staking deposited funds; six-monthly reminder with balance; re-acknowledged after any change | Policy 19; `src/lib/compliance/funds-protection.ts` |
+| Protection of customer funds (LCCP, not RTS) | LCCP 4.1.1, 4.2.1 | Yes | Customer funds to be held in a separate customer-funds account, reconciled daily (account to open); rating then "not protected – segregation of customer funds", today "no segregation", switched by one setting; rating in the Terms; written disclosure acknowledged before deposit and before staking deposited funds; six-monthly reminder with balance; re-acknowledged after any change | Policy 19; `src/lib/compliance/funds-protection.ts` |
 
 ### 3.1 RTS 12 financial limits
 
