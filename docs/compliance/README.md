@@ -25,6 +25,8 @@ combined PDF of the whole set (`pdf/PlayStake-Compliance-Manual-complete.pdf`).
 | 16 | [Payment Services and Payment Methods](16-payment-services-and-methods.md) |
 | 17 | [DPIA: Identity Verification (Didit)](17-dpia-identity-verification.md) — first draft |
 | 18 | [DPIA: Match Recordings](18-dpia-match-recordings.md) — first draft |
+| 19 | [Protection of Customer Funds](19-protection-of-customer-funds.md) |
+| 20 | [UKGC application answers: technical pack and customer funds](20-ukgc-application-answers-technical-and-funds.md) |
 
 **Before submission:**
 - Replace every `[PLACEHOLDER]`.

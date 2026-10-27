@@ -333,6 +333,9 @@ model User {
   /// Version of the Match Rules (/match-rules) this user last accepted, and when.
   matchRulesVersion             String?        @map("match_rules_version") @db.VarChar(20)
   matchRulesAcceptedAt          DateTime?      @map("match_rules_accepted_at")
+  /// The funds-protection disclosure the customer last acknowledged (LCCP 4.2.1).
+  fundsProtectionVersion        String?        @map("funds_protection_version") @db.VarChar(40)
+  fundsProtectionAcknowledgedAt DateTime?      @map("funds_protection_acknowledged_at")
   kycStatus                     KycStatus      @default(NOT_STARTED) @map("kyc_status")
   stripeCustomerId              String?        @unique @map("stripe_customer_id") @db.VarChar(255)
   stripeConnectAccountId        String?        @unique @map("stripe_connect_account_id") @db.VarChar(255)

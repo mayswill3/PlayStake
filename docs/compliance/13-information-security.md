@@ -24,16 +24,17 @@ We commit to:
 
 | In scope | Notes |
 |---|---|
-| Web service, worker service, PostgreSQL, Redis (Railway) | All customer data, the ledger and game logic |
+| Web, worker and recorder services, PostgreSQL, Redis (Railway, EU West, Netherlands) | All customer data, the ledger and match records |
+| Match-recording storage (Cloudflare R2, EU) | Private bucket; bucket-scoped key for object read/write only; playback by 15-minute signed links; every viewing logged |
 | Admin console and staff accounts | Privileged access |
 | Source code, CI and deployment pipeline (GitHub → Railway) | Integrity of released software |
-| Suppliers handling customer data (Stripe, Resend, Sentry, GAMSTOP, IBAS, Didit) | Through supplier management (5.19–5.23) |
+| Suppliers handling customer data (Stripe, Resend, Sentry, GAMSTOP, IBAS, Didit, Cloudflare, Google) | Through supplier management (5.19–5.23) |
 | Staff devices used for administration | Endpoint controls (8.1) |
 
 ## 3. Key technical safeguards
 
 - **Money:** double-entry ledger; only `transfer()` changes balances; sufficient-funds check in the same SQL statement as the debit; idempotency keys; ledger entries append-only by database trigger; daily automated audit of every account and transaction.
-- **Games:** every outcome decided on the server with a CSPRNG; hidden information never sent to clients; append-only game event log.
+- **Results:** PlayStake runs no games and no random number generation (withdrawn 25 October 2026). Results are recorded by independent referees through the referee console into a hash-chained, append-only audit trail; every match is recorded and the file's SHA-256 sealed into that trail; disputes are decided by someone independent of the match.
 - **Identity and access:** passwords hashed with bcrypt (cost 12); sign-in rate limits and lockout; session tokens random, stored only as SHA-256 hashes, 7-day lifetime and 30-minute idle timeout; staff require TOTP two-factor authentication (enforced in production); role-based access checked on every admin route.
 - **Data protection:** identity documents encrypted with AES-256-GCM; Kick OAuth tokens encrypted under a separate key; card data never touches PlayStake (Stripe Elements); all traffic over HTTPS with HSTS.
 - **Web application:** input validation (Zod) on all API routes; Content-Security-Policy; framing blocked except for the embeddable widget; `nosniff`, strict referrer policy, restrictive permissions policy; identity-document responses sandboxed and never cached.
@@ -138,3 +139,4 @@ PlayStake operates no data centre or office servers; physical security of hostin
 | Version | Date | Change |
 |---|---|---|
 | 0.1 | 30 September 2026 | First draft |
+| 0.2 | 27 October 2026 | Recorder service and R2 in scope; results section updated after the on-site games were withdrawn |

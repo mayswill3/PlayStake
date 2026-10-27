@@ -67,7 +67,7 @@ export default function ComplaintsPage() {
           ]}
         />
         <p>
-          If a bet or balance is involved, the funds stay protected while we investigate. We
+          If a bet or balance is involved, the funds stay on hold while we investigate. We
           keep a record of every complaint and its outcome.
         </p>
       </LegalSection>

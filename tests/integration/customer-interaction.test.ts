@@ -25,6 +25,8 @@ import { centsToDollars } from "../../src/lib/utils/money.js";
 import { detectPlayerRiskForUser } from "../../src/lib/responsible-play/risk.js";
 import { evaluateDueInteractions } from "../../src/lib/responsible-play/interaction.js";
 import { setDepositLimit } from "../../src/lib/responsible-play/service.js";
+import { assertCanWager } from "../../src/lib/responsible-play/policy.js";
+import { FUNDS_PROTECTION_VERSION } from "../../src/lib/compliance/funds-protection.js";
 
 const prisma = getTestPrisma();
 const tx = prisma as unknown as TxClient;
@@ -186,9 +188,72 @@ describe("Staff action", () => {
   });
 });
 
+describe("Protection of customer funds (LCCP 4.2.1)", () => {
+  it("must be acknowledged before a deposit, and is shown with the Commission's wording", async () => {
+    const player = await makePlayer();
+    const before = await callApi("GET", "/api/wallet/funds-protection", player.auth);
+    expect(before.body).toMatchObject({ level: "NOT_PROTECTED_NO_SEGREGATION", acknowledged: false, reason: "first" });
+    expect(before.body.statement).toMatch(/will not be protected/);
+
+    const blocked = await callApi("POST", "/api/wallet/deposit", {
+      ...player.auth,
+      body: { amount: 1000, idempotencyKey: `funds-${Date.now()}` },
+    });
+    expect(blocked.status).toBe(409);
+    expect(blocked.body.code).toBe("FUNDS_PROTECTION_REQUIRED");
+
+    const ack = await callApi("POST", "/api/wallet/funds-protection", player.auth);
+    expect(ack.body).toMatchObject({ acknowledged: true, version: FUNDS_PROTECTION_VERSION });
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: player.id } });
+    expect(user.fundsProtectionAcknowledgedAt).not.toBeNull();
+
+    const next = await callApi("POST", "/api/wallet/deposit", {
+      ...player.auth,
+      body: { amount: 1000, idempotencyKey: `funds2-${Date.now()}` },
+    });
+    expect(next.body.code).not.toBe("FUNDS_PROTECTION_REQUIRED");
+  });
+
+  it("must be acknowledged before gambling with deposited funds", async () => {
+    const depositor = await makePlayer();
+    await deposit(depositor.id, 2_000, new Date());
+    await expect(assertCanWager(depositor.id)).rejects.toMatchObject({ code: "FUNDS_PROTECTION_REQUIRED" });
+    await callApi("POST", "/api/wallet/funds-protection", depositor.auth);
+    await expect(assertCanWager(depositor.id)).resolves.toBeUndefined();
+
+    // Someone who has never deposited isn't gambling with deposited funds.
+    const neverDeposited = await makePlayer();
+    await expect(assertCanWager(neverDeposited.id)).resolves.toBeUndefined();
+  });
+});
+
+describe("Six-monthly funds-protection reminder", () => {
+  it("expires after six months, says why, and shows the funds held", async () => {
+    const player = await makePlayer();
+    await deposit(player.id, 2_500, new Date());
+    await prisma.user.update({
+      where: { id: player.id },
+      data: { fundsProtectionVersion: FUNDS_PROTECTION_VERSION, fundsProtectionAcknowledgedAt: new Date(Date.now() - 183 * 24 * 60 * 60 * 1000) },
+    });
+    const due = await callApi("GET", "/api/wallet/funds-protection", player.auth);
+    expect(due.body).toMatchObject({ acknowledged: false, reason: "six_monthly", hasDeposited: true, level: "NOT_PROTECTED_NO_SEGREGATION" });
+    expect(typeof due.body.balanceCents).toBe("number");
+    await expect(assertCanWager(player.id)).rejects.toMatchObject({ code: "FUNDS_PROTECTION_REQUIRED" });
+
+    await prisma.user.update({ where: { id: player.id }, data: { fundsProtectionVersion: "an-older-wording" } });
+    expect((await callApi("GET", "/api/wallet/funds-protection", player.auth)).body.reason).toBe("changed");
+
+    await callApi("POST", "/api/wallet/funds-protection", player.auth);
+    const current = await callApi("GET", "/api/wallet/funds-protection", player.auth);
+    expect(current.body).toMatchObject({ acknowledged: true, reason: null });
+    await expect(assertCanWager(player.id)).resolves.toBeUndefined();
+  });
+});
+
 describe("Deposit limit prompt", () => {
   it("must be answered before a first deposit", async () => {
     const player = await makePlayer();
+    await prisma.user.update({ where: { id: player.id }, data: { fundsProtectionVersion: FUNDS_PROTECTION_VERSION, fundsProtectionAcknowledgedAt: new Date() } });
     const first = await callApi("POST", "/api/wallet/deposit", {
       ...player.auth,
       body: { amount: 1000, idempotencyKey: `prompt-${Date.now()}` },
@@ -211,6 +276,7 @@ describe("Deposit limit prompt", () => {
 
   it("is answered by setting a limit", async () => {
     const player = await makePlayer();
+    await prisma.user.update({ where: { id: player.id }, data: { fundsProtectionVersion: FUNDS_PROTECTION_VERSION, fundsProtectionAcknowledgedAt: new Date() } });
     await setDepositLimit(player.id, DepositLimitPeriod.DAILY, 5_000);
     const res = await callApi("POST", "/api/wallet/deposit", {
       ...player.auth,

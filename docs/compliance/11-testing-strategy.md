@@ -49,6 +49,9 @@ PlayStake tests everything else itself, under this strategy, with results record
 | Collusion, cheating, bots | Controls reviewed each release; tests prove that a referee can't claim a match with a player they follow, are followed by or have a block with, that the referee audit chain detects altered, deleted or reordered events, and that a player can't stake against themselves | RTS 11, 16 |
 | Ledger and escrow integrity | Automated tests of `transfer()`, escrow netting to zero, conservation; database triggers make entries append-only; daily production audit | Licence conditions on customer funds; RTS security requirements |
 | Eligibility gate: KYC, GAMSTOP, breaks, account status | Automated tests | RTS 12, 14 |
+| Customer funds disclosure: rating shown in writing; acknowledgement before deposit and before staking deposited funds; six-monthly reminder with balance; re-acknowledgement after a change | Automated integration tests; manual check of wording against Policy 19 each release | LCCP 4.2.1 |
+| Independent dispute review: reviewer conflicts, one reviewer per dispute, overturn tracking | Automated integration tests | RTS 11 |
+| Match recordings: recording page access, sealing into the audit trail, retention, who may watch | Automated integration tests; end-to-end recording test against live Kick streams before release (done 26 October 2026) | RTS 5/6, 11 |
 | Security controls | Document 13; independent penetration test; annual security audit | RTS security requirements |
 
 ### 3.3 Points to confirm with the Commission
@@ -59,11 +62,14 @@ PlayStake tests everything else itself, under this strategy, with results record
 ## 4. Automated testing on every change
 
 - Every change goes through GitHub. CI runs lint, a type check, a dependency vulnerability audit (fails on critical findings), a malware scan and the full test suite against real PostgreSQL and Redis. A change can't be released unless CI passes.
-- The suite (368 tests on 30 September 2026) includes, among others:
+- The suite (384 tests on 27 October 2026) includes, among others:
   - `tests/unit/ledger/` — double-entry transfers, escrow, audit invariants
   - `tests/integration/referee-lifecycle.test.ts` — one referee per match, conflict checks on follows and blocks, start only when live on Kick, cancellation sweeps for unclaimed and overlong matches
   - `tests/integration/referee-operations.test.ts`, `referee-code.test.ts`, `tests/unit/referees/audit.test.ts` — overturn tracking, Code of Conduct acceptance, hash-chained audit trail
   - `tests/integration/self-bet.test.ts`, `dual-source-result.test.ts` — no self-play; mismatched results open a dispute
+  - `tests/integration/dispute-review.test.ts` — only an admin or approved reviewer with no link to the players decides a dispute; one reviewer at a time
+  - `tests/integration/match-recording.test.ts` — recorder access tokens, sealing, 30-day and 12-month retention, holds during disputes, playback only for reviewers, viewing logged
+  - `tests/integration/customer-interaction.test.ts` — includes the funds-protection disclosure, acknowledgement gates and six-monthly reminder
   - `tests/integration/compliance-gates.test.ts`, `limit-review.test.ts`, `session-idle.test.ts`, and the responsible-play, KYC, AML and complaints suites
 
 ## 5. Change control

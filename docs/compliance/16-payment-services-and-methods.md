@@ -12,7 +12,7 @@
 
 ## 1. Requirement
 
-Where a payment to or from a customer involves a payment service, PlayStake may only accept or make it through a payment service provider (PSP) as defined in the PSRs: for example a bank, an authorised payment institution or an authorised electronic money institution. PlayStake does not provide payment services itself and does not accept payments in any other way.
+Where a payment to or from a customer involves a payment service, PlayStake may only accept or make it through a payment service provider (PSP) as defined in the PSRs: for example a bank, an authorised payment institution or an authorised electronic money institution. PlayStake does not provide payment services itself and does not accept payments in any other way. How customer balances are held, and what customers are told about their protection on insolvency, is in Policy 19.
 
 ## 2. How customers can pay us and be paid
 

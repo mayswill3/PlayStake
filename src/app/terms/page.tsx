@@ -40,7 +40,7 @@ export default function TermsPage() {
       eyebrow="Legal"
       title="Terms of Service"
       summary="These Terms explain the rules for using PlayStake, entering player-versus-player challenges, connecting a live stream, and taking part as a player or referee."
-      lastUpdated="6 August 2026"
+      lastUpdated="27 October 2026"
       toc={toc}
     >
       <LegalCallout title="Important beta and licensing notice" tone="warning">
@@ -249,6 +249,47 @@ export default function TermsPage() {
           A displayed balance is not a bank deposit and does not earn interest.
           Test, bonus or promotional funds may be non-withdrawable where that
           status is clearly stated before use.
+        </p>
+        <h3 id="funds-protection" className="scroll-mt-24 pt-2 font-display text-base font-bold">
+          Protection of customer funds
+        </h3>
+        <p>
+          <strong>
+            We do not keep customer funds separate from company funds. This
+            means that in the event of insolvency customer funds will not be
+            protected.
+          </strong>
+        </p>
+        <p>
+          The Gambling Commission requires us to tell you what happens to money
+          in your PlayStake balance if PlayStake becomes insolvent. It rates
+          the protection operators give as &ldquo;not protected &ndash; no
+          segregation&rdquo;, &ldquo;not protected &ndash; segregation of
+          customer funds&rdquo;, &ldquo;medium protection&rdquo; or &ldquo;high
+          protection&rdquo;. PlayStake&apos;s rating is{' '}
+          <strong>not protected &ndash; no segregation</strong>: your balance is
+          held with PlayStake&apos;s own money, in PlayStake&apos;s accounts
+          with our payment provider and bank, so if PlayStake became insolvent
+          you might not get it back. Find out more about the
+          ratings on the{' '}
+          <a
+            href="https://www.gamblingcommission.gov.uk/public-and-players/guide/protection-of-customer-funds"
+            className="underline"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Gambling Commission&apos;s website
+          </a>
+          .
+        </p>
+        <p>
+          You must confirm that you have read and understood this before you
+          deposit or play with deposited funds. We remind you of it each time
+          you deposit, and at least every six months we remind you again,
+          showing the funds we hold for you, and ask you to confirm before you
+          can stake them. You can always withdraw your balance. If we change
+          how customer funds are held, we will tell you and ask you to confirm
+          again.
         </p>
       </LegalSection>
 

@@ -709,6 +709,10 @@ async function resolveRouteHandler(
     const mod = await import("../../src/app/api/wallet/balance/route.js");
     return { handler: mod.GET };
   }
+  if (path === "/api/wallet/funds-protection") {
+    const mod = await import("../../src/app/api/wallet/funds-protection/route.js");
+    return { handler: method === "POST" ? mod.POST : mod.GET };
+  }
   if (path === "/api/wallet/deposit") {
     const mod = await import("../../src/app/api/wallet/deposit/route.js");
     return { handler: mod.POST };

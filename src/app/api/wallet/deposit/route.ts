@@ -21,6 +21,7 @@ import {
 } from "../../../../lib/payments/stripe";
 import { assertTestPaymentsEnabled } from "../../../../lib/payments/policy";
 import { assertKycVerified } from "../../../../lib/kyc/policy";
+import { assertFundsProtectionAcknowledged } from "../../../../lib/compliance/funds-protection";
 import {
   assertCanDeposit,
   assertDepositLimitPromptAnswered,
@@ -50,6 +51,8 @@ export async function POST(request: NextRequest) {
     // Responsible-play gates: an active break blocks deposits outright, and a
     // self-set limit caps how much can arrive in the rolling window.
     await assertCanDeposit(session.userId, input.amount);
+    // LCCP 4.2.1: the customer has acknowledged how their funds are protected.
+    await assertFundsProtectionAcknowledged(session.userId);
     await assertDepositLimitPromptAnswered(session.userId);
 
     // Convert cents to dollars for database storage

@@ -36,7 +36,8 @@ This document states how PlayStake meets each RTS requirement that applies to it
 | Breaks in play and self-exclusion | RTS 14 (updated 12 Jan 2026 — **review changes**) | Yes | Cool-off and self-exclusion breaks that can't be shortened; withdrawal still allowed; return from self-exclusion needs a request and a 24-hour cooling-off; GAMSTOP (planned) | Policies 03, 04 |
 | Third-party software and bots | RTS 16 | Yes | Bots, scripts and software that plays for a player prohibited in terms, Match Rules and Fair Play; the referee watches both players' streams; detection by referee observation and pattern review | `/fair-play` §5, `/match-rules` |
 | Auto-play, game speed, near-miss and similar slot/casino design rules | Various | **Confirm** — likely not applicable to peer-to-peer skill games | PlayStake runs no game of its own; no auto-play or spin-style features on the platform | — |
-| Security requirements | RTS security section (ISO/IEC 27001:2022) | Yes | Document 13 | Document 13 |
+| Security requirements | RTS security section (ISO/IEC 27001:2022 Annex A; audits against the 2013 version ended 31 October 2024) | Yes | Document 13 | Document 13 |
+| Protection of customer funds (LCCP, not RTS) | LCCP 4.1.1, 4.2.1 | Yes | Rating "not protected – no segregation" in the Terms; written disclosure acknowledged before deposit and before staking deposited funds; six-monthly reminder with balance; re-acknowledged after any change | Policy 19; `src/lib/compliance/funds-protection.ts` |
 
 ### 3.1 RTS 12 financial limits
 
@@ -59,6 +60,8 @@ This document states how PlayStake meets each RTS requirement that applies to it
 | 12 Jan 2026 | RTS 14 updated | [CONFIRM] | Breaks and self-exclusion tools | Review the updated text against Policies 03 and 04 and record the outcome | Head of Compliance | **Open** |
 | 29 Jan 2026 | Consultation response on gaming machine technical standards (GMTS) | [N/A] | None: PlayStake offers no gaming machines. This was not an RTS change. | None | Head of Compliance | Closed |
 | [DATE] | RTS security requirements move to ISO/IEC 27001:2022 control references | [CONFIRM] | Security control mapping | Document 13 maps to the 2022 controls | Head of Compliance | Done |
+| 26 Oct 2026 | PlayStake product change (not an RTS change): independent dispute review; every refereed match recorded by PlayStake | 26–27 Oct 2026 | Strengthens RTS 5/6 (records) and RTS 11 (cheating and collusion): recordings sealed into the audit trail; disputes decided by someone independent of the match | Documents 01, 08–11, 18 updated | Head of Compliance | Closed |
+| 27 Oct 2026 | LCCP 4.2.1 disclosure built (not an RTS change) | 27 Oct 2026 | Funds-protection rating disclosed, acknowledged and re-acknowledged every six months | Policy 19 | Head of Compliance | Closed |
 | 25 Oct 2026 | PlayStake product change (not an RTS change): on-site games (Tic-Tac-Toe, Darts 301) and their random number generator withdrawn; catalogue reduced to EA SPORTS FC 27 and Tekken 8, both refereed stream matches | 25 Oct 2026 | RTS 7 no longer applies; test-house RNG and game certification no longer needed; RTS 3, 5/6, 10, 11, 13 and 16 now met through game guides, Match Rules and refereeing; the on-screen clock moved from `/play` to the header and every dashboard page (RTS 13) | Compliance statement (§3) and Document 11 updated; clock re-homed 25 Oct 2026 | Head of Compliance | Closed |
 
 ## 5. Monthly check log
@@ -66,6 +69,7 @@ This document states how PlayStake meets each RTS requirement that applies to it
 | Month | Checked by | RTS pages changed? | Register updated? |
 |---|---|---|---|
 | September 2026 | [NAME] | See register | Yes |
+| October 2026 | [NAME] (checked 27 Oct 2026) | No: the RTS page was last updated 31 October 2025 (RTS 12). The RTS 12 changes originally due 30 June 2026 took effect 30 September 2026. RTS 14 update of 12 January 2026 still to review (register). | Yes |
 
 | Version | Date | Change |
 |---|---|---|

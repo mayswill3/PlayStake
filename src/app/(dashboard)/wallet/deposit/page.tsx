@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback, type FormEvent } from 'react';
+import { useState, useCallback, useEffect, type FormEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
 import {
@@ -135,6 +136,35 @@ export default function DepositPage() {
   const [limitAmount, setLimitAmount] = useState('');
   const [limitBusy, setLimitBusy] = useState(false);
 
+  // LCCP 4.2.1: how deposited funds are protected, acknowledged before any
+  // deposit and repeated on every visit because PlayStake's rating is
+  // "not protected".
+  const [funds, setFunds] = useState<{ statement: string; explainer: string; acknowledged: boolean } | null>(null);
+  const [fundsTicked, setFundsTicked] = useState(false);
+  const [fundsBusy, setFundsBusy] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/wallet/funds-protection')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => data && setFunds(data))
+      .catch(() => undefined);
+  }, []);
+
+  async function acknowledgeFunds() {
+    setFundsBusy(true);
+    try {
+      const res = await fetch('/api/wallet/funds-protection', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast('error', data.error ?? 'Could not save that.');
+        return;
+      }
+      setFunds(data);
+    } finally {
+      setFundsBusy(false);
+    }
+  }
+
   const amountCents = Math.round(parseFloat(amount || '0') * 100);
 
   async function answerLimitPrompt(setOne: boolean) {
@@ -194,6 +224,13 @@ export default function DepositPage() {
       });
 
       const data = await res.json();
+
+      if (res.status === 409 && data.code === 'FUNDS_PROTECTION_REQUIRED') {
+        setFunds((current) => (current ? { ...current, acknowledged: false } : current));
+        setError(data.error);
+        setLoading(false);
+        return;
+      }
 
       if (res.status === 409 && data.code === 'DEPOSIT_LIMIT_PROMPT') {
         setLimitPromptOpen(true);
@@ -268,6 +305,35 @@ export default function DepositPage() {
         <p className="text-text-secondary font-mono text-sm mt-1">Add funds to your PlayStake wallet</p>
       </div>
 
+      {funds && !funds.acknowledged && (
+        <Card>
+          <div className="space-y-3 text-sm text-text-secondary">
+            <h2 className="text-base font-semibold text-text-primary">How your funds are protected</h2>
+            <p className="font-medium text-text-primary">{funds.statement}</p>
+            <p>{funds.explainer}</p>
+            <p>
+              Read more in our{' '}
+              <Link href="/terms#funds-protection" className="underline">
+                Terms (protection of customer funds)
+              </Link>
+              .
+            </p>
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={fundsTicked}
+                onChange={(e) => setFundsTicked(e.target.checked)}
+              />
+              <span>I have read and understood how my funds are protected, and that they are not protected if PlayStake becomes insolvent.</span>
+            </label>
+            <Button loading={fundsBusy} disabled={!fundsTicked} onClick={acknowledgeFunds}>
+              Confirm
+            </Button>
+          </div>
+        </Card>
+      )}
+
       <Card>
         {error && (
           <div className="mb-4 p-3 rounded-sm bg-danger-500/10 border border-danger-500/25 text-danger-400 text-sm" role="alert">
@@ -313,7 +379,16 @@ export default function DepositPage() {
             Min £5.00 &middot; Max £1,000.00 &middot; Processed via Stripe
           </div>
 
-          <Button type="submit" loading={loading} className="w-full">
+          {funds?.acknowledged && (
+            <p className="rounded-sm border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-text-secondary">
+              <strong className="text-text-primary">Your funds are not protected.</strong> {funds.statement}{' '}
+              <Link href="/terms#funds-protection" className="underline">
+                How we hold your funds
+              </Link>
+            </p>
+          )}
+
+          <Button type="submit" loading={loading} disabled={!funds?.acknowledged} className="w-full">
             Deposit {amountCents > 0 ? formatCents(amountCents) : ''}
           </Button>
         </form>

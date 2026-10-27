@@ -9,7 +9,7 @@ export const SOCIAL_PROFILES = {
 } as const;
 
 export const DEFAULT_SEO_DESCRIPTION =
-  'PlayStake lets competitive gamers challenge real players, agree a stake, play live, and settle skill-based matches with protected funds and referee oversight.';
+  'PlayStake lets competitive gamers challenge real players, agree a stake, play live, and settle skill-based matches with stakes held until the result and referee oversight.';
 
 type PublicMetadataOptions = {
   title: string;

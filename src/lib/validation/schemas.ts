@@ -154,7 +154,7 @@ export const depositSchema = z.object({
     .number()
     .int("Amount must be an integer (cents)")
     .min(500, "Minimum deposit is £5.00 (500 pence)")
-    .max(100_000, "Maximum deposit is $1,000.00 (100000 cents)"),
+    .max(100_000, "Maximum deposit is £1,000.00 (100000 pence)"),
   idempotencyKey: z
     .string()
     .min(1, "Idempotency key is required")

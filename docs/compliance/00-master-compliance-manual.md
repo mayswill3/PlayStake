@@ -100,6 +100,8 @@ The application's technical documents:
 | 16 | [Payment Services and Payment Methods](16-payment-services-and-methods.md) | Payments only through PSR-authorised providers; approved methods fixed in code; provider register and onboarding checklist |
 | 17 | [DPIA: Identity Verification (Didit)](17-dpia-identity-verification.md) | Biometric identity checks: lawful basis, necessity, risks and controls, questions for Didit (first draft) |
 | 18 | [DPIA: Match Recordings](18-dpia-match-recordings.md) | Recording every refereed match for disputes: what is recorded, who can watch, retention, risks and controls (first draft) |
+| 19 | [Protection of Customer Funds](19-protection-of-customer-funds.md) | LCCP 4.1.1 / 4.2.1: rating "not protected – no segregation", disclosure, acknowledgement, six-monthly reminder, reconciliation |
+| 20 | [UKGC application answers](20-ukgc-application-answers-technical-and-funds.md) | Form-ready answers for the technical pack and customer funds, with the document to attach for each |
 
 Each policy states its owner, its review date, the LCCP provisions it addresses, and exactly how the platform carries it out.
 
