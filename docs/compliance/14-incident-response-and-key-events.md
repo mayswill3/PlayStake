@@ -78,6 +78,7 @@ Key events most relevant to PlayStake (check the full list in the current LCCP):
 | Appointment or loss of key suppliers or significant changes to outsourcing | Change of payment provider or hosting |
 | Criminal investigation or proceedings, or regulatory action elsewhere, involving PlayStake or its key people | — |
 | Material financial events (e.g. insolvency, breach of banking covenants, significant loss) | — |
+| Any change to how customer funds are protected (an "other reportable event") | Opening the customer-funds account and switching the rating; changing bank; a shortfall in the customer-funds account that can't be topped up the same day (Policy 19) |
 | Changes to key people, ownership or control | Change of Head of Compliance / MLRO |
 | Suspected cheating or match-fixing involving customers that has led to action | Collusion ring found and accounts closed |
 

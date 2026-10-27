@@ -100,7 +100,7 @@ The application's technical documents:
 | 16 | [Payment Services and Payment Methods](16-payment-services-and-methods.md) | Payments only through PSR-authorised providers; approved methods fixed in code; provider register and onboarding checklist |
 | 17 | [DPIA: Identity Verification (Didit)](17-dpia-identity-verification.md) | Biometric identity checks: lawful basis, necessity, risks and controls, questions for Didit (first draft) |
 | 18 | [DPIA: Match Recordings](18-dpia-match-recordings.md) | Recording every refereed match for disputes: what is recorded, who can watch, retention, risks and controls (first draft) |
-| 19 | [Protection of Customer Funds](19-protection-of-customer-funds.md) | LCCP 4.1.1 / 4.2.1: rating "not protected – no segregation", disclosure, acknowledgement, six-monthly reminder, reconciliation |
+| 19 | [Protection of Customer Funds](19-protection-of-customer-funds.md) | LCCP 4.1.1 / 4.2.1: separate customer-funds account with daily reconciliation; rating "not protected – segregation of customer funds" once the account is live; disclosure, acknowledgement, six-monthly reminder |
 | 20 | [UKGC application answers](20-ukgc-application-answers-technical-and-funds.md) | Form-ready answers for the technical pack and customer funds, with the document to attach for each |
 
 Each policy states its owner, its review date, the LCCP provisions it addresses, and exactly how the platform carries it out.
@@ -212,7 +212,7 @@ These must be done before the application is submitted, or before real-money lau
 | 14 | Staff training programme and records | Launch | Head of Compliance |
 | 15 | Engage the external compliance adviser for quarterly independent review | Launch | Board |
 | 16 | Confirm the current Commission thresholds and rules on: financial vulnerability and affordability checks, consumer-set financial limit prompts, and marketing consent. Adjust the platform settings to match. | Application | Head of Compliance |
-| 17 | Record the Railway region and backup location; confirm backups are enabled and test a restore | Application | Engineering |
+| 17 | ~~Record the Railway region~~ Done 27 October 2026: EU West, `europe-west4` (Netherlands). Remaining: record the backup location, confirm backups are enabled and test a restore | Application | Engineering |
 | 18 | Decide permitted jurisdictions and add IP geolocation blocking plus a residency restriction at verification (Document 08 §6) | Launch | Head of Compliance / engineering |
 | 19 | ~~Engage a Commission-approved test house for RNG and game certification~~ No longer needed: PlayStake's own games and their RNG were withdrawn on 25 October 2026, so there is no PlayStake game or RNG to certify (Document 11 §3.1). Remaining: confirm with the Commission the in-house/third-party testing split for refereed peer-to-peer matches (Higher / Lower withdrawn 30 Sep 2026 as mostly chance) | Application | Head of Compliance |
 | 20 | Commission an independent penetration test; appoint the annual security auditor (first audit within 6 months of grant) | Launch / grant + 6 months | Head of Compliance |
@@ -221,6 +221,7 @@ These must be done before the application is submitted, or before real-money lau
 | 23 | ~~Build the monthly game-fairness statistical check from the game event log~~ No longer needed: it checked dart-scatter draws, and Darts was withdrawn on 25 October 2026 (Document 11 §6) | — | Engineering |
 | 24 | Get Stripe's written approval for gambling (or appoint a gambling-approved PSP) and confirm its FCA reference number (Policy 16) | Launch | Head of Compliance |
 | 25 | Block credit-funded cards on deposits (Policy 16 §7) | Launch | Head of Compliance / engineering |
+| 26 | Open the separate customer-funds bank account, point Stripe payouts at it, fund it, start daily reconciliation, switch the rating to "not protected – segregation of customer funds" and notify the Commission (Policy 19 §6). Required by LCCP 4.1.1. | Application | Head of Compliance / finance |
 
 ## 9. Version history
 

@@ -110,6 +110,8 @@ flowchart TB
 |---|---|---|---|---|---|---|
 | **Hosting and storage** | Railway Corp. | Live | Runs the web, worker and recorder services, PostgreSQL and Redis; database backups (to be confirmed as enabled, Document 13) | All platform data (hosted, not accessed by Railway for its own purposes) | Railway EU West — `europe-west4` (Amsterdam, Netherlands), all five services (checked 27 October 2026) | Railway terms and DPA. [CONFIRM SOC 2 REPORT] |
 | **Match-recording storage** | Cloudflare, Inc. (R2) | Live from 27 October 2026 (DPIA sign-off outstanding, Document 18) | Stores sealed match recordings privately; deleted after 30 days, or 12 months after a dispute is decided | Video and sound of players' and referees' streams | R2 bucket with **EU jurisdiction**; no public access | Cloudflare DPA (with UK addendum). Document 18 |
+| **Banking (customer funds)** | [BANK NAME] | To open (Policy 19 §6) | Holds customer funds in a separate customer-funds account, used only for customer money; Stripe pays out to it; reconciled daily | Account balances and transfers | UK | Bank terms; written acknowledgement that it holds customer money [CONFIRM] |
+| **Banking (company)** | [BANK NAME] | Live | Company account for PlayStake's own money (fees earned, costs) | — | UK | Bank terms |
 | **Payment services** | Stripe Payments Europe / Stripe, Inc. | Live, **test mode** | Card deposits (Payment Intents), withdrawals via Stripe Connect Express, Radar fraud screening (to configure) | Customer name, email, amount; card data handled by Stripe only | Stripe (EU/US) | Stripe Services Agreement; PCI DSS Level 1; PSR authorisation and approved methods in Policy 16 |
 | **Age and identity verification** | Didit (didit.me) | Live (normal route) | Hosted identity check: document authenticity, liveness, face match, age (18+), proof of address, AML screening and ongoing re-screening | Name, date of birth, address, document and selfie images (biometric), email, PlayStake user id | EU (Spain); processing and storage locations to confirm | ISO 27001, SOC 2 Type II; DPA to sign; DPIA in Document 17 |
 | | In-house | Live (fallback) | Customers who can't use Didit upload an identity document; staff review it before any deposit or gambling | — | PlayStake (Railway) | — |
@@ -141,7 +143,8 @@ flowchart TB
 
 | # | Gap | Action | Needed for |
 |---|---|---|---|
-| 1 | Hosting region not recorded | Confirm the Railway region for each service and the backup location; record here and in Document 10 | Application |
+| 1 | ~~Hosting region not recorded~~ Region recorded 27 October 2026 (EU West, Netherlands). Backup location still to record | Record the backup location here and in Document 10 | Application |
+| 1a | Customer funds not yet segregated | Open the customer-funds account and switch the rating (Policy 19 §6); LCCP 4.1.1 | Application |
 | 2 | No geolocation control | Decide permitted jurisdictions. Put an IP-geolocation layer in front of the service (for example a CDN that supplies a country header), block prohibited locations at sign-up, deposit and staking, and restrict verification to permitted countries of residence. | Launch |
 | 3 | Planned suppliers not contracted | GAMSTOP, IBAS, eIDV and sanctions/PEP screening | Application / launch as marked |
 | 4 | Supplier assurance not on file | Collect SOC 2 / ISO 27001 reports or equivalent from Railway, Stripe, Resend, Sentry; record DPAs | Application |
