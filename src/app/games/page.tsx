@@ -48,7 +48,7 @@ export default function GamesPage() {
           ))}
         </div>
         <LegalCallout title="Test beta">
-          PlayStake is in a test beta. No real-money wagering takes place yet. 18+ only.
+          PlayStake is in a test beta. No real-money wagering takes place yet. 21+ only.
         </LegalCallout>
       </LegalSection>
 

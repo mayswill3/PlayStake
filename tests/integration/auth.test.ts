@@ -102,9 +102,9 @@ describe("Auth: Registration", () => {
 });
 
 describe("Auth: Registration age checks", () => {
-  it("refuses anyone under 18", async () => {
+  it("refuses anyone under 21", async () => {
     const lastYear = new Date();
-    lastYear.setUTCFullYear(lastYear.getUTCFullYear() - 17);
+    lastYear.setUTCFullYear(lastYear.getUTCFullYear() - 20);
     const res = await callApi("POST", "/api/auth/register", {
       headers: { "x-forwarded-for": nextIp() },
       body: {
@@ -116,7 +116,7 @@ describe("Auth: Registration age checks", () => {
       },
     });
     expect(res.status).toBe(422);
-    expect(res.body.error).toMatch(/18 or over/);
+    expect(res.body.error).toMatch(/21 or over/);
   });
 
   it("requires the 18+ confirmation", async () => {

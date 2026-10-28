@@ -26,6 +26,7 @@ import { detectPlayerRiskForUser } from "../../src/lib/responsible-play/risk.js"
 import { evaluateDueInteractions } from "../../src/lib/responsible-play/interaction.js";
 import { setDepositLimit } from "../../src/lib/responsible-play/service.js";
 import { assertCanWager } from "../../src/lib/responsible-play/policy.js";
+import { detectFinancialVulnerabilityCheck } from "../../src/lib/responsible-play/risk.js";
 import { FUNDS_PROTECTION_VERSION } from "../../src/lib/compliance/funds-protection.js";
 
 const prisma = getTestPrisma();
@@ -247,6 +248,63 @@ describe("Six-monthly funds-protection reminder", () => {
     const current = await callApi("GET", "/api/wallet/funds-protection", player.auth);
     expect(current.body).toMatchObject({ acknowledged: true, reason: null });
     await expect(assertCanWager(player.id)).resolves.toBeUndefined();
+  });
+});
+
+describe("Launch scope: 21+ and Great Britain", () => {
+  async function verifiedWith(dateOfBirth: string, country = "GB", postalCode = "EC1A 1BB") {
+    const player = await makePlayer();
+    await prisma.kycSubmission.create({
+      data: {
+        userId: player.id, status: "APPROVED", legalFirstName: "Test", legalLastName: "Player",
+        dateOfBirth: new Date(`${dateOfBirth}T00:00:00Z`), addressLine1: "1 High Street", city: "London",
+        postalCode, country, documentType: "PASSPORT", reviewedAt: new Date(),
+      },
+    });
+    return player;
+  }
+  const yearsAgo = (years: number) => new Date(Date.now() - years * 365.25 * 864e5).toISOString().slice(0, 10);
+
+  it("stops customers verified before the rules who are under 21 or live outside GB", async () => {
+    await expect(assertCanWager((await verifiedWith(yearsAgo(19.5))).id)).rejects.toMatchObject({ code: "OUTSIDE_LAUNCH_SCOPE" });
+    await expect(assertCanWager((await verifiedWith(yearsAgo(30), "GB", "BT7 1NN")).id)).rejects.toMatchObject({ code: "OUTSIDE_LAUNCH_SCOPE" });
+    await expect(assertCanWager((await verifiedWith(yearsAgo(30), "IE", "D02 X285")).id)).rejects.toMatchObject({ code: "OUTSIDE_LAUNCH_SCOPE" });
+    await expect(assertCanWager((await verifiedWith(yearsAgo(30))).id)).resolves.toBeUndefined();
+  });
+});
+
+describe("Financial vulnerability check (net deposits over £150 in 30 days)", () => {
+  async function withdrawal(userId: string, cents: number) {
+    await prisma.transaction.create({
+      data: {
+        idempotencyKey: `ci-wd-${userId}-${Math.random()}`,
+        type: TransactionType.WITHDRAWAL,
+        status: TransactionStatus.COMPLETED,
+        amount: centsToDollars(cents),
+        metadata: { userId },
+      },
+    });
+  }
+  const signals = (userId: string) =>
+    prisma.playerRiskSignal.count({ where: { userId, type: "FINANCIAL_VULNERABILITY_CHECK" } });
+
+  it("is raised for staff above £150 net, not at £150 or when withdrawals bring it under", async () => {
+    const atLimit = await makePlayer();
+    await deposit(atLimit.id, 15_000, new Date());
+    expect(await detectFinancialVulnerabilityCheck(atLimit.id, new Date())).toBeNull();
+
+    const netUnder = await makePlayer();
+    await deposit(netUnder.id, 30_000, new Date());
+    await withdrawal(netUnder.id, 20_000);
+    expect(await detectFinancialVulnerabilityCheck(netUnder.id, new Date())).toBeNull();
+
+    const over = await makePlayer();
+    await deposit(over.id, 15_001, new Date());
+    expect(await detectFinancialVulnerabilityCheck(over.id, new Date())).not.toBeNull();
+    // Staff-only: no message to the customer, and not repeated within 12 months.
+    expect(await prisma.customerInteraction.count({ where: { userId: over.id } })).toBe(0);
+    expect(await detectFinancialVulnerabilityCheck(over.id, new Date())).toBeNull();
+    expect(await signals(over.id)).toBe(1);
   });
 });
 

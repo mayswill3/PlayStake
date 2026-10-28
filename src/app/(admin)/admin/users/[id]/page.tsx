@@ -311,7 +311,7 @@ export default function AdminUserDetailPage() {
         <CardTitle>KYC Status</CardTitle>
         <p className="mt-1 text-sm text-text-secondary">
           Approve identity from the KYC queue. Marking someone verified here only works
-          when an approved document already shows they are 18 or over.
+          when an approved document already shows they are 21 or over and live in Great Britain.
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Badge

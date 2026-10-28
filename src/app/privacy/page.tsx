@@ -158,7 +158,7 @@ export default function PrivacyPage() {
       eyebrow="Privacy"
       title="Privacy Policy"
       summary="This policy explains how PlayStake handles personal information when you visit the website, create an account, play a match, connect Kick, make a transaction, file a dispute or act as a referee."
-      lastUpdated="25 October 2026"
+      lastUpdated="28 October 2026"
       toc={toc}
     >
       <LegalCallout title="A plain-language promise">
@@ -506,8 +506,8 @@ export default function PrivacyPage() {
 
       <LegalSection id="children" number="13" title="Children">
         <p>
-          PlayStake is intended only for people aged 18 or over. We do not
-          knowingly offer accounts to children. If you believe a child has
+          PlayStake is intended only for people aged 21 or over. We do not
+          knowingly offer accounts to children or to anyone under 21. If you believe a child has
           provided personal information, contact us so we can investigate and
           take appropriate action.
         </p>

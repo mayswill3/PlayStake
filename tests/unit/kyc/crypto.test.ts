@@ -10,7 +10,7 @@ import {
   hashDocument,
 } from "../../../src/lib/kyc/crypto.js";
 import {
-  MINIMUM_AGE_YEARS,
+  MINIMUM_AGE_YEARS, isGreatBritainAddress,
   ageInYears,
   sniffMimeType,
 } from "../../../src/lib/kyc/constants.js";
@@ -102,7 +102,16 @@ describe("KYC: age check", () => {
     expect(ageInYears(new Date("2008-09-03T00:00:00Z"), now)).toBe(18);
   });
 
-  it("puts the minimum age at the legal threshold", () => {
-    expect(MINIMUM_AGE_YEARS).toBe(18);
+  it("puts the minimum age at PlayStake's 21+ launch rule", () => {
+    expect(MINIMUM_AGE_YEARS).toBe(21);
+  });
+
+  it("accepts only addresses in England, Scotland and Wales", () => {
+    expect(isGreatBritainAddress("GB", "EC1A 1BB")).toBe(true);
+    expect(isGreatBritainAddress("gb", "EH1 1YZ")).toBe(true);
+    expect(isGreatBritainAddress("GB", "BT1 5GS")).toBe(false); // Northern Ireland
+    expect(isGreatBritainAddress("IE", "D02 X285")).toBe(false);
+    expect(isGreatBritainAddress("JE", "JE2 3XP")).toBe(false);
+    expect(isGreatBritainAddress(null, "EC1A 1BB")).toBe(false);
   });
 });

@@ -12,8 +12,11 @@ import { isDiditEnabled } from "./didit";
 import { hasBlockingIdentityCase, screenKycSubmission } from "../compliance/identity-checks";
 import {
   MAX_DOCUMENT_BYTES,
+  LEGAL_ADULT_AGE_YEARS,
   MINIMUM_AGE_YEARS,
+  NOT_GB_RESIDENT_MESSAGE,
   REQUIRED_DOCUMENT_KINDS,
+  isGreatBritainAddress,
   ageInYears,
   sniffMimeType,
 } from "./constants";
@@ -75,6 +78,9 @@ export async function submitKyc(
     throw new ValidationError(
       `You must be at least ${MINIMUM_AGE_YEARS} to hold a funded PlayStake account`,
     );
+  }
+  if (!isGreatBritainAddress(input.country, input.postalCode)) {
+    throw new ValidationError(NOT_GB_RESIDENT_MESSAGE);
   }
 
   const required = REQUIRED_DOCUMENT_KINDS[input.documentType];
@@ -232,6 +238,8 @@ export async function reviewSubmission(input: ReviewSubmissionInput) {
         status: true,
         userId: true,
         dateOfBirth: true,
+        country: true,
+        postalCode: true,
         user: { select: { email: true, displayName: true } },
       },
     });
@@ -248,10 +256,18 @@ export async function reviewSubmission(input: ReviewSubmissionInput) {
     if (input.approve) {
       // The document date of birth is what counts; re-check it here rather
       // than trusting the check made when the form was submitted.
-      if (ageInYears(submission.dateOfBirth) < MINIMUM_AGE_YEARS) {
+      if (ageInYears(submission.dateOfBirth) < LEGAL_ADULT_AGE_YEARS) {
         throw new ConflictError(
           "The document shows this customer is under 18. Reject the submission and close the account as under-18.",
         );
+      }
+      if (ageInYears(submission.dateOfBirth) < MINIMUM_AGE_YEARS) {
+        throw new ConflictError(
+          `The document shows this customer is under ${MINIMUM_AGE_YEARS}. Reject the submission: PlayStake is ${MINIMUM_AGE_YEARS}+.`,
+        );
+      }
+      if (!isGreatBritainAddress(submission.country, submission.postalCode)) {
+        throw new ConflictError(`This address is outside England, Scotland and Wales. Reject the submission: ${NOT_GB_RESIDENT_MESSAGE}`);
       }
       if (await hasBlockingIdentityCase(submission.userId)) {
         throw new ConflictError(

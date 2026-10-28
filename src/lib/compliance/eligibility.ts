@@ -6,7 +6,9 @@
 //
 //   1. account status   — suspended or closed accounts cannot gamble
 //   2. age / identity   — KYC must be VERIFIED (age verified before any
-//                          deposit, free-to-play access or gambling)
+//                          deposit, free-to-play access or gambling), and the
+//                          approved identity must show 21+ and an address in
+//                          England, Scotland or Wales (launch scope, Policy 00)
 //   3. GAMSTOP          — anyone on the national self-exclusion register is
 //                          refused; a stale result is re-checked first
 //   4. breaks           — cool-off, self-exclusion, and a lapsed
@@ -19,8 +21,10 @@
 import {
   AccountStatus,
   GamstopStatus,
+  KycSubmissionStatus,
   type KycStatus,
 } from "../../../generated/prisma/client";
+import { MINIMUM_AGE_YEARS, NOT_GB_RESIDENT_MESSAGE, ageInYears, isGreatBritainAddress } from "../kyc/constants";
 import { prisma } from "../db/client";
 import { AppError } from "../errors";
 import { assertKycVerified } from "../kyc/policy";
@@ -47,6 +51,33 @@ export class AccountRestrictedError extends AppError {
     );
     this.name = "AccountRestrictedError";
     this.accountStatus = accountStatus;
+  }
+}
+
+export class OutsideLaunchScopeError extends AppError {
+  constructor(message: string) {
+    super(`${message} You can still withdraw your balance.`, 403, "OUTSIDE_LAUNCH_SCOPE");
+    this.name = "OutsideLaunchScopeError";
+  }
+}
+
+/**
+ * The approved identity must show 21+ and a Great Britain address. Customers
+ * verified before these rules (18-20, or living elsewhere) are stopped here.
+ * Accounts verified without a stored submission (none in production) pass.
+ */
+async function assertWithinLaunchScope(userId: string, now: Date): Promise<void> {
+  const approved = await prisma.kycSubmission.findFirst({
+    where: { userId, status: KycSubmissionStatus.APPROVED },
+    orderBy: { reviewedAt: "desc" },
+    select: { dateOfBirth: true, country: true, postalCode: true },
+  });
+  if (!approved) return;
+  if (ageInYears(approved.dateOfBirth, now) < MINIMUM_AGE_YEARS) {
+    throw new OutsideLaunchScopeError(`PlayStake is only for people aged ${MINIMUM_AGE_YEARS} or over.`);
+  }
+  if (!isGreatBritainAddress(approved.country, approved.postalCode)) {
+    throw new OutsideLaunchScopeError(NOT_GB_RESIDENT_MESSAGE);
   }
 }
 
@@ -139,6 +170,7 @@ export async function assertEligibleToGamble(
 
   assertAccountUsable(user);
   assertKycVerified(user);
+  await assertWithinLaunchScope(userId, now);
   await assertNotGamstopExcluded(userId, user, now);
 
   const activeBreak = await getActiveBreak(userId, now);

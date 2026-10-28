@@ -150,7 +150,7 @@ export function gameGuide(slug: string): GameGuide | undefined {
 export const MATCH_STEPS: Array<{ title: string; body: string }> = [
   {
     title: 'Get set up',
-    body: 'Create an account, verify your identity (18+), and connect your Kick channel. Both players need to stream their own screen.',
+    body: 'Create an account, verify your identity (21+, living in England, Scotland or Wales), and connect your Kick channel. Both players need to stream their own screen.',
   },
   {
     title: 'Go live and pick the game',

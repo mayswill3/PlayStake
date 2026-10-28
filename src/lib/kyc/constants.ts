@@ -13,8 +13,27 @@ export const ALLOWED_DOCUMENT_MIME_TYPES = [
 export type AllowedDocumentMimeType =
   (typeof ALLOWED_DOCUMENT_MIME_TYPES)[number];
 
-/** Minimum age to hold a funded PlayStake account. */
-export const MINIMUM_AGE_YEARS = 18;
+/**
+ * Minimum age to hold a PlayStake account and gamble: 21 (the confirmed launch
+ * scope, Policy 00). Under-18s are a separate case: they must be closed as
+ * under-18 (Policy 06), not merely refused.
+ */
+export const MINIMUM_AGE_YEARS = 21;
+export const LEGAL_ADULT_AGE_YEARS = 18;
+
+/**
+ * Great Britain only (England, Scotland, Wales): the confirmed launch
+ * territory. Northern Ireland postcodes (BT) are outside a GB licence, and
+ * the Crown Dependencies use their own codes (GY, JE, IM), so they fail the
+ * country check already.
+ */
+export function isGreatBritainAddress(country: string | null | undefined, postalCode: string | null | undefined): boolean {
+  if ((country ?? "").trim().toUpperCase() !== "GB") return false;
+  return !/^\s*BT/i.test(postalCode ?? "");
+}
+
+export const NOT_GB_RESIDENT_MESSAGE =
+  "PlayStake is only available to people living in England, Scotland or Wales.";
 
 /**
  * Which document images each document type requires. A passport is a single

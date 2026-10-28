@@ -75,7 +75,7 @@ export function HomeHero() {
             <WatchButton video="full">Watch the demo</WatchButton>
           </div>
           <p className="mt-5 text-sm text-ps-muted dark:text-ps-muted-on-dark">
-            Test beta only. No real-money wagering. 18+.
+            Test beta only. No real-money wagering. 21+.
           </p>
         </div>
       </div>

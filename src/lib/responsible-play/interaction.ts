@@ -53,6 +53,9 @@ export const AUTOMATED_MESSAGES: Record<PlayerRiskType, string> = {
     "You've deposited more than usual over the last month. We check in with everyone who reaches this level, to make sure your play stays affordable.",
   [PlayerRiskType.LATE_NIGHT_PLAY]:
     "You've been playing a lot late at night. Tiredness makes it harder to keep track of time and money — a reminder or a break might help.",
+  // Staff-only check; the customer isn't messaged (see risk.ts).
+  [PlayerRiskType.FINANCIAL_VULNERABILITY_CHECK]:
+    "We'd like to check your play stays affordable for you. A deposit limit can help you stay in control.",
 };
 
 export function automatedMessageFor(type: PlayerRiskType): string {

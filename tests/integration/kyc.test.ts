@@ -173,10 +173,10 @@ describe("KYC: submission", () => {
     }
   });
 
-  it("rejects an applicant under 18", async () => {
+  it("rejects an applicant under 21", async () => {
     const actor = await makePlayer();
     const underage = new Date();
-    underage.setUTCFullYear(underage.getUTCFullYear() - 17);
+    underage.setUTCFullYear(underage.getUTCFullYear() - 20);
 
     const res = await callApi("POST", "/api/kyc", {
       ...as(actor),
@@ -186,7 +186,16 @@ describe("KYC: submission", () => {
     });
 
     expect(res.status).toBe(422);
-    expect(res.body.error).toMatch(/at least 18/i);
+    expect(res.body.error).toMatch(/at least 21/i);
+  });
+
+  it("rejects an address outside England, Scotland and Wales", async () => {
+    for (const address of [{ country: "GB", postalCode: "BT1 5GS" }, { country: "IE", postalCode: "D02 X285" }]) {
+      const actor = await makePlayer();
+      const res = await callApi("POST", "/api/kyc", { ...as(actor), formData: submissionForm(address) });
+      expect(res.status, address.postalCode).toBe(422);
+      expect(res.body.error).toMatch(/England, Scotland or Wales/);
+    }
   });
 
   it("rejects a file whose bytes are not a real image or PDF", async () => {

@@ -178,7 +178,7 @@ export default function HumanRefereePage() {
         {/* How to qualify */}
         <Section icon={<Star size={20} />} color="green" title="How to qualify">
           <p>
-            Any PlayStake user aged 18 or over can apply. There are no formal qualifications and no minimum hours. PlayStake reviews every application before you can officiate.
+            Any PlayStake user aged 21 or over can apply. There are no formal qualifications and no minimum hours. PlayStake reviews every application before you can officiate.
           </p>
           <p>
             You need a verified identity, a connected Kick account you can go live on, a good knowledge of the games you want to referee, and good standing on the platform. You must be independent of the players in any match you officiate.

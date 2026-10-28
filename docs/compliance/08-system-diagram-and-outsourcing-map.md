@@ -117,7 +117,7 @@ flowchart TB
 | | In-house | Live (fallback) | Customers who can't use Didit upload an identity document; staff review it before any deposit or gambling | — | PlayStake (Railway) | — |
 | **Sanctions and PEP screening** | [SCREENING PROVIDER] | Planned | Screening at verification and on list updates | Name, date of birth, nationality | [TBC] | To contract (Master Manual §8 item 5) |
 | **Multi-operator self-exclusion** | GAMSTOP (The National Online Self Exclusion Scheme Ltd) | Planned | Checks every customer against the national register | Name, date of birth, email, postcode | UK | Membership to complete (Master Manual §8 item 3) |
-| **Geolocation** | None | **Gap** | No IP-based location check today. Customers state their country at verification. | — | — | See §6 |
+| **Geolocation** | None (residency only) | **Partial** | Launch territory is England, Scotland and Wales. Residency is enforced from the verified address (country GB, not a Northern Ireland BT postcode) at verification, at approval, and before every deposit and stake. There is no check of where the customer is when they play (no IP geolocation). | — | — | See §6 |
 | **Fraud detection** | In-house | Live | Anomaly detection (win rates, winner patterns, fast settlement, volume spikes), shared-identity checks, AML scans | — | PlayStake | — |
 | | Stripe Radar | To configure | Card-fraud scoring on deposits | As payment services | Stripe | As payment services |
 | **Customer service** | In-house, on Google Workspace email | Live | support@playstake.org (Google Workspace mailbox), complaints procedure, in-app messages | Customer emails | Google | Google Workspace terms and DPA |
@@ -145,7 +145,7 @@ flowchart TB
 |---|---|---|---|
 | 1 | ~~Hosting region not recorded~~ Region recorded 27 October 2026 (EU West, Netherlands). Backup location still to record | Record the backup location here and in Document 10 | Application |
 | 1a | Customer funds not yet segregated | Open the customer-funds account and switch the rating (Policy 19 §6); LCCP 4.1.1 | Application |
-| 2 | No geolocation control | Decide permitted jurisdictions. Put an IP-geolocation layer in front of the service (for example a CDN that supplies a country header), block prohibited locations at sign-up, deposit and staking, and restrict verification to permitted countries of residence. | Launch |
+| 2 | No location-at-play check | Residency is enforced (verified address in Great Britain). Still open: decide whether to add IP geolocation (for example MaxMind GeoLite2, or Cloudflare in front of the site) to block play from outside Great Britain, including Northern Ireland. | Launch |
 | 3 | Planned suppliers not contracted | GAMSTOP, IBAS, eIDV and sanctions/PEP screening | Application / launch as marked |
 | 4 | Supplier assurance not on file | Collect SOC 2 / ISO 27001 reports or equivalent from Railway, Stripe, Resend, Sentry; record DPAs | Application |
 | 5 | Third-party fonts | Self-host fonts so no visitor data goes to Google | Recommended |

@@ -79,7 +79,7 @@ export default async function GameGuidePage({ params }: { params: Promise<{ slug
             <li><strong>Rules:</strong> every match is played under our <Link href="/match-rules">Match Rules</Link>.</li>
           </ul>
           <LegalCallout title="Test beta">
-            PlayStake is in a test beta. No real-money wagering takes place yet. 18+ only.
+            PlayStake is in a test beta. No real-money wagering takes place yet. 21+ only.
           </LegalCallout>
         </LegalSection>
 

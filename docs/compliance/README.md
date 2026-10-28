@@ -27,6 +27,7 @@ combined PDF of the whole set (`pdf/PlayStake-Compliance-Manual-complete.pdf`).
 | 18 | [DPIA: Match Recordings](18-dpia-match-recordings.md) — first draft |
 | 19 | [Protection of Customer Funds](19-protection-of-customer-funds.md) |
 | 20 | [UKGC application answers: technical pack and customer funds](20-ukgc-application-answers-technical-and-funds.md) |
+| 21 | [Reconciliation with Policy Set v0.2](21-reconciliation-with-policy-set-v0-2.md) — working note |
 
 **Before submission:**
 - Replace every `[PLACEHOLDER]`.

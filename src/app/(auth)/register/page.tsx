@@ -151,7 +151,7 @@ export default function RegisterPage() {
             className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--ps-lime)]"
           />
           <span>
-            I am 18 or over and agree to the{' '}
+            I am 21 or over, live in England, Scotland or Wales, and agree to the{' '}
             <Link href="/terms" className="underline">Terms</Link> and{' '}
             <Link href="/privacy" className="underline">Privacy Policy</Link>. I understand my age
             and identity will be verified before I can deposit or play.

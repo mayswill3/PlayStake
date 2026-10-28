@@ -116,7 +116,7 @@ function BetMockupCard() {
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="rounded-lg bg-white/5 p-4">
           <div className="text-[11px] uppercase tracking-widest text-white/50 mb-1">Your stake</div>
-          <div className="text-white font-bold text-2xl tabular-nums">$10.00</div>
+          <div className="text-white font-bold text-2xl tabular-nums">£10.00</div>
         </div>
         <div className="rounded-lg bg-white/5 p-4">
           <div className="text-[11px] uppercase tracking-widest text-white/50 mb-1">Total pot</div>

@@ -5,7 +5,8 @@
 // the same safeguards run: the document's date of birth against the one given
 // at sign-up, the same identity on another account, GAMSTOP. Then:
 //
-//   - Didit Approved, 18+ on the document, no open identity case
+//   - Didit Approved, 21+ on the document, an address in Great Britain
+//     (not Northern Ireland), no open identity case
 //       → verified automatically
 //   - Didit Declined → rejected, with Didit's reasons; the player can retry
 //   - Didit In Review, or approved but an identity case is open
@@ -26,7 +27,7 @@ import { prisma } from "../db/client";
 import { hasBlockingIdentityCase, screenKycSubmission } from "../compliance/identity-checks";
 import { emailKycSubmitted } from "../email/events";
 import { sendKycDecisionEmail } from "../email/resend";
-import { MINIMUM_AGE_YEARS, ageInYears } from "./constants";
+import { LEGAL_ADULT_AGE_YEARS, MINIMUM_AGE_YEARS, NOT_GB_RESIDENT_MESSAGE, ageInYears, isGreatBritainAddress } from "./constants";
 import { DIDIT_FINAL_STATUSES, type DiditDecision, type DiditFinalStatus } from "./didit";
 
 export type DiditOutcome = "ignored" | "approved" | "rejected" | "pending" | "unchanged";
@@ -199,8 +200,25 @@ export async function applyDiditDecision(decision: DiditDecision): Promise<Didit
     return "rejected";
   }
 
-  const ofAge = dateOfBirth !== null && ageInYears(dateOfBirth) >= MINIMUM_AGE_YEARS;
-  if (decision.status === "Approved" && hasIdentity && ofAge && !(await hasBlockingIdentityCase(user.id))) {
+  const age = dateOfBirth !== null ? ageInYears(dateOfBirth) : null;
+  // 18-20: an adult, but under PlayStake's 21+ rule. (Under-18s go to staff,
+  // who close the account as under-18.)
+  if (age !== null && age >= LEGAL_ADULT_AGE_YEARS && age < MINIMUM_AGE_YEARS) {
+    await decide(false, `PlayStake is only for people aged ${MINIMUM_AGE_YEARS} or over.`);
+    return "rejected";
+  }
+  // Residency comes from the proof of address, never from where a passport
+  // was issued. An address outside Great Britain is refused; no address at
+  // all goes to staff.
+  const addressCountry = address?.country ? countryCode(address.country) : null;
+  const residentInGB = addressCountry !== null && isGreatBritainAddress(addressCountry, fields.postalCode);
+  if (addressCountry !== null && !residentInGB) {
+    await decide(false, NOT_GB_RESIDENT_MESSAGE);
+    return "rejected";
+  }
+
+  const ofAge = age !== null && age >= MINIMUM_AGE_YEARS;
+  if (decision.status === "Approved" && hasIdentity && ofAge && residentInGB && !(await hasBlockingIdentityCase(user.id))) {
     await decide(true, `Approved automatically by Didit (session ${decision.session_id}).`);
     return "approved";
   }

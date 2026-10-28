@@ -32,6 +32,7 @@ PlayStake is a peer-to-peer platform where adult customers wager against each ot
 
 - **Opponents are other customers.** PlayStake never takes the other side of a bet. It holds both stakes in escrow and pays the winner. It earns a platform fee (a percentage of the pot) on settled matches.
 - **Matches.** Every match is a refereed stream match in one of two third-party games: EA SPORTS FC 27 or Tekken 8. Both players broadcast their own screen on Kick. An independent, approved human referee watches both streams and records the result (a win for either player, or a draw), and every referee action is written to a tamper-evident, hash-chained audit trail. Stakes are £1 to £500.
+- **Who can play (28 October 2026).** Customers must be **21 or over** and **live in England, Scotland or Wales**, in line with the launch scope in Charles's policy set v0.2. Both are enforced at sign-up, at verification and approval, and before every deposit and stake. **Tekken 8 stays in the product alongside EA SPORTS FC 27** (a decision that differs from v0.2, which puts Tekken 8 outside the first launch: see Document 21).
   - PlayStake's own on-site games (Tic-Tac-Toe and Darts 301 at /play) were withdrawn on 25 October 2026. PlayStake no longer runs any game itself, and uses no random number generator to decide any outcome.
 - **Money.** All money moves through a double-entry ledger with a per-match escrow account. The ledger is audited automatically every night.
 - **Disputes.** Either player can dispute a result before it pays out. Payout pauses while the dispute is reviewed.
@@ -82,7 +83,7 @@ PlayStake is a small operator at launch. One person currently holds all the key 
 | 03 | [Self-Exclusion](03-self-exclusion.md) | Customer-requested self-exclusion and cool-off | 6-month to 5-year exclusion, no early lifting, positive action plus 24-hour cooling-off to return, open activity withdrawn, marketing stopped, exclusion follows the person |
 | 04 | [Multi-Operator Self-Exclusion (GAMSTOP)](04-multi-operator-self-exclusion-gamstop.md) | Participation in the national scheme | GAMSTOP checks at identity verification, login and before any deposit or stake; fails closed |
 | 05 | [Customer Interaction and Harm Prevention](05-customer-interaction-and-harm-prevention.md) | Identify, act and evaluate | Five automated harm markers, immediate in-app interaction, staff review queue, operator limits and cool-offs, 14-day outcome evaluation, deposit-limit prompt before first deposit, reality checks |
-| 06 | [Age Verification](06-age-verification.md) | Keeping under-18s out | Date of birth and 18+ confirmation at sign-up, document KYC before any deposit, free-to-play access or gambling, under-18 closure process |
+| 06 | [Age Verification](06-age-verification.md) | Keeping under-18s out; 21+ and Great Britain only | Date of birth and 21+ / GB confirmation at sign-up, document KYC before any deposit, free-to-play access or gambling, under-18 closure process |
 | 07 | [AML Risk Assessment and Controls](07-aml-risk-assessment-and-controls.md) | Money laundering and terrorist financing | Risk assessment, KYC, transaction monitoring (chip dumping, shared IPs, deposit-and-withdraw-without-play, EDD threshold), withdrawal holds, case management, SAR process |
 
 The application's technical documents:
@@ -102,6 +103,7 @@ The application's technical documents:
 | 18 | [DPIA: Match Recordings](18-dpia-match-recordings.md) | Recording every refereed match for disputes: what is recorded, who can watch, retention, risks and controls (first draft) |
 | 19 | [Protection of Customer Funds](19-protection-of-customer-funds.md) | LCCP 4.1.1 / 4.2.1: separate customer-funds account with daily reconciliation; rating "not protected – segregation of customer funds" once the account is live; disclosure, acknowledgement, six-monthly reminder |
 | 20 | [UKGC application answers](20-ukgc-application-answers-technical-and-funds.md) | Form-ready answers for the technical pack and customer funds, with the document to attach for each |
+| 21 | [Reconciliation with Policy Set v0.2](21-reconciliation-with-policy-set-v0-2.md) | How these documents and the platform line up with Charles's v0.2 policy set; what differs (Tekken 8 kept) and the evidence for its open items |
 
 Each policy states its owner, its review date, the LCCP provisions it addresses, and exactly how the platform carries it out.
 
@@ -213,7 +215,7 @@ These must be done before the application is submitted, or before real-money lau
 | 15 | Engage the external compliance adviser for quarterly independent review | Launch | Board |
 | 16 | Confirm the current Commission thresholds and rules on: financial vulnerability and affordability checks, consumer-set financial limit prompts, and marketing consent. Adjust the platform settings to match. | Application | Head of Compliance |
 | 17 | ~~Record the Railway region~~ Done 27 October 2026: EU West, `europe-west4` (Netherlands). Remaining: record the backup location, confirm backups are enabled and test a restore | Application | Engineering |
-| 18 | Decide permitted jurisdictions and add IP geolocation blocking plus a residency restriction at verification (Document 08 §6) | Launch | Head of Compliance / engineering |
+| 18 | ~~Add a residency restriction at verification~~ Done 28 October 2026: England, Scotland and Wales only, from the verified address, also checked before every deposit and stake. Remaining: decide on IP geolocation to block play from outside Great Britain (Document 08 §6) | Launch | Head of Compliance / engineering |
 | 19 | ~~Engage a Commission-approved test house for RNG and game certification~~ No longer needed: PlayStake's own games and their RNG were withdrawn on 25 October 2026, so there is no PlayStake game or RNG to certify (Document 11 §3.1). Remaining: confirm with the Commission the in-house/third-party testing split for refereed peer-to-peer matches (Higher / Lower withdrawn 30 Sep 2026 as mostly chance) | Application | Head of Compliance |
 | 20 | Commission an independent penetration test; appoint the annual security auditor (first audit within 6 months of grant) | Launch / grant + 6 months | Head of Compliance |
 | 21 | Close the information security gaps in Document 13 §6 (log retention, written staff security rules, supplier assurance, key rotation, `timestamptz`) | As marked there | Head of Compliance / engineering |

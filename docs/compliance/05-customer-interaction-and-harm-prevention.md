@@ -44,6 +44,7 @@ A scan runs **every 15 minutes**. It covers every customer who has played or dep
 | **Rapid deposits** | Five deposits in an hour, or ten in 24 hours | Medium; high at double those numbers |
 | **High deposit volume (affordability)** | Completed deposits over 30 days at or above the affordability threshold (setting `AFFORDABILITY_REVIEW_THRESHOLD_CENTS`; currently 2,000.00) | Medium; high at double |
 | **Late-night play** | Five or more bets settled between midnight and 6am UK time in 24 hours | Low; medium at ten or more |
+| **Financial vulnerability check** | Net deposits (deposits minus withdrawals) over a rolling 30 days above £150.00 (setting `FINANCIAL_VULNERABILITY_THRESHOLD_CENTS`) | Medium; staff-only, not shown to the customer; at most once in 12 months |
 
 **Signal frequency.** Each marker raises a signal at most once in 24 hours per customer, or once in 30 days for high deposit volume, so a single episode doesn't flood the queue.
 
@@ -65,9 +66,9 @@ Some customers are already handled before any scan runs. If a customer has self-
 
 **Current threshold.** The high-deposit-volume marker is PlayStake's affordability trigger. It is set at 2,000.00 of deposits over 30 days.
 
-**Aligning with the Commission.** Before launch, this threshold must be set at or below the level at which the Commission requires financial vulnerability checks. Our AML enhanced due diligence threshold (Policy 07, 5,000.00 over 30 days) requires source-of-funds evidence. Customers who cannot show that their spending is affordable are restricted.
+**Financial vulnerability check (built 28 October 2026).** When a customer's **net deposits** (completed deposits minus completed withdrawals) over a rolling 30 days **exceed £150.00**, a *financial vulnerability check* signal is raised for staff (setting `FINANCIAL_VULNERABILITY_THRESHOLD_CENTS`, default 15000). It is separate from the affordability marker and from the AML thresholds. Staff carry out a light-touch check (until a credit-reference provider is approved: what we know of the customer, their deposit and play pattern, and any information they give us), record the outcome on the signal, and act on any concern (an interaction, a limit, or an affordability review). The customer is not messaged by the check itself, and it isn't repeated within 12 months of the last one. Exactly £150.00 doesn't trigger it; £150.01 does. [CONFIRM the trigger and lookback with your advisor against the Commission's current rules]
 
-**Planned improvement.** Adding a credit-reference-based financial vulnerability check is a planned improvement once a provider is appointed.
+**Planned improvement.** Using credit-reference data for the financial vulnerability check once a provider is appointed and approved.
 
 ## 4. Act
 

@@ -171,6 +171,36 @@ describe("Didit webhook", () => {
     expect(await prisma.amlCase.count({ where: { userId: user.id, type: "DOB_MISMATCH" } })).toBe(1);
   });
 
+  it("rejects 18-20-year-olds: PlayStake is 21+", async () => {
+    const dob = new Date(Date.now() - 19.5 * 365.25 * 864e5).toISOString().slice(0, 10);
+    const user = await player(dob);
+    const result = decision(user.id, "Approved");
+    result.id_verifications![0].date_of_birth = dob;
+    expect((await webhook(result.session_id)).body.outcome).toBe("rejected");
+    const submission = await prisma.kycSubmission.findUniqueOrThrow({ where: { providerSessionId: result.session_id } });
+    expect(submission.reviewNotes).toMatch(/21 or over/);
+  });
+
+  it("rejects an address outside Great Britain, including Northern Ireland", async () => {
+    for (const where of [
+      { postal_code: "BT1 5GS", country: "GB" },
+      { postal_code: "D02 X285", country: "IE" },
+    ]) {
+      const user = await player();
+      const result = decision(user.id, "Approved");
+      result.poa_verifications![0].poa_parsed_address = { street_1: "1 Main Street", city: "Somewhere", ...where } as never;
+      expect((await webhook(result.session_id)).body.outcome, where.country).toBe("rejected");
+      expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).kycStatus).toBe("REJECTED");
+    }
+  });
+
+  it("sends a check with no proof of address to staff instead of approving it", async () => {
+    const user = await player();
+    const result = decision(user.id, "Approved");
+    result.poa_verifications = [];
+    expect((await webhook(result.session_id)).body.outcome).toBe("pending");
+  });
+
   it("never auto-approves someone under 18, whatever Didit says", async () => {
     const dob = new Date(Date.now() - 16 * 365.25 * 864e5).toISOString().slice(0, 10);
     const user = await player(dob);

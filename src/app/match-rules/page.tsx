@@ -48,7 +48,7 @@ export default function MatchRulesPage() {
           <Link href="/games/tekken-8">Tekken 8</Link>.
         </p>
         <ul>
-          <li>You must be 18 or over, with a verified identity, playing from your own account.</li>
+          <li>You must be 21 or over and live in England, Scotland or Wales, with a verified identity, playing from your own account.</li>
           <li>You can&apos;t play while on a cool-off break or self-excluded.</li>
           <li>The same two players can play each other at most 5 times in any hour.</li>
         </ul>
@@ -161,8 +161,8 @@ export default function MatchRulesPage() {
           </li>
           <li>
             If you&apos;re unhappy with how a dispute was handled, use our{' '}
-            <Link href="/complaints">complaints procedure</Link>, and after our final response you can
-            go to IBAS, the independent adjudicator.
+            <Link href="/complaints">complaints procedure</Link>, and after our final response you will
+            be able to go to an independent adjudicator (we are arranging this with IBAS).
           </li>
         </ul>
       </LegalSection>
@@ -174,7 +174,7 @@ export default function MatchRulesPage() {
           of the platform fee on each match they officiate, paid when the match settles.
         </p>
         <ul>
-          <li>You must be 18 or over, with a verified identity and a connected Kick account.</li>
+          <li>You must be 21 or over and live in England, Scotland or Wales, with a verified identity and a connected Kick account.</li>
           <li>Only officiate games PlayStake has approved you for.</li>
           <li>
             Only make yourself available when you can give a match your full attention. Claim a match

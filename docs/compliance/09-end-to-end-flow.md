@@ -20,7 +20,7 @@ This document follows a customer from registration to gambling to getting their 
 flowchart TD
   A["1. Register<br/>email + password or Google"] --> B["2. Verify email"]
   B --> C["3. Verify age and identity<br/>Didit electronic check<br/>(upload + staff review as fallback)"]
-  C --> D{"18 or over,<br/>identity confirmed,<br/>not on GAMSTOP?"}
+  C --> D{"21 or over, lives in<br/>England, Scotland or Wales,<br/>identity confirmed,<br/>not on GAMSTOP?"}
   D -- no --> X["Gambling refused<br/>(under 18: account closed)"]
   D -- yes --> FP["4. Funds-protection disclosure<br/>rating shown (funds in separate<br/>customer-funds account)<br/>acknowledged before any deposit"]
   FP --> E["4a. Deposit-limit prompt<br/>set a limit or decline"]
@@ -45,7 +45,7 @@ All PlayStake steps run on the web service or worker service with data in Postgr
 
 | Step | What happens | Controls | System and location |
 |---|---|---|---|
-| **1. Register** | Customer creates an account with email and password, or signs in with Google. Terms, privacy and 18+ confirmed. | Password strength rules; bcrypt hashing; rate limits on registration and sign-in; lockout after repeated failures | Web service (Railway). Google sign-in: Google. |
+| **1. Register** | Customer creates an account with email and password, or signs in with Google. Terms, privacy, 21+ and residence in England, Scotland or Wales confirmed; under-21 dates of birth refused. | Password strength rules; bcrypt hashing; rate limits on registration and sign-in; lockout after repeated failures | Web service (Railway). Google sign-in: Google. |
 | **2. Verify email** | A link is emailed. Identity verification can't be started until the email is verified, so nobody can deposit or gamble with an unverified address. | Single-use, expiring token | Email sent through Resend from the worker's outbox |
 | **3. Verify age and identity** | Customer completes Didit's hosted check: identity document, selfie with liveness, proof of address. Didit checks the document, matches the face, reads the date of birth and screens against sanctions, PEP and adverse-media lists. PlayStake re-reads the decision from Didit's API and runs its own checks (date of birth, same identity on another account). Borderline results go to staff. Customers who can't use Didit upload documents for staff review instead. | Under-18s declined; automatic approval only when every step passes and no identity case is open; fallback documents encrypted (AES-256-GCM) at rest; every staff view logged; decision and reason recorded. No deposit, free play or gambling before approval. | Didit (EU, Spain). Decisions and fallback documents: web service + PostgreSQL (Railway). |
 | **3a. GAMSTOP** *(planned)* | The verified identity is checked against GAMSTOP on verification, on sign-in and when a cached result is over 24 hours old. | Registered customers can't gamble; a failed check refuses gambling rather than allowing it | GAMSTOP API (UK) |

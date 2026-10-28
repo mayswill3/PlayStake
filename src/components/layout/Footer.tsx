@@ -184,7 +184,7 @@ export function Footer() {
         <div className="mt-12 pt-8 border-t border-[var(--ps-border-light)] dark:border-[var(--ps-border-dark)] flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark text-center sm:text-left">
             © 2026 PlayStake. All rights reserved. PlayStake does not currently hold a
-            gambling licence. 18+ only.
+            gambling licence. 21+ only.
           </p>
           <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark">
             Built for competitive gamers.

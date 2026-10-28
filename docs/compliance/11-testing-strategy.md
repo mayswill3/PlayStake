@@ -48,7 +48,8 @@ PlayStake tests everything else itself, under this strategy, with results record
 | Interrupted and abandoned matches | Automated tests: a match no referee claims within 10 minutes is cancelled and refunded; a stalled claim is released; a match running past 2 hours is cancelled and refunded; settlement of finished-but-unsettled matches | RTS 10 |
 | Collusion, cheating, bots | Controls reviewed each release; tests prove that a referee can't claim a match with a player they follow, are followed by or have a block with, that the referee audit chain detects altered, deleted or reordered events, and that a player can't stake against themselves | RTS 11, 16 |
 | Ledger and escrow integrity | Automated tests of `transfer()`, escrow netting to zero, conservation; database triggers make entries append-only; daily production audit | Licence conditions on customer funds; RTS security requirements |
-| Eligibility gate: KYC, GAMSTOP, breaks, account status | Automated tests | RTS 12, 14 |
+| Eligibility gate: KYC, 21+ and Great Britain residency (including customers verified before those rules), GAMSTOP, breaks, account status | Automated tests | RTS 12, 14 |
+| Financial vulnerability check: net deposits over £150 in 30 days, boundary at exactly £150, withdrawals netted, once per 12 months, staff-only | Automated tests | LCCP / Policy 05 |
 | Customer funds disclosure: rating shown in writing; acknowledgement before deposit and before staking deposited funds; six-monthly reminder with balance; re-acknowledgement after a change | Automated integration tests; manual check of wording against Policy 19 each release | LCCP 4.2.1 |
 | Independent dispute review: reviewer conflicts, one reviewer per dispute, overturn tracking | Automated integration tests | RTS 11 |
 | Match recordings: recording page access, sealing into the audit trail, retention, who may watch | Automated integration tests; end-to-end recording test against live Kick streams before release (done 26 October 2026) | RTS 5/6, 11 |
@@ -62,7 +63,7 @@ PlayStake tests everything else itself, under this strategy, with results record
 ## 4. Automated testing on every change
 
 - Every change goes through GitHub. CI runs lint, a type check, a dependency vulnerability audit (fails on critical findings), a malware scan and the full test suite against real PostgreSQL and Redis. A change can't be released unless CI passes.
-- The suite (384 tests on 27 October 2026) includes, among others:
+- The suite (394 tests on 28 October 2026) includes, among others:
   - `tests/unit/ledger/` — double-entry transfers, escrow, audit invariants
   - `tests/integration/referee-lifecycle.test.ts` — one referee per match, conflict checks on follows and blocks, start only when live on Kick, cancellation sweeps for unclaimed and overlong matches
   - `tests/integration/referee-operations.test.ts`, `referee-code.test.ts`, `tests/unit/referees/audit.test.ts` — overturn tracking, Code of Conduct acceptance, hash-chained audit trail

@@ -42,7 +42,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         id: 'who-can-play',
         q: 'Who can play?',
-        a: "You must be 18 or over and verify your identity before you can deposit or play for money. You'll need a passport, driving licence or national ID card. Each person can have one account.",
+        a: "You must be 21 or over, live in England, Scotland or Wales, and verify your identity before you can deposit or play for money. You'll need a passport, driving licence or national ID card. Each person can have one account.",
         links: [{ href: '/verification', label: 'Verify your ID' }],
       },
       {
@@ -179,7 +179,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         id: 'why-verify',
         q: 'Why do I need to verify my identity?',
-        a: "The law requires us to check that every customer is 18 or over and is who they say they are before they gamble. It also protects your account and helps stop fraud. Your documents are encrypted, and only our verification team can see them.",
+        a: "The law requires us to check that every customer is 18 or over and is who they say they are before they gamble, and PlayStake only accepts people aged 21 or over who live in England, Scotland or Wales. It also protects your account and helps stop fraud. Your documents are encrypted, and only our verification team can see them.",
       },
       {
         id: 'complaints',

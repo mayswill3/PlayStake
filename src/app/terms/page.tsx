@@ -41,7 +41,7 @@ export default function TermsPage() {
       eyebrow="Legal"
       title="Terms of Service"
       summary="These Terms explain the rules for using PlayStake, entering player-versus-player challenges, connecting a live stream, and taking part as a player or referee."
-      lastUpdated="27 October 2026"
+      lastUpdated="28 October 2026"
       toc={toc}
     >
       <LegalCallout title="Important beta and licensing notice" tone="warning">
@@ -99,7 +99,8 @@ export default function TermsPage() {
       >
         <p>You may use PlayStake only if:</p>
         <ul>
-          <li>you are at least 18 years old;</li>
+          <li>you are at least 21 years old;</li>
+          <li>you live in England, Scotland or Wales;</li>
           <li>you have legal capacity to enter a binding agreement;</li>
           <li>
             your use is lawful in every place from which you access the service;
@@ -313,13 +314,14 @@ export default function TermsPage() {
           PlayStake, you can make a complaint under our{' '}
           <Link href="/complaints">Complaints Procedure</Link>. We acknowledge
           every complaint straight away and send a final response within eight
-          weeks. If you are not satisfied with it, you can refer the complaint,
-          free of charge, to our independent alternative dispute resolution
-          provider, IBAS (the Independent Betting Adjudication Service,{' '}
+          weeks. If you are not satisfied with it, you will be able to refer the
+          complaint, free of charge, to an independent alternative dispute
+          resolution provider. We are arranging for this to be IBAS (the
+          Independent Betting Adjudication Service,{' '}
           <a href="https://www.ibas-uk.com" target="_blank" rel="noreferrer">
             ibas-uk.com
           </a>
-          ).
+          ) before real-money play launches.
         </p>
       </LegalSection>
 

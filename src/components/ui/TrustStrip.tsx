@@ -1,7 +1,7 @@
 import { ShieldCheck, SlidersHorizontal, UserCheck, Lock, HeartHandshake } from 'lucide-react';
 
 const BADGES = [
-  { icon: ShieldCheck, label: '18+ Only' },
+  { icon: ShieldCheck, label: '21+ Only' },
   { icon: SlidersHorizontal, label: 'Stake Controls' },
   { icon: UserCheck, label: 'KYC Ready' },
   { icon: Lock, label: 'Secure Wallet' },

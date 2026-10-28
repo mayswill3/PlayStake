@@ -28,7 +28,7 @@ const BEFORE_YOU_JOIN: FaqItem[] = [
   {
     id: 'beta-who',
     q: 'Who can join?',
-    a: 'Anyone aged 18 or over. When real-money play launches, you will need to verify your identity before you can deposit or play.',
+    a: 'Anyone aged 21 or over who lives in England, Scotland or Wales. When real-money play launches, you will need to verify your identity before you can deposit or play.',
     links: [{ href: '/faq', label: 'All questions' }],
   },
 ];
@@ -161,7 +161,7 @@ export function JoinBeta() {
                 {state === 'sending' ? 'Joining…' : 'Join the beta'}
               </button>
               <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark">
-                Test beta only. No real-money wagering. 18+. Unsubscribe at any time.
+                Test beta only. No real-money wagering. 21+. Unsubscribe at any time.
               </p>
             </form>
           )}

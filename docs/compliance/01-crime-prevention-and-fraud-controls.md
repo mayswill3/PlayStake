@@ -140,7 +140,7 @@ Admin access is restricted as follows:
 - **Reasons required.** Staff must give a reason for every account-status, role and KYC change.
 - **Rules staff cannot override.** The platform enforces these regardless of role:
   - staff cannot change their own role
-  - staff cannot mark an identity as verified unless an approved identity document shows the customer is 18 or over
+  - staff cannot mark an identity as verified unless an approved identity document shows the customer is 21 or over and lives in England, Scotland or Wales
   - staff cannot lift or shorten a self-exclusion
   - staff can only lower a customer's deposit limit, never raise it
   - staff cannot reopen an account closed as under-18

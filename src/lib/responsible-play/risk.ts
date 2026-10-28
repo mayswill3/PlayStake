@@ -8,6 +8,10 @@
 //   DEPOSIT_VELOCITY       many deposits in a short time
 //   HIGH_DEPOSIT_VOLUME    30-day deposits over the affordability threshold
 //   LATE_NIGHT_PLAY        sustained play in the small hours (UK time)
+//   FINANCIAL_VULNERABILITY_CHECK
+//                          net deposits over £150 in a rolling 30 days: staff
+//                          run a light-touch financial vulnerability check
+//                          (not repeated within 12 months; customer not told)
 //
 // Each signal immediately shows the customer a supportive message and alerts
 // staff to review (see interaction.ts for the act and evaluate steps).
@@ -77,8 +81,21 @@ const HIGH_DEPOSIT_COOLDOWN_MS = 30 * 24 * HOUR;
 /** Settled bets between midnight and 6am UK time that make a pattern. */
 export const LATE_NIGHT_BETS = 5;
 
+/**
+ * Net deposits (completed deposits minus completed withdrawals) over a rolling
+ * 30 days above which a financial vulnerability check is due. Override with
+ * FINANCIAL_VULNERABILITY_THRESHOLD_CENTS.
+ */
+export function financialVulnerabilityThresholdCents(): number {
+  const configured = Number(process.env.FINANCIAL_VULNERABILITY_THRESHOLD_CENTS);
+  return Number.isFinite(configured) && configured > 0 ? configured : 15_000;
+}
+/** A check in the previous 12 months covers the customer. */
+const FINANCIAL_VULNERABILITY_COOLDOWN_MS = 365 * 24 * HOUR;
+
 const COOLDOWN_MS: Partial<Record<PlayerRiskType, number>> = {
   [PlayerRiskType.HIGH_DEPOSIT_VOLUME]: HIGH_DEPOSIT_COOLDOWN_MS,
+  [PlayerRiskType.FINANCIAL_VULNERABILITY_CHECK]: FINANCIAL_VULNERABILITY_COOLDOWN_MS,
 };
 
 interface SettledBet {
@@ -128,6 +145,8 @@ async function raise(input: {
   details: Record<string, unknown>;
   windowStart: Date;
   windowEnd: Date;
+  /** False for staff-only checks the customer isn't shown. */
+  notifyCustomer?: boolean;
 }): Promise<string> {
   const signal = await prisma.playerRiskSignal.create({
     data: {
@@ -142,7 +161,7 @@ async function raise(input: {
 
   // Act at once: the customer sees a supportive message the next time they
   // are on the site, and must respond to it to carry on.
-  await startAutomatedInteraction(input.userId, signal.id, input.type);
+  if (input.notifyCustomer !== false) await startAutomatedInteraction(input.userId, signal.id, input.type);
 
   // A signal nobody sees is the same as no signal at all.
   await emailAdminAlert({
@@ -321,6 +340,41 @@ export async function detectHighDepositVolume(userId: string, now: Date): Promis
   });
 }
 
+/**
+ * Net deposits over a rolling 30 days above £150: a financial vulnerability
+ * check is due. Staff run it (light-touch, from approved data) and record the
+ * outcome; the customer isn't messaged.
+ */
+export async function detectFinancialVulnerabilityCheck(userId: string, now: Date): Promise<string | null> {
+  const windowStart = new Date(now.getTime() - 30 * 24 * HOUR);
+  const rows = await prisma.transaction.findMany({
+    where: {
+      type: { in: [TransactionType.DEPOSIT, TransactionType.WITHDRAWAL] },
+      status: TransactionStatus.COMPLETED,
+      metadata: { path: ["userId"], equals: userId },
+      createdAt: { gte: windowStart },
+    },
+    select: { type: true, amount: true },
+  });
+  const netCents = rows.reduce(
+    (sum, row) => sum + (row.type === TransactionType.DEPOSIT ? 1 : -1) * dollarsToCents(row.amount),
+    0,
+  );
+  const threshold = financialVulnerabilityThresholdCents();
+  if (netCents <= threshold) return null;
+  if (await recentlySignalled(userId, PlayerRiskType.FINANCIAL_VULNERABILITY_CHECK, now)) return null;
+
+  return raise({
+    userId,
+    type: PlayerRiskType.FINANCIAL_VULNERABILITY_CHECK,
+    severity: "medium",
+    details: { netDepositsCents30d: netCents, thresholdCents: threshold },
+    windowStart,
+    windowEnd: now,
+    notifyCustomer: false,
+  });
+}
+
 /** The hour (0-23) in the UK at this moment. */
 function ukHour(date: Date): number {
   return Number(
@@ -383,6 +437,7 @@ export async function detectPlayerRiskForUser(
       : []),
     detectDepositVelocity(userId, now),
     detectHighDepositVolume(userId, now),
+    detectFinancialVulnerabilityCheck(userId, now),
   ]);
   return raised.filter((id): id is string => id !== null);
 }

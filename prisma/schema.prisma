@@ -81,6 +81,9 @@ enum PlayerRiskType {
   HIGH_DEPOSIT_VOLUME
   /// Sustained wagering in the small hours (UK time).
   LATE_NIGHT_PLAY
+  /// Net deposits over a rolling 30 days above £150: a light-touch financial
+  /// vulnerability check for staff (Policy 05). Not shown to the customer.
+  FINANCIAL_VULNERABILITY_CHECK
 }
 
 enum PlayerRiskStatus {

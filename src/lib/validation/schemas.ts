@@ -50,13 +50,13 @@ export const registerSchema = z.object({
     .min(2, "Display name must be at least 2 characters")
     .max(100, "Display name must be at most 100 characters")
     .trim(),
-  /** YYYY-MM-DD. Checked for 18+ here and against the ID document at KYC. */
+  /** YYYY-MM-DD. Checked for 21+ here and against the ID document at KYC. */
   dateOfBirth: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Enter your date of birth")
     .refine((value) => !Number.isNaN(new Date(`${value}T00:00:00Z`).getTime()), "Enter a valid date"),
-  /** The customer must actively confirm they are 18 or over. */
-  confirmAge: z.literal(true, { message: "You must confirm you are 18 or over" }),
+  /** The customer must actively confirm they are 21 or over and live in Great Britain. */
+  confirmAge: z.literal(true, { message: "You must confirm you are 21 or over and live in England, Scotland or Wales" }),
   /** Promotional email is opt-in: never pre-ticked, never required. */
   marketingConsent: z.boolean().optional().default(false),
 });
@@ -165,7 +165,7 @@ export const withdrawSchema = z.object({
   amount: z
     .number()
     .int("Amount must be an integer (cents)")
-    .min(1000, "Minimum withdrawal is $10.00 (1000 cents)"),
+    .min(1000, "Minimum withdrawal is £10.00 (1000 pence)"),
   idempotencyKey: z
     .string()
     .min(1, "Idempotency key is required")
@@ -232,7 +232,7 @@ export const challengeSchema = z.object({
   amount: z
     .number()
     .int("Amount must be an integer (cents)")
-    .min(100, "Minimum stake is $1.00 (100 cents)")
+    .min(100, "Minimum stake is £1.00 (100 pence)")
     .max(50_000, "Maximum stake is £500.00 (50000 pence)"),
   /** Set when the player ticks "I accept the Match Rules" with this challenge. */
   acceptMatchRules: z.boolean().optional(),
@@ -351,12 +351,12 @@ export const createGameSchema = z.object({
   minBetAmount: z
     .number()
     .int("Min bet amount must be an integer (cents)")
-    .min(100, "Minimum bet amount is $1.00 (100 cents)")
+    .min(100, "Minimum bet amount is £1.00 (100 pence)")
     .optional(),
   maxBetAmount: z
     .number()
     .int("Max bet amount must be an integer (cents)")
-    .max(10_000_000, "Maximum bet amount is $100,000.00")
+    .max(10_000_000, "Maximum bet amount is £100,000.00")
     .optional(),
 });
 

@@ -75,18 +75,21 @@ export default function ComplaintsPage() {
       <LegalSection id="adr" number="03" title="If you are not satisfied: IBAS">
         <p>
           If you are unhappy with our final response, or we have not sent you one within
-          eight weeks, you can refer your complaint to our alternative dispute resolution
-          (ADR) provider:
+          eight weeks, you will be able to refer your complaint to an independent
+          alternative dispute resolution (ADR) provider. We are arranging for IBAS to be our
+          ADR provider before real-money play launches; until that agreement is in place,
+          contact us and we will tell you the current position.
         </p>
         <LegalCallout title="IBAS — Independent Betting Adjudication Service">
           <p>
             IBAS is independent of PlayStake and approved by the Gambling Commission to
             resolve disputes between gambling businesses and their customers. It is{' '}
-            <strong>free for you to use</strong>. Start a referral at{' '}
+            <strong>free for you to use</strong>. Once our agreement is in place, you can
+            start a referral at{' '}
             <a href="https://www.ibas-uk.com" target="_blank" rel="noreferrer">
               www.ibas-uk.com
             </a>
-            , normally within six months of our final response.
+            ; check its website for the time limit that applies.
           </p>
         </LegalCallout>
         <p>

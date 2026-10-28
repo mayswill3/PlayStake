@@ -26,12 +26,12 @@ export async function POST(request: NextRequest) {
       throw new ValidationError("Password too weak", strength.errors);
     }
 
-    // Under-18s cannot hold an account. Their age is verified properly
-    // against an identity document before any deposit or gambling; this
-    // stops an admitted under-18 before an account exists at all.
+    // PlayStake is 21+. Age is verified properly against an identity document
+    // before any deposit or gambling; this stops anyone admittedly under 21
+    // before an account exists at all.
     const dateOfBirth = new Date(`${input.dateOfBirth}T00:00:00Z`);
     if (ageInYears(dateOfBirth) < MINIMUM_AGE_YEARS) {
-      throw new ValidationError("You must be 18 or over to use PlayStake");
+      throw new ValidationError(`You must be ${MINIMUM_AGE_YEARS} or over to use PlayStake`);
     }
 
     // Check email uniqueness

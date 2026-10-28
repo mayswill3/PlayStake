@@ -9,7 +9,7 @@ import {
 } from "../../../../../../generated/prisma/client";
 import { adminUpdateUserSchema } from "@/lib/validation/schemas";
 import { recordAdminAction } from "@/lib/admin/audit";
-import { MINIMUM_AGE_YEARS, ageInYears } from "@/lib/kyc/constants";
+import { MINIMUM_AGE_YEARS, ageInYears, isGreatBritainAddress } from "@/lib/kyc/constants";
 import { getActiveBreak } from "@/lib/responsible-play/service";
 
 export const GET = withRoleGuard([UserRole.ADMIN], async (_req, context) => {
@@ -90,7 +90,8 @@ export const GET = withRoleGuard([UserRole.ADMIN], async (_req, context) => {
  * Change a user's role or KYC status. Every change needs a reason and is
  * written to the admin audit log. An admin can't change their own role, and
  * KYC can only be set to VERIFIED by hand when an approved identity document
- * shows the customer is 18 or over — age verification can't be bypassed.
+ * shows the customer is 21 or over and lives in Great Britain — age and
+ * residency verification can't be bypassed.
  */
 export const PATCH = withRoleGuard([UserRole.ADMIN], async (req, context, auth) => {
   const id = context?.params?.id;
@@ -131,13 +132,17 @@ export const PATCH = withRoleGuard([UserRole.ADMIN], async (req, context, auth) 
     const approved = await prisma.kycSubmission.findFirst({
       where: { userId: id, status: KycSubmissionStatus.APPROVED },
       orderBy: { reviewedAt: "desc" },
-      select: { dateOfBirth: true },
+      select: { dateOfBirth: true, country: true, postalCode: true },
     });
-    if (!approved || ageInYears(approved.dateOfBirth) < MINIMUM_AGE_YEARS) {
+    if (
+      !approved ||
+      ageInYears(approved.dateOfBirth) < MINIMUM_AGE_YEARS ||
+      !isGreatBritainAddress(approved.country, approved.postalCode)
+    ) {
       return Response.json(
         {
           error:
-            "KYC can only be marked verified when an approved identity document shows the customer is 18 or over. Review their submission instead.",
+            "KYC can only be marked verified when an approved identity document shows the customer is 21 or over and lives in England, Scotland or Wales. Review their submission instead.",
         },
         { status: 409 },
       );
