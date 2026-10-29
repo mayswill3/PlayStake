@@ -116,6 +116,14 @@ export default function MatchRulesPage() {
             reward them, and don&apos;t contact them privately about the result.
           </li>
         </ul>
+        <p>
+          <strong>Talking during the match (our advice).</strong> Kick streams run a few seconds
+          behind, so you&apos;ll hear your opponent late through their stream. To talk to your
+          opponent in real time, use the game&apos;s own voice chat or a PlayStation or Xbox party.
+          Anything for the referee, say on your stream (expect a few seconds&apos; delay before they
+          hear it); the referee&apos;s instructions appear in match chat straight away. Wear headphones
+          so other streams aren&apos;t picked up on yours.
+        </p>
       </LegalSection>
 
       <LegalSection id="interruptions" number="04" title="Disconnects and interruptions">

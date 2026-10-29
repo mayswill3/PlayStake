@@ -532,7 +532,7 @@ function RefereeWorkbench({
           <StatusPill status="live" label={assignment.status.replace(/_/g, ' ')} />
         </div>
         <div className="mt-4">
-          <StreamAudioTip />
+          <StreamAudioTip audience="referee" />
         </div>
         <div className="mt-3 grid gap-4 xl:grid-cols-2">
           {players.map((player) => player.kickAccount?.channelSlug && (

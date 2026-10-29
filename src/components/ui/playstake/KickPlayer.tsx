@@ -52,12 +52,27 @@ export function ListenButton({ listening, onToggle, name }: { listening: boolean
 }
 
 /** Shown wherever streams play while people are likely to be streaming. */
-export function StreamAudioTip() {
+export function StreamAudioTip({ audience = 'player' }: { audience?: 'player' | 'referee' }) {
   return (
-    <p className="text-xs text-ps-muted dark:text-ps-muted-on-dark">
-      Your own stream is muted here so you don&apos;t hear yourself. Streaming? Wear headphones, or capture only your
-      game&apos;s audio (not desktop audio), so the other streams&apos; sound isn&apos;t picked up and echoed on yours.
-    </p>
+    <div className="space-y-1 text-xs text-ps-muted dark:text-ps-muted-on-dark">
+      {audience === 'referee' ? (
+        <p>
+          <strong className="text-ps-text dark:text-ps-text-on-dark">Instructions go in match chat.</strong> Kick
+          streams run a few seconds behind, so players hear you late on your stream; match chat reaches them straight
+          away.
+        </p>
+      ) : (
+        <p>
+          <strong className="text-ps-text dark:text-ps-text-on-dark">Talking to your opponent?</strong> Kick streams
+          run a few seconds behind, so use the game&apos;s voice chat or a PlayStation or Xbox party to talk in real
+          time. Say anything for the referee on your stream; their instructions appear in match chat.
+        </p>
+      )}
+      <p>
+        Your own stream is muted here so you don&apos;t hear yourself. Streaming? Wear headphones, or capture only your
+        game&apos;s audio (not desktop audio), so the other streams&apos; sound isn&apos;t picked up and echoed on yours.
+      </p>
+    </div>
   );
 }
 
