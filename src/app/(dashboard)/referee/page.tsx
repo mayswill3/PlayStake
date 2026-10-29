@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, CheckCircle2, ShieldCheck, Video } from 'lucide-react';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { PSButton } from '@/components/ui/playstake/PSButton';
-import { KickPlayer } from '@/components/ui/playstake/KickPlayer';
+import { KickPlayer, ListenButton, StreamAudioTip } from '@/components/ui/playstake/KickPlayer';
 import { StatusPill } from '@/components/ui/playstake/StatusPill';
 import { useToast } from '@/components/ui/Toast';
 import { KeyRules, RulesCheckbox, RulesConsentDialog } from '@/components/rules/RulesConsent';
@@ -498,6 +498,8 @@ function RefereeWorkbench({
 }) {
   const [decision, setDecision] = useState('PLAYER_A_WIN');
   const [notes, setNotes] = useState('');
+  // Referees stream while they watch: players start muted, one at a time.
+  const [listeningTo, setListeningTo] = useState<string | null>(null);
 
   // The live flag is webhook-driven; if Kick's webhook is slow or missed, the
   // /api/kick/live poll re-checks Kick directly and syncs the flag, which the
@@ -522,14 +524,24 @@ function RefereeWorkbench({
           </div>
           <StatusPill status="live" label={assignment.status.replace(/_/g, ' ')} />
         </div>
-        <div className="mt-5 grid gap-4 xl:grid-cols-2">
+        <div className="mt-4">
+          <StreamAudioTip />
+        </div>
+        <div className="mt-3 grid gap-4 xl:grid-cols-2">
           {players.map((player) => player.kickAccount?.channelSlug && (
             <div key={player.id}>
               <div className="mb-2 flex items-center gap-2">
                 <Video className="h-4 w-4 text-ps-lime" />
                 <p className="font-semibold text-ps-text dark:text-white">{player.displayName}</p>
+                <span className="ml-auto">
+                  <ListenButton
+                    name={player.displayName}
+                    listening={listeningTo === player.id}
+                    onToggle={() => setListeningTo((current) => (current === player.id ? null : player.id))}
+                  />
+                </span>
               </div>
-              <KickPlayer slug={player.kickAccount.channelSlug} />
+              <KickPlayer slug={player.kickAccount.channelSlug} muted={listeningTo !== player.id} />
             </div>
           ))}
         </div>

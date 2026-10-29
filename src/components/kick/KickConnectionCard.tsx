@@ -157,7 +157,9 @@ export function KickConnectionCard({ variant = 'sidebar' }: KickConnectionCardPr
 
       {!loading && connected && slug && (
         <div className="mt-3">
-          <KickPlayer slug={slug} />
+          {/* Your own stream: always muted here, or it echoes back onto your broadcast. */}
+          <KickPlayer slug={slug} muted />
+          <p className="mt-1 text-[11px] text-ps-muted dark:text-ps-muted-on-dark">Your stream is muted here so it doesn&apos;t echo.</p>
         </div>
       )}
 

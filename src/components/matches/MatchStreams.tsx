@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Maximize2, Scale, Video } from 'lucide-react';
-import { KickPlayer } from '@/components/ui/playstake/KickPlayer';
+import { KickPlayer, ListenButton, StreamAudioTip, useOwnKickChannel } from '@/components/ui/playstake/KickPlayer';
 
 export interface StreamSource {
   name: string;
@@ -23,6 +23,10 @@ interface Feed extends StreamSource {
  * Every player stays at a fixed position in the DOM — switching only changes
  * CSS order and span — because moving an iframe in the DOM reloads it, which
  * would restart the stream each time the viewer switched.
+ *
+ * Sound: every feed starts muted and the viewer listens to one at a time. The
+ * viewer's own stream is never played with sound here, because they are
+ * almost certainly streaming it and it would echo back onto their broadcast.
  */
 export function MatchStreams({
   referee,
@@ -32,6 +36,9 @@ export function MatchStreams({
   players: StreamSource[];
 }) {
   const [chosenKey, setChosenKey] = useState<string | null>(null);
+  const [listeningKey, setListeningKey] = useState<string | null>(null);
+  const ownChannel = useOwnKickChannel();
+  const isOwn = (feed: Feed) => ownChannel !== null && feed.channelSlug?.toLowerCase() === ownChannel;
 
   const feeds: Feed[] = [
     ...(referee?.channelSlug ? [{ ...referee, key: 'referee', isReferee: true }] : []),
@@ -48,6 +55,7 @@ export function MatchStreams({
 
   return (
     <div className="space-y-4">
+      <StreamAudioTip />
       {feeds.length > 1 && (
         <div className="flex flex-wrap items-center justify-center gap-2" role="group" aria-label="Choose the main screen">
           <span className="mr-1 text-[11px] font-semibold uppercase tracking-widest text-ps-muted dark:text-ps-muted-on-dark">
@@ -110,6 +118,15 @@ export function MatchStreams({
                     {feed.name}
                   </p>
                   <LiveBadge live={feed.isLive} />
+                  {isOwn(feed) ? (
+                    <span className="shrink-0 text-[11px] text-ps-muted dark:text-ps-muted-on-dark">Your stream · muted here</span>
+                  ) : (
+                    <ListenButton
+                      name={feed.isReferee ? 'the referee' : feed.name}
+                      listening={listeningKey === feed.key}
+                      onToggle={() => setListeningKey((current) => (current === feed.key ? null : feed.key))}
+                    />
+                  )}
                   {!isMain && (
                     <button
                       type="button"
@@ -129,7 +146,7 @@ export function MatchStreams({
                       : ''
                   }
                 >
-                  <KickPlayer slug={feed.channelSlug!} />
+                  <KickPlayer slug={feed.channelSlug!} muted={isOwn(feed) || listeningKey !== feed.key} />
                 </div>
               </div>
             </div>
