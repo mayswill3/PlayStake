@@ -498,8 +498,15 @@ function RefereeWorkbench({
 }) {
   const [decision, setDecision] = useState('PLAYER_A_WIN');
   const [notes, setNotes] = useState('');
-  // Referees stream while they watch: players start muted, one at a time.
-  const [listeningTo, setListeningTo] = useState<string | null>(null);
+  // Both players play with sound, like a normal stream; each can be muted.
+  const [mutedPlayers, setMutedPlayers] = useState<Set<string>>(() => new Set());
+  const togglePlayerMute = (id: string) =>
+    setMutedPlayers((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   // The live flag is webhook-driven; if Kick's webhook is slow or missed, the
   // /api/kick/live poll re-checks Kick directly and syncs the flag, which the
@@ -536,12 +543,12 @@ function RefereeWorkbench({
                 <span className="ml-auto">
                   <ListenButton
                     name={player.displayName}
-                    listening={listeningTo === player.id}
-                    onToggle={() => setListeningTo((current) => (current === player.id ? null : player.id))}
+                    listening={!mutedPlayers.has(player.id)}
+                    onToggle={() => togglePlayerMute(player.id)}
                   />
                 </span>
               </div>
-              <KickPlayer slug={player.kickAccount.channelSlug} muted={listeningTo !== player.id} />
+              <KickPlayer slug={player.kickAccount.channelSlug} muted={mutedPlayers.has(player.id)} />
             </div>
           ))}
         </div>

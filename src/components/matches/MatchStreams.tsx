@@ -24,9 +24,10 @@ interface Feed extends StreamSource {
  * CSS order and span — because moving an iframe in the DOM reloads it, which
  * would restart the stream each time the viewer switched.
  *
- * Sound: every feed starts muted and the viewer listens to one at a time. The
- * viewer's own stream is never played with sound here, because they are
- * almost certainly streaming it and it would echo back onto their broadcast.
+ * Sound: like watching a normal stream, the other feeds play with sound and
+ * each can be muted. The viewer's own stream is always muted here, because
+ * they are almost certainly streaming it and hearing it back would echo onto
+ * their broadcast.
  */
 export function MatchStreams({
   referee,
@@ -36,9 +37,18 @@ export function MatchStreams({
   players: StreamSource[];
 }) {
   const [chosenKey, setChosenKey] = useState<string | null>(null);
-  const [listeningKey, setListeningKey] = useState<string | null>(null);
+  const [mutedKeys, setMutedKeys] = useState<Set<string>>(() => new Set());
   const ownChannel = useOwnKickChannel();
-  const isOwn = (feed: Feed) => ownChannel !== null && feed.channelSlug?.toLowerCase() === ownChannel;
+  const isOwn = (feed: Feed) => Boolean(ownChannel) && feed.channelSlug?.toLowerCase() === ownChannel;
+  // Everything stays muted until we know which feed is the viewer's own.
+  const isMuted = (feed: Feed) => ownChannel === undefined || isOwn(feed) || mutedKeys.has(feed.key);
+  const toggleMute = (key: string) =>
+    setMutedKeys((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
 
   const feeds: Feed[] = [
     ...(referee?.channelSlug ? [{ ...referee, key: 'referee', isReferee: true }] : []),
@@ -123,8 +133,8 @@ export function MatchStreams({
                   ) : (
                     <ListenButton
                       name={feed.isReferee ? 'the referee' : feed.name}
-                      listening={listeningKey === feed.key}
-                      onToggle={() => setListeningKey((current) => (current === feed.key ? null : feed.key))}
+                      listening={!isMuted(feed)}
+                      onToggle={() => toggleMute(feed.key)}
                     />
                   )}
                   {!isMain && (
@@ -146,7 +156,7 @@ export function MatchStreams({
                       : ''
                   }
                 >
-                  <KickPlayer slug={feed.channelSlug!} muted={isOwn(feed) || listeningKey !== feed.key} />
+                  <KickPlayer slug={feed.channelSlug!} muted={isMuted(feed)} />
                 </div>
               </div>
             </div>
