@@ -382,14 +382,14 @@ export default function VerificationPage() {
                 maxLength={20}
                 error={errors.postalCode?.[0]}
               />
-              <Input
-                name="country"
-                label="Country code (e.g. GB)"
-                required
-                maxLength={2}
-                placeholder="GB"
-                error={errors.country?.[0]}
-              />
+              {/* PlayStake is only for people living in England, Scotland or Wales. */}
+              <div>
+                <Input name="countryDisplay" label="Country" value="United Kingdom (GB)" readOnly disabled />
+                <input type="hidden" name="country" value="GB" />
+                <p className="mt-1 text-xs text-text-muted">
+                  PlayStake is only available to people living in England, Scotland or Wales.
+                </p>
+              </div>
             </div>
 
             <div>

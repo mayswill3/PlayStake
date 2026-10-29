@@ -116,7 +116,7 @@ describe("KYC: age check", () => {
   });
 
   it("reads every common way of writing the UK as Great Britain", () => {
-    for (const country of ["GB", "UK", "U.K.", "GBR", "United Kingdom", "United Kingdom of Great Britain and Northern Ireland", "England", "Scotland", "Wales"]) {
+    for (const country of ["GB", "UK", "U.K.", "UN", "GBR", "United Kingdom", "United Kingdom of Great Britain and Northern Ireland", "England", "Scotland", "Wales"]) {
       expect(isGreatBritainAddress(country, "EC1A 1BB"), country).toBe(true);
     }
     // Northern Ireland is out whatever the country says.

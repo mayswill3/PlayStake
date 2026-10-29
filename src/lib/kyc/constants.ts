@@ -35,7 +35,9 @@ export const LEGAL_ADULT_AGE_YEARS = 18;
 export function normaliseCountry(raw: string | null | undefined): string {
   const value = (raw ?? "").trim().toUpperCase().replace(/[.]/g, "");
   if (!value) return "";
-  if (["GB", "UK", "GBR"].includes(value)) return "GB";
+  // "UN" is "United Kingdom" cut to two letters by the old free-text field;
+  // it isn't a country code.
+  if (["GB", "UK", "GBR", "UN"].includes(value)) return "GB";
   if (/^(UNITED KINGDOM|GREAT BRITAIN|ENGLAND|SCOTLAND|WALES|NORTHERN IRELAND|BRITAIN)\b/.test(value)) return "GB";
   return value;
 }
