@@ -117,13 +117,21 @@ export default function MatchRulesPage() {
           </li>
         </ul>
         <p>
-          <strong>Talking during the match (our advice).</strong> Kick streams run a few seconds
-          behind, so you&apos;ll hear your opponent late through their stream. To talk to your
-          opponent in real time, use the game&apos;s own voice chat or a PlayStation or Xbox party.
-          Anything for the referee, say on your stream (expect a few seconds&apos; delay before they
-          hear it); the referee&apos;s instructions appear in match chat straight away. Wear headphones
-          so other streams aren&apos;t picked up on yours.
+          <strong>Talking during the match.</strong> Kick streams run a few seconds behind, so talk
+          to your opponent and the referee in <strong>match voice chat</strong> on the match page,
+          which is live. Wear headphones so other voices and streams aren&apos;t picked up by your
+          microphone or your stream. The referee&apos;s instructions also appear in match chat.
         </p>
+        <ul>
+          <li>
+            <strong>Voice chat is recorded.</strong> Match voice chat is only for you, your opponent
+            and the referee, and it is recorded with the match. The recording is used only to review
+            disputes, complaints and suspected cheating or fixing, and is kept like the match
+            recording (30 days, or 12 months after a dispute is decided). Don&apos;t agree anything
+            about the result in voice chat, and don&apos;t move the conversation somewhere else to
+            avoid the recording.
+          </li>
+        </ul>
       </LegalSection>
 
       <LegalSection id="interruptions" number="04" title="Disconnects and interruptions">

@@ -262,6 +262,7 @@ export async function getDisputeEvidence(userId: string, disputeId: string) {
               durationSeconds: true,
               failureReason: true,
               sha256: true,
+              segment: true,
             },
             orderBy: { role: "asc" },
           },

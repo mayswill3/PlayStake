@@ -97,6 +97,12 @@ export interface KickLiveSyncPayload {
 /** Deletes expired and idle-timed-out login sessions. */
 export interface RecordingRetentionPayload {
   triggeredAt?: string;
+  /** Set on "seal-voice" jobs: the voice recording to fingerprint and seal. */
+  recordingId?: string;
+}
+
+export interface VoiceRoomsPayload {
+  triggeredAt?: string;
 }
 
 export interface SessionCleanupPayload {
@@ -124,6 +130,7 @@ export const QUEUE_NAMES = {
   /** Consumed by the separate recorder service, not the main worker. */
   MATCH_RECORDING: "match-recording",
   RECORDING_RETENTION: "recording-retention",
+  VOICE_ROOMS: "voice-rooms",
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];

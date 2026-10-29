@@ -19,6 +19,8 @@ Every refereed match is recorded by PlayStake so that a dispute or complaint can
 3. When the referee records the result (or the match is cancelled, or reaches the 2-hour limit) the recording stops. The pieces are joined into one file, its SHA-256 fingerprint is written into the match's hash-chained referee audit trail, and the file is stored privately in Cloudflare R2.
 4. Only PlayStake admins and approved dispute reviewers who pass the conflict checks (Document 01) can watch a recording, and only from the dispute it belongs to. Each viewing uses a private link that expires after 15 minutes and is logged in the admin audit log.
 
+5. **Voice chat (added 29 October 2026).** The two players and the referee can talk live in a match voice room (LiveKit). Only those three can join, only while the match is live; microphone only. The room is recorded as audio by LiveKit straight into the same private R2 bucket; when a recording finishes its SHA-256 is sealed into the audit trail, and it is kept and deleted exactly like the stream recording. Reviewers listen from the dispute; each listen is logged.
+
 Players and referees are told in the Match Rules, which they must accept (versioned) before playing or officiating, and in the Privacy Policy.
 
 ## 2. Data, people and volumes
@@ -26,7 +28,7 @@ Players and referees are told in the Match Rules, which they must accept (versio
 | Item | Detail |
 |---|---|
 | **Data subjects** | Players and referees in refereed matches; anyone who appears or is heard on their streams (family, housemates, Kick chat shown on screen) |
-| **Personal data** | Video and sound of each stream (face, voice, surroundings, anything shown on screen), display names, Kick channel names, match chat, match events and times; viewing log of who watched |
+| **Personal data** | Voice-chat audio between the players and the referee; video and sound of each stream (face, voice, surroundings, anything shown on screen), display names, Kick channel names, match chat, match events and times; viewing log of who watched |
 | **Special category data** | Not intended. Video can incidentally reveal health, religion or other special category information; it is not used to infer or process it. Recordings are not used for facial recognition or any biometric identification |
 | **Volume** | About 230 MB per 30-minute match. Beta: [ESTIMATE] matches a month |
 | **Retention** | 30 days after the match. If disputed: held until the dispute is decided, then 12 months (8-week complaints process plus IBAS referral), longer only for an investigation or legal claim. Deleted automatically by the hourly retention job; the database row remains, marked deleted |
@@ -53,11 +55,12 @@ Players and referees are told in the Match Rules, which they must accept (versio
 | Recording tampered with to change an outcome | Low / high | SHA-256 sealed into the hash-chained referee audit trail at the moment of recording; reviewers see the fingerprint | Low |
 | Kept too long | Low / medium | Automatic hourly deletion at the retention date; disputes hold recordings only while open, then 12 months | Low |
 | Recording missing or broken when a dispute is filed | Medium / medium | Pieces uploaded every 5 minutes, so a failure loses little; failures recorded with a reason; reviewers fall back to the players' Kick channels | Medium (operational, not a privacy risk) |
+| Private conversation in voice chat captured | Medium / medium | Only the three participants can join; the Match Rules say voice chat is recorded and why; recording kept only as long as the match recording; reviewers only | Low |
 | International transfer | Possible / medium | R2 bucket location set to EU (or UK) jurisdiction [CONFIRM]; Cloudflare DPA includes the UK addendum and SCCs | To confirm |
 
 ## 6. Measures agreed
 
-1. Accept Cloudflare's DPA (Article 28) and record Cloudflare R2 in the supplier register (Document 08).
+1. Accept Cloudflare's and LiveKit's DPAs (Article 28) and record both in the supplier register (Document 08). Create the LiveKit Cloud project in an EU region.
 2. Create the R2 bucket with **EU jurisdiction** and no public access; issue a bucket-scoped API token with object read/write only.
 3. Keep the Match Rules recording rule and the Privacy Policy wording in step with what is recorded.
 4. Review the recording viewing log monthly alongside dispute outcomes.
@@ -86,3 +89,4 @@ If residual high risk remains that cannot be reduced, consult the ICO before pro
 | Version | Date | Change |
 |---|---|---|
 | 0.1 | 26 October 2026 | First draft from the recorder as built |
+| 0.2 | 29 October 2026 | Match voice chat (LiveKit), recorded as audio with the match |

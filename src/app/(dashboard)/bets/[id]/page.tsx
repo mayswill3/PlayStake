@@ -21,6 +21,7 @@ import {
 } from '@/components/referees/RefereeProtectionCard';
 import { MatchChat } from '@/components/matches/MatchChat';
 import { MatchStreams } from '@/components/matches/MatchStreams';
+import { MatchVoice } from '@/components/matches/MatchVoice';
 import { formatCents, formatDate } from '@/lib/utils/format';
 
 interface KickInfo {
@@ -94,6 +95,7 @@ export default function BetDetailPage() {
   const { toast } = useToast();
 
   const [bet, setBet] = useState<BetDetail | null>(null);
+  const [voiceActive, setVoiceActive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [disputeOpen, setDisputeOpen] = useState(false);
@@ -298,7 +300,11 @@ export default function BetDetailPage() {
             {(bet.playerA.kick || bet.playerB?.kick || bet.refereeAssignment?.referee?.kickChannel) && (
               <Card>
                 <CardTitle className="mb-4">Watch on Kick</CardTitle>
+                <div className="mb-4">
+                  <MatchVoice betId={bet.id} onActiveChange={setVoiceActive} />
+                </div>
                 <MatchStreams
+                  voiceActive={voiceActive}
                   referee={
                     bet.refereeAssignment?.referee
                       ? {

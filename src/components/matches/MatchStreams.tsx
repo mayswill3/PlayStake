@@ -32,23 +32,33 @@ interface Feed extends StreamSource {
 export function MatchStreams({
   referee,
   players,
+  voiceActive = false,
 }: {
   referee: StreamSource | null;
   players: StreamSource[];
+  /** In match voice chat: streams go quiet (voices would be heard twice); each can be unmuted. */
+  voiceActive?: boolean;
 }) {
   const [chosenKey, setChosenKey] = useState<string | null>(null);
+  // Muted by the viewer while not in voice; unmuted by the viewer while in
+  // voice (in voice, streams are quiet unless chosen).
   const [mutedKeys, setMutedKeys] = useState<Set<string>>(() => new Set());
+  const [unmutedInVoice, setUnmutedInVoice] = useState<Set<string>>(() => new Set());
   const ownChannel = useOwnKickChannel();
   const isOwn = (feed: Feed) => Boolean(ownChannel) && feed.channelSlug?.toLowerCase() === ownChannel;
   // Everything stays muted until we know which feed is the viewer's own.
-  const isMuted = (feed: Feed) => ownChannel === undefined || isOwn(feed) || mutedKeys.has(feed.key);
+  const isMuted = (feed: Feed) =>
+    ownChannel === undefined ||
+    isOwn(feed) ||
+    (voiceActive ? !unmutedInVoice.has(feed.key) : mutedKeys.has(feed.key));
+  const flip = (current: Set<string>, key: string) => {
+    const next = new Set(current);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    return next;
+  };
   const toggleMute = (key: string) =>
-    setMutedKeys((current) => {
-      const next = new Set(current);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+    voiceActive ? setUnmutedInVoice((current) => flip(current, key)) : setMutedKeys((current) => flip(current, key));
 
   const feeds: Feed[] = [
     ...(referee?.channelSlug ? [{ ...referee, key: 'referee', isReferee: true }] : []),

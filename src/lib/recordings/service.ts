@@ -101,7 +101,7 @@ export async function getRecorderView(betId: string) {
 export async function beginRecording(betId: string, now: Date = new Date()) {
   const bet = await prisma.bet.findUniqueOrThrow({ where: { id: betId }, select: { playerAId: true } });
   return prisma.matchRecording.upsert({
-    where: { betId_role: { betId, role: MatchRecordingRole.COMPOSITE } },
+    where: { betId_role_segment: { betId, role: MatchRecordingRole.COMPOSITE, segment: 0 } },
     create: {
       betId,
       userId: bet.playerAId,
@@ -134,7 +134,7 @@ export async function sealRecording(input: {
   const disputed = await prisma.dispute.count({ where: { betId: input.betId, status: { in: OPEN_DISPUTES } } });
   return withTransaction(async (tx) => {
     const recording = await tx.matchRecording.update({
-      where: { betId_role: { betId: input.betId, role: MatchRecordingRole.COMPOSITE } },
+      where: { betId_role_segment: { betId: input.betId, role: MatchRecordingRole.COMPOSITE, segment: 0 } },
       data: {
         status: MatchRecordingStatus.READY,
         storageKey: input.key,
@@ -207,7 +207,8 @@ export async function getDisputePlayback(userId: string, disputeId: string, reco
     select: { id: true, storageKey: true, startedAt: true, sha256: true },
   });
   if (!recording?.storageKey) throw new NotFoundError("Recording not available");
-  const url = await playbackUrl(recording.storageKey, `playstake-match-${evidence.bet.id}.mp4`);
+  const extension = recording.storageKey.split(".").pop() ?? "mp4";
+  const url = await playbackUrl(recording.storageKey, `playstake-match-${evidence.bet.id}.${extension}`);
   await recordAdminAction({
     actorId: userId,
     action: "recording.view",

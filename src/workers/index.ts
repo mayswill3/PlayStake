@@ -28,6 +28,7 @@ import { createDepositLimitActivationWorker } from "./deposit-limit-activation.w
 import { createKickLiveSyncWorker } from "./kick-live-sync.worker";
 import { createSessionCleanupWorker } from "./session-cleanup.worker";
 import { createRecordingRetentionWorker } from "./recording-retention.worker";
+import { createVoiceRoomsWorker } from "./voice-rooms.worker";
 
 // ---------------------------------------------------------------------------
 // Logging
@@ -66,6 +67,7 @@ async function start(): Promise<void> {
   workers.push(createKickLiveSyncWorker());
   workers.push(createSessionCleanupWorker());
   workers.push(createRecordingRetentionWorker());
+  workers.push(createVoiceRoomsWorker());
 
   log("info", "workers_created", { count: workers.length });
 

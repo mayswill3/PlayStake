@@ -54,7 +54,7 @@ const dataRows = [
   ],
   [
     <strong key="recordings">Match recordings</strong>,
-    "A video of each refereed match, recorded by PlayStake from the moment the referee starts the match until the result: both players' and the referee's Kick streams with their sound, the match clock, match events and match chat. Because it shows your stream, it may include your face, voice, surroundings and anything else your stream shows. It also records the file's fingerprint (SHA-256) and who watched it.",
+    "A video of each refereed match, recorded by PlayStake from the moment the referee starts the match until the result: both players' and the referee's Kick streams with their sound, the match clock, match events and match chat. Because it shows your stream, it may include your face, voice, surroundings and anything else your stream shows. It also records the file's fingerprint (SHA-256) and who watched it. If you use match voice chat, what you, your opponent and the referee say is recorded as audio and kept with the match recording.",
   ],
   [
     <strong key="technical">Device and security</strong>,
@@ -158,7 +158,7 @@ export default function PrivacyPage() {
       eyebrow="Privacy"
       title="Privacy Policy"
       summary="This policy explains how PlayStake handles personal information when you visit the website, create an account, play a match, connect Kick, make a transaction, file a dispute or act as a referee."
-      lastUpdated="28 October 2026"
+      lastUpdated="29 October 2026"
       toc={toc}
     >
       <LegalCallout title="A plain-language promise">
@@ -305,6 +305,10 @@ export default function PrivacyPage() {
           <li>
             <strong>Cloudflare</strong>, which stores match recordings privately
             on our behalf (R2 storage);
+          </li>
+          <li>
+            <strong>LiveKit</strong>, which carries match voice chat in real
+            time and records it into our storage on our behalf;
           </li>
           <li>
             <strong>approved game developers</strong> where their game needs

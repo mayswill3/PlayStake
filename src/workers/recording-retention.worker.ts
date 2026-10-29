@@ -12,13 +12,19 @@ import { QUEUE_NAMES, type RecordingRetentionPayload } from "../lib/jobs/types";
 import { reportJobFailure } from "../lib/observability/job-failure";
 import { r2Config } from "../lib/recordings/config";
 import { deleteExpiredRecordings } from "../lib/recordings/service";
+import { sealVoiceRecording } from "../lib/voice/service";
 
 function log(level: string, msg: string, data?: Record<string, unknown>): void {
   console.log(JSON.stringify({ level, msg, worker: "recording-retention", ...data }));
 }
 
-async function processRecordingRetention(_job: Job<RecordingRetentionPayload>): Promise<void> {
+async function processRecordingRetention(job: Job<RecordingRetentionPayload>): Promise<void> {
   if (!r2Config()) return;
+  if (job.name === "seal-voice" && job.data.recordingId) {
+    await sealVoiceRecording(job.data.recordingId);
+    log("info", "voice_recording_sealed", { recordingId: job.data.recordingId });
+    return;
+  }
   const deleted = await deleteExpiredRecordings();
   if (deleted > 0) log("info", "recordings_deleted", { count: deleted });
 }

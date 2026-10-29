@@ -1569,6 +1569,8 @@ enum MatchRecordingRole {
   REFEREE
   /// All three streams in one synced video with the match clock and events.
   COMPOSITE
+  /// The match voice chat (players and referee), audio only.
+  VOICE
 }
 
 enum MatchRecordingStatus {
@@ -1587,6 +1589,9 @@ model MatchRecording {
   betId           String               @map("bet_id") @db.Uuid
   userId          String               @map("user_id") @db.Uuid
   role            MatchRecordingRole
+  /// Part number when a match has several recordings of one kind (voice
+  /// chat that restarts after everyone left). 0 for the first.
+  segment         Int                  @default(0)
   channelSlug     String               @map("channel_slug") @db.VarChar(100)
   status          MatchRecordingStatus @default(RECORDING)
   storageKey      String?              @map("storage_key") @db.VarChar(500)
@@ -1605,7 +1610,7 @@ model MatchRecording {
   bet  Bet  @relation(fields: [betId], references: [id], onDelete: Restrict)
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
-  @@unique([betId, role], map: "uq_match_recording_role")
+  @@unique([betId, role, segment], map: "uq_match_recording_role_segment")
   @@index([retainUntil], map: "idx_match_recording_retain")
   @@map("match_recordings")
 }

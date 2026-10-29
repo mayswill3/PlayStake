@@ -29,6 +29,7 @@ PlayStake is operated by [COMPANY NAME] from [OPERATING ADDRESS]. The company bu
 | Redis 7 | Job queues, real-time lobby events, worker heartbeat | Railway | PlayStake | EU West, `europe-west4` (Netherlands) |
 | Recorder service (Chrome, ffmpeg) | Records every refereed match: both players' and the referee's streams with sound and match clock, sealed into the audit trail | Railway; PlayStake | PlayStake | EU West, `europe-west4` (Netherlands) |
 | Match-recording storage | Private store of sealed recordings, deleted on schedule | Cloudflare (R2) | PlayStake | EU jurisdiction |
+| Match voice chat | Live voice for the players and referee of a match, recorded to R2 | LiveKit Cloud | PlayStake | [LiveKit project region] |
 | Domain and DNS (playstake.org) | Customer access | Namecheap | PlayStake | Global DNS |
 | Source code repository and CI | Change control, automated tests, dependency audit, malware scan | GitHub | PlayStake | GitHub (US) |
 | Staff devices | Administration | [COMPANY / STAFF] | PlayStake staff | [STAFF LOCATIONS] |

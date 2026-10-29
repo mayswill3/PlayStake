@@ -34,7 +34,8 @@ export interface DisputeEvidenceData {
     chatMessages: Array<{ body: string; createdAt: string; user: { id: string; displayName: string } }>;
     recordings: Array<{
       id: string;
-      role: 'PLAYER_A' | 'PLAYER_B' | 'REFEREE' | 'COMPOSITE';
+      role: 'PLAYER_A' | 'PLAYER_B' | 'REFEREE' | 'COMPOSITE' | 'VOICE';
+      segment?: number;
       channelSlug: string;
       sha256?: string | null;
       status: string;
@@ -169,6 +170,40 @@ function relative(at: string, start: string | null): string {
 const panel = 'rounded-lg border border-[var(--border)] p-4';
 const heading = 'text-sm font-semibold text-fg';
 
+/** One voice-chat recording: load a private link on demand, then play it. */
+function VoicePart({ disputeId, recording, index }: { disputeId: string; recording: DisputeEvidenceData['bet']['recordings'][number]; index: number }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const load = async () => {
+    setError(null);
+    const res = await fetch(`/api/referees/disputes/${disputeId}/recordings/${recording.id}`, { cache: 'no-store' });
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) setUrl(body.url);
+    else setError(body.error ?? 'Could not load the recording');
+  };
+  const minutes = recording.durationSeconds ? Math.max(1, Math.round(recording.durationSeconds / 60)) : null;
+  return (
+    <li className="space-y-1">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-fg">Part {index + 1}</span>
+        <span className="text-fg-secondary">
+          {new Date(recording.startedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+          {minutes ? ` · ${minutes} min` : ''}
+        </span>
+        {recording.status === 'READY' && !url && (
+          <button type="button" onClick={load} className="rounded-md border border-[var(--border)] px-2.5 py-1 text-xs text-fg hover:bg-white/5">
+            Listen
+          </button>
+        )}
+        {recording.status === 'FAILED' && <span className="text-xs text-fg-secondary">Recording failed{recording.failureReason ? `: ${recording.failureReason}` : ''}</span>}
+      </div>
+      {url && <audio src={url} controls preload="metadata" className="w-full" />}
+      {recording.sha256 && <p className="break-all font-mono text-[11px] text-fg-secondary">SHA-256 {recording.sha256}</p>}
+      {error && <p className="text-xs text-red-400">{error}</p>}
+    </li>
+  );
+}
+
 export function DisputeEvidence({ data }: { data: DisputeEvidenceData }) {
   const assignment = data.bet.refereeAssignment;
   const start = assignment?.startedAt ?? null;
@@ -182,6 +217,9 @@ export function DisputeEvidence({ data }: { data: DisputeEvidenceData }) {
           : 'Someone else';
 
   const composite = data.bet.recordings.find((r) => r.role === 'COMPOSITE');
+  const voiceParts = data.bet.recordings
+    .filter((r) => r.role === 'VOICE' && r.status !== 'DELETED')
+    .sort((a, b) => (a.segment ?? 0) - (b.segment ?? 0));
   // Seek points within the video: it starts when the referee starts the match.
   const videoStart = composite ? new Date(composite.startedAt).getTime() : null;
   const at = (iso: string) => (videoStart ? (new Date(iso).getTime() - videoStart) / 1000 : 0);
@@ -264,6 +302,17 @@ export function DisputeEvidence({ data }: { data: DisputeEvidenceData }) {
         ) : (
           <p className="mt-3 text-sm text-fg-secondary">No PlayStake recording for this match.</p>
         )}
+        <p className="mt-4 text-xs font-semibold text-fg-secondary">Voice chat</p>
+        {voiceParts.length === 0 ? (
+          <p className="mt-1 text-sm text-fg-secondary">No voice chat was recorded for this match.</p>
+        ) : (
+          <ul className="mt-2 space-y-3">
+            {voiceParts.map((recording, index) => (
+              <VoicePart key={recording.id} disputeId={data.id} recording={recording} index={index} />
+            ))}
+          </ul>
+        )}
+        <p className="mt-1 text-xs text-fg-secondary">Each listen is logged.</p>
         <p className="mt-4 text-xs font-semibold text-fg-secondary">Kick channels</p>
         <ul className="mt-2 space-y-2 text-sm">
           {participants.map((participant) => {

@@ -47,6 +47,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1156.0",
     "@aws-sdk/s3-request-presigner": "^3.1156.0",
+    "@livekit/components-react": "^2.9.24",
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.2",
     "@prisma/pg-worker": "^6.9.0",
@@ -63,6 +64,8 @@
     "dotenv": "^17.3.1",
     "esbuild": "^0.27.3",
     "ioredis": "^5.10.0",
+    "livekit-client": "^2.23.0",
+    "livekit-server-sdk": "^2.19.2",
     "lucide-react": "^0.577.0",
     "next": "^16.1.6",
     "otpauth": "^9.5.0",

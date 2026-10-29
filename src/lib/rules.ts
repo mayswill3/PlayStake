@@ -11,7 +11,7 @@
 // new version.
 // =============================================================================
 
-export const MATCH_RULES_VERSION = '2026-10-28';
+export const MATCH_RULES_VERSION = '2026-10-29';
 export const REFEREE_CODE_VERSION = '2026-10-26';
 
 /** Shown in challenge dialogs. Each must match a rule on /match-rules. */

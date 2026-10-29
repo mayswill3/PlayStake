@@ -93,6 +93,11 @@ const SCHEDULES: ScheduleEntry[] = [
     jobName: "recording-retention",
     every: 60 * 60_000, // hourly
   },
+  {
+    queueName: QUEUE_NAMES.VOICE_ROOMS,
+    jobName: "voice-room-sweep",
+    every: 60_000, // close voice rooms of finished matches
+  },
 ];
 
 // ---------------------------------------------------------------------------

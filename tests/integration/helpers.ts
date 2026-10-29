@@ -730,6 +730,12 @@ async function resolveRouteHandler(
 
   // Streamer challenge: /api/streamers/{slug}/challenge
 
+  const betVoiceMatch = path.match(/^\/api\/bets\/([^/?]+)\/voice$/);
+  if (betVoiceMatch) {
+    const mod = await import("../../src/app/api/bets/[id]/voice/route.js");
+    return { handler: method === "POST" ? mod.POST : mod.GET, params: { id: decodeURIComponent(betVoiceMatch[1]) } };
+  }
+
   const betDisputeMatch = path.match(/^\/api\/bets\/([^/?]+)\/dispute$/);
   if (betDisputeMatch && method === "POST") {
     const mod = await import("../../src/app/api/bets/[id]/dispute/route.js");

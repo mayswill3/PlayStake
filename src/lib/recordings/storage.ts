@@ -2,6 +2,7 @@
 // PlayStake — Recording storage (Cloudflare R2, S3-compatible)
 // =============================================================================
 
+import { createHash } from "crypto";
 import { createReadStream } from "fs";
 import { stat } from "fs/promises";
 import { DeleteObjectsCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
@@ -31,7 +32,27 @@ export async function uploadFile(key: string, path: string, contentType = "video
   return size;
 }
 
-/** A short-lived private link to watch a recording. */
+/** The content type for a stored recording, from its file extension. */
+export function contentTypeFor(key: string): string {
+  if (key.endsWith(".ogg")) return "audio/ogg";
+  if (key.endsWith(".mp3")) return "audio/mpeg";
+  return "video/mp4";
+}
+
+/** SHA-256 of a stored object, read as a stream. */
+export async function sha256Of(key: string): Promise<{ sha256: string; byteSize: number }> {
+  const { client, bucket } = s3();
+  const object = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+  const hash = createHash("sha256");
+  let byteSize = 0;
+  for await (const chunk of object.Body as AsyncIterable<Uint8Array>) {
+    hash.update(chunk);
+    byteSize += chunk.length;
+  }
+  return { sha256: hash.digest("hex"), byteSize };
+}
+
+/** A short-lived private link to watch (or listen to) a recording. */
 export function playbackUrl(key: string, filename: string): Promise<string> {
   const { client, bucket } = s3();
   return getSignedUrl(
@@ -39,7 +60,7 @@ export function playbackUrl(key: string, filename: string): Promise<string> {
     new GetObjectCommand({
       Bucket: bucket,
       Key: key,
-      ResponseContentType: "video/mp4",
+      ResponseContentType: contentTypeFor(key),
       ResponseContentDisposition: `inline; filename="${filename}"`,
     }),
     { expiresIn: PLAYBACK_URL_TTL_SECONDS },

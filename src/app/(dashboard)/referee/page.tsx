@@ -11,6 +11,7 @@ import { KeyRules, RulesCheckbox, RulesConsentDialog } from '@/components/rules/
 import { useLiveStatusEvents } from '@/hooks/useLiveStatusEvents';
 import { AssignmentHistoryList } from '@/components/referees/AssignmentHistoryList';
 import { DisputeReviewQueue } from '@/components/disputes/DisputeReviewQueue';
+import { MatchVoice } from '@/components/matches/MatchVoice';
 
 interface Game { id: string; name: string }
 interface ProfileResponse {
@@ -499,14 +500,19 @@ function RefereeWorkbench({
   const [decision, setDecision] = useState('PLAYER_A_WIN');
   const [notes, setNotes] = useState('');
   // Both players play with sound, like a normal stream; each can be muted.
+  // Joining voice chat mutes them (their voices would be heard twice).
   const [mutedPlayers, setMutedPlayers] = useState<Set<string>>(() => new Set());
+  const [unmutedInVoice, setUnmutedInVoice] = useState<Set<string>>(() => new Set());
+  const [voiceActive, setVoiceActive] = useState(false);
+  const isPlayerMuted = (id: string) => (voiceActive ? !unmutedInVoice.has(id) : mutedPlayers.has(id));
+  const flip = (current: Set<string>, id: string) => {
+    const next = new Set(current);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  };
   const togglePlayerMute = (id: string) =>
-    setMutedPlayers((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    voiceActive ? setUnmutedInVoice((current) => flip(current, id)) : setMutedPlayers((current) => flip(current, id));
 
   // The live flag is webhook-driven; if Kick's webhook is slow or missed, the
   // /api/kick/live poll re-checks Kick directly and syncs the flag, which the
@@ -531,7 +537,8 @@ function RefereeWorkbench({
           </div>
           <StatusPill status="live" label={assignment.status.replace(/_/g, ' ')} />
         </div>
-        <div className="mt-4">
+        <div className="mt-4 space-y-3">
+          <MatchVoice betId={assignment.bet.id} onActiveChange={setVoiceActive} />
           <StreamAudioTip audience="referee" />
         </div>
         <div className="mt-3 grid gap-4 xl:grid-cols-2">
@@ -543,12 +550,12 @@ function RefereeWorkbench({
                 <span className="ml-auto">
                   <ListenButton
                     name={player.displayName}
-                    listening={!mutedPlayers.has(player.id)}
+                    listening={!isPlayerMuted(player.id)}
                     onToggle={() => togglePlayerMute(player.id)}
                   />
                 </span>
               </div>
-              <KickPlayer slug={player.kickAccount.channelSlug} muted={mutedPlayers.has(player.id)} />
+              <KickPlayer slug={player.kickAccount.channelSlug} muted={isPlayerMuted(player.id)} />
             </div>
           ))}
         </div>

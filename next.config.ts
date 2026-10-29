@@ -62,7 +62,7 @@ const nextConfig: NextConfig = {
         "img-src 'self' data: blob: https:",
         "media-src 'self' blob: https:",
         // Google Analytics, loaded only after the visitor accepts analytics cookies.
-        `connect-src 'self' https://api.stripe.com https://*.sentry.io https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com${isDev ? ' ws: wss:' : ''}`,
+        `connect-src 'self' https://api.stripe.com https://*.sentry.io https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com wss://*.livekit.cloud https://*.livekit.cloud${isDev ? ' ws: wss:' : ''}`,
         'frame-src https://js.stripe.com https://hooks.stripe.com https://player.kick.com',
         "object-src 'none'",
         "base-uri 'self'",
@@ -76,7 +76,8 @@ const nextConfig: NextConfig = {
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
       {
         key: 'Permissions-Policy',
-        value: 'camera=(), microphone=(), geolocation=(), payment=(self)',
+        // Microphone for match voice chat (players and referee) on our own pages only.
+        value: 'camera=(), microphone=(self), geolocation=(), payment=(self)',
       },
       {
         key: 'Strict-Transport-Security',

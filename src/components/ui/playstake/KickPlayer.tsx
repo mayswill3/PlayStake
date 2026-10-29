@@ -57,15 +57,15 @@ export function StreamAudioTip({ audience = 'player' }: { audience?: 'player' | 
     <div className="space-y-1 text-xs text-ps-muted dark:text-ps-muted-on-dark">
       {audience === 'referee' ? (
         <p>
-          <strong className="text-ps-text dark:text-ps-text-on-dark">Instructions go in match chat.</strong> Kick
-          streams run a few seconds behind, so players hear you late on your stream; match chat reaches them straight
-          away.
+          <strong className="text-ps-text dark:text-ps-text-on-dark">Talk to the players in match voice chat.</strong>{' '}
+          Kick streams run a few seconds behind, so players hear you late on your stream. Use voice chat to talk live,
+          and post anything they need to keep in match chat.
         </p>
       ) : (
         <p>
           <strong className="text-ps-text dark:text-ps-text-on-dark">Talking to your opponent?</strong> Kick streams
-          run a few seconds behind, so use the game&apos;s voice chat or a PlayStation or Xbox party to talk in real
-          time. Say anything for the referee on your stream; their instructions appear in match chat.
+          run a few seconds behind, so use match voice chat (above) to talk live with your opponent and the referee.
+          The referee&apos;s instructions also appear in match chat.
         </p>
       )}
       <p>

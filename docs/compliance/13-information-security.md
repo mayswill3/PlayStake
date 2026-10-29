@@ -25,6 +25,7 @@ We commit to:
 | In scope | Notes |
 |---|---|
 | Web, worker and recorder services, PostgreSQL, Redis (Railway, EU West, Netherlands) | All customer data, the ledger and match records |
+| Match voice chat (LiveKit Cloud) | Room per match, joinable only by its two players and referee with a 2-hour token minted by PlayStake (microphone only, no admin rights); webhooks verified by signature |
 | Match-recording storage (Cloudflare R2, EU) | Private bucket; bucket-scoped key for object read/write only; playback by 15-minute signed links; every viewing logged |
 | Admin console and staff accounts | Privileged access |
 | Source code, CI and deployment pipeline (GitHub → Railway) | Integrity of released software |
