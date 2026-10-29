@@ -27,9 +27,30 @@ export const LEGAL_ADULT_AGE_YEARS = 18;
  * the Crown Dependencies use their own codes (GY, JE, IM), so they fail the
  * country check already.
  */
+/**
+ * Turn the many ways a provider or form writes the United Kingdom ("GB",
+ * "UK", "GBR", "United Kingdom of Great Britain and Northern Ireland",
+ * "England"...) into "GB". Anything else is returned upper-cased.
+ */
+export function normaliseCountry(raw: string | null | undefined): string {
+  const value = (raw ?? "").trim().toUpperCase().replace(/[.]/g, "");
+  if (!value) return "";
+  if (["GB", "UK", "GBR"].includes(value)) return "GB";
+  if (/^(UNITED KINGDOM|GREAT BRITAIN|ENGLAND|SCOTLAND|WALES|NORTHERN IRELAND|BRITAIN)\b/.test(value)) return "GB";
+  return value;
+}
+
+/** A UK postcode shape (outward + inward code), e.g. "EC1A 1BB", "M1 1AE". */
+const UK_POSTCODE = /^[A-Z]{1,2}[0-9][A-Z0-9]?\s*[0-9][A-Z]{2}$/i;
+
 export function isGreatBritainAddress(country: string | null | undefined, postalCode: string | null | undefined): boolean {
-  if ((country ?? "").trim().toUpperCase() !== "GB") return false;
-  return !/^\s*BT/i.test(postalCode ?? "");
+  const postcode = (postalCode ?? "").trim();
+  if (/^BT/i.test(postcode)) return false;
+  const code = normaliseCountry(country);
+  if (code === "GB") return true;
+  // A record whose country wasn't captured ("ZZ" or blank) still counts if
+  // the postcode is a valid England, Scotland or Wales postcode.
+  return (code === "" || code === "ZZ") && UK_POSTCODE.test(postcode);
 }
 
 export const NOT_GB_RESIDENT_MESSAGE =

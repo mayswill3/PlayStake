@@ -27,7 +27,7 @@ import { prisma } from "../db/client";
 import { hasBlockingIdentityCase, screenKycSubmission } from "../compliance/identity-checks";
 import { emailKycSubmitted } from "../email/events";
 import { sendKycDecisionEmail } from "../email/resend";
-import { LEGAL_ADULT_AGE_YEARS, MINIMUM_AGE_YEARS, NOT_GB_RESIDENT_MESSAGE, ageInYears, isGreatBritainAddress } from "./constants";
+import { LEGAL_ADULT_AGE_YEARS, MINIMUM_AGE_YEARS, NOT_GB_RESIDENT_MESSAGE, ageInYears, isGreatBritainAddress, normaliseCountry } from "./constants";
 import { DIDIT_FINAL_STATUSES, type DiditDecision, type DiditFinalStatus } from "./didit";
 
 export type DiditOutcome = "ignored" | "approved" | "rejected" | "pending" | "unchanged";
@@ -43,11 +43,10 @@ const ISO3_TO_ISO2: Record<string, string> = {
 
 function countryCode(...candidates: Array<string | null | undefined>): string {
   for (const raw of candidates) {
-    const value = raw?.trim().toUpperCase();
+    const value = normaliseCountry(raw);
     if (!value) continue;
     if (value.length === 2) return value;
     if (ISO3_TO_ISO2[value]) return ISO3_TO_ISO2[value];
-    if (value === "UNITED KINGDOM" || value === "GREAT BRITAIN") return "GB";
   }
   return "ZZ";
 }

@@ -112,6 +112,19 @@ describe("KYC: age check", () => {
     expect(isGreatBritainAddress("GB", "BT1 5GS")).toBe(false); // Northern Ireland
     expect(isGreatBritainAddress("IE", "D02 X285")).toBe(false);
     expect(isGreatBritainAddress("JE", "JE2 3XP")).toBe(false);
-    expect(isGreatBritainAddress(null, "EC1A 1BB")).toBe(false);
+    expect(isGreatBritainAddress("JE", "EC1A 1BB")).toBe(false);
+  });
+
+  it("reads every common way of writing the UK as Great Britain", () => {
+    for (const country of ["GB", "UK", "U.K.", "GBR", "United Kingdom", "United Kingdom of Great Britain and Northern Ireland", "England", "Scotland", "Wales"]) {
+      expect(isGreatBritainAddress(country, "EC1A 1BB"), country).toBe(true);
+    }
+    // Northern Ireland is out whatever the country says.
+    expect(isGreatBritainAddress("United Kingdom", "BT1 5GS")).toBe(false);
+    // A record with no country counts only with a valid GB postcode.
+    expect(isGreatBritainAddress("ZZ", "M1 1AE")).toBe(true);
+    expect(isGreatBritainAddress(null, "EC1A1BB")).toBe(true);
+    expect(isGreatBritainAddress("ZZ", "D02 X285")).toBe(false);
+    expect(isGreatBritainAddress("", "")).toBe(false);
   });
 });
