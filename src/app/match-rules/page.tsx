@@ -77,6 +77,13 @@ export default function MatchRulesPage() {
             <strong>Be ready on time.</strong> If no referee takes the match within 10 minutes of it
             being agreed, it is cancelled and both stakes are returned in full.
           </li>
+          <li>
+            <strong>Pulling out.</strong> Either player can pull out from the match page until the
+            referee starts the match. The match is cancelled and both stakes are returned in full,
+            with no fee. Once the referee has started the match you can&apos;t pull out: leaving
+            counts as abandoning it, and the disconnect rules below apply. Pulling out of three or
+            more matches in 24 hours pauses new matches for 30 minutes and is reviewed by our team.
+          </li>
         </ul>
       </LegalSection>
 

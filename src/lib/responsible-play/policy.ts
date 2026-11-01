@@ -1,4 +1,5 @@
 import { assertEligibleToGamble } from "../compliance/eligibility";
+import { assertNotInWithdrawalCooldown } from "../matches/withdraw";
 import { assertFundsProtectionAcknowledgedIfDeposited } from "../compliance/funds-protection";
 import { prisma } from "../db/client";
 import { AppError } from "../errors";
@@ -50,6 +51,7 @@ export async function assertCanWager(
 ): Promise<void> {
   await assertEligibleToGamble(userId, now);
   await assertFundsProtectionAcknowledgedIfDeposited(userId);
+  await assertNotInWithdrawalCooldown(userId, now);
 }
 
 /**

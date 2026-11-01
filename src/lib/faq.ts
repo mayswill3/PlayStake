@@ -142,6 +142,11 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         q: 'Are my stakes safe during a match?',
         a: "From the moment both players accept, stakes are set aside in our ledger for that match only. They can only go to the winner, be split on a draw, or be returned if the match is cancelled. This is a record in PlayStake's own accounts, not a separate bank account or trust: like the rest of your balance, it is not protected if PlayStake becomes insolvent (see our Terms, protection of customer funds).",
       },
+      {
+        id: 'pull-out',
+        q: 'Can I pull out of a match after it is agreed?',
+        a: "Yes, until the referee starts the match. Use 'Pull out of this match' on the match page: the match is cancelled and both stakes are returned in full, with no fee, and your opponent is told. Once the referee has started the match you can't pull out. Pulling out of three or more matches in 24 hours pauses new matches for 30 minutes.",
+      },
     ],
   },
   {

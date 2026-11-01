@@ -102,6 +102,8 @@ export default function BetDetailPage() {
   const [disputeReason, setDisputeReason] = useState('');
   const [disputeMoments, setDisputeMoments] = useState<Array<{ at: string; note: string }>>([]);
   const [disputeLoading, setDisputeLoading] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
 
   useEffect(() => {
     fetch(`/api/bets/${id}`)
@@ -124,6 +126,28 @@ export default function BetDetailPage() {
   // A bet counting down to payout also polls, so it flips to settled.
   const keepFresh = refereeMatchActive || Boolean(bet?.resolvesAt);
   const pollMs = refereeStatus === 'OPEN' ? REFEREE_POLL_MS : REFEREE_ACTIVE_POLL_MS;
+
+  // Either player can pull out until the referee presses Start (full refund).
+  const canWithdraw =
+    bet?.status === 'MATCHED' && (!refereeStatus || ['OPEN', 'ASSIGNED', 'READY'].includes(refereeStatus));
+
+  async function withdraw() {
+    setWithdrawing(true);
+    try {
+      const response = await fetch(`/api/bets/${id}/withdraw`, { method: 'POST' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        toast('error', data.error ?? 'Could not pull out of this match.');
+        return;
+      }
+      toast('success', 'You pulled out. Both stakes have been refunded in full.');
+      setWithdrawOpen(false);
+      const refreshed = await fetch(`/api/bets/${id}`, { cache: 'no-store' });
+      if (refreshed.ok) setBet(await refreshed.json());
+    } finally {
+      setWithdrawing(false);
+    }
+  }
   const betRef = useRef(bet);
   useEffect(() => {
     betRef.current = bet;
@@ -296,6 +320,18 @@ export default function BetDetailPage() {
               />
             )}
 
+            {canWithdraw && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--ps-radius-md)] border border-[var(--ps-border-light)] px-4 py-3 text-sm dark:border-[var(--ps-border-dark)]">
+                <p className="text-ps-muted dark:text-ps-muted-on-dark">
+                  Can&apos;t play after all? You can pull out until the referee starts the match. Both stakes are
+                  refunded in full.
+                </p>
+                <PSButton variant="ghost" size="sm" onClick={() => setWithdrawOpen(true)}>
+                  Pull out of this match
+                </PSButton>
+              </div>
+            )}
+
             {/* Kick streams — the players' feeds, plus the referee officiating on camera */}
             {(bet.playerA.kick || bet.playerB?.kick || bet.refereeAssignment?.referee?.kickChannel) && (
               <Card>
@@ -402,6 +438,33 @@ export default function BetDetailPage() {
         </div>
 
         {/* Dispute dialog */}
+        <Dialog
+          open={withdrawOpen}
+          onClose={() => setWithdrawOpen(false)}
+          title="Pull out of this match?"
+          actions={
+            <div className="flex flex-wrap gap-2">
+              <PSButton variant="danger" disabled={withdrawing} onClick={withdraw}>
+                {withdrawing ? 'Pulling out…' : 'Yes, pull out'}
+              </PSButton>
+              <PSButton variant="ghost" disabled={withdrawing} onClick={() => setWithdrawOpen(false)}>
+                Stay in
+              </PSButton>
+            </div>
+          }
+        >
+          <div className="space-y-2 text-sm text-ps-muted dark:text-ps-muted-on-dark">
+            <p>
+              The match will be cancelled and both stakes refunded in full, with no fee. Your opponent
+              {bet.refereeAssignment?.referee ? ' and the referee' : ''} will be told.
+            </p>
+            <p>
+              Pulling out of three or more matches in 24 hours pauses new matches for 30 minutes and is reviewed by
+              our team.
+            </p>
+          </div>
+        </Dialog>
+
         <Dialog
           open={disputeOpen}
           onClose={() => setDisputeOpen(false)}
