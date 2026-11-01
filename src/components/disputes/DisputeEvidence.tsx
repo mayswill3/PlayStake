@@ -78,13 +78,36 @@ function momentSeconds(at: string): number | null {
   return c === undefined ? a! * 60 + b! : a! * 3600 + b! * 60 + c;
 }
 
-function RecordingPlayer({
-  disputeId,
+export type PlaybackRecording = DisputeEvidenceData['bet']['recordings'][number];
+/** Fetches a short-lived link to the recording, or throws with the reason. */
+export type LoadRecordingUrl = () => Promise<string>;
+
+async function fetchPlaybackUrl(path: string, init?: RequestInit): Promise<string> {
+  const res = await fetch(path, { cache: 'no-store', ...init });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error ?? 'Could not load the recording');
+  return body.url;
+}
+
+/** A dispute reviewer's link: allowed by the dispute's own access rules. */
+const disputeLoader = (disputeId: string, recordingId: string): LoadRecordingUrl => () =>
+  fetchPlaybackUrl(`/api/referees/disputes/${disputeId}/recordings/${recordingId}`);
+
+/** An admin's link: needs a stated reason, which is logged. */
+export const adminLoader = (betId: string, recordingId: string, reason: string, note: string): LoadRecordingUrl => () =>
+  fetchPlaybackUrl(`/api/admin/matches/${betId}/recordings/${recordingId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason, note }),
+  });
+
+export function RecordingPlayer({
+  loadUrl,
   recording,
   jumps,
 }: {
-  disputeId: string;
-  recording: DisputeEvidenceData['bet']['recordings'][number];
+  loadUrl: LoadRecordingUrl;
+  recording: PlaybackRecording;
   jumps: Array<{ label: string; seconds: number }>;
 }) {
   const video = useRef<HTMLVideoElement>(null);
@@ -96,10 +119,7 @@ function RecordingPlayer({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/referees/disputes/${disputeId}/recordings/${recording.id}`, { cache: 'no-store' });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.error ?? 'Could not load the recording');
-      setUrl(body.url);
+      setUrl(await loadUrl());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load the recording');
     } finally {
@@ -171,15 +191,16 @@ const panel = 'rounded-lg border border-[var(--border)] p-4';
 const heading = 'text-sm font-semibold text-fg';
 
 /** One voice-chat recording: load a private link on demand, then play it. */
-function VoicePart({ disputeId, recording, index }: { disputeId: string; recording: DisputeEvidenceData['bet']['recordings'][number]; index: number }) {
+export function VoicePart({ loadUrl, recording, index }: { loadUrl: LoadRecordingUrl; recording: PlaybackRecording; index: number }) {
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const load = async () => {
     setError(null);
-    const res = await fetch(`/api/referees/disputes/${disputeId}/recordings/${recording.id}`, { cache: 'no-store' });
-    const body = await res.json().catch(() => ({}));
-    if (res.ok) setUrl(body.url);
-    else setError(body.error ?? 'Could not load the recording');
+    try {
+      setUrl(await loadUrl());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not load the recording');
+    }
   };
   const minutes = recording.durationSeconds ? Math.max(1, Math.round(recording.durationSeconds / 60)) : null;
   return (
@@ -289,7 +310,7 @@ export function DisputeEvidence({ data }: { data: DisputeEvidenceData }) {
         </p>
         {composite ? (
           composite.status === 'READY' ? (
-            <RecordingPlayer disputeId={data.id} recording={composite} jumps={jumps} />
+            <RecordingPlayer loadUrl={disputeLoader(data.id, composite.id)} recording={composite} jumps={jumps} />
           ) : (
             <p className="mt-3 text-sm text-fg-secondary">
               {composite.status === 'RECORDING'
@@ -308,7 +329,7 @@ export function DisputeEvidence({ data }: { data: DisputeEvidenceData }) {
         ) : (
           <ul className="mt-2 space-y-3">
             {voiceParts.map((recording, index) => (
-              <VoicePart key={recording.id} disputeId={data.id} recording={recording} index={index} />
+              <VoicePart key={recording.id} loadUrl={disputeLoader(data.id, recording.id)} recording={recording} index={index} />
             ))}
           </ul>
         )}

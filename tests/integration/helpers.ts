@@ -730,6 +730,34 @@ async function resolveRouteHandler(
 
   // Streamer challenge: /api/streamers/{slug}/challenge
 
+  // Admin access to match recordings
+  if (path.startsWith("/api/admin/matches") || path === "/api/admin/recording-access") {
+    const clean = path.split("?")[0];
+    if (clean === "/api/admin/recording-access") {
+      const mod = await import("../../src/app/api/admin/recording-access/route.js");
+      return { handler: mod.GET };
+    }
+    if (clean === "/api/admin/matches") {
+      const mod = await import("../../src/app/api/admin/matches/route.js");
+      return { handler: mod.GET };
+    }
+    const view = clean.match(/^\/api\/admin\/matches\/([^/]+)\/recordings\/([^/]+)$/);
+    if (view) {
+      const mod = await import("../../src/app/api/admin/matches/[betId]/recordings/[recordingId]/route.js");
+      return { handler: mod.POST, params: { betId: view[1], recordingId: view[2] } };
+    }
+    const hold = clean.match(/^\/api\/admin\/matches\/([^/]+)\/hold$/);
+    if (hold) {
+      const mod = await import("../../src/app/api/admin/matches/[betId]/hold/route.js");
+      return { handler: mod.POST, params: { betId: hold[1] } };
+    }
+    const one = clean.match(/^\/api\/admin\/matches\/([^/]+)$/);
+    if (one) {
+      const mod = await import("../../src/app/api/admin/matches/[betId]/route.js");
+      return { handler: mod.GET, params: { betId: one[1] } };
+    }
+  }
+
   const betWithdrawMatch = path.match(/^\/api\/bets\/([^/?]+)\/withdraw$/);
   if (betWithdrawMatch && method === "POST") {
     const mod = await import("../../src/app/api/bets/[id]/withdraw/route.js");

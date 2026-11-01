@@ -26,8 +26,7 @@ import {
   ScrollText,
   Menu,
   Tv,
-  X,
-} from 'lucide-react';
+  X, Film, Eye } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useOpenRefereeCount, usePendingChallengeCount } from '@/components/lobby/ChallengesProvider';
 import { KickConnectionCard } from '@/components/kick/KickConnectionCard';
@@ -69,6 +68,8 @@ const adminNav: NavItem[] = [
   { label: 'KYC Review', href: '/admin/kyc', icon: ShieldCheck },
   { label: 'Referees', href: '/admin/referees', icon: Scale },
   { label: 'Disputes', href: '/admin/disputes', icon: Gavel },
+  { label: 'Matches', href: '/admin/matches', icon: Film },
+  { label: 'Recording Access', href: '/admin/recording-access', icon: Eye },
   { label: 'Fraud Alerts', href: '/admin/anomalies', icon: AlertTriangle },
   { label: 'Complaints', href: '/admin/complaints', icon: MessageSquareWarning },
   { label: 'Harm Signals', href: '/admin/harm-signals', icon: HeartPulse },

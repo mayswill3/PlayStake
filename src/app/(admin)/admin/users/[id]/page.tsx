@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardTitle } from '@/components/ui/Card';
@@ -184,6 +185,9 @@ export default function AdminUserDetailPage() {
         <Card>
           <p className="text-sm text-text-secondary font-mono mb-1">Total Bets</p>
           <p className="text-2xl font-bold font-display text-text-primary">{user.totalBets}</p>
+          <Link href={`/admin/matches?userId=${user.id}`} className="mt-1 inline-block text-xs text-brand-400 hover:underline">
+            View matches and recordings
+          </Link>
         </Card>
         <Card>
           <p className="text-sm text-text-secondary font-mono mb-1">Disputes Filed</p>

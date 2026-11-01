@@ -132,6 +132,7 @@ export async function sealRecording(input: {
 }) {
   const endedAt = input.endedAt ?? new Date();
   const disputed = await prisma.dispute.count({ where: { betId: input.betId, status: { in: OPEN_DISPUTES } } });
+  const hold = await activeHold(input.betId);
   return withTransaction(async (tx) => {
     const recording = await tx.matchRecording.update({
       where: { betId_role_segment: { betId: input.betId, role: MatchRecordingRole.COMPOSITE, segment: 0 } },
@@ -142,8 +143,9 @@ export async function sealRecording(input: {
         durationSeconds: input.durationSeconds,
         sha256: input.sha256,
         endedAt,
-        // A dispute keeps the recording until it's decided.
-        retainUntil: disputed ? null : new Date(endedAt.getTime() + UNDISPUTED_RETENTION_MS),
+        // A dispute, or an investigation hold, keeps the recording.
+        retainUntil: disputed || hold ? null : new Date(endedAt.getTime() + UNDISPUTED_RETENTION_MS),
+        ...(hold ?? {}),
       },
     });
     const assignment = await tx.refereeAssignment.findUnique({ where: { betId: input.betId }, select: { id: true } });
@@ -170,6 +172,15 @@ export async function failRecording(betId: string, reason: string) {
   });
 }
 
+/** The investigation hold on this match's recordings, if any (new recordings inherit it). */
+export async function activeHold(betId: string) {
+  const held = await prisma.matchRecording.findFirst({
+    where: { betId, heldAt: { not: null } },
+    select: { heldAt: true, heldReason: true, heldById: true },
+  });
+  return held?.heldAt ? { heldAt: held.heldAt, heldReason: held.heldReason, heldById: held.heldById } : null;
+}
+
 /** A filed dispute keeps the match's recordings until it's decided. */
 export async function holdRecordingsForDispute(betId: string): Promise<void> {
   await prisma.matchRecording.updateMany({ where: { betId, deletedAt: null }, data: { retainUntil: null } });
@@ -181,6 +192,7 @@ export async function deleteExpiredRecordings(now: Date = new Date()): Promise<n
     where: {
       retainUntil: { lt: now },
       deletedAt: null,
+      heldAt: null,
       bet: { disputes: { none: { status: { in: OPEN_DISPUTES } } } },
     },
     select: { id: true, betId: true },

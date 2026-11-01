@@ -17,7 +17,7 @@ Every refereed match is recorded by PlayStake so that a dispute or complaint can
 1. When the referee clicks **Start match**, PlayStake's recorder service opens a private recording page that shows both players' and the referee's Kick streams (through Kick's own embedded player), the match clock, the real time, match events and match chat.
 2. The recorder captures that page and the sound of all three streams into one 1080p video, uploading it in 5-minute pieces while it records.
 3. When the referee records the result (or the match is cancelled, or reaches the 2-hour limit) the recording stops. The pieces are joined into one file, its SHA-256 fingerprint is written into the match's hash-chained referee audit trail, and the file is stored privately in Cloudflare R2.
-4. Only PlayStake admins and approved dispute reviewers who pass the conflict checks (Document 01) can watch a recording, and only from the dispute it belongs to. Each viewing uses a private link that expires after 15 minutes and is logged in the admin audit log.
+4. **Who can watch.** Approved dispute reviewers (and admins) from a dispute, under the conflict checks (Document 01). Admins can also open any match's recordings from the admin **Matches** page, but only after choosing a reason (complaint; suspected cheating or fixing; AML or fraud investigation; referee quality review; a data request from the player) and writing a note; an admin who played in or refereed the match can't open it. Each viewing uses a private link that expires after 15 minutes and is logged in the admin audit log with the reason and note; the **Recording access** page lists every viewing for the compliance lead's monthly review. An admin can place an **investigation hold** (with a reason, logged) so a match's recordings aren't deleted on schedule; releasing it restores the normal retention date.
 
 5. **Voice chat (added 29 October 2026).** The two players and the referee can talk live in a match voice room (LiveKit). Only those three can join, only while the match is live; microphone only. The room is recorded as audio by LiveKit straight into the same private R2 bucket; when a recording finishes its SHA-256 is sealed into the audit trail, and it is kept and deleted exactly like the stream recording. Reviewers listen from the dispute; each listen is logged.
 
@@ -50,7 +50,7 @@ Players and referees are told in the Match Rules, which they must accept (versio
 | Risk to individuals | Likelihood / severity | Controls | Residual |
 |---|---|---|---|
 | Recordings breached or leaked | Low / high | Private R2 bucket, never public; access keys held only by the web app and recorder; playback via 15-minute signed links; every viewing logged; Cloudflare security certifications (ISO 27001, SOC 2) | Low |
-| Misuse by a reviewer (sharing, watching without reason) | Low / medium | Only from an assigned dispute, after the conflict checks; every viewing in the append-only admin audit log; reviewers bound by the Referee Code (confidentiality); periodic review of the viewing log | Low |
+| Misuse by staff (sharing, watching without reason) | Low / medium | Dispute reviewers only from an assigned dispute after the conflict checks; admins only with a recorded reason and note, never for a match they played in or refereed; every viewing in the append-only admin audit log and on the Recording access page, reviewed monthly; no download offered; reviewers bound by the Referee Code (confidentiality) | Low |
 | Third parties (family, housemates) recorded without knowing | Medium / low | Match Rules tell players anything on stream may be recorded; they choose what their camera shows; retention short | Low |
 | Recording tampered with to change an outcome | Low / high | SHA-256 sealed into the hash-chained referee audit trail at the moment of recording; reviewers see the fingerprint | Low |
 | Kept too long | Low / medium | Automatic hourly deletion at the retention date; disputes hold recordings only while open, then 12 months | Low |
@@ -63,7 +63,7 @@ Players and referees are told in the Match Rules, which they must accept (versio
 1. Accept Cloudflare's and LiveKit's DPAs (Article 28) and record both in the supplier register (Document 08). Create the LiveKit Cloud project in an EU region.
 2. Create the R2 bucket with **EU jurisdiction** and no public access; issue a bucket-scoped API token with object read/write only.
 3. Keep the Match Rules recording rule and the Privacy Policy wording in step with what is recorded.
-4. Review the recording viewing log monthly alongside dispute outcomes.
+4. Review the Recording access page monthly: every viewing has a reason that fits the purposes above; investigate any that don't.
 5. Answer subject access requests for recordings by giving the person the clip of their own match while it is held (mask other people where needed) [CONFIRM approach with advisor].
 6. Re-assess this DPIA before switching recording on, and on any change to what is recorded.
 
@@ -90,3 +90,4 @@ If residual high risk remains that cannot be reduced, consult the ICO before pro
 |---|---|---|
 | 0.1 | 26 October 2026 | First draft from the recorder as built |
 | 0.2 | 29 October 2026 | Match voice chat (LiveKit), recorded as audio with the match |
+| 0.3 | 1 November 2026 | Admin access to any match's recordings with a recorded reason; Recording access log; investigation holds |

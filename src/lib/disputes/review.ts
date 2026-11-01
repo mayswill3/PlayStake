@@ -402,7 +402,7 @@ export async function resolveDispute(input: {
 
     // A recording of a disputed match is kept until any complaint is closed.
     await tx.matchRecording.updateMany({
-      where: { betId: dispute.betId, deletedAt: null },
+      where: { betId: dispute.betId, deletedAt: null, heldAt: null },
       data: { retainUntil: new Date(now.getTime() + DISPUTED_RECORDING_RETENTION_MS) },
     });
 

@@ -35,6 +35,7 @@ import { QUEUE_NAMES } from "../jobs/types";
 import { appendRefereeAudit } from "../referees/audit";
 import { UNDISPUTED_RETENTION_MS, r2Config } from "../recordings/config";
 import { sha256Of } from "../recordings/storage";
+import { activeHold } from "../recordings/service";
 import {
   VOICE_ROOM_DEPARTURE_TIMEOUT_S,
   VOICE_TOKEN_TTL,
@@ -201,6 +202,7 @@ export async function handleLiveKitEvent(event: WebhookEvent): Promise<string[]>
   if (!bet) return [];
 
   const disputed = await prisma.dispute.count({ where: { betId, status: { in: OPEN_DISPUTES } } });
+  const hold = await activeHold(betId);
   const created: string[] = [];
   for (const file of event.egressInfo.fileResults) {
     const existing = await prisma.matchRecording.findFirst({ where: { betId, storageKey: file.filename }, select: { id: true } });
@@ -222,7 +224,8 @@ export async function handleLiveKitEvent(event: WebhookEvent): Promise<string[]>
         durationSeconds: Math.round(nsToMs(file.duration) / 1000),
         byteSize: file.size,
         failureReason: ok ? null : (event.egressInfo.error || "Empty recording").slice(0, 500),
-        retainUntil: disputed ? null : new Date(endedAt.getTime() + UNDISPUTED_RETENTION_MS),
+        retainUntil: disputed || hold ? null : new Date(endedAt.getTime() + UNDISPUTED_RETENTION_MS),
+        ...(hold ?? {}),
       },
       select: { id: true, status: true },
     });
