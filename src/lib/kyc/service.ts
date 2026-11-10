@@ -2,6 +2,7 @@ import {
   KycDocumentKind,
   KycDocumentType,
   KycStatus,
+  KycSubmissionPurpose,
   KycSubmissionStatus,
 } from "../../../generated/prisma/client";
 import { prisma, withTransaction } from "../db/client";
@@ -240,6 +241,7 @@ export async function reviewSubmission(input: ReviewSubmissionInput) {
         dateOfBirth: true,
         country: true,
         postalCode: true,
+        purpose: true,
         user: { select: { email: true, displayName: true } },
       },
     });
@@ -253,7 +255,12 @@ export async function reviewSubmission(input: ReviewSubmissionInput) {
     if (!input.approve && !input.reviewNotes?.trim()) {
       throw new ValidationError("A rejection must include a reason");
     }
-    if (input.approve) {
+    // An address update only changes the address: the customer's identity was
+    // already verified, so neither decision changes their verified status, and
+    // an address outside Great Britain is recorded truthfully (the eligibility
+    // gate then allows withdrawals only).
+    const addressUpdate = submission.purpose === KycSubmissionPurpose.ADDRESS_UPDATE;
+    if (input.approve && !addressUpdate) {
       // The document date of birth is what counts; re-check it here rather
       // than trusting the check made when the form was submitted.
       if (ageInYears(submission.dateOfBirth) < LEGAL_ADULT_AGE_YEARS) {
@@ -289,17 +296,21 @@ export async function reviewSubmission(input: ReviewSubmissionInput) {
       select: { id: true, status: true, reviewedAt: true, reviewNotes: true },
     });
 
-    await tx.user.update({
-      where: { id: submission.userId },
-      data: {
-        kycStatus: input.approve ? KycStatus.VERIFIED : KycStatus.REJECTED,
-      },
-    });
+    if (!addressUpdate) {
+      await tx.user.update({
+        where: { id: submission.userId },
+        data: {
+          kycStatus: input.approve ? KycStatus.VERIFIED : KycStatus.REJECTED,
+        },
+      });
+    }
 
     await recordAdminAction(
       {
         actorId: input.reviewerId,
-        action: input.approve ? "kyc.approve" : "kyc.reject",
+        action: addressUpdate
+          ? input.approve ? "kyc.address_approve" : "kyc.address_reject"
+          : input.approve ? "kyc.approve" : "kyc.reject",
         targetType: "kyc_submission",
         targetId: submission.id,
         details: { userId: submission.userId, reviewNotes: input.reviewNotes?.trim() || null },

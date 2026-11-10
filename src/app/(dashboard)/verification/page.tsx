@@ -116,6 +116,12 @@ export default function VerificationPage() {
         });
         const data = await res.json().catch(() => ({}));
         if (data.state) setState(data.state as KycState);
+        if (data.addressUpdate) {
+          if (data.outcome === 'approved') toast('success', 'Your address has been updated.');
+          else if (data.outcome === 'pending') toast('info', "Thanks. We're checking your new address and will update it soon.");
+          else if (data.outcome === 'rejected') toast('error', "We couldn't verify your new address. Your previous address is unchanged.");
+          return;
+        }
         if (data.outcome === 'approved') toast('success', "You're verified. Deposits and withdrawals are unlocked.");
         else if (data.outcome === 'pending') toast('info', "Thanks. We're reviewing your check and will email you soon.");
         else if (data.outcome === 'rejected') toast('error', "We couldn't verify you this time. See the reasons below and try again.");
@@ -233,6 +239,8 @@ export default function VerificationPage() {
           </div>
         </Card>
       )}
+
+      {state.kycStatus === 'VERIFIED' && <AddressCard />}
 
       {state.kycStatus === 'PENDING' && (
         <Card className="border-l-4 border-l-[var(--ps-warning)]">
@@ -446,3 +454,77 @@ export default function VerificationPage() {
     </div>
   );
 }
+
+interface AddressStatus {
+  canUpdate: boolean;
+  current: { addressLine1: string; addressLine2: string | null; city: string; postalCode: string; country: string; inGreatBritain: boolean } | null;
+  update: { status: 'PENDING' | 'APPROVED' | 'REJECTED'; startedAt: string; decidedAt: string | null; notes: string | null } | null;
+}
+
+/** A verified customer's address, and "Update my address" for when they move. */
+function AddressCard() {
+  const { toast } = useToast();
+  const [status, setStatus] = useState<AddressStatus | null>(null);
+  const [starting, setStarting] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/kyc/address', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: AddressStatus | null) => data && setStatus(data))
+      .catch(() => {});
+  }, []);
+
+  if (!status?.current) return null;
+
+  async function start() {
+    setStarting(true);
+    try {
+      const res = await fetch('/api/kyc/address', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) {
+        toast('error', data.error ?? 'Address updates are unavailable right now.');
+        return;
+      }
+      window.location.href = data.url;
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  const { current, update } = status;
+  return (
+    <Card>
+      <CardTitle>Your address</CardTitle>
+      <p className="mt-2 text-sm text-fg">
+        {[current.addressLine1, current.addressLine2, current.city, current.postalCode, current.country].filter(Boolean).join(', ')}
+      </p>
+      {!current.inGreatBritain && (
+        <p className="mt-2 text-sm text-[var(--ps-warning)]">
+          PlayStake is only available to people living in England, Scotland or Wales, so you can&apos;t deposit or play
+          from this address. You can still withdraw your balance.
+        </p>
+      )}
+      {update?.status === 'PENDING' ? (
+        <p className="mt-3 text-sm text-fg-secondary">
+          Your address update is being checked. We&apos;ll update it here once it&apos;s confirmed.
+        </p>
+      ) : (
+        <>
+          {update?.status === 'REJECTED' && update.notes && (
+            <p className="mt-3 text-sm text-fg-secondary">Your last update wasn&apos;t accepted: {update.notes}</p>
+          )}
+          <p className="mt-3 text-sm text-fg-secondary">
+            Moved? Tell us by verifying your new address. You&apos;ll need a proof of address from the last 3 months (a
+            utility bill, bank statement or government letter). Your account stays verified while we check it.
+          </p>
+          <div className="mt-3">
+            <PSButton size="sm" variant="secondary" disabled={!status.canUpdate || starting} onClick={start}>
+              {starting ? 'Starting…' : 'Update my address'}
+            </PSButton>
+          </div>
+        </>
+      )}
+    </Card>
+  );
+}
+

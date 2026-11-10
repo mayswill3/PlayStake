@@ -23,6 +23,9 @@ export const GET = withRoleGuard([UserRole.ADMIN], async (request) => {
   const where: Prisma.KycSubmissionWhereInput = {};
 
   if (status) where.status = status;
+  // An address update only reaches staff once Didit has returned a result
+  // (one still on Didit's page isn't waiting on us).
+  where.NOT = { purpose: "ADDRESS_UPDATE", providerStatus: null };
   if (search) {
     where.OR = [
       { legalFirstName: { contains: search, mode: "insensitive" } },
@@ -42,6 +45,7 @@ export const GET = withRoleGuard([UserRole.ADMIN], async (request) => {
         legalLastName: true,
         country: true,
         documentType: true,
+        purpose: true,
         createdAt: true,
         reviewedAt: true,
         user: { select: { id: true, email: true, displayName: true } },
@@ -52,7 +56,7 @@ export const GET = withRoleGuard([UserRole.ADMIN], async (request) => {
       take: limit,
     }),
     prisma.kycSubmission.count({ where }),
-    prisma.kycSubmission.count({ where: { status: "PENDING" } }),
+    prisma.kycSubmission.count({ where: { status: "PENDING", NOT: { purpose: "ADDRESS_UPDATE", providerStatus: null } } }),
   ]);
 
   return Response.json({

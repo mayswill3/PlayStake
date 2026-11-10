@@ -56,13 +56,15 @@ export interface CreateSessionInput {
   dateOfBirth?: string | null;
   /** Sandbox applications only: a deterministic test outcome. */
   sandboxScenario?: string;
+  /** A different Didit workflow (e.g. proof of address only). Defaults to DIDIT_WORKFLOW_ID. */
+  workflowId?: string;
 }
 
 export async function createDiditSession(input: CreateSessionInput): Promise<{ sessionId: string; url: string }> {
   const session = await diditFetch<{ session_id: string; url: string }>("/v3/session/", {
     method: "POST",
     body: JSON.stringify({
-      workflow_id: process.env.DIDIT_WORKFLOW_ID,
+      workflow_id: input.workflowId ?? process.env.DIDIT_WORKFLOW_ID,
       // Our user id: Didit uses it to spot one person behind several sessions,
       // and hands it back so we know whose result it is.
       vendor_data: input.userId,

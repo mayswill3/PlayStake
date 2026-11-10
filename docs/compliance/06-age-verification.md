@@ -68,6 +68,14 @@ Before any deposit, free-to-play access or gambling, the customer must complete 
 
 **Electronic verification provider.** Didit (didit.me) was appointed in October 2026 (Master Manual §8 item 4). Before real-money launch: sign Didit's data processing agreement, confirm where data is processed and stored, complete the DPIA (Document 17), and consider adding Didit's UK electoral-roll or credit-reference check so the address can be verified without a document.
 
+### 3.2a Changes of address
+
+Verified customers must tell us if they move (Terms §04). On **Verify ID → Update my address** they prove the new address with a Didit check (a proof-of-address workflow, `DIDIT_ADDRESS_WORKFLOW_ID`, if configured; otherwise the full check). The customer **stays verified** throughout.
+
+- **Approved by Didit:** the new address replaces the old one (a new approved record; earlier addresses stay on file). An address outside England, Scotland and Wales is still recorded truthfully; the eligibility gate then stops deposits and stakes, and withdrawals remain open.
+- **Declined:** the previous address stays; the customer sees Didit's reasons and can try again.
+- **In review, no usable address, or a name or date of birth that doesn't match the verified identity:** staff decide in the KYC queue (shown as "Address update"). Approving or rejecting an address update never changes the customer's verified status.
+
 ### 3.3 Where verification is enforced
 
 The eligibility check (Master Manual §5.1) requires verified identity for every one of these actions:

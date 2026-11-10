@@ -20,6 +20,7 @@ import {
   KycDocumentType,
   KycProvider,
   KycStatus,
+  KycSubmissionPurpose,
   KycSubmissionStatus,
   Prisma,
 } from "../../../generated/prisma/client";
@@ -112,8 +113,13 @@ export async function applyDiditDecision(decision: DiditDecision): Promise<Didit
 
   const existing = await prisma.kycSubmission.findUnique({
     where: { providerSessionId: decision.session_id },
-    select: { id: true, status: true },
+    select: { id: true, status: true, purpose: true },
   });
+  // A verified customer proving a new address: handled on its own, never
+  // touching their verified status.
+  if (existing?.purpose === KycSubmissionPurpose.ADDRESS_UPDATE) {
+    return applyAddressUpdateDecision(existing.id, existing.status, user.id, decision);
+  }
 
   // Already decided here: keep that decision, note what Didit now says.
   if (existing && existing.status !== KycSubmissionStatus.PENDING) {
@@ -225,5 +231,94 @@ export async function applyDiditDecision(decision: DiditDecision): Promise<Didit
   // In Review, or approved but something here needs a person to look.
   await prisma.user.update({ where: { id: user.id }, data: { kycStatus: KycStatus.PENDING } });
   await emailKycSubmitted(user.id, submission.id);
+  return "pending";
+}
+
+/**
+ * Didit's result for an address update. The customer stays verified whatever
+ * happens: a decline keeps their previous address; an approval with a proof of
+ * address replaces it (an address outside Great Britain is still recorded, and
+ * the eligibility gate then allows withdrawals only). Anything unclear, or a
+ * name or date of birth that doesn't match the verified identity, goes to
+ * staff.
+ */
+async function applyAddressUpdateDecision(
+  submissionId: string,
+  status: KycSubmissionStatus,
+  userId: string,
+  decision: DiditDecision,
+): Promise<DiditOutcome> {
+  if (status !== KycSubmissionStatus.PENDING) {
+    await prisma.kycSubmission.update({ where: { id: submissionId }, data: { providerStatus: decision.status, providerSummary: summarise(decision) } });
+    return "unchanged";
+  }
+  const submission = await prisma.kycSubmission.findUniqueOrThrow({
+    where: { id: submissionId },
+    select: { legalFirstName: true, legalLastName: true, dateOfBirth: true },
+  });
+  const poa = decision.poa_verifications?.[0];
+  const address = poa?.poa_parsed_address;
+  const id = decision.id_verifications?.[0];
+  const base = { providerStatus: decision.status, providerSummary: summarise(decision) };
+
+  if (decision.status === "Declined") {
+    const why = reasons(decision);
+    await prisma.kycSubmission.update({
+      where: { id: submissionId },
+      data: {
+        ...base,
+        status: KycSubmissionStatus.REJECTED,
+        reviewedAt: new Date(),
+        reviewNotes: (why.length ? `Address not verified: ${why.join("; ")}.` : "Address not verified.").slice(0, 1000),
+      },
+    });
+    return "rejected";
+  }
+
+  // If the full workflow ran, the person must be the one we verified.
+  const sameIdentity =
+    !id ||
+    ((!id.date_of_birth || id.date_of_birth.slice(0, 10) === submission.dateOfBirth.toISOString().slice(0, 10)) &&
+      (!id.last_name || id.last_name.trim().toLowerCase() === submission.legalLastName.trim().toLowerCase()));
+  const hasAddress = Boolean(address?.country && (address.street_1 || poa?.poa_formatted_address) && address.postal_code);
+
+  const fields = hasAddress
+    ? {
+        addressLine1: clip(address!.street_1 ?? poa?.poa_formatted_address, 200),
+        addressLine2: clip(address!.street_2, 200) || null,
+        city: clip(address!.city, 100),
+        region: clip(address!.region, 100) || null,
+        postalCode: clip(address!.postal_code, 20),
+        country: countryCode(address!.country),
+      }
+    : {};
+
+  if (decision.status === "Approved" && hasAddress && sameIdentity) {
+    const inGB = isGreatBritainAddress(fields.country, fields.postalCode);
+    await prisma.kycSubmission.update({
+      where: { id: submissionId },
+      data: {
+        ...base,
+        ...fields,
+        status: KycSubmissionStatus.APPROVED,
+        reviewedAt: new Date(),
+        reviewNotes: inGB
+          ? "Address updated (verified by Didit)."
+          : "Address updated (verified by Didit). Outside England, Scotland and Wales: deposits and stakes stop; withdrawals allowed.",
+      },
+    });
+    return "approved";
+  }
+
+  // In Review, no usable address, or an identity that doesn't match: staff decide.
+  await prisma.kycSubmission.update({
+    where: { id: submissionId },
+    data: {
+      ...base,
+      ...fields,
+      reviewNotes: sameIdentity ? null : "The name or date of birth on this check doesn't match the verified identity.",
+    },
+  });
+  console.info("[KYC] address update needs staff review", { userId, submissionId });
   return "pending";
 }

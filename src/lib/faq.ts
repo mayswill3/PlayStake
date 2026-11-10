@@ -147,6 +147,11 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         q: 'Can I pull out of a match after it is agreed?',
         a: "Yes, until the referee starts the match. Use 'Pull out of this match' on the match page: the match is cancelled and both stakes are returned in full, with no fee, and your opponent is told. Once the referee has started the match you can't pull out. Pulling out of three or more matches in 24 hours pauses new matches for 30 minutes.",
       },
+      {
+        id: 'change-address',
+        q: 'I have moved. How do I change my address?',
+        a: "Go to Verify ID and choose 'Update my address'. You'll verify your new address with a proof of address from the last 3 months, such as a utility bill, bank statement or government letter. Your account stays verified while we check it. PlayStake is only for people living in England, Scotland or Wales: if you move elsewhere you can still withdraw your balance, but you can't deposit or play.",
+      },
     ],
   },
   {

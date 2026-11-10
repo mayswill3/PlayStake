@@ -41,7 +41,7 @@ export default function TermsPage() {
       eyebrow="Legal"
       title="Terms of Service"
       summary="These Terms explain the rules for using PlayStake, entering player-versus-player challenges, connecting a live stream, and taking part as a player or referee."
-      lastUpdated="28 October 2026"
+      lastUpdated="10 November 2026"
       toc={toc}
     >
       <LegalCallout title="Important beta and licensing notice" tone="warning">
@@ -144,6 +144,13 @@ export default function TermsPage() {
           Display names, profile images and other public profile material must
           not impersonate others, infringe rights, contain unlawful material or
           be abusive or misleading.
+        </p>
+        <p id="keeping-details-up-to-date">
+          You must keep your details up to date. If you move, update your
+          address from the Verify ID page by verifying your new address; your
+          account stays verified while we check it. If you move outside
+          England, Scotland or Wales you can no longer deposit or play, but you
+          can still withdraw your balance.
         </p>
       </LegalSection>
 

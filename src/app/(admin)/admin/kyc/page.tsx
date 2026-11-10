@@ -21,6 +21,7 @@ interface SubmissionRow {
   legalLastName: string;
   country: string;
   documentType: string;
+  purpose?: 'IDENTITY' | 'ADDRESS_UPDATE';
   createdAt: string;
   reviewedAt: string | null;
   user: { id: string; email: string; displayName: string };
@@ -291,7 +292,13 @@ export default function AdminKycPage() {
                       {row.legalFirstName} {row.legalLastName}
                       <div className="text-xs text-fg-secondary">{row.country}</div>
                     </td>
-                    <td className="px-4 py-3 text-xs">{row.documentType.replace(/_/g, ' ')}</td>
+                    <td className="px-4 py-3 text-xs">
+                      {row.purpose === 'ADDRESS_UPDATE' ? (
+                        <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-[11px] font-semibold text-sky-300">Address update</span>
+                      ) : (
+                        row.documentType.replace(/_/g, ' ')
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-xs">{formatDate(row.createdAt)}</td>
                     <td className="px-4 py-3">
                       <Badge variant={statusVariant(row.status)}>{row.status}</Badge>
@@ -340,7 +347,11 @@ export default function AdminKycPage() {
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wider text-fg-secondary">Document type</dt>
-              <dd className="text-fg">{selected.documentType.replace(/_/g, ' ')}</dd>
+              <dd className="text-fg">
+                {selected.purpose === 'ADDRESS_UPDATE'
+                  ? 'Address update: a verified customer proving a new address. Approving replaces their address; either decision leaves them verified.'
+                  : selected.documentType.replace(/_/g, ' ')}
+              </dd>
             </div>
             <div className="sm:col-span-2">
               <dt className="text-xs uppercase tracking-wider text-fg-secondary">Address</dt>

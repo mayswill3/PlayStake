@@ -3,6 +3,7 @@ import { errorResponse, ValidationError } from "@/lib/errors";
 import { applyDiditDecision } from "@/lib/kyc/didit-decisions";
 import { getDiditDecision, isDiditEnabled } from "@/lib/kyc/didit";
 import { getKycState } from "@/lib/kyc/service";
+import { prisma } from "@/lib/db/client";
 
 /**
  * POST /api/kyc/didit/sync — called when the player comes back from Didit.
@@ -18,7 +19,13 @@ export const POST = withSessionAuth(async (request, _context, auth) => {
 
     const decision = await getDiditDecision(sessionId);
     const outcome = decision.vendor_data === auth.userId ? await applyDiditDecision(decision) : "ignored";
-    return Response.json({ outcome, status: decision.status, state: await getKycState(auth.userId) });
+    const submission = await prisma.kycSubmission.findUnique({ where: { providerSessionId: sessionId }, select: { purpose: true } });
+    return Response.json({
+      outcome,
+      status: decision.status,
+      addressUpdate: submission?.purpose === "ADDRESS_UPDATE",
+      state: await getKycState(auth.userId),
+    });
   } catch (error) {
     if (error instanceof Error && error.name === "DiditApiError") {
       console.error("[KYC] Didit decision could not be read:", error.message);

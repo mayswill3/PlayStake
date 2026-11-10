@@ -758,6 +758,11 @@ async function resolveRouteHandler(
     }
   }
 
+  if (path === "/api/kyc/address") {
+    const mod = await import("../../src/app/api/kyc/address/route.js");
+    return { handler: method === "POST" ? mod.POST : mod.GET };
+  }
+
   const betWithdrawMatch = path.match(/^\/api\/bets\/([^/?]+)\/withdraw$/);
   if (betWithdrawMatch && method === "POST") {
     const mod = await import("../../src/app/api/bets/[id]/withdraw/route.js");

@@ -76,6 +76,8 @@ Identity is verified before any deposit, any play and any withdrawal (Policy 06)
 
 #### B2.2 Ongoing monitoring
 
+- **Keeping customer details current.** Customers must tell us when they move (Terms §04) and prove the new address through Didit (Policy 06 §3.2a); identity carried forward, the change recorded with its proof, and the residency gate applied to the new address.
+
 - The monitoring in B3 runs on every account.
 - Customers' circumstances are reviewed whenever a case is raised.
 

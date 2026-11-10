@@ -27,6 +27,7 @@ export const GET = withRoleGuard([UserRole.ADMIN], async (_req, context) => {
       postalCode: true,
       country: true,
       documentType: true,
+      purpose: true,
       provider: true,
       providerSessionId: true,
       providerStatus: true,
