@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { CheckCircle2 } from 'lucide-react';
+import { ResendBetaEmail } from '@/components/landing/ResendBetaEmail';
 import { FaqList } from '@/components/landing/faq';
 import { BETA_FAVOURITE_GAMES } from '@/lib/games/catalogue';
 import type { FaqItem } from '@/lib/faq';
@@ -99,9 +100,12 @@ export function JoinBeta() {
           {state === 'done' ? (
             <div className="relative mt-8 flex items-start gap-3 rounded-[var(--ps-radius-md)] bg-[var(--ps-lime)]/15 p-4" role="status">
               <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-              <p>
-                <span className="font-semibold">You&apos;re on the list.</span> We&apos;ve sent a confirmation to {email}.
-              </p>
+              <div>
+                <p>
+                  <span className="font-semibold">You&apos;re on the list.</span> We&apos;ve sent a confirmation to {email}.
+                </p>
+                <ResendBetaEmail email={email} className="mt-2" />
+              </div>
             </div>
           ) : (
             <form onSubmit={submit} className="relative mt-6 space-y-4" noValidate>

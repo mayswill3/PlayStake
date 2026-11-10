@@ -214,6 +214,13 @@ export const complaintRateLimit = rateLimit({
   keyFn: (req) => `complaint:${getClientIp(req)}`,
 });
 
+/** Resending the beta confirmation: 5 per hour per IP (and 3 a day per address in the route). */
+export const betaResendRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 5,
+  keyFn: (req) => `beta-resend:${getClientIp(req)}`,
+});
+
 /** Public beta form: 10 submissions per hour per IP. */
 export const betaSignupRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000,

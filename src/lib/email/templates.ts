@@ -603,18 +603,20 @@ const TEMPLATES: { [N in EmailTemplateName]: TemplateDefinition<Payloads[N]> } =
       cta: { label: 'Watch now', url: appUrl(`/streams/${p.channelSlug}`) },
     }),
   },
+  // Kept plain and transactional (no offers or hype) so mail providers
+  // treat it as the confirmation it is, not marketing.
   'beta.signup-received': {
     essential: true,
-    subject: () => 'You are on the PlayStake list',
+    subject: () => 'Your PlayStake beta sign-up',
     content: (p) => ({
-      eyebrow: 'Welcome',
-      heading: 'Thanks for signing up',
+      eyebrow: 'Beta sign-up',
+      heading: 'Your sign-up is confirmed',
       name: p.name,
       paragraphs: [
-        'We will email you as soon as your spot is ready.',
-        'PlayStake is peer-to-peer wagering on your own matches, with an independent referee on every refereed game.',
+        'Thanks for signing up for the PlayStake beta. We will email you at this address when your access is ready.',
+        'You received this because this email address was entered on playstake.org. If that was not you, you can ignore this email and we will not contact you again.',
+        'To make sure our emails reach you, add support@playstake.org to your contacts.',
       ],
-      cta: { label: 'Visit PlayStake', url: appUrl('/') },
     }),
   },
   'admin.alert': {

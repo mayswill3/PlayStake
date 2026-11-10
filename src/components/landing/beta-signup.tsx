@@ -1,5 +1,6 @@
 'use client';
 
+import { ResendBetaEmail } from './ResendBetaEmail';
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { EyebrowPill, DarkGlowCard, PSButton } from '@/components/ui/playstake';
@@ -83,8 +84,9 @@ export function BetaSignup() {
             You&apos;re on the list.
           </h2>
           <p className="text-ps-muted dark:text-ps-muted-on-dark">
-            We&apos;ll be in touch when beta access opens. Spread the word.
+            We&apos;ve sent a confirmation to {form.email}. We&apos;ll be in touch when beta access opens.
           </p>
+          <ResendBetaEmail email={form.email} className="mt-3" />
         </div>
       </section>
     );

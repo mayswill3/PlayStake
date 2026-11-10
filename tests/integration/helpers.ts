@@ -758,6 +758,11 @@ async function resolveRouteHandler(
     }
   }
 
+  if (path === "/api/beta-signup/resend") {
+    const mod = await import("../../src/app/api/beta-signup/resend/route.js");
+    return { handler: mod.POST };
+  }
+
   if (path === "/api/kyc/address") {
     const mod = await import("../../src/app/api/kyc/address/route.js");
     return { handler: method === "POST" ? mod.POST : mod.GET };
